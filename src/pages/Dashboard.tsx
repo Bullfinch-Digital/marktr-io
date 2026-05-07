@@ -480,33 +480,36 @@ export default function Dashboard() {
                 View all →
               </button>
             </div>
-            <div className="flex gap-4 overflow-x-auto pb-2">
-              {icps?.slice(0, 3).map((icp) => (
-                <div
-                  key={icp.id}
-                  className="min-w-[200px] flex-shrink-0 cursor-pointer rounded-xl border border-border bg-white p-4 transition-colors hover:border-primary/40"
-                  onClick={() => navigate("/icp/" + icp.id)}
-                >
+            <div className="relative">
+              <div className="flex gap-4 overflow-x-auto pb-3 scroll-smooth">
+                {icps?.slice(0, 3).map((icp) => (
                   <div
-                    className="mb-3 flex h-10 w-10 items-center justify-center rounded-full font-['DM_Sans'] text-sm font-bold text-white"
-                    style={{ background: icp.color ?? "#E8650A" }}
+                    key={icp.id}
+                    className="min-w-[200px] flex-shrink-0 cursor-pointer rounded-xl border border-border bg-white p-4 transition-colors hover:border-primary/40"
+                    onClick={() => navigate("/icp/" + icp.id)}
                   >
-                    {icp.name?.slice(0, 2).toUpperCase()}
+                    <div
+                      className="mb-3 flex h-10 w-10 items-center justify-center rounded-full font-['DM_Sans'] text-sm font-bold text-white"
+                      style={{ background: icp.color ?? "#E8650A" }}
+                    >
+                      {icp.name?.slice(0, 2).toUpperCase()}
+                    </div>
+                    <p className="line-clamp-2 font-['DM_Sans'] text-sm font-medium leading-snug text-[#0D1833]">
+                      {icp.name}
+                    </p>
                   </div>
-                  <p className="line-clamp-2 font-['DM_Sans'] text-sm font-medium leading-snug text-[#0D1833]">
-                    {icp.name}
-                  </p>
-                </div>
-              ))}
-              {(!icps || icps.length === 0) && (
-                <div
-                  onClick={() => navigate("/onboarding-build")}
-                  className="flex min-w-[200px] flex-shrink-0 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-white p-4 text-center transition-colors hover:border-primary/40"
-                >
-                  <Plus className="h-6 w-6 text-muted-foreground" />
-                  <p className="font-['DM_Sans'] text-xs text-muted-foreground">Create your first ICP</p>
-                </div>
-              )}
+                ))}
+                {(!icps || icps.length === 0) && (
+                  <div
+                    onClick={() => navigate("/onboarding-build")}
+                    className="flex min-w-[200px] flex-shrink-0 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-white p-4 text-center transition-colors hover:border-primary/40"
+                  >
+                    <Plus className="h-6 w-6 text-muted-foreground" />
+                    <p className="font-['DM_Sans'] text-xs text-muted-foreground">Create your first ICP</p>
+                  </div>
+                )}
+              </div>
+              <div className="pointer-events-none absolute right-0 top-0 bottom-3 w-16 bg-gradient-to-l from-background to-transparent" />
             </div>
           </div>
         </div>

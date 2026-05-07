@@ -970,7 +970,7 @@ export default function ICPEditor() {
                 <EditableListSection
                   title="Goals & Motivations"
                   items={icpData.goals || []}
-                  isLocked={isFreeTier}
+                  isLocked={false}
                   onChange={(items) => setICPData({ ...icpData, goals: items })}
                 />
               </div>
@@ -980,7 +980,7 @@ export default function ICPEditor() {
                 <EditableListSection
                   title="Pain Points"
                   items={icpData.pain_points || []}
-                  isLocked={isFreeTier}
+                  isLocked={false}
                   onChange={(items) => setICPData({ ...icpData, pain_points: items })}
                 />
               </div>
@@ -990,7 +990,7 @@ export default function ICPEditor() {
                 <EditableListSection
                   title="Decision Makers"
                   items={icpData.decision_makers || []}
-                  isLocked={isFreeTier}
+                  isLocked={false}
                   onChange={(items) => setICPData({ ...icpData, decision_makers: items })}
                 />
               </div>
@@ -1000,7 +1000,7 @@ export default function ICPEditor() {
                 <EditableListSection
                   title="Digital Tools & Platforms"
                   items={icpData.tech_stack || []}
-                  isLocked={isFreeTier}
+                  isLocked={false}
                   onChange={(items) => setICPData({ ...icpData, tech_stack: items })}
                 />
               </div>
@@ -1010,7 +1010,7 @@ export default function ICPEditor() {
                 <EditableListSection
                   title="Challenges"
                   items={icpData.challenges || []}
-                  isLocked={isFreeTier}
+                  isLocked={false}
                   onChange={(items) => setICPData({ ...icpData, challenges: items })}
                 />
               </div>
@@ -1020,7 +1020,7 @@ export default function ICPEditor() {
                 <EditableListSection
                   title="Opportunities"
                   items={icpData.opportunities || []}
-                  isLocked={isFreeTier}
+                  isLocked={false}
                   onChange={(items) => setICPData({ ...icpData, opportunities: items })}
                 />
               </div>

@@ -231,13 +231,27 @@ export default function MyAccount() {
       userId: user?.id,
       profileName: profile?.name,
       profileEmail: profile?.email,
+      authEmail: user?.email,
     });
 
-    if (!authLoading && !profileLoading && profile) {
-      setName(profile.name ?? "");
-      setEmail(profile.email ?? "");
-      setLocalReady(true);
+    if (authLoading || profileLoading) return;
+
+    // Keep account screen usable even if profile row is delayed or email is blank.
+    const resolvedName =
+      profile?.name ??
+      user?.user_metadata?.name ??
+      user?.email?.split("@")[0] ??
+      "";
+
+    const resolvedEmail = profile?.email || user?.email || "";
+
+    setName(resolvedName);
+    // Only overwrite local email when we actually have a resolved value.
+    // This avoids blank profile.email wiping a just-entered pending email.
+    if (resolvedEmail) {
+      setEmail(resolvedEmail);
     }
+    setLocalReady(true);
   }, [authLoading, profileLoading, profile, user]);
 
   useEffect(() => {
@@ -344,6 +358,8 @@ export default function MyAccount() {
           }
         } else {
           setEmailMessage("Check your new email to confirm this change.");
+          // Keep the requested email visible in the field while confirmation is pending.
+          setEmail(newEmail);
           console.log("MyAccount: email change request sent successfully");
           showTemporarySavedState();
         }

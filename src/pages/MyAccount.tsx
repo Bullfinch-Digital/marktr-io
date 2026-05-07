@@ -29,6 +29,7 @@ export default function MyAccount() {
   const [saving, setSaving] = useState(false);
   const [saveFeedback, setSaveFeedback] = useState<"idle" | "saved" | "error">("idle");
   const [emailMessage, setEmailMessage] = useState<string | null>(null);
+  const [emailCooldownUntil, setEmailCooldownUntil] = useState<number | null>(null);
   const [localReady, setLocalReady] = useState(false);
   const savedTimerRef = useRef<number | null>(null);
   const isSavingRef = useRef(false);
@@ -279,6 +280,15 @@ export default function MyAccount() {
     const emailChanged =
       trimmedEmail.length > 0 && trimmedEmail.toLowerCase() !== currentAuthEmail.toLowerCase();
     const nameChanged = trimmedName !== currentProfileName;
+    const now = Date.now();
+
+    if (emailChanged && emailCooldownUntil && now < emailCooldownUntil) {
+      const secondsLeft = Math.max(1, Math.ceil((emailCooldownUntil - now) / 1000));
+      setEmailMessage(
+        `Please wait ${secondsLeft}s before requesting another email change.`
+      );
+      return;
+    }
 
     if (!emailChanged && !nameChanged) {
       console.log("MyAccount: no changes detected");
@@ -296,6 +306,8 @@ export default function MyAccount() {
       if (!user?.id) {
         throw new Error("No authenticated user");
       }
+
+      let emailChangeWarning: string | null = null;
 
       if (emailChanged) {
         const emailRedirectUrl = `${window.location.origin}/account`;
@@ -319,12 +331,22 @@ export default function MyAccount() {
 
         if (result.error) {
           console.error("MyAccount: updateUser error", result.error);
-          throw result.error;
-        }
+          const status = (result.error as any)?.status;
+          const message = (result.error as any)?.message || "Failed to request email change.";
+          const waitMatch = /after\s+(\d+)\s+seconds?/i.exec(message);
 
-        setEmailMessage("Check your new email to confirm this change.");
-        console.log("MyAccount: email change request sent successfully");
-        showTemporarySavedState();
+          if (status === 429 || waitMatch) {
+            const waitSeconds = waitMatch ? Number(waitMatch[1]) : 15;
+            setEmailCooldownUntil(Date.now() + waitSeconds * 1000);
+            emailChangeWarning = `Please wait ${waitSeconds}s before requesting another email change.`;
+          } else {
+            throw result.error;
+          }
+        } else {
+          setEmailMessage("Check your new email to confirm this change.");
+          console.log("MyAccount: email change request sent successfully");
+          showTemporarySavedState();
+        }
       }
 
       if (nameChanged) {
@@ -342,6 +364,10 @@ export default function MyAccount() {
         }
 
         showTemporarySavedState();
+      }
+
+      if (emailChangeWarning) {
+        setEmailMessage(emailChangeWarning);
       }
 
     } catch (err) {

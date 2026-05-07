@@ -30,6 +30,7 @@ export default function MyAccount() {
   const [saveFeedback, setSaveFeedback] = useState<"idle" | "saved" | "error">("idle");
   const [emailMessage, setEmailMessage] = useState<string | null>(null);
   const [emailCooldownUntil, setEmailCooldownUntil] = useState<number | null>(null);
+  const [cooldownNow, setCooldownNow] = useState<number>(Date.now());
   const [localReady, setLocalReady] = useState(false);
   const savedTimerRef = useRef<number | null>(null);
   const isSavingRef = useRef(false);
@@ -65,6 +66,13 @@ export default function MyAccount() {
     | undefined;
 
   const isLoading = authLoading || profileLoading || !localReady;
+  const emailInputChanged =
+    email.trim().length > 0 &&
+    email.trim().toLowerCase() !== (user?.email || "").trim().toLowerCase();
+  const emailCooldownSeconds = emailCooldownUntil
+    ? Math.max(0, Math.ceil((emailCooldownUntil - cooldownNow) / 1000))
+    : 0;
+  const emailOnCooldown = emailInputChanged && emailCooldownSeconds > 0;
 
   // Safer timestamptz parsing (Supabase can return microseconds; JS Date can be inconsistent)
   const parseSupabaseTimestamptz = useCallback((input: string | null | undefined): number | null => {
@@ -262,6 +270,25 @@ export default function MyAccount() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!emailCooldownUntil) return;
+    if (emailCooldownUntil <= Date.now()) return;
+
+    const intervalId = window.setInterval(() => {
+      setCooldownNow(Date.now());
+    }, 1000);
+
+    return () => window.clearInterval(intervalId);
+  }, [emailCooldownUntil]);
+
+  useEffect(() => {
+    if (!emailCooldownUntil) return;
+    if (emailCooldownUntil <= Date.now()) {
+      setEmailCooldownUntil(null);
+      setCooldownNow(Date.now());
+    }
+  }, [emailCooldownUntil, cooldownNow]);
+
   const showTemporarySavedState = () => {
     if (savedTimerRef.current) {
       window.clearTimeout(savedTimerRef.current);
@@ -349,10 +376,17 @@ export default function MyAccount() {
           const message = (result.error as any)?.message || "Failed to request email change.";
           const waitMatch = /after\s+(\d+)\s+seconds?/i.exec(message);
 
-          if (status === 429 || waitMatch) {
-            const waitSeconds = waitMatch ? Number(waitMatch[1]) : 15;
+          const isRateLimited =
+            status === 429 ||
+            !!waitMatch ||
+            /rate limit|too many requests/i.test(message);
+
+          if (isRateLimited) {
+            const waitSeconds = waitMatch ? Number(waitMatch[1]) : 60;
             setEmailCooldownUntil(Date.now() + waitSeconds * 1000);
-            emailChangeWarning = `Please wait ${waitSeconds}s before requesting another email change.`;
+            emailChangeWarning = waitMatch
+              ? `Please wait ${waitSeconds}s before requesting another email change.`
+              : "Email change rate limit reached. Please wait a few minutes, then try again.";
           } else {
             throw result.error;
           }
@@ -539,13 +573,14 @@ export default function MyAccount() {
             <div className="flex items-center gap-3">
               <Button
                 onClick={handleSaveProfile}
-                disabled={saving}
+                disabled={saving || emailOnCooldown}
                 className="bg-button-green hover:bg-button-green/90 text-foreground border border-black rounded-design font-['Inter'] disabled:opacity-50"
               >
                 {saving && "Saving..."}
+                {!saving && emailOnCooldown && `Wait ${emailCooldownSeconds}s`}
                 {!saving && saveFeedback === "saved" && "Saved!"}
                 {!saving && saveFeedback === "error" && "Try Again"}
-                {!saving && saveFeedback === "idle" && "Save Changes"}
+                {!saving && !emailOnCooldown && saveFeedback === "idle" && "Save Changes"}
               </Button>
               {saveFeedback === "saved" && (
                 <span className="flex items-center gap-2 font-['Inter'] text-sm text-button-green">
@@ -554,6 +589,11 @@ export default function MyAccount() {
                 </span>
               )}
             </div>
+            {emailOnCooldown && (
+              <p className="font-['Inter'] text-xs text-foreground/70">
+                Please wait {emailCooldownSeconds}s before requesting another email change.
+              </p>
+            )}
           </div>
         </div>
 

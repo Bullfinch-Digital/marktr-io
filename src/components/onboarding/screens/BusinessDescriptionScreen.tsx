@@ -1,4 +1,5 @@
 import { Textarea } from "../../ui/textarea";
+import { WhisperButton } from "../../ui/WhisperButton";
 
 interface BusinessDescriptionScreenProps {
   value: string;
@@ -29,14 +30,24 @@ export function BusinessDescriptionScreen({ value, onChange, onContinue }: Busin
           <p>Try: <span className="font-medium text-foreground/70">who you help</span> + <span className="font-medium text-foreground/70">the outcome</span> + <span className="font-medium text-foreground/70">what makes you different</span>.</p>
           <p className="italic">Example: “We help busy founders get more leads using done-for-you Meta ads and landing pages.”</p>
         </div>
-        <Textarea
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="We help [who] achieve [outcome] by [how]..."
-          className="border border-black rounded-design px-4 py-4 bg-white text-foreground placeholder:text-foreground/40 min-h-[120px] resize-none"
-          autoFocus
-        />
+        <div className="flex items-start gap-2">
+          <Textarea
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="We help [who] achieve [outcome] by [how]..."
+            className="border border-black rounded-design px-4 py-4 bg-white text-foreground placeholder:text-foreground/40 min-h-[120px] resize-none"
+            autoFocus
+          />
+          <WhisperButton
+            onTranscript={(text) => {
+              const trimmed = text.trim();
+              if (!trimmed) return;
+              onChange(value.trim() ? `${value.trim()} ${trimmed}` : trimmed);
+            }}
+            className="pt-1"
+          />
+        </div>
       </div>
     </div>
   );

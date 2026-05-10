@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { UserCircle, BookOpen, Zap, ArrowRight, Check } from "lucide-react";
+import { UserCircle, BookOpen, Zap, ArrowRight, Check, Users, Activity } from "lucide-react";
 
 const benefits = [
   { id: 0, label: "Start with your ideal customer" },
@@ -27,23 +27,74 @@ export default function Home() {
             </h1>
 
             <p className="mt-7 max-w-2xl font-['DM_Sans'] text-lg leading-relaxed text-muted-foreground sm:text-xl">
-              marktr defines your ideal customer, shapes your story, and creates your content — without the agency price tag.
+              Three ways in. One platform. Start with the problem that matters most to you right now.
             </p>
 
-            <div className="mt-10 flex flex-col gap-4 sm:flex-row sm:items-center">
+            <div className="mt-10 grid max-w-2xl gap-4 sm:grid-cols-3">
               <Link
                 to="/onboarding-build"
-                className="inline-flex items-center justify-center rounded-full bg-primary px-8 py-4 font-['DM_Sans'] text-lg font-medium text-primary-foreground transition-opacity hover:opacity-90"
+                className="group flex flex-col gap-3 rounded-2xl border border-border bg-white p-5 text-left transition-colors hover:border-primary/40"
               >
-                Start free trial
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--feature-amber)]">
+                  <Users className="h-5 w-5 text-[#0D1833]" />
+                </div>
+                <div>
+                  <p className="font-['Fraunces'] text-base font-bold leading-snug text-[#0D1833]">
+                    Know your customer
+                  </p>
+                  <p className="mt-1 font-['DM_Sans'] text-xs leading-relaxed text-muted-foreground">
+                    Generate your ideal customer profile — free
+                  </p>
+                </div>
+                <span className="mt-auto font-['DM_Sans'] text-xs font-medium text-primary">
+                  Start free →
+                </span>
               </Link>
-              <a
-                href="#modules"
-                className="inline-flex items-center justify-center font-['DM_Sans'] text-base text-foreground underline underline-offset-4 sm:text-lg"
+
+              <Link
+                to="/health-check"
+                className="group flex flex-col gap-3 rounded-2xl border border-border bg-white p-5 text-left transition-colors hover:border-primary/40"
               >
-                See how it works →
-              </a>
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--feature-teal)]">
+                  <Activity className="h-5 w-5 text-[#0D1833]" />
+                </div>
+                <div>
+                  <p className="font-['Fraunces'] text-base font-bold leading-snug text-[#0D1833]">
+                    Check your marketing health
+                  </p>
+                  <p className="mt-1 font-['DM_Sans'] text-xs leading-relaxed text-muted-foreground">
+                    Score your digital presence across 5 dimensions — free
+                  </p>
+                </div>
+                <span className="mt-auto font-['DM_Sans'] text-xs font-medium text-primary">
+                  Start free →
+                </span>
+              </Link>
+
+              <Link
+                to="/story"
+                className="group flex flex-col gap-3 rounded-2xl border border-border bg-white p-5 text-left transition-colors hover:border-primary/40"
+              >
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--feature-coral)]">
+                  <BookOpen className="h-5 w-5 text-[#0D1833]" />
+                </div>
+                <div>
+                  <p className="font-['Fraunces'] text-base font-bold leading-snug text-[#0D1833]">
+                    Find your brand story
+                  </p>
+                  <p className="mt-1 font-['DM_Sans'] text-xs leading-relaxed text-muted-foreground">
+                    Discover the story that makes your business impossible to ignore — free
+                  </p>
+                </div>
+                <span className="mt-auto font-['DM_Sans'] text-xs font-medium text-primary">
+                  Start free →
+                </span>
+              </Link>
             </div>
+
+            <p className="mt-6 font-['DM_Sans'] text-xs text-muted-foreground">
+              All three are free. No credit card required. 14-day trial unlocks the full platform.
+            </p>
 
             <ul className="mt-9 flex flex-col gap-3 font-['DM_Sans'] text-sm text-muted-foreground sm:flex-row sm:flex-wrap sm:gap-x-8 sm:gap-y-2">
               <li className="flex items-center gap-2">

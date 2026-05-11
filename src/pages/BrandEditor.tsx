@@ -9,6 +9,7 @@ import { useBrands, Brand } from "../hooks/useBrands";
 import "../styles/Modal.css";
 import { ArrowLeft, Save, MoreVertical, Trash2, Palette, Copy, FileText } from "lucide-react";
 import { TagInput } from "../components/ui/tag-input";
+import { WhisperButton } from "../components/ui/WhisperButton";
 import useSubscription from "../hooks/useSubscription";
 import { usePaywall } from "../contexts/PaywallContext";
 import { useICPs } from "../hooks/useICPs";
@@ -87,6 +88,7 @@ export default function BrandEditor() {
     currentColor: null as string | null,
   });
   const [, setIsExporting] = useState(false);
+  const [activeTab, setActiveTab] = useState<"details" | "overview">("details");
 
   const handleOpenIcpColorModal = (icpId: string, currentColor?: string | null) => {
     setIcpColorModal({
@@ -168,6 +170,23 @@ export default function BrandEditor() {
         region_or_city: data.region_or_city || "",
         currency: data.currency || "",
         website: data.website || "",
+        founding_story: data.founding_story || "",
+        core_values: data.core_values || [],
+        want_known_for: data.want_known_for || "",
+        never_associated_with: data.never_associated_with || "",
+        voice_adjectives: data.voice_adjectives || [],
+        admired_brands: data.admired_brands || "",
+        brand_voice_profile: data.brand_voice_profile || "",
+        competitors: data.competitors ?? null,
+        active_platforms: data.active_platforms || [],
+        runs_paid_ads: data.runs_paid_ads ?? false,
+        monthly_ad_spend: data.monthly_ad_spend ?? null,
+        email_list_size: data.email_list_size ?? null,
+        email_platform: data.email_platform || "",
+        primary_goal: data.primary_goal || "",
+        platform_focus: data.platform_focus || "",
+        monthly_content_volume: data.monthly_content_volume || "",
+        success_markers: data.success_markers || [],
       });
     const current = serialize(brandData);
     const original = serialize(originalDataRef.current);
@@ -221,6 +240,23 @@ export default function BrandEditor() {
       region_or_city: brandData.region_or_city,
       currency: brandData.currency,
       website: brandData.website,
+      founding_story: brandData.founding_story,
+      core_values: brandData.core_values,
+      want_known_for: brandData.want_known_for,
+      never_associated_with: brandData.never_associated_with,
+      voice_adjectives: brandData.voice_adjectives,
+      admired_brands: brandData.admired_brands,
+      brand_voice_profile: brandData.brand_voice_profile,
+      competitors: brandData.competitors,
+      active_platforms: brandData.active_platforms,
+      runs_paid_ads: brandData.runs_paid_ads,
+      monthly_ad_spend: brandData.monthly_ad_spend,
+      email_list_size: brandData.email_list_size,
+      email_platform: brandData.email_platform,
+      primary_goal: brandData.primary_goal,
+      platform_focus: brandData.platform_focus,
+      monthly_content_volume: brandData.monthly_content_volume,
+      success_markers: brandData.success_markers,
     };
 
     const success = await updateBrand(id, updates);
@@ -616,7 +652,35 @@ export default function BrandEditor() {
           </div>
         </header>
 
+        <div className="border-b border-border bg-background sticky top-[65px] z-30">
+          <div className="container mx-auto px-6">
+            <div className="flex gap-0">
+              {(
+                [
+                  { id: "details" as const, label: "Brand Details" },
+                  { id: "overview" as const, label: "Brand Overview" },
+                ] as const
+              ).map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`px-6 py-3 font-['DM_Sans'] text-sm font-medium border-b-2 transition-colors ${
+                    activeTab === tab.id
+                      ? "border-primary text-primary"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
         <main className="container mx-auto px-6 py-12 max-w-4xl space-y-8">
+          {activeTab === "details" && (
+            <>
           <div className="bg-background border border-black rounded-design p-8 shadow-md animate-fade-in-up space-y-6">
             <div className="space-y-4">
               <label className="font-['Inter'] text-sm text-foreground/70">Brand name</label>
@@ -786,6 +850,433 @@ export default function BrandEditor() {
               );
             })()}
           </div>
+            </>
+          )}
+
+          {activeTab === "overview" && (
+            <div className="space-y-6">
+              <div className="bg-white rounded-xl border border-border p-8 space-y-4">
+                <div>
+                  <h2 className="font-['Fraunces'] text-2xl font-bold text-[#0D1833]">Founding story</h2>
+                  <p className="font-['DM_Sans'] text-sm text-muted-foreground mt-1">
+                    The story behind why this business exists. This is the most differentiating content most founders never use.
+                  </p>
+                </div>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="font-['DM_Sans'] text-sm text-[#0D1833]">Founding story</label>
+                    <div className="flex items-start gap-2">
+                      <Textarea
+                        value={brandData.founding_story ?? ""}
+                        onChange={(e) =>
+                          setBrandData((prev) => ({ ...prev, founding_story: e.target.value }))
+                        }
+                        placeholder="Why did you start this business? What was the moment that made it inevitable?"
+                        className="min-h-[120px] resize-none border border-black rounded-design"
+                      />
+                      <WhisperButton
+                        onTranscript={(t) => {
+                          const trimmed = t.trim();
+                          if (!trimmed) return;
+                          setBrandData((prev) => ({
+                            ...prev,
+                            founding_story: prev.founding_story?.trim()
+                              ? `${prev.founding_story.trim()} ${trimmed}`
+                              : trimmed,
+                          }));
+                        }}
+                        className="pt-1"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="font-['DM_Sans'] text-sm text-[#0D1833]">What do you want to be known for?</label>
+                    <div className="flex items-start gap-2">
+                      <Textarea
+                        value={brandData.want_known_for ?? ""}
+                        onChange={(e) =>
+                          setBrandData((prev) => ({ ...prev, want_known_for: e.target.value }))
+                        }
+                        placeholder="The thing you'd most want a customer to say about you"
+                        className="min-h-[80px] resize-none border border-black rounded-design"
+                      />
+                      <WhisperButton
+                        onTranscript={(t) => {
+                          const trimmed = t.trim();
+                          if (!trimmed) return;
+                          setBrandData((prev) => ({
+                            ...prev,
+                            want_known_for: prev.want_known_for?.trim()
+                              ? `${prev.want_known_for.trim()} ${trimmed}`
+                              : trimmed,
+                          }));
+                        }}
+                        className="pt-1"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="font-['DM_Sans'] text-sm text-[#0D1833]">
+                      What do you never want to be associated with?
+                    </label>
+                    <div className="flex items-start gap-2">
+                      <Textarea
+                        value={brandData.never_associated_with ?? ""}
+                        onChange={(e) =>
+                          setBrandData((prev) => ({ ...prev, never_associated_with: e.target.value }))
+                        }
+                        placeholder="Values, approaches or associations to avoid entirely"
+                        className="min-h-[80px] resize-none border border-black rounded-design"
+                      />
+                      <WhisperButton
+                        onTranscript={(t) => {
+                          const trimmed = t.trim();
+                          if (!trimmed) return;
+                          setBrandData((prev) => ({
+                            ...prev,
+                            never_associated_with: prev.never_associated_with?.trim()
+                              ? `${prev.never_associated_with.trim()} ${trimmed}`
+                              : trimmed,
+                          }));
+                        }}
+                        className="pt-1"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-xl border border-border p-8 space-y-4">
+                <div>
+                  <h2 className="font-['Fraunces'] text-2xl font-bold text-[#0D1833]">Brand voice and tone</h2>
+                  <p className="font-['DM_Sans'] text-sm text-muted-foreground mt-1">
+                    How the brand sounds. Captured once, applied to everything marktr creates.
+                  </p>
+                </div>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="font-['DM_Sans'] text-sm text-[#0D1833]">Voice adjectives</label>
+                    <TagInput
+                      label=""
+                      value={brandData.voice_adjectives ?? []}
+                      onChange={(next) =>
+                        setBrandData((prev) => ({ ...prev, voice_adjectives: next }))
+                      }
+                      placeholder="e.g. Warm, Direct, Expert, Honest"
+                    />
+                    <p className="font-['DM_Sans'] text-xs text-muted-foreground">
+                      3–5 adjectives that describe the brand tone
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="font-['DM_Sans'] text-sm text-[#0D1833]">Brands or creators you admire</label>
+                    <div className="flex items-start gap-2">
+                      <Textarea
+                        value={brandData.admired_brands ?? ""}
+                        onChange={(e) =>
+                          setBrandData((prev) => ({ ...prev, admired_brands: e.target.value }))
+                        }
+                        placeholder="Brands or people whose communication style you admire and why"
+                        className="min-h-[80px] resize-none border border-black rounded-design"
+                      />
+                      <WhisperButton
+                        onTranscript={(t) => {
+                          const trimmed = t.trim();
+                          if (!trimmed) return;
+                          setBrandData((prev) => ({
+                            ...prev,
+                            admired_brands: prev.admired_brands?.trim()
+                              ? `${prev.admired_brands.trim()} ${trimmed}`
+                              : trimmed,
+                          }));
+                        }}
+                        className="pt-1"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-xl border border-border p-8 space-y-4">
+                <div>
+                  <h2 className="font-['Fraunces'] text-2xl font-bold text-[#0D1833]">Competitor landscape</h2>
+                  <p className="font-['DM_Sans'] text-sm text-muted-foreground mt-1">
+                    Up to 3 competitors. Understanding what they do well helps marktr position you differently.
+                  </p>
+                </div>
+                {[0, 1, 2].map((i) => {
+                  const empty = {
+                    name: "",
+                    url: "",
+                    does_well: "",
+                    we_do_instead: "",
+                  } as NonNullable<Brand["competitors"]>[number];
+                  const comp = (brandData.competitors ?? [])[i] ?? empty;
+                  const updateComp = (
+                    field: keyof NonNullable<Brand["competitors"]>[number],
+                    value: string
+                  ) => {
+                    setBrandData((prev) => {
+                      const list = [...(prev.competitors ?? [])];
+                      while (list.length <= i) list.push({ ...empty });
+                      list[i] = { ...empty, ...list[i], [field]: value };
+                      return { ...prev, competitors: list };
+                    });
+                  };
+                  return (
+                    <div key={i} className="border border-border rounded-xl p-5 space-y-3 bg-background">
+                      <p className="font-['DM_Sans'] text-xs font-medium uppercase tracking-widest text-muted-foreground">
+                        Competitor {i + 1}
+                      </p>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <label className="font-['DM_Sans'] text-xs text-muted-foreground">Name</label>
+                          <Input
+                            value={comp.name}
+                            onChange={(e) => updateComp("name", e.target.value)}
+                            placeholder="Competitor name"
+                            className="border-black rounded-design text-sm"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="font-['DM_Sans'] text-xs text-muted-foreground">Website</label>
+                          <Input
+                            value={comp.url}
+                            onChange={(e) => updateComp("url", e.target.value)}
+                            placeholder="https://..."
+                            className="border-black rounded-design text-sm"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <label className="font-['DM_Sans'] text-xs text-muted-foreground">What they do well online</label>
+                        <Input
+                          value={comp.does_well}
+                          onChange={(e) => updateComp("does_well", e.target.value)}
+                          placeholder="Their content strength"
+                          className="border-black rounded-design text-sm"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="font-['DM_Sans'] text-xs text-muted-foreground">What you do that they don&apos;t</label>
+                        <Input
+                          value={comp.we_do_instead}
+                          onChange={(e) => updateComp("we_do_instead", e.target.value)}
+                          placeholder="Your differentiator"
+                          className="border-black rounded-design text-sm"
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="bg-white rounded-xl border border-border p-8 space-y-4">
+                <div>
+                  <h2 className="font-['Fraunces'] text-2xl font-bold text-[#0D1833]">Current marketing</h2>
+                  <p className="font-['DM_Sans'] text-sm text-muted-foreground mt-1">
+                    Where you&apos;re currently active and what you&apos;re spending.
+                  </p>
+                </div>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="font-['DM_Sans'] text-sm text-[#0D1833]">Active platforms</label>
+                    <div className="flex flex-wrap gap-2">
+                      {["Instagram", "Facebook", "LinkedIn", "TikTok", "X", "YouTube", "Email", "Pinterest"].map(
+                        (platform) => {
+                          const active = (brandData.active_platforms ?? []).includes(platform);
+                          return (
+                            <button
+                              key={platform}
+                              type="button"
+                              onClick={() => {
+                                setBrandData((prev) => {
+                                  const current = prev.active_platforms ?? [];
+                                  const isOn = current.includes(platform);
+                                  return {
+                                    ...prev,
+                                    active_platforms: isOn ? current.filter((p) => p !== platform) : [...current, platform],
+                                  };
+                                });
+                              }}
+                              className={`px-4 py-2 rounded-full font-['DM_Sans'] text-sm border transition-colors ${
+                                active
+                                  ? "bg-primary text-white border-primary"
+                                  : "bg-white text-foreground border-border hover:border-primary/40"
+                              }`}
+                            >
+                              {platform}
+                            </button>
+                          );
+                        }
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      id="runs_paid_ads"
+                      checked={brandData.runs_paid_ads ?? false}
+                      onChange={(e) =>
+                        setBrandData((prev) => ({ ...prev, runs_paid_ads: e.target.checked }))
+                      }
+                      className="w-4 h-4 accent-primary"
+                    />
+                    <label htmlFor="runs_paid_ads" className="font-['DM_Sans'] text-sm text-[#0D1833]">
+                      Currently running paid ads
+                    </label>
+                  </div>
+                  {brandData.runs_paid_ads && (
+                    <div className="space-y-2">
+                      <label className="font-['DM_Sans'] text-sm text-[#0D1833]">Monthly ad spend</label>
+                      <Input
+                        type="number"
+                        value={brandData.monthly_ad_spend ?? ""}
+                        onChange={(e) =>
+                          setBrandData((prev) => ({
+                            ...prev,
+                            monthly_ad_spend: parseFloat(e.target.value) || undefined,
+                          }))
+                        }
+                        placeholder="Monthly spend in your currency"
+                        className="border-black rounded-design max-w-xs"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="bg-white rounded-xl border border-border p-8 space-y-4">
+                <div>
+                  <h2 className="font-['Fraunces'] text-2xl font-bold text-[#0D1833]">Email list</h2>
+                  <p className="font-['DM_Sans'] text-sm text-muted-foreground mt-1">
+                    Your email list is your most valuable owned asset.
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="font-['DM_Sans'] text-sm text-[#0D1833]">List size</label>
+                    <Input
+                      type="number"
+                      value={brandData.email_list_size ?? ""}
+                      onChange={(e) =>
+                        setBrandData((prev) => ({
+                          ...prev,
+                          email_list_size: parseInt(e.target.value, 10) || undefined,
+                        }))
+                      }
+                      placeholder="Number of subscribers"
+                      className="border-black rounded-design"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="font-['DM_Sans'] text-sm text-[#0D1833]">Platform</label>
+                    <Input
+                      value={brandData.email_platform ?? ""}
+                      onChange={(e) =>
+                        setBrandData((prev) => ({ ...prev, email_platform: e.target.value }))
+                      }
+                      placeholder="Mailchimp, Klaviyo, etc."
+                      className="border-black rounded-design"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-xl border border-border p-8 space-y-4">
+                <div>
+                  <h2 className="font-['Fraunces'] text-2xl font-bold text-[#0D1833]">Goals and focus</h2>
+                  <p className="font-['DM_Sans'] text-sm text-muted-foreground mt-1">
+                    What success looks like for the next 90 days.
+                  </p>
+                </div>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="font-['DM_Sans'] text-sm text-[#0D1833]">Primary goal</label>
+                    <select
+                      value={brandData.primary_goal ?? ""}
+                      onChange={(e) =>
+                        setBrandData((prev) => ({ ...prev, primary_goal: e.target.value }))
+                      }
+                      className="w-full border border-black rounded-design px-4 py-3 bg-white font-['DM_Sans'] text-foreground text-sm"
+                    >
+                      <option value="">Select a goal</option>
+                      {["Lead generation", "Brand awareness", "Sales", "Audience growth", "Community building"].map((g) => (
+                        <option key={g} value={g}>
+                          {g}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="font-['DM_Sans'] text-sm text-[#0D1833]">Platform focus (next 90 days)</label>
+                    <select
+                      value={brandData.platform_focus ?? ""}
+                      onChange={(e) =>
+                        setBrandData((prev) => ({ ...prev, platform_focus: e.target.value }))
+                      }
+                      className="w-full border border-black rounded-design px-4 py-3 bg-white font-['DM_Sans'] text-foreground text-sm"
+                    >
+                      <option value="">Select a platform</option>
+                      {["Instagram", "Facebook", "LinkedIn", "TikTok", "X", "YouTube", "Email", "Pinterest"].map((p) => (
+                        <option key={p} value={p}>
+                          {p}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="font-['DM_Sans'] text-sm text-[#0D1833]">Monthly content volume</label>
+                    <select
+                      value={brandData.monthly_content_volume ?? ""}
+                      onChange={(e) =>
+                        setBrandData((prev) => ({ ...prev, monthly_content_volume: e.target.value }))
+                      }
+                      className="w-full border border-black rounded-design px-4 py-3 bg-white font-['DM_Sans'] text-foreground text-sm"
+                    >
+                      <option value="">How much can you commit to?</option>
+                      {["1–4 posts", "5–10 posts", "11–20 posts", "20+ posts"].map((v) => (
+                        <option key={v} value={v}>
+                          {v}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="font-['DM_Sans'] text-sm text-[#0D1833]">Success markers</label>
+                    <div className="flex flex-wrap gap-2">
+                      {["Reach", "Engagement", "Leads", "Sales", "Followers"].map((marker) => {
+                        const active = (brandData.success_markers ?? []).includes(marker);
+                        return (
+                          <button
+                            key={marker}
+                            type="button"
+                            onClick={() => {
+                              setBrandData((prev) => {
+                                const current = prev.success_markers ?? [];
+                                const isOn = current.includes(marker);
+                                return {
+                                  ...prev,
+                                  success_markers: isOn ? current.filter((m) => m !== marker) : [...current, marker],
+                                };
+                              });
+                            }}
+                            className={`px-4 py-2 rounded-full font-['DM_Sans'] text-sm border transition-colors ${
+                              active
+                                ? "bg-primary text-white border-primary"
+                                : "bg-white text-foreground border-border hover:border-primary/40"
+                            }`}
+                          >
+                            {marker}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </main>
 
       <ICPColorModal

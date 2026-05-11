@@ -17,6 +17,29 @@ export interface Brand {
   country?: string | null;
   region_or_city?: string | null;
   currency?: string | null;
+  founding_story?: string | null;
+  core_values?: string[] | null;
+  want_known_for?: string | null;
+  never_associated_with?: string | null;
+  voice_adjectives?: string[] | null;
+  admired_brands?: string | null;
+  brand_voice_profile?: string | null;
+  competitors?: {
+    name: string;
+    url: string;
+    does_well: string;
+    we_do_instead: string;
+  }[] | null;
+  active_platforms?: string[] | null;
+  posting_frequency?: Record<string, string> | null;
+  runs_paid_ads?: boolean | null;
+  monthly_ad_spend?: number | null;
+  email_list_size?: number | null;
+  email_platform?: string | null;
+  primary_goal?: string | null;
+  platform_focus?: string | null;
+  monthly_content_volume?: string | null;
+  success_markers?: string[] | null;
   created_at: string;
   updated_at: string;
 }

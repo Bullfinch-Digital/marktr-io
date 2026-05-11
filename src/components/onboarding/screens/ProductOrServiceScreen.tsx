@@ -1,4 +1,5 @@
 import { Input } from "../../ui/input";
+import { WhisperButton } from "../../ui/WhisperButton";
 
 interface ProductOrServiceScreenProps {
   value: string;
@@ -24,15 +25,29 @@ export function ProductOrServiceScreen({ value, onChange, onContinue }: ProductO
       </p>
       
       <div className="space-y-4 pt-4">
-        <Input
-          type="text"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="e.g., Dog grooming, Marketing consultancy, Organic coffee subscription"
-          className="border border-black rounded-design px-4 py-6 bg-white text-foreground placeholder:text-foreground/40"
-          autoFocus
-        />
+        <div className="flex items-start gap-2">
+          <Input
+            type="text"
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="e.g., Dog grooming, Marketing consultancy, Organic coffee subscription"
+            className="border border-black rounded-design px-4 py-6 bg-white text-foreground placeholder:text-foreground/40"
+            autoFocus
+          />
+          <WhisperButton
+            onTranscript={(text) => {
+              const t = text.trim();
+              if (!t) return;
+              onChange(
+                value.trim()
+                  ? `${value.trim()} ${t}`
+                  : t
+              );
+            }}
+            className="pt-1"
+          />
+        </div>
       </div>
     </div>
   );

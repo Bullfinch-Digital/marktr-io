@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { SelectChip } from "../SelectChip";
 import { Input } from "../../ui/input";
+import { WhisperButton } from "../../ui/WhisperButton";
 
 interface AssumedAudienceScreenProps {
   value: string[];
@@ -121,14 +122,28 @@ export function AssumedAudienceScreen({
           <label className="text-sm text-foreground/70">
             Or specify your own:
           </label>
-          <Input
-            type="text"
-            value={customAudience}
-            onChange={(e) => onCustomAudienceChange(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="e.g., Busy café owners, Fitness coaches, Boutique e-commerce brands"
-            className="border border-black rounded-design px-4 py-6 bg-white text-foreground placeholder:text-foreground/40"
-          />
+          <div className="flex items-start gap-2">
+            <Input
+              type="text"
+              value={customAudience}
+              onChange={(e) => onCustomAudienceChange(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="e.g., Busy café owners, Fitness coaches, Boutique e-commerce brands"
+              className="border border-black rounded-design px-4 py-6 bg-white text-foreground placeholder:text-foreground/40"
+            />
+            <WhisperButton
+              onTranscript={(text) => {
+                const t = text.trim();
+                if (!t) return;
+                onCustomAudienceChange(
+                  customAudience.trim()
+                    ? `${customAudience.trim()} ${t}`
+                    : t
+                );
+              }}
+              className="pt-1"
+            />
+          </div>
         </div>
       </div>
     </div>

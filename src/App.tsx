@@ -8,6 +8,10 @@ import { AdminRoute } from "./components/auth/AdminRoute";
 import { Header, Footer } from "./components";
 import Home from "./pages/Home";
 import OnboardingBuild from "./pages/OnboardingBuild";
+import HealthCheck from "./pages/HealthCheck";
+import HealthCheckResults from "./pages/HealthCheckResults";
+import StoryBuild from "./pages/StoryBuild";
+import StoryResults from "./pages/StoryResults";
 import GuestDashboardPreview from "./pages/GuestDashboardPreview";
 import Dashboard from "./pages/Dashboard";
 import ICPEditor from "./pages/ICPEditor";
@@ -136,6 +140,10 @@ export default function App() {
             
             {/* Public Routes without Header/Footer */}
             <Route path="/onboarding-build" element={<OnboardingBuild />} />
+            <Route path="/health-check" element={<HealthCheck />} />
+            <Route path="/health-check/results" element={<HealthCheckResults />} />
+            <Route path="/story" element={<StoryBuild />} />
+            <Route path="/story/results" element={<StoryResults />} />
           <Route path="/icp-results" element={<GuestDashboardPreview />} />
           <Route path="/icp-preview/:index" element={<GuestIcpPreview />} />
             <Route path="/paywall-demo" element={<PaywallDemo />} />

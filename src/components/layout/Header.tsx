@@ -24,6 +24,10 @@ export function Header() {
     setIsDark(!isDark);
   };
 
+  type NavItem =
+    | { label: string; type: "scroll"; target: string; color: string }
+    | { label: string; type: "link"; target: string; color: string };
+
   const handleScrollNav = (e: React.MouseEvent<HTMLAnchorElement>, sectionId: string) => {
     if (location.pathname === "/") {
       e.preventDefault();
@@ -36,36 +40,30 @@ export function Header() {
     // If not on home, let the Link navigate (SPA) to /#sectionId
   };
 
-  const navItems = [
-    { 
-      label: "How it Works", 
-      type: "scroll" as const, 
-      target: "how-it-works",
-      color: "#BBA0E5" // Purple
-    },
-    { 
-      label: "Features", 
-      type: "scroll" as const, 
-      target: "features",
-      color: "#96CBB6" // Mint green
-    },
-    { 
-      label: "Resources",
+  const navItems: NavItem[] = [
+    {
+      label: "Know your customer",
       type: "link" as const,
-      target: "/resources",
-      color: "#FF9922" // Orange
-    },
-    { 
-      label: "Pricing", 
-      type: "link" as const, 
-      target: "/pricing",
-      color: "#F57BBE" // Pink
-    },
-    { 
-      label: "Onboarding", 
-      type: "link" as const, 
       target: "/onboarding-build",
-      color: "#FFD336" // Yellow
+      color: "#FFD336", // Yellow
+    },
+    {
+      label: "Check your health",
+      type: "link" as const,
+      target: "/health-check",
+      color: "#96CBB6", // Mint green
+    },
+    {
+      label: "Find your story",
+      type: "link" as const,
+      target: "/story",
+      color: "#BBA0E5", // Purple
+    },
+    {
+      label: "Pricing",
+      type: "link" as const,
+      target: "/pricing",
+      color: "#F57BBE", // Pink
     },
   ];
 

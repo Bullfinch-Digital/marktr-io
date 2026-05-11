@@ -259,10 +259,16 @@ export default function Dashboard() {
 
   const setupProgress = useMemo(() => {
     let score = 0;
-    if (brands && brands.length > 0) score += 40;
-    if (icps && icps.length > 0) score += 40;
+    const brand = brands?.[0];
+    if (brand) {
+      score += 20; // brand exists
+      if (brand.founding_story?.trim()) score += 15;
+      if (brand.voice_adjectives?.length) score += 10;
+      if (brand.primary_goal?.trim()) score += 5;
+    }
+    if (icps && icps.length > 0) score += 30;
     if (icps && icps.length >= 2) score += 20;
-    return score;
+    return Math.min(score, 100);
   }, [brands, icps]);
 
   const nextActions = useMemo(() => {
@@ -272,12 +278,20 @@ export default function Dashboard() {
       desc: string;
       href: string;
     }[] = [];
-    if (!brands || brands.length === 0) {
+    const brand = brands?.[0];
+    if (!brand) {
+      actions.push({
+        label: "Set up your brand",
+        tag: "BRAND",
+        desc: "Add your business details so marktr knows who you are and what you do.",
+        href: "/my-brands",
+      });
+    } else if (!brand.founding_story?.trim()) {
       actions.push({
         label: "Complete your brand story",
         tag: "BRAND",
-        desc: "Your brand voice and tone aren't fully defined yet — this shapes every piece of content marktr creates.",
-        href: "/my-brands",
+        desc: "Your founding story and brand voice aren't set yet — these shape everything marktr creates for you.",
+        href: "/my-brands/" + brand.id,
       });
     }
     if (!icps || icps.length === 0) {

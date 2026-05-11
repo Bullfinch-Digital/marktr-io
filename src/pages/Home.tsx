@@ -27,7 +27,7 @@ export default function Home() {
             </h1>
 
             <p className="mt-7 max-w-2xl font-['DM_Sans'] text-lg leading-relaxed text-muted-foreground sm:text-xl">
-              Three ways in. One platform. Start with the problem that matters most to you right now.
+              Three ways in. One platform. Choose the starting point that speaks to you — each one is free and takes under 5 minutes.
             </p>
 
             <div className="mt-10 grid max-w-2xl gap-4 sm:grid-cols-3">
@@ -359,7 +359,7 @@ export default function Home() {
             Your marketing team is ready.
           </h2>
           <p className="mt-4 font-['DM_Sans'] text-lg text-white/70">
-            Start for free. No agency required.
+            Know your customer. Shape your story. Check your marketing health. All free. No agency required.
           </p>
           <Link
             to="/onboarding-build"

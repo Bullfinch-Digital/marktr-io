@@ -1,28 +1,16 @@
-import React, { useState, useEffect } from "react";
-import { Moon, Sun, Menu, X } from "lucide-react";
+import React, { useState } from "react";
+import { Menu, X } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "../ui/button";
 import { useAuth } from "../../contexts/AuthContext";
 import { useAuthModal } from "../../contexts/AuthModalContext";
 
 export function Header() {
-  const [isDark, setIsDark] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
   const { user, signOut } = useAuth();
   const { openLogin } = useAuthModal();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    // Check initial theme
-    const isDarkMode = document.documentElement.classList.contains("dark");
-    setIsDark(isDarkMode);
-  }, []);
-
-  const toggleDarkMode = () => {
-    document.documentElement.classList.toggle("dark");
-    setIsDark(!isDark);
-  };
 
   type NavItem =
     | { label: string; type: "scroll"; target: string; color: string }
@@ -102,18 +90,6 @@ export function Header() {
 
           {/* Actions */}
           <div className="flex items-center gap-4">
-            <button
-              onClick={toggleDarkMode}
-              className="rounded-lg p-2 transition-all hover:bg-accent-grey active:scale-95"
-              aria-label="Toggle dark mode"
-            >
-              {isDark ? (
-                <Sun className="h-5 w-5" />
-              ) : (
-                <Moon className="h-5 w-5" />
-              )}
-            </button>
-
             {user ? (
               <>
                 <Link to="/dashboard">

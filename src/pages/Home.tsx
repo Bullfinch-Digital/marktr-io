@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { UserCircle, BookOpen, Zap, ArrowRight, Check, Users, Activity } from "lucide-react";
 
@@ -11,6 +11,10 @@ const benefits = [
 
 export default function Home() {
   const [activeBenefit, setActiveBenefit] = useState(0);
+
+  useEffect(() => {
+    document.documentElement.classList.remove("dark");
+  }, []);
 
   return (
     <main className="overflow-x-hidden">

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { UserCircle, BookOpen, Zap, ArrowRight, Check, Users, Activity } from "lucide-react";
+import { BookOpen, ArrowRight, Check, Users, Activity } from "lucide-react";
 
 const benefits = [
   { id: 0, label: "Start with your ideal customer" },
@@ -8,6 +8,82 @@ const benefits = [
   { id: 2, label: "Publish and track performance" },
   { id: 3, label: "Replace your agency" },
 ] as const;
+
+const GRID_TEXTURE_STYLE = {
+  backgroundImage:
+    "linear-gradient(to right, rgba(13,24,51,0.05) 1px, transparent 1px), linear-gradient(to bottom, rgba(13,24,51,0.05) 1px, transparent 1px)",
+  backgroundSize: "18px 18px",
+} as const;
+
+const BRAND_STORY_TYPEWRITER =
+  "For the homeowner who wants their property to last — MC Seamless Guttering is the specialist contractor that puts craft before cost.";
+
+function HomeHealthBarsIllustration() {
+  const [barsOn, setBarsOn] = useState(false);
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setBarsOn(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
+  const rows = [
+    { label: "Website", pct: 68, delay: 0 },
+    { label: "Content", pct: 45, delay: 150 },
+    { label: "Audience", pct: 31, delay: 300 },
+    { label: "Engagement", pct: 72, delay: 450 },
+    { label: "Channels", pct: 55, delay: 600 },
+  ] as const;
+  return (
+    <div className="flex h-full flex-col justify-center gap-2.5 px-4 py-3">
+      {rows.map((r) => (
+        <div key={r.label}>
+          <div className="font-['DM_Sans'] text-[9px] text-[#0D1833]">{r.label}</div>
+          <div className="mt-0.5 h-1.5 w-full overflow-hidden rounded-full bg-white/30">
+            <div
+              className="h-full rounded-full bg-[#0D1833]/60 transition-[width] duration-700 ease-out"
+              style={{
+                width: barsOn ? `${r.pct}%` : "0%",
+                transitionDelay: `${r.delay}ms`,
+              }}
+            />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function HomeTypewriterStory() {
+  const [text, setText] = useState("");
+  useEffect(() => {
+    let cancelled = false;
+    const full = BRAND_STORY_TYPEWRITER;
+    const charDelay = Math.max(10, Math.floor(4000 / full.length));
+    const run = async () => {
+      while (!cancelled) {
+        for (let i = 0; i <= full.length; i++) {
+          if (cancelled) return;
+          setText(full.slice(0, i));
+          await new Promise<void>((resolve) => setTimeout(resolve, charDelay));
+        }
+        await new Promise<void>((resolve) => setTimeout(resolve, 2000));
+        if (cancelled) return;
+        setText("");
+        await new Promise<void>((resolve) => setTimeout(resolve, 400));
+      }
+    };
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  return (
+    <div className="mx-4 mt-3 min-h-[80px] rounded-xl bg-white/60 p-4">
+      <p className="font-['Fraunces'] text-sm italic leading-relaxed text-[#0D1833]">
+        {text}
+        <span className="home-typewriter-cursor font-['DM_Sans'] not-italic">|</span>
+      </p>
+    </div>
+  );
+}
 
 export default function Home() {
   const [activeBenefit, setActiveBenefit] = useState(0);
@@ -169,44 +245,104 @@ export default function Home() {
         </div>
 
         <div className="mx-auto mt-14 grid max-w-6xl gap-8 lg:grid-cols-3">
-          {[
-            {
-              bg: "bg-[var(--feature-amber)]",
-              Icon: UserCircle,
-              title: "Know your customer",
-              body: "Define your ideal customer profile once. Every piece of content is written for them, not everyone.",
-            },
-            {
-              bg: "bg-[var(--feature-teal)]",
-              Icon: BookOpen,
-              title: "Shape your story",
-              body: "Your founding story, brand voice and values — captured once, applied to everything marktr creates.",
-            },
-            {
-              bg: "bg-[var(--feature-coral)]",
-              Icon: Zap,
-              title: "Grow your business",
-              body: "Strategy, content, scheduling and reporting — the full marketing system, without the agency fees.",
-            },
-          ].map(({ bg, Icon, title, body }) => (
-            <article key={title} className={`rounded-2xl p-8 ${bg}`}>
-              <div
-                className="rounded-xl"
-                style={{
-                  backgroundImage:
-                    "linear-gradient(to right, rgba(13,24,51,0.05) 1px, transparent 1px), linear-gradient(to bottom, rgba(13,24,51,0.05) 1px, transparent 1px)",
-                  backgroundSize: "18px 18px",
-                }}
-              >
-                <div className="p-1">
-                  <Icon className="mb-5 h-10 w-10 text-[#0D1833]" strokeWidth={1.5} />
-                  <h3 className="mb-3 font-['Fraunces'] text-2xl font-bold text-[#0D1833]">{title}</h3>
-                  <p className="mb-6 font-['DM_Sans'] text-base leading-relaxed text-[#0D1833]/80">{body}</p>
-                  <ArrowRight className="h-5 w-5 text-primary" />
+          {/* CARD 1 — Know your customer */}
+          <Link
+            to="/onboarding-build"
+            className="group block cursor-pointer rounded-2xl bg-[var(--feature-amber)] shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
+          >
+            <div
+              className="relative h-[200px] overflow-hidden rounded-t-2xl bg-[#E8D4A0]/55"
+              style={GRID_TEXTURE_STYLE}
+            >
+              <div className="flex h-full items-end justify-between gap-2 px-3 pb-5 pt-8 sm:px-5">
+                <div
+                  className="flex flex-col items-center"
+                  style={{ animation: "float-1 3s ease-in-out infinite" }}
+                >
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#E8650A] font-['DM_Sans'] text-xs font-bold text-white">
+                    PR
+                  </div>
+                  <span className="mt-2 max-w-[92px] rounded-full bg-white px-2 py-0.5 text-center font-['DM_Sans'] text-[8px] font-medium leading-tight text-[#0D1833]">
+                    Preventative Homeowner
+                  </span>
+                </div>
+                <div
+                  className="flex flex-col items-center pb-6"
+                  style={{ animation: "float-2 4s ease-in-out infinite" }}
+                >
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#2D7A5F] font-['DM_Sans'] text-xs font-bold text-white">
+                    RE
+                  </div>
+                  <span className="mt-2 max-w-[92px] rounded-full bg-white px-2 py-0.5 text-center font-['DM_Sans'] text-[8px] font-medium leading-tight text-[#0D1833]">
+                    Renovation Specialist
+                  </span>
+                </div>
+                <div
+                  className="flex flex-col items-center pt-4"
+                  style={{ animation: "float-3 3.5s ease-in-out infinite" }}
+                >
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#0D1833] font-['DM_Sans'] text-xs font-bold text-white">
+                    LA
+                  </div>
+                  <span className="mt-2 max-w-[92px] rounded-full bg-white px-2 py-0.5 text-center font-['DM_Sans'] text-[8px] font-medium leading-tight text-[#0D1833]">
+                    Landlord
+                  </span>
                 </div>
               </div>
-            </article>
-          ))}
+            </div>
+            <div className="p-6">
+              <h3 className="font-['Fraunces'] text-xl font-bold text-[#0D1833]">Know your customer</h3>
+              <p className="mt-2 font-['DM_Sans'] text-sm leading-relaxed text-[#0D1833]/85">
+                Define your ideal customer profile once. Every piece of content is written for them, not everyone.
+              </p>
+              <ArrowRight className="mt-4 h-5 w-5 text-[#E8650A]" strokeWidth={2} />
+            </div>
+          </Link>
+
+          {/* CARD 2 — Check your marketing health */}
+          <Link
+            to="/health-check"
+            className="group block cursor-pointer rounded-2xl bg-[var(--feature-teal)] shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
+          >
+            <div
+              className="relative h-[200px] overflow-hidden rounded-t-2xl bg-[#B8DDD4]/55"
+              style={GRID_TEXTURE_STYLE}
+            >
+              <HomeHealthBarsIllustration />
+            </div>
+            <div className="p-6">
+              <h3 className="font-['Fraunces'] text-xl font-bold text-[#0D1833]">Check your marketing health</h3>
+              <p className="mt-2 font-['DM_Sans'] text-sm leading-relaxed text-[#0D1833]/85">
+                Score your digital presence across 5 dimensions — and see exactly where to focus.
+              </p>
+              <ArrowRight className="mt-4 h-5 w-5 text-[#E8650A]" strokeWidth={2} />
+            </div>
+          </Link>
+
+          {/* CARD 3 — Find your brand story */}
+          <Link
+            to="/story"
+            className="group block cursor-pointer rounded-2xl bg-[var(--feature-coral)] shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
+          >
+            <div
+              className="relative h-[200px] overflow-hidden rounded-t-2xl bg-[#E8D0C4]/55"
+              style={GRID_TEXTURE_STYLE}
+            >
+              <div className="px-4 pt-4">
+                <p className="font-['DM_Sans'] text-[9px] uppercase tracking-widest text-muted-foreground">
+                  YOUR BRAND STORY
+                </p>
+                <HomeTypewriterStory />
+              </div>
+            </div>
+            <div className="p-6">
+              <h3 className="font-['Fraunces'] text-xl font-bold text-[#0D1833]">Find your brand story</h3>
+              <p className="mt-2 font-['DM_Sans'] text-sm leading-relaxed text-[#0D1833]/85">
+                Discover the narrative that makes your business impossible to ignore — in minutes.
+              </p>
+              <ArrowRight className="mt-4 h-5 w-5 text-[#E8650A]" strokeWidth={2} />
+            </div>
+          </Link>
         </div>
       </section>
 

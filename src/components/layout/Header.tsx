@@ -87,21 +87,6 @@ export function Header() {
                   className="relative text-sm transition-colors hover:text-text-dark after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-button-green after:transition-all hover:after:w-full flex items-center gap-1.5"
                 >
                   {item.label}
-                  <svg
-                    width="8"
-                    height="7"
-                    viewBox="0 0 8 7"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="mt-0.5"
-                  >
-                    <path
-                      d="M4 7L0.535898 0.25L7.4641 0.25L4 7Z"
-                      fill={item.color}
-                      stroke="black"
-                      strokeWidth="1"
-                    />
-                  </svg>
                 </Link>
               ) : (
                 <Link
@@ -110,21 +95,6 @@ export function Header() {
                   className="relative text-sm transition-colors hover:text-text-dark after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-button-green after:transition-all hover:after:w-full flex items-center gap-1.5"
                 >
                   {item.label}
-                  <svg
-                    width="8"
-                    height="7"
-                    viewBox="0 0 8 7"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="mt-0.5"
-                  >
-                    <path
-                      d="M4 7L0.535898 0.25L7.4641 0.25L4 7Z"
-                      fill={item.color}
-                      stroke="black"
-                      strokeWidth="1"
-                    />
-                  </svg>
                 </Link>
               )
             ))}
@@ -224,20 +194,6 @@ export function Header() {
                   className="px-2 py-1 transition-colors hover:text-button-green flex items-center gap-2 text-left"
                 >
                   {item.label}
-                  <svg
-                    width="8"
-                    height="7"
-                    viewBox="0 0 8 7"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      d="M4 7L0.535898 0.25L7.4641 0.25L4 7Z"
-                      fill={item.color}
-                      stroke="black"
-                      strokeWidth="1"
-                    />
-                  </svg>
                 </Link>
               ) : (
                 <Link
@@ -247,20 +203,6 @@ export function Header() {
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   {item.label}
-                  <svg
-                    width="8"
-                    height="7"
-                    viewBox="0 0 8 7"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      d="M4 7L0.535898 0.25L7.4641 0.25L4 7Z"
-                      fill={item.color}
-                      stroke="black"
-                      strokeWidth="1"
-                    />
-                  </svg>
                 </Link>
               )
             ))}

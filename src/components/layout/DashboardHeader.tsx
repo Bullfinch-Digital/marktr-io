@@ -59,9 +59,12 @@ export function DashboardHeader({
     <header className="sticky top-0 z-50 w-full border-b border-warm-grey bg-background/80 backdrop-blur-md transition-all">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
-          <span className="font-['Fraunces'] text-xl font-bold text-[#0D1833]">
+          <Link
+            to="/"
+            className="font-['Fraunces'] text-xl font-bold text-[#0D1833] hover:opacity-70 transition-opacity"
+          >
             marktr
-          </span>
+          </Link>
 
           {/* Right Side Actions */}
           <div className="flex items-center gap-3">

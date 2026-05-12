@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import DashboardShell from "../layouts/DashboardShell";
 import { Button } from "../components/ui/button";
 import { ICPPreviewCard } from "../components/cards/ICPPreviewCard";
-import { BrandCard } from "../components/cards/BrandCard";
 import { usePaywall } from "../contexts/PaywallContext";
 import { useAuth } from "../contexts/AuthContext";
 import { getGuestICPs } from "../lib/guestICP";
@@ -62,19 +61,19 @@ export default function GuestDashboardPreview() {
       <div className="max-w-7xl mx-auto space-y-10 pb-12">
         <header className="flex items-center justify-between">
           <div>
-            <h1 className="font-['Fraunces'] text-3xl lg:text-4xl mb-2">
-              Dashboard
+            <h1 className="font-['Fraunces'] text-3xl lg:text-4xl mb-2 text-[#0D1833]">
+              Your ideal customers, defined.
             </h1>
-            <p className="font-['Inter'] text-foreground/70">
-              This is your marketing workspace — unlock it to edit, test, and refine your ICPs.
+            <p className="font-['DM_Sans'] text-foreground/70">
+              Here are the three customer profiles marktr has built for your business. Unlock the full platform to put them to work.
             </p>
           </div>
           <div className="flex items-center gap-3">
             <Button
-              className="bg-button-green hover:bg-button-green/90 text-foreground border border-black rounded-design px-4 py-2"
+              className="bg-primary hover:opacity-90 text-primary-foreground rounded-full px-6 py-2 font-['DM_Sans'] text-sm font-medium"
               onClick={() => openPaywall()}
             >
-              Start 7-day free trial
+              Unlock your dashboard — free for 14 days
             </Button>
           </div>
         </header>
@@ -83,15 +82,15 @@ export default function GuestDashboardPreview() {
         <section className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="font-['Fraunces'] text-2xl">My ICPs</h2>
-              <p className="font-['Inter'] text-sm text-foreground/70">
-                Preview of your generated ICPs. Save them by signing up.
+              <h2 className="font-['Fraunces'] text-2xl text-[#0D1833]">Your customer profiles</h2>
+              <p className="font-['DM_Sans'] text-sm text-muted-foreground">
+                marktr has identified three distinct customers for your business. Unlock the platform to build content strategies for each one.
               </p>
             </div>
           </div>
 
           {guestICPs.length === 0 ? (
-            <p className="text-sm text-foreground/60">No ICPs yet.</p>
+            <p className="font-['DM_Sans'] text-sm text-foreground/60">No ICPs yet.</p>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {guestICPs.map((icp: any, index: number) => (
@@ -115,44 +114,25 @@ export default function GuestDashboardPreview() {
           )}
         </section>
 
-        {/* My Brands */}
-        <section className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h2 className="font-['Fraunces'] text-2xl">My Brands</h2>
-              <p className="font-['Inter'] text-sm text-foreground/70">
-                Manage the business details you use to generate ICPs.
-              </p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <BrandCard
-              brand={guestBrand as any}
-              onView={() => openPaywall()}
-              onChangeColor={() => openPaywall()}
-              onDelete={() => openPaywall()}
-              onDuplicate={() => openPaywall()}
-              onExportPDF={() => openPaywall()}
-            />
-          </div>
-        </section>
-
-        {/* CTA panel */}
-        <div className="bg-background border border-black rounded-design p-6 shadow-md flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div>
-            <h3 className="font-['Fraunces'] text-xl">Start your 7-day free trial</h3>
-            <p className="font-['Inter'] text-sm text-foreground/70">
-              Full access to edit, save, and unlock marketing insights.
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
+        {/* Bottom CTA / paywall */}
+        <div className="rounded-2xl bg-[#0D1833] p-8 mt-4">
+          <h2 className="font-['Fraunces'] text-2xl font-bold text-white sm:text-3xl">
+            Unlock your full marktr dashboard — completely free for 14 days.
+          </h2>
+          <p className="mt-3 font-['DM_Sans'] text-base leading-relaxed text-white/70 max-w-xl">
+            Save your customer profiles, build your brand story, generate content strategies and create a month of posts — all in one platform. No agency required.
+          </p>
+          <div className="mt-6 flex flex-col sm:flex-row items-start gap-4">
             <Button
-              className="bg-button-green hover:bg-button-green/90 text-foreground border border-black rounded-design px-4 py-2"
+              className="bg-primary hover:opacity-90 text-primary-foreground rounded-full px-8 py-3 font-['DM_Sans'] text-base font-medium"
               onClick={() => openPaywall()}
             >
-              Start 7-day free trial
+              Start free — 14 days on us
             </Button>
+            <div className="flex flex-col gap-1">
+              <p className="font-['DM_Sans'] text-xs text-white/50">No credit card required</p>
+              <p className="font-['DM_Sans'] text-xs text-white/50">Cancel anytime</p>
+            </div>
           </div>
         </div>
       </div>

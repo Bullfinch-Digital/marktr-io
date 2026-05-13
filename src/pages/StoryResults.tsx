@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, Navigate, useLocation } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { supabase } from "../config/supabase";
+import { setGuestStory } from "../lib/guestStory";
 
 export type StoryResultsLocationState = {
   answers: string[];
@@ -64,11 +65,18 @@ export default function StoryResults() {
         }
 
         if (!cancelled) {
-          setStory({
+          const output = {
             foundingStory: raw.foundingStory,
             pointOfView: raw.pointOfView,
             positioningStatement: raw.positioningStatement,
             brandPurpose: raw.brandPurpose,
+          };
+          setStory(output);
+          setGuestStory({
+            answers: answersPayload,
+            email: emailPayload,
+            output,
+            created_at: new Date().toISOString(),
           });
         }
       } catch (e) {
@@ -149,7 +157,7 @@ export default function StoryResults() {
             marktr will use your story to generate content, build your strategy, and make sure everything you publish sounds like you — not like everyone else. Free for 14 days.
           </p>
           <Link
-            to="/onboarding-build"
+            to="/icp-results"
             className="mt-8 inline-flex items-center justify-center rounded-full bg-primary px-7 py-3 font-['DM_Sans'] text-sm font-medium text-primary-foreground hover:opacity-90"
           >
             Unlock your full dashboard — free for 14 days

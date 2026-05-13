@@ -1,9 +1,11 @@
 import { Link, Navigate, useLocation } from "react-router-dom";
+import { useEffect, useMemo } from "react";
 import {
   calculateScores,
   type DimensionScore,
   type HealthCheckInput,
 } from "../lib/healthCheckScoring";
+import { setGuestHealthCheck } from "../lib/guestHealthCheck";
 
 type LocationState = HealthCheckInput | null;
 
@@ -60,7 +62,32 @@ export default function HealthCheckResults() {
     return <Navigate to="/health-check" replace />;
   }
 
-  const scores = calculateScores(state);
+  const scores = useMemo(() => calculateScores(state), [state]);
+
+  useEffect(() => {
+    if (!state?.email?.trim() || !scores) return;
+    setGuestHealthCheck({
+      input: {
+        websiteUrl: state.websiteUrl,
+        instagramHandle: state.instagramHandle,
+        facebookUrl: state.facebookUrl,
+        linkedinUrl: state.linkedinUrl,
+        email: state.email,
+      },
+      scores: {
+        websiteClarity: scores.websiteClarity.score,
+        contentConsistency: scores.contentConsistency.score,
+        audienceFit: scores.audienceFit.score,
+        engagementQuality: scores.engagementQuality.score,
+        channelCoverage: scores.channelCoverage.score,
+        overall: scores.overall,
+        lowestDimension: scores.lowestDimension,
+        lowestScore: scores.lowestScore,
+      },
+      created_at: new Date().toISOString(),
+    });
+  }, [state, scores]);
+
   const domain = state.websiteUrl?.trim() ? extractDomain(state.websiteUrl.trim()) : null;
 
   return (
@@ -108,7 +135,7 @@ export default function HealthCheckResults() {
           </p>
 
           <Link
-            to="/onboarding-build"
+            to="/icp-results"
             className="mt-8 inline-flex items-center justify-center rounded-full bg-primary px-7 py-3 font-['DM_Sans'] text-sm font-medium text-primary-foreground hover:opacity-90"
           >
             Unlock your full dashboard — free for 14 days

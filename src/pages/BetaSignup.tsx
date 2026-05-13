@@ -8,6 +8,26 @@ import { Label } from "../components/ui/label";
 import { supabase } from "../config/supabase";
 import { useAuth } from "../contexts/AuthContext";
 
+/** Edge Functions return JSON errors on non-2xx bodies; supabase-js does not put that in `data`. */
+async function readEdgeFunctionErrorMessage(err: unknown): Promise<string | undefined> {
+  if (!err || typeof err !== "object" || !("context" in err)) return undefined;
+  const res = (err as { context?: Response }).context;
+  if (!res || typeof res.clone !== "function") return undefined;
+  try {
+    const clone = res.clone();
+    const ct = clone.headers.get("Content-Type") ?? "";
+    if (ct.includes("application/json")) {
+      const j = (await clone.json()) as { error?: string; details?: string };
+      if (j?.error && j?.details) return `${j.error} (${j.details})`;
+      if (typeof j?.error === "string") return j.error;
+    }
+    const t = await clone.text();
+    return t?.trim() || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export default function BetaSignup() {
   const navigate = useNavigate();
   const { signInWithPassword, user, loading: authLoading } = useAuth();
@@ -65,11 +85,12 @@ export default function BetaSignup() {
       });
 
       if (invokeError) {
-        throw new Error(invokeError.message || "Beta signup failed.");
+        const fromBody = await readEdgeFunctionErrorMessage(invokeError);
+        throw new Error(fromBody || invokeError.message || "Beta signup failed.");
       }
 
       if (!data?.ok) {
-        throw new Error(data?.error || "Beta signup failed.");
+        throw new Error((data as { error?: string })?.error || "Beta signup failed.");
       }
 
       const { error: signInError } = await signInWithPassword({

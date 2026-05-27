@@ -4,6 +4,10 @@ export interface HealthCheckInput {
   facebookUrl?: string;
   linkedinUrl?: string;
   email: string;
+  websiteScore?: {
+    score: number;
+    observation: string;
+  } | null;
 }
 
 export interface DimensionScore {
@@ -30,8 +34,21 @@ function obs(score: number, high: string, mid: string, low: string) {
 }
 
 export function calculateScores(input: HealthCheckInput): HealthCheckScores {
-  const websiteBase = input.websiteUrl?.trim() ? 40 : 15;
-  const websiteScore = Math.min(100, websiteBase + Math.floor(Math.random() * 35));
+  const websiteScore =
+    input.websiteScore?.score ??
+    Math.min(
+      100,
+      (input.websiteUrl?.trim() ? 40 : 15) + Math.floor(Math.random() * 35)
+    );
+
+  const websiteObservation =
+    input.websiteScore?.observation ??
+    obs(
+      websiteScore,
+      "Your homepage communicates clearly",
+      "Your value proposition could be sharper",
+      "Visitors may struggle to understand what you do"
+    );
 
   const platforms = [
     input.websiteUrl,
@@ -72,12 +89,7 @@ export function calculateScores(input: HealthCheckInput): HealthCheckScores {
     websiteClarity: {
       name: "Website Clarity",
       score: websiteScore,
-      observation: obs(
-        websiteScore,
-        "Your homepage communicates clearly",
-        "Your value proposition could be sharper",
-        "Visitors may struggle to understand what you do"
-      ),
+      observation: websiteObservation,
     },
     contentConsistency: {
       name: "Content Consistency",

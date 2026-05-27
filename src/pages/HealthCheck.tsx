@@ -5,6 +5,7 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { WhisperButton } from "../components/ui/WhisperButton";
+import { supabase } from "../config/supabase";
 
 type Step = "welcome" | "inputs" | "loading";
 
@@ -42,22 +43,55 @@ export default function HealthCheck() {
   useEffect(() => {
     if (step !== "loading") return;
 
+    let cancelled = false;
     const timers: number[] = [];
+    const run = async () => {
+      for (let i = 1; i <= CHECKLIST_ITEMS.length; i += 1) {
+        timers.push(
+          window.setTimeout(() => {
+            if (!cancelled) setCompletedCount(i);
+          }, i * 300)
+        );
+      }
 
-    for (let i = 1; i <= CHECKLIST_ITEMS.length; i += 1) {
-      const timer = window.setTimeout(() => {
-        setCompletedCount(i);
-      }, i * 300);
-      timers.push(timer);
-    }
+      let websiteScore: { score: number; observation: string } | null = null;
 
-    const doneTimer = window.setTimeout(() => {
-      navigate("/health-check/results", { state: formData });
-    }, CHECKLIST_ITEMS.length * 300 + 500);
+      if (formData.websiteUrl?.trim()) {
+        try {
+          const { data } = await supabase.functions.invoke("score-website", {
+            body: {
+              websiteUrl: formData.websiteUrl.trim(),
+            },
+          });
+          if (data?.score !== undefined) {
+            websiteScore = {
+              score: Number(data.score),
+              observation: String(data.observation ?? ""),
+            };
+          }
+        } catch {
+          // Silent fail — use default scoring
+        }
+      }
 
-    timers.push(doneTimer);
+      await new Promise((r) =>
+        window.setTimeout(r, CHECKLIST_ITEMS.length * 300 + 500)
+      );
+
+      if (!cancelled) {
+        navigate("/health-check/results", {
+          state: {
+            ...formData,
+            websiteScore,
+          },
+        });
+      }
+    };
+
+    void run();
 
     return () => {
+      cancelled = true;
       timers.forEach((t) => window.clearTimeout(t));
     };
   }, [step, formData, navigate]);

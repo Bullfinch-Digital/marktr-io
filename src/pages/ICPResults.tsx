@@ -31,7 +31,7 @@ export default function ICPResults() {
   const { openLogin } = useAuthModal();
   const [guestICPs, setGuestICPsState] = useState<any[]>([]);
   const isGuest = !user;
-  const dashboardPath = user ? "/dashboard" : "/icp-results";
+  const dashboardPath = user ? "/dashboard" : "/guest-dashboard";
   const brandSeed = useMemo(() => getGuestBrandSeed(), []);
 
   const handleGoToDashboard = () => {

@@ -66,7 +66,7 @@ function GA4RouteTracker() {
 function AuthRedirect() {
   const { user, loading } = useAuth();
   if (loading) return null;
-  return <Navigate to={user ? "/dashboard" : "/icp-results"} replace />;
+  return <Navigate to={user ? "/dashboard" : "/guest-dashboard"} replace />;
 }
 
 export default function App() {
@@ -144,7 +144,7 @@ export default function App() {
             <Route path="/health-check/results" element={<HealthCheckResults />} />
             <Route path="/story" element={<StoryBuild />} />
             <Route path="/story/results" element={<StoryResults />} />
-          <Route path="/icp-results" element={<GuestDashboardPreview />} />
+          <Route path="/guest-dashboard" element={<GuestDashboardPreview />} />
           <Route path="/icp-preview/:index" element={<GuestIcpPreview />} />
             <Route path="/paywall-demo" element={<PaywallDemo />} />
             <Route path="/payment-success" element={<PaymentSuccess />} />

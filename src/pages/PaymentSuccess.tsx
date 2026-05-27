@@ -6,7 +6,7 @@ import { useAuth } from "../contexts/AuthContext";
 export default function PaymentSuccess() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const dashboardPath = user ? "/dashboard" : "/icp-results";
+  const dashboardPath = user ? "/dashboard" : "/guest-dashboard";
 
   // Calculate renewal date (30 days from now for monthly, 365 for annual)
   const getRenewalDate = () => {

@@ -30,7 +30,7 @@ export function LoginModal({
   const handleClose = () => {
     const params = new URLSearchParams(window.location.search);
     const next = params.get("next");
-    const target = next && next.startsWith("/") ? next : "/icp-results";
+    const target = next && next.startsWith("/") ? next : "/guest-dashboard";
     onClose();
     window.location.assign(`${window.location.origin}${target}`);
   };
@@ -44,7 +44,7 @@ export function LoginModal({
     }
     const { data } = await supabase.auth.getSession();
     const isAuthed = Boolean(data?.session?.user?.id);
-    const target = isAuthed ? "/dashboard" : "/icp-results";
+    const target = isAuthed ? "/dashboard" : "/guest-dashboard";
     window.location.assign(`${window.location.origin}${target}`);
   };
   const [localEmail, setLocalEmail] = useState(email ?? "");

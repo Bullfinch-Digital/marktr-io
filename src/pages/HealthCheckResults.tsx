@@ -135,7 +135,7 @@ export default function HealthCheckResults() {
           </p>
 
           <Link
-            to="/icp-results"
+            to="/guest-dashboard"
             className="mt-8 inline-flex items-center justify-center rounded-full bg-primary px-7 py-3 font-['DM_Sans'] text-sm font-medium text-primary-foreground hover:opacity-90"
           >
             Unlock your full dashboard — free for 14 days

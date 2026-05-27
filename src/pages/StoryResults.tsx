@@ -157,7 +157,7 @@ export default function StoryResults() {
             marktr will use your story to generate content, build your strategy, and make sure everything you publish sounds like you — not like everyone else. Free for 14 days.
           </p>
           <Link
-            to="/icp-results"
+            to="/guest-dashboard"
             className="mt-8 inline-flex items-center justify-center rounded-full bg-primary px-7 py-3 font-['DM_Sans'] text-sm font-medium text-primary-foreground hover:opacity-90"
           >
             Unlock your full dashboard — free for 14 days

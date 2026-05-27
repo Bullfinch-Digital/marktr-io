@@ -57,6 +57,29 @@ export default function GuestDashboardPreview() {
   const hasStory = Boolean(guestStory?.output);
   const hasHealth = Boolean(guestHealth?.scores);
 
+  const completedCount = [hasICPs, hasStory, hasHealth].filter(Boolean).length;
+
+  const headerTitle = (() => {
+    if (completedCount === 3) return "Your full marketing picture is ready.";
+    if (hasStory && !hasICPs && !hasHealth) return "Your brand story is ready.";
+    if (hasICPs && !hasStory && !hasHealth) return "Your ideal customers, defined.";
+    if (hasHealth && !hasICPs && !hasStory) return "Your marketing health scores are in.";
+    return "Your marktr results are ready.";
+  })();
+
+  const headerSubtitle = (() => {
+    if (completedCount === 3) {
+      return "You've completed all three steps. Sign up free to save your work and unlock your full dashboard.";
+    }
+    const remaining = [
+      !hasICPs && "customer profiles",
+      !hasStory && "brand story",
+      !hasHealth && "marketing health check",
+    ].filter(Boolean) as string[];
+    const remainingText = remaining.join(" and ");
+    return `Complete your ${remainingText} to get the full picture — then unlock your dashboard free for 14 days.`;
+  })();
+
   const handleUpgrade = () => {
     openPaywall();
   };
@@ -82,13 +105,8 @@ export default function GuestDashboardPreview() {
       <div className="mx-auto max-w-7xl space-y-10 pb-12">
         <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="mb-2 font-['Fraunces'] text-3xl text-[#0D1833] lg:text-4xl">
-              Your ideal customers, defined.
-            </h1>
-            <p className="font-['DM_Sans'] text-foreground/70">
-              Here are the three customer profiles marktr has built for your business. Unlock the full platform to put them
-              to work.
-            </p>
+            <h1 className="mb-2 font-['Fraunces'] text-3xl text-[#0D1833] lg:text-4xl">{headerTitle}</h1>
+            <p className="font-['DM_Sans'] text-foreground/70">{headerSubtitle}</p>
           </div>
           <div className="flex shrink-0 items-center gap-3">
             <Button

@@ -127,7 +127,7 @@ export function PaywallProvider({ children }: { children: React.ReactNode }) {
         const supabaseAnonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY || "").trim();
         const checkoutGuestSecret = (import.meta.env.VITE_CHECKOUT_GUEST_SECRET || "").trim();
         const checkoutUrl = `${supabaseUrl}/functions/v1/create-checkout-session`;
-        const redirectBasePath = accessToken ? "/dashboard" : "/icp-results";
+        const redirectBasePath = accessToken ? "/dashboard" : "/guest-dashboard";
 
         const payload = {
           priceId,

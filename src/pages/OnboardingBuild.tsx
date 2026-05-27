@@ -152,7 +152,7 @@ export default function OnboardingBuild() {
 
   const handleLoadingComplete = () => {
     // Navigate to dedicated ICP Results page after loading
-    navigate("/icp-results", { state: { unsavedPreview: unsavedPreviewRef.current } });
+    navigate("/guest-dashboard", { state: { unsavedPreview: unsavedPreviewRef.current } });
   };
 
   // Only evaluate create limits once BOTH subscription + ICPs have finished loading.
@@ -524,7 +524,7 @@ export default function OnboardingBuild() {
       setLastGenerated(result.icps || []);
     }
 
-    navigate("/icp-results", { state: { unsavedPreview: unsavedPreviewRef.current } });
+    navigate("/guest-dashboard", { state: { unsavedPreview: unsavedPreviewRef.current } });
     console.log("[Onboarding] runIcpGeneration complete");
   }, [
     formData,

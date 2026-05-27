@@ -3,7 +3,7 @@ import { useAuth } from '../../contexts/AuthContext'
 
 export function Footer() {
   const { user } = useAuth();
-  const dashboardPath = user ? "/dashboard" : "/icp-results";
+  const dashboardPath = user ? "/dashboard" : "/guest-dashboard";
   return (
     <footer className="border-t border-accent-grey bg-neutral-light py-12">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">

@@ -7,7 +7,7 @@ export default function PaywallDemo() {
   const navigate = useNavigate();
   const { openPaywall } = usePaywall();
   const { user } = useAuth();
-  const dashboardPath = user ? "/dashboard" : "/icp-results";
+  const dashboardPath = user ? "/dashboard" : "/guest-dashboard";
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">

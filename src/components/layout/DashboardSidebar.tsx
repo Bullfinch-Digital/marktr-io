@@ -32,7 +32,7 @@ export function DashboardSidebar({
   const [isCollapsed, setIsCollapsed] = useState(false);
   const location = useLocation();
   const { user } = useAuth();
-  const dashboardPath = user ? "/dashboard" : "/icp-results";
+  const dashboardPath = user ? "/dashboard" : "/guest-dashboard";
 
   const navItems = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, locked: false, path: dashboardPath },
@@ -60,7 +60,7 @@ export function DashboardSidebar({
 
   const isGuestAllowedPath = (path?: string) => {
     if (!path) return false;
-    if (path === "/icp-results") return true;
+    if (path === "/guest-dashboard") return true;
     if (path.startsWith("/icp-preview")) return true;
     return false;
   };

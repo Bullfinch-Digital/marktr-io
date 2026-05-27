@@ -65,28 +65,30 @@ export function Header() {
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden items-center gap-8 md:flex">
-            {navItems.map((item, index) => (
-              item.type === "scroll" ? (
-                <Link
-                  key={index}
-                  to={`/#${item.target}`}
-                  onClick={(e) => handleScrollNav(e, item.target)}
-                  className="relative text-sm transition-colors hover:text-text-dark after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-button-green after:transition-all hover:after:w-full flex items-center gap-1.5"
-                >
-                  {item.label}
-                </Link>
-              ) : (
-                <Link
-                  key={index}
-                  to={item.target}
-                  className="relative text-sm transition-colors hover:text-text-dark after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-button-green after:transition-all hover:after:w-full flex items-center gap-1.5"
-                >
-                  {item.label}
-                </Link>
-              )
-            ))}
-          </nav>
+          {!user && (
+            <nav className="hidden items-center gap-8 md:flex">
+              {navItems.map((item, index) => (
+                item.type === "scroll" ? (
+                  <Link
+                    key={index}
+                    to={`/#${item.target}`}
+                    onClick={(e) => handleScrollNav(e, item.target)}
+                    className="relative text-sm transition-colors hover:text-text-dark after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-button-green after:transition-all hover:after:w-full flex items-center gap-1.5"
+                  >
+                    {item.label}
+                  </Link>
+                ) : (
+                  <Link
+                    key={index}
+                    to={item.target}
+                    className="relative text-sm transition-colors hover:text-text-dark after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-button-green after:transition-all hover:after:w-full flex items-center gap-1.5"
+                  >
+                    {item.label}
+                  </Link>
+                )
+              ))}
+            </nav>
+          )}
 
           {/* Actions */}
           <div className="flex items-center gap-4">
@@ -161,27 +163,31 @@ export function Header() {
         {/* Mobile Menu */}
         {isMobileMenuOpen && (
           <nav className="flex flex-col gap-4 border-t border-warm-grey py-4 md:hidden">
-            {navItems.map((item, index) => (
-              item.type === "scroll" ? (
-                <Link
-                  key={index}
-                  to={`/#${item.target}`}
-                  onClick={(e) => handleScrollNav(e, item.target)}
-                  className="px-2 py-1 transition-colors hover:text-button-green flex items-center gap-2 text-left"
-                >
-                  {item.label}
-                </Link>
-              ) : (
-                <Link
-                  key={index}
-                  to={item.target}
-                  className="px-2 py-1 transition-colors hover:text-button-green flex items-center gap-2"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  {item.label}
-                </Link>
-              )
-            ))}
+            {!user && (
+              <>
+                {navItems.map((item, index) => (
+                  item.type === "scroll" ? (
+                    <Link
+                      key={index}
+                      to={`/#${item.target}`}
+                      onClick={(e) => handleScrollNav(e, item.target)}
+                      className="px-2 py-1 transition-colors hover:text-button-green flex items-center gap-2 text-left"
+                    >
+                      {item.label}
+                    </Link>
+                  ) : (
+                    <Link
+                      key={index}
+                      to={item.target}
+                      className="px-2 py-1 transition-colors hover:text-button-green flex items-center gap-2"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      {item.label}
+                    </Link>
+                  )
+                ))}
+              </>
+            )}
             {user ? (
               <>
                 <Link to="/dashboard" onClick={() => setIsMobileMenuOpen(false)}>

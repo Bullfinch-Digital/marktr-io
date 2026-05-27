@@ -25,6 +25,7 @@ import MyAccount from "./pages/MyAccount";
 import Admin from "./pages/Admin";
 import Pricing from "./pages/Pricing";
 import TeamSettings from "./pages/TeamSettings";
+import Strategy from "./pages/Strategy";
 import ResetPassword from "./pages/ResetPassword";
 import Logout from "./pages/Logout";
 import AuthCallback from "./pages/AuthCallback";
@@ -204,7 +205,7 @@ export default function App() {
             } />
             <Route path="/strategy" element={
               <ProtectedRoute>
-                <PlaceholderPage title="Content Strategy" />
+                <Strategy />
               </ProtectedRoute>
             } />
             <Route path="/content" element={

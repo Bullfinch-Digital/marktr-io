@@ -140,7 +140,7 @@ export default function Home() {
                 </div>
                 <div>
                   <p className="font-['Fraunces'] text-base font-bold leading-snug text-[#0D1833]">
-                    Check your marketing health
+                    Check your digital health
                   </p>
                   <p className="mt-1 font-['DM_Sans'] text-xs leading-relaxed text-muted-foreground">
                     Score your digital presence across 5 dimensions — free
@@ -299,7 +299,7 @@ export default function Home() {
             </div>
           </Link>
 
-          {/* CARD 2 — Check your marketing health */}
+          {/* CARD 2 — Check your digital health */}
           <Link
             to="/health-check"
             className="group block cursor-pointer rounded-2xl bg-[var(--feature-teal)] shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
@@ -311,7 +311,7 @@ export default function Home() {
               <HomeHealthBarsIllustration />
             </div>
             <div className="p-6">
-              <h3 className="font-['Fraunces'] text-xl font-bold text-[#0D1833]">Check your marketing health</h3>
+              <h3 className="font-['Fraunces'] text-xl font-bold text-[#0D1833]">Check your digital health</h3>
               <p className="mt-2 font-['DM_Sans'] text-sm leading-relaxed text-[#0D1833]/85">
                 Score your digital presence across 5 dimensions — and see exactly where to focus.
               </p>
@@ -499,7 +499,7 @@ export default function Home() {
             Your marketing team is ready.
           </h2>
           <p className="mt-4 font-['DM_Sans'] text-lg text-white/70">
-            Know your customer. Shape your story. Check your marketing health. All free. No agency required.
+            Know your customer. Shape your story. Check your digital health. All free. No agency required.
           </p>
           <Link
             to="/onboarding-build"

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, CheckCircle2, Loader2 } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -99,6 +99,15 @@ export default function HealthCheck() {
   const renderWelcome = () => (
     <section className="mx-auto flex min-h-screen w-full max-w-3xl flex-col justify-center px-6 py-12">
       <div className="rounded-3xl border border-border bg-white p-8 shadow-sm sm:p-12">
+        <div className="mb-8">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2 font-['DM_Sans'] text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to home
+          </Link>
+        </div>
         <h1 className="font-['Fraunces'] text-4xl font-bold leading-tight text-[#0D1833] sm:text-5xl">
           Let&apos;s check the health of your marketing.
         </h1>
@@ -124,6 +133,15 @@ export default function HealthCheck() {
   const renderInputs = () => (
     <section className="mx-auto flex min-h-screen w-full max-w-3xl flex-col justify-center px-6 py-12">
       <div className="rounded-3xl border border-border bg-white p-8 shadow-sm sm:p-12">
+        <div className="mb-8">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2 font-['DM_Sans'] text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to home
+          </Link>
+        </div>
         <h1 className="font-['Fraunces'] text-4xl font-bold leading-tight text-[#0D1833] sm:text-5xl">
           Where can we find you online?
         </h1>

@@ -63,7 +63,7 @@ export default function GuestDashboardPreview() {
     if (completedCount === 3) return "Your full marketing picture is ready.";
     if (hasStory && !hasICPs && !hasHealth) return "Your brand story is ready.";
     if (hasICPs && !hasStory && !hasHealth) return "Your ideal customers, defined.";
-    if (hasHealth && !hasICPs && !hasStory) return "Your marketing health scores are in.";
+    if (hasHealth && !hasICPs && !hasStory) return "Your digital health scores are in.";
     return "Your marktr results are ready.";
   })();
 
@@ -74,7 +74,7 @@ export default function GuestDashboardPreview() {
     const remaining = [
       !hasICPs && "customer profiles",
       !hasStory && "brand story",
-      !hasHealth && "marketing health check",
+      !hasHealth && "digital health check",
     ].filter(Boolean) as string[];
     const remainingText = remaining.join(" and ");
     return `Complete your ${remainingText} to get the full picture — then unlock your dashboard free for 14 days.`;
@@ -141,7 +141,7 @@ export default function GuestDashboardPreview() {
             </div>
           </div>
 
-          {/* Card 2 — Marketing health check */}
+          {/* Card 2 — Digital health check */}
           <div
             className={`rounded-2xl border p-6 ${
               hasHealth ? "border-[#2D7A5F] bg-[#D4EDE8]" : "border-border bg-white"
@@ -150,7 +150,7 @@ export default function GuestDashboardPreview() {
             <div className="flex items-start gap-3">
               <Activity className={`h-8 w-8 shrink-0 ${hasHealth ? "text-[#2D7A5F]" : "text-muted-foreground"}`} />
               <div className="min-w-0 flex-1">
-                <h3 className="font-['Fraunces'] text-lg font-bold text-[#0D1833]">Marketing health check</h3>
+                <h3 className="font-['Fraunces'] text-lg font-bold text-[#0D1833]">Digital health check</h3>
                 {hasHealth && guestHealth && (
                   <p className="mt-1 font-['Fraunces'] text-4xl font-bold leading-none text-[#2D7A5F]">
                     {guestHealth.scores.overall}
@@ -251,7 +251,7 @@ export default function GuestDashboardPreview() {
 
         {hasHealth && guestHealth?.scores && (
           <div className="space-y-4 rounded-2xl border border-border bg-white p-6">
-            <h2 className="font-['Fraunces'] text-2xl font-bold text-[#0D1833]">Your marketing health scores</h2>
+            <h2 className="font-['Fraunces'] text-2xl font-bold text-[#0D1833]">Your digital health scores</h2>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
               {(
                 [
@@ -279,7 +279,7 @@ export default function GuestDashboardPreview() {
                 {guestHealth.scores.overall}
                 <span className="font-['DM_Sans'] text-lg font-normal text-muted-foreground">/100</span>
               </p>
-              <p className="font-['DM_Sans'] text-sm text-muted-foreground">Overall marketing health</p>
+              <p className="font-['DM_Sans'] text-sm text-muted-foreground">Overall digital health</p>
             </div>
           </div>
         )}

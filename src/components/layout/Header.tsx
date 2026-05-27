@@ -38,7 +38,7 @@ export function Header() {
       color: "#FFD336", // Yellow
     },
     {
-      label: "Check your health",
+      label: "Check your digital health",
       type: "link" as const,
       target: "/health-check",
       color: "#96CBB6", // Mint green

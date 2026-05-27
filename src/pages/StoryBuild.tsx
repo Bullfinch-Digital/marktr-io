@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, CheckCircle2, Loader2 } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -170,7 +170,13 @@ export default function StoryBuild() {
               Back
             </button>
           ) : (
-            <span />
+            <Link
+              to="/"
+              className="inline-flex items-center gap-2 font-['DM_Sans'] text-sm text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to home
+            </Link>
           )}
           <p className="font-['DM_Sans'] text-xs text-muted-foreground">
             Question {questionIndex + 1} of 7

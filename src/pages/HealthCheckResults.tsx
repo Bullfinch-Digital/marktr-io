@@ -94,7 +94,7 @@ export default function HealthCheckResults() {
     <main className="min-h-screen bg-background">
       <section className="mx-auto max-w-3xl px-6 py-12">
         <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 font-['DM_Sans'] text-xs font-medium text-primary">
-          Your Marketing Health Report
+          Your Digital Health Report
         </span>
 
         <h1 className="mt-4 font-['Fraunces'] text-4xl font-bold leading-tight text-[#0D1833] sm:text-5xl">
@@ -122,7 +122,7 @@ export default function HealthCheckResults() {
               /100
             </span>
           </p>
-          <p className="mt-2 font-['DM_Sans'] text-sm text-muted-foreground">Overall marketing health</p>
+          <p className="mt-2 font-['DM_Sans'] text-sm text-muted-foreground">Overall digital health</p>
         </div>
 
         <div className="mt-8 rounded-2xl bg-[#0D1833] p-8">

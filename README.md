@@ -106,7 +106,7 @@ npm run preview
 - `/` - Homepage
 - `/pricing` - Pricing page
 - `/onboarding-build` - ICP generation flow (10 steps)
-- `/icp-results` - Results display
+- `/guest-dashboard` - Results display
 - `/dashboard` - Main dashboard
 - `/dashboard/icp/:id` - ICP editor
 - `/collections` - Collections grid

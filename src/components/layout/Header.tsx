@@ -9,6 +9,8 @@ export function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
   const { user, signOut } = useAuth();
+  const isAnonymousUser = (user as any)?.is_anonymous === true;
+  const isLoggedIn = !!user && !isAnonymousUser;
   const { openLogin } = useAuthModal();
   const navigate = useNavigate();
 
@@ -65,7 +67,7 @@ export function Header() {
           </Link>
 
           {/* Desktop Navigation */}
-          {!user && (
+          {!isLoggedIn && (
             <nav className="hidden items-center gap-8 md:flex">
               {navItems.map((item, index) => (
                 item.type === "scroll" ? (
@@ -92,7 +94,7 @@ export function Header() {
 
           {/* Actions */}
           <div className="flex items-center gap-4">
-            {user ? (
+            {isLoggedIn ? (
               <>
                 <Link to="/dashboard">
                   <Button
@@ -163,7 +165,7 @@ export function Header() {
         {/* Mobile Menu */}
         {isMobileMenuOpen && (
           <nav className="flex flex-col gap-4 border-t border-warm-grey py-4 md:hidden">
-            {!user && (
+            {!isLoggedIn && (
               <>
                 {navItems.map((item, index) => (
                   item.type === "scroll" ? (
@@ -188,7 +190,7 @@ export function Header() {
                 ))}
               </>
             )}
-            {user ? (
+            {isLoggedIn ? (
               <>
                 <Link to="/dashboard" onClick={() => setIsMobileMenuOpen(false)}>
                   <Button 

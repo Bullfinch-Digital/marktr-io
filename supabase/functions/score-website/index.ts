@@ -203,13 +203,13 @@ Assess the website across these five criteria and return ONLY valid JSON with no
 Scoring guidance:
 - hasValueProposition: true if the title/meta/headings clearly explain what the business does and who for
 - hasClearAudience: true if the content signals a specific target customer
-- hasCallToAction: true if there are clear action-oriented links or buttons
+- hasCallToAction: true if there are clear action-oriented words anywhere in the page — links, headings, or text containing words like subscribe, buy, shop, start, book, get, discover, explore, contact, join, try, order, learn. Do not require HTML button elements — modern e-commerce and Shopify sites use styled links as their primary CTAs.
 - hasSocialProof: true if there are reviews, ratings, awards, testimonials or trust badges
 - hasContactOrCapture: true if there is contact info, a contact page, email capture or booking option
 - clarityScore: 0-100 based on how well the homepage communicates value to a first-time visitor. Be fair — a site with a clear title, meta description, headings and CTAs should score 60-80 minimum.
 - observation: one specific, honest observation about the biggest opportunity for improvement. Be specific — name what you see, not generic advice.
-- strengths: two specific things the site does well based on the signals provided
-- gaps: two specific improvement opportunities based on actual gaps in the signals`;
+- strengths: two specific things the site does well from a founder marketing perspective — social proof, clear positioning, strong founder story, specific audience targeting, good content depth, clear differentiation. Be specific about what you can see.
+- gaps: two specific improvement opportunities that would most benefit a founder-led small business. Focus on: brand story and founder narrative (is there a clear 'why we exist' or founding story visible?), ICP specificity (does the content speak to a clearly defined customer or does it feel generic?), positioning distinctiveness (what makes them different from competitors — is that clear?), email capture (is there a newsletter or lead magnet visible?), or content depth (is there a blog, resources, or educational content that builds authority?). Do NOT flag missing button elements, navigation structure, or technical UX issues — focus only on marketing and storytelling gaps.`;
 
 Deno.serve(async (req) => {
   const preflight = corsPreflight(req);

@@ -112,6 +112,8 @@ export default function HealthCheck() {
           const { data } = await supabase.functions.invoke("score-website", {
             body: {
               websiteUrl: formData.websiteUrl.trim(),
+              instagramHandle: formData.instagramHandle?.trim() || undefined,
+              facebookUrl: formData.facebookUrl?.trim() || undefined,
             },
           });
           if (data?.score !== undefined) {

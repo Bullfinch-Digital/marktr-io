@@ -1,6 +1,10 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
-type Input = { websiteUrl: string };
+type Input = {
+  websiteUrl: string;
+  instagramHandle?: string;
+  facebookUrl?: string;
+};
 
 type StoryAssessment = {
   hasFounderStory: boolean;
@@ -88,6 +92,125 @@ async function fetchPage(baseUrl: string, path: string): Promise<string> {
     if (!res.ok) return "";
     const html = await res.text();
     return html.length > 500 ? html : "";
+  } catch {
+    return "";
+  }
+}
+
+async function fetchInstagramPublic(handle: string): Promise<string> {
+  try {
+    const username = handle.replace("@", "").trim();
+    if (!username) return "";
+
+    const url = `https://www.instagram.com/${username}/`;
+
+    const res = await fetch(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (compatible; marktr-bot/1.0)",
+        Accept: "text/html",
+        "Accept-Language": "en-GB,en;q=0.9",
+      },
+      signal: AbortSignal.timeout(8000),
+    });
+
+    if (!res.ok) return "";
+    const html = await res.text();
+
+    const get = (pattern: RegExp) => {
+      const m = html.match(pattern);
+      return m?.[1]?.trim() ?? "";
+    };
+
+    const ogTitle =
+      get(/<meta[^>]*property=["']og:title["'][^>]*content=["']([^"']+)/i) ||
+      get(/<meta[^>]*content=["']([^"']+)["'][^>]*property=["']og:title["']/i);
+
+    const ogDesc =
+      get(
+        /<meta[^>]*property=["']og:description["'][^>]*content=["']([^"']+)/i
+      ) ||
+      get(
+        /<meta[^>]*content=["']([^"']+)["'][^>]*property=["']og:description["']/i
+      );
+
+    const followerMatch = ogDesc.match(/([\d,.]+[km]?)\s*followers?/i);
+    const followingMatch = ogDesc.match(/([\d,.]+[km]?)\s*following/i);
+    const postsMatch = ogDesc.match(/([\d,.]+[km]?)\s*posts?/i);
+
+    const bioText = ogDesc
+      .replace(/[\d,.]+[km]?\s*followers?[,\s]*/i, "")
+      .replace(/[\d,.]+[km]?\s*following[,\s]*/i, "")
+      .replace(/[\d,.]+[km]?\s*posts?[,\s]*/i, "")
+      .trim();
+
+    if (!ogTitle && !ogDesc) return "Instagram profile not found";
+
+    const signals = [
+      ogTitle && `Instagram account name: ${ogTitle}`,
+      followerMatch && `Followers: ${followerMatch[1]}`,
+      followingMatch && `Following: ${followingMatch[1]}`,
+      postsMatch && `Total posts: ${postsMatch[1]}`,
+      bioText && `Bio: ${bioText}`,
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    return signals || "Instagram profile found but no data extracted";
+  } catch {
+    return "";
+  }
+}
+
+async function fetchFacebookPublic(facebookUrl: string): Promise<string> {
+  try {
+    if (!facebookUrl.trim()) return "";
+
+    const url = facebookUrl.startsWith("http")
+      ? facebookUrl
+      : `https://${facebookUrl}`;
+
+    const res = await fetch(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (compatible; marktr-bot/1.0)",
+        Accept: "text/html",
+        "Accept-Language": "en-GB,en;q=0.9",
+      },
+      signal: AbortSignal.timeout(8000),
+    });
+
+    if (!res.ok) return "";
+    const html = await res.text();
+
+    const get = (pattern: RegExp) => {
+      const m = html.match(pattern);
+      return m?.[1]?.trim() ?? "";
+    };
+
+    const ogTitle =
+      get(/<meta[^>]*property=["']og:title["'][^>]*content=["']([^"']+)/i) ||
+      get(/<meta[^>]*content=["']([^"']+)["'][^>]*property=["']og:title["']/i);
+
+    const ogDesc =
+      get(
+        /<meta[^>]*property=["']og:description["'][^>]*content=["']([^"']+)/i
+      ) ||
+      get(
+        /<meta[^>]*content=["']([^"']+)["'][^>]*property=["']og:description["']/i
+      );
+
+    const likesMatch = ogDesc.match(/([\d,.]+[km]?)\s*(?:people\s*)?likes?/i);
+    const followersMatch = ogDesc.match(/([\d,.]+[km]?)\s*followers?/i);
+
+    const signals = [
+      ogTitle && `Facebook page name: ${ogTitle}`,
+      ogDesc && `Facebook page description: ${ogDesc}`,
+      likesMatch && `Page likes: ${likesMatch[1]}`,
+      followersMatch && `Page followers: ${followersMatch[1]}`,
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    return signals || "Facebook page found but limited data";
   } catch {
     return "";
   }
@@ -285,7 +408,7 @@ function normalizeStoryAssessment(
   };
 }
 
-const SYSTEM_PROMPT = `You are a brand strategist and marketing consultant specialising in founder-led small businesses. You have been given content extracted from a business website.
+const SYSTEM_PROMPT = `You are a brand strategist and marketing consultant specialising in founder-led small businesses. You have been given content extracted from a business website and, when available, their public Instagram and Facebook profiles.
 
 Your job is NOT to do a generic SEO or UX audit. Your job is to assess how well this founder business communicates its story, speaks to a specific customer, and positions itself distinctively — and to identify the specific gaps that are costing them customers.
 
@@ -355,7 +478,24 @@ storyAssessment:
 - speaksToSpecificCustomer: true if the language addresses a specific type of person rather than everyone
 - hasDistinctivePositioning: true if it is clear what makes this business different from competitors
 - hasEmotionalHook: true if there is language designed to create an emotional connection — shared values, a cause, a community, or a belief
-- missingElements: list the specific story elements that are absent or weak — from: "founding moment", "clear why/purpose", "specific customer named", "what makes us different", "customer community language", "proof of impact", "vision for the future"`;
+- missingElements: list the specific story elements that are absent or weak — from: "founding moment", "clear why/purpose", "specific customer named", "what makes us different", "customer community language", "proof of impact", "vision for the future"
+
+SOCIAL MEDIA ASSESSMENT:
+When Instagram data is provided, assess:
+- Does the bio speak to a specific customer or is it generic?
+- Does the follower count suggest an established or growing presence?
+- Does the account appear active based on post count?
+- Is the Instagram bio consistent with the website positioning?
+
+When Facebook data is provided, assess:
+- Is the page description compelling?
+- Does it align with website messaging?
+
+Add social media observations to your gaps and strengths where relevant. For example:
+- "Instagram bio doesn't mention who the product is for"
+- "Strong Instagram following but bio doesn't reflect website story"
+- "Facebook and Instagram messaging inconsistent with website positioning"
+- "Instagram bio well-aligned with website value proposition"`;
 
 Deno.serve(async (req) => {
   const preflight = corsPreflight(req);
@@ -399,16 +539,33 @@ Deno.serve(async (req) => {
       const homepageSignals = extractAllSignals(html, websiteUrl);
       const storySignals = aboutHtml ? extractStorySignals(aboutHtml) : "";
 
+      const instagramSignals = body.instagramHandle
+        ? await fetchInstagramPublic(body.instagramHandle)
+        : "";
+
+      const facebookSignals = body.facebookUrl
+        ? await fetchFacebookPublic(body.facebookUrl)
+        : "";
+
       combinedText = [
         "=== HOMEPAGE ===",
         homepageSignals,
         storySignals ? "=== ABOUT/STORY PAGE ===" : "",
         storySignals,
+        instagramSignals ? "=== INSTAGRAM ===" : "",
+        instagramSignals,
+        facebookSignals ? "=== FACEBOOK ===" : "",
+        facebookSignals,
       ]
         .filter(Boolean)
         .join("\n\n");
 
-      if (homepageSignals === "No readable content found" && !storySignals) {
+      if (
+        homepageSignals === "No readable content found" &&
+        !storySignals &&
+        !instagramSignals &&
+        !facebookSignals
+      ) {
         throw new Error("No readable content found");
       }
     } catch {

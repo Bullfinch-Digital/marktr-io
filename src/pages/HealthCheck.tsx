@@ -109,7 +109,7 @@ export default function HealthCheck() {
           </Link>
         </div>
         <h1 className="font-['Fraunces'] text-4xl font-bold leading-tight text-[#0D1833] sm:text-5xl">
-          Let&apos;s check the health of your marketing.
+          Let&apos;s check your digital health.
         </h1>
         <p className="mt-5 max-w-2xl font-['DM_Sans'] text-base leading-relaxed text-muted-foreground sm:text-lg">
           Answer 5 quick questions and marktr will score your digital presence across the
@@ -120,7 +120,7 @@ export default function HealthCheck() {
           onClick={() => setStep("inputs")}
           className="mt-10 rounded-full bg-primary px-8 py-6 font-['DM_Sans'] text-base font-medium text-primary-foreground hover:opacity-90"
         >
-          Start my health check →
+          Start my digital health check →
         </Button>
 
         <p className="mt-4 font-['DM_Sans'] text-sm text-muted-foreground">

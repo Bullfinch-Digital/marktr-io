@@ -158,11 +158,11 @@ export default function GuestDashboardPreview() {
                   </p>
                 )}
                 <p className={`mt-2 font-['DM_Sans'] text-sm ${hasHealth ? "text-[#2D7A5F]" : "text-muted-foreground"}`}>
-                  {hasHealth ? "✓ Health check complete" : "Not started yet"}
+                  {hasHealth ? "✓ Digital health check complete" : "Not started yet"}
                 </p>
                 {!hasHealth && (
                   <Link to="/health-check" className="mt-3 inline-block font-['DM_Sans'] text-xs text-primary underline">
-                    Run your health check →
+                    Run your digital health check →
                   </Link>
                 )}
               </div>

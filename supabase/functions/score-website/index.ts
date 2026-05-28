@@ -2,6 +2,15 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 type Input = { websiteUrl: string };
 
+type StoryAssessment = {
+  hasFounderStory: boolean;
+  founderStoryQuality: "none" | "basic" | "good" | "compelling";
+  speaksToSpecificCustomer: boolean;
+  hasDistinctivePositioning: boolean;
+  hasEmotionalHook: boolean;
+  missingElements: string[];
+};
+
 type WebsiteScoreResult = {
   hasValueProposition: boolean;
   hasClearAudience: boolean;
@@ -12,7 +21,18 @@ type WebsiteScoreResult = {
   observation: string;
   strengths?: string[];
   gaps?: string[];
+  storyAssessment?: StoryAssessment | null;
 };
+
+const ABOUT_PATHS = [
+  "/pages/about",
+  "/about",
+  "/about-us",
+  "/our-story",
+  "/story",
+  "/pages/our-story",
+  "/pages/about-us",
+];
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -56,6 +76,21 @@ function normaliseUrl(url: string) {
   if (!trimmed) return "";
   if (/^https?:\/\//i.test(trimmed)) return trimmed;
   return `https://${trimmed}`;
+}
+
+async function fetchPage(baseUrl: string, path: string): Promise<string> {
+  try {
+    const url = baseUrl.replace(/\/+$/, "") + path;
+    const res = await fetch(url, {
+      headers: { "User-Agent": "marktr-bot/1.0" },
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!res.ok) return "";
+    const html = await res.text();
+    return html.length > 500 ? html : "";
+  } catch {
+    return "";
+  }
 }
 
 function extractAllSignals(html: string, url: string): string {
@@ -184,9 +219,77 @@ function extractAllSignals(html: string, url: string): string {
   return parts || "No readable content found";
 }
 
-const SYSTEM_PROMPT = `You are a senior digital marketing strategist conducting a website audit for a small business owner. You have been given signals extracted from their website's HTML.
+function extractStorySignals(html: string): string {
+  if (!html) return "";
 
-Assess the website across these five criteria and return ONLY valid JSON with no markdown or backticks:
+  const paragraphs = [...html.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/gi)]
+    .map((m) =>
+      m[1].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim()
+    )
+    .filter((t) => t.length > 40 && t.length < 600)
+    .slice(0, 8);
+
+  const headings = [...html.matchAll(/<h[1-3][^>]*>([\s\S]*?)<\/h[1-3]>/gi)]
+    .map((m) => m[1].replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim())
+    .filter((t) => t.length > 3)
+    .slice(0, 6);
+
+  const yearMatch = html.match(
+    /\b(since|founded|established|started|began|in)\s+(19|20)\d{2}/i
+  );
+
+  const founderMatch = html.match(
+    /\b(founder|started by|created by|built by|by\s+[A-Z][a-z]+\s+[A-Z][a-z]+)\b/i
+  );
+
+  const missionMatch = html.match(
+    /\b(mission|purpose|believe|committed|dedicated|passionate about|why we|we exist)\b/i
+  );
+
+  const parts = [
+    headings.length && `About page headings: ${headings.join(" | ")}`,
+    paragraphs.length && `About page content:\n${paragraphs.join("\n")}`,
+    yearMatch && `Founding reference: ${yearMatch[0]}`,
+    founderMatch && "Founder reference found",
+    missionMatch && "Mission/purpose language found",
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+
+  return parts;
+}
+
+function normalizeStoryAssessment(
+  raw: StoryAssessment | null | undefined
+): StoryAssessment | null {
+  if (!raw || typeof raw !== "object") return null;
+
+  const quality = raw.founderStoryQuality;
+  const founderStoryQuality =
+    quality === "basic" ||
+    quality === "good" ||
+    quality === "compelling" ||
+    quality === "none"
+      ? quality
+      : "none";
+
+  return {
+    hasFounderStory: Boolean(raw.hasFounderStory),
+    founderStoryQuality,
+    speaksToSpecificCustomer: Boolean(raw.speaksToSpecificCustomer),
+    hasDistinctivePositioning: Boolean(raw.hasDistinctivePositioning),
+    hasEmotionalHook: Boolean(raw.hasEmotionalHook),
+    missingElements: Array.isArray(raw.missingElements)
+      ? raw.missingElements.map((el) => String(el).trim()).filter(Boolean)
+      : [],
+  };
+}
+
+const SYSTEM_PROMPT = `You are a brand strategist and marketing consultant specialising in founder-led small businesses. You have been given content extracted from a business website.
+
+Your job is NOT to do a generic SEO or UX audit. Your job is to assess how well this founder business communicates its story, speaks to a specific customer, and positions itself distinctively — and to identify the specific gaps that are costing them customers.
+
+Assess the website and return ONLY valid JSON with no markdown or backticks:
 
 {
   "hasValueProposition": boolean,
@@ -195,21 +298,64 @@ Assess the website across these five criteria and return ONLY valid JSON with no
   "hasSocialProof": boolean,
   "hasContactOrCapture": boolean,
   "clarityScore": number (0-100),
-  "observation": string (max 15 words, most important specific finding),
+  "observation": string (max 15 words, most important specific finding about their brand communication),
   "strengths": [string, string],
-  "gaps": [string, string]
+  "gaps": [string, string],
+  "storyAssessment": {
+    "hasFounderStory": boolean,
+    "founderStoryQuality": "none" | "basic" | "good" | "compelling",
+    "speaksToSpecificCustomer": boolean,
+    "hasDistinctivePositioning": boolean,
+    "hasEmotionalHook": boolean,
+    "missingElements": [string]
+  }
 }
 
-Scoring guidance:
-- hasValueProposition: true if the title/meta/headings clearly explain what the business does and who for
-- hasClearAudience: true if the content signals a specific target customer
-- hasCallToAction: true if there are clear action-oriented words anywhere in the page — links, headings, or text containing words like subscribe, buy, shop, start, book, get, discover, explore, contact, join, try, order, learn. Do not require HTML button elements — modern e-commerce and Shopify sites use styled links as their primary CTAs.
-- hasSocialProof: true if there are reviews, ratings, awards, testimonials or trust badges
-- hasContactOrCapture: true if there is contact info, a contact page, email capture or booking option
-- clarityScore: 0-100 based on how well the homepage communicates value to a first-time visitor. Be fair — a site with a clear title, meta description, headings and CTAs should score 60-80 minimum.
-- observation: one specific, honest observation about the biggest opportunity for improvement. Be specific — name what you see, not generic advice.
-- strengths: two specific things the site does well from a founder marketing perspective — social proof, clear positioning, strong founder story, specific audience targeting, good content depth, clear differentiation. Be specific about what you can see.
-- gaps: two specific improvement opportunities that would most benefit a founder-led small business. Focus on: brand story and founder narrative (is there a clear 'why we exist' or founding story visible?), ICP specificity (does the content speak to a clearly defined customer or does it feel generic?), positioning distinctiveness (what makes them different from competitors — is that clear?), email capture (is there a newsletter or lead magnet visible?), or content depth (is there a blog, resources, or educational content that builds authority?). Do NOT flag missing button elements, navigation structure, or technical UX issues — focus only on marketing and storytelling gaps.`;
+ASSESSMENT CRITERIA:
+
+hasValueProposition: true if it is immediately clear what the business does and who it helps.
+
+hasClearAudience: true if the content speaks to a specific type of person rather than everyone. Look for language that addresses a particular customer's values, frustrations or aspirations.
+
+hasCallToAction: true if there are clear invitations to take action — links, buttons, or text using words like subscribe, buy, shop, start, book, get, discover, explore, contact, join, try, order.
+
+hasSocialProof: true if there are reviews, ratings, awards, testimonials, press mentions, customer counts, or trust badges.
+
+hasContactOrCapture: true if there is a contact page, email address, phone number, or email capture form.
+
+clarityScore: 0-100 score for how clearly and compellingly the business communicates its value to a first-time visitor.
+Scoring guide:
+- 80-98: Exceptional clarity — strong story, clear audience, distinctive positioning
+- 65-79: Good — communicates the basics well with some gaps
+- 45-64: Average — some good elements but missing key pieces
+- 20-44: Weak — unclear, generic, or poorly targeted
+- 0-19: Very poor — visitor would struggle to understand the offer
+
+Be honest but fair. A site with a compelling founder story, clear social proof and obvious CTAs should score 75+.
+
+observation: ONE specific, honest observation — not generic advice. Name something specific you can see or something specific that is missing. Example: "Founder story is compelling but doesn't name the customer it's for" or "Strong social proof but no clear email capture".
+
+strengths: TWO specific things this business does well from a brand storytelling perspective. Be specific — reference what you actually found. Not generic praise.
+
+gaps: TWO specific gaps that are costing this business customers. Focus on:
+- Story gaps: is the founder narrative present, specific, and emotionally resonant?
+- Audience gaps: does the content speak to a defined customer, or does it feel like it's trying to speak to everyone?
+- Positioning gaps: what makes this business different from competitors — and is that difference clearly stated?
+- Conversion gaps: email capture, lead magnets, or ways to stay in touch with interested visitors who aren't ready to buy
+
+Do NOT flag: missing button elements, navigation structure, page speed, technical SEO, meta tag optimisation, or any UX/technical issues. Only brand, story and marketing gaps.
+
+storyAssessment:
+- hasFounderStory: true if there is any narrative about who started the business and why
+- founderStoryQuality:
+  "none" = no story found
+  "basic" = mentions founder but no narrative or emotion
+  "good" = has a clear founding narrative with some purpose
+  "compelling" = emotionally resonant story with clear mission, specific details, and a reason to care
+- speaksToSpecificCustomer: true if the language addresses a specific type of person rather than everyone
+- hasDistinctivePositioning: true if it is clear what makes this business different from competitors
+- hasEmotionalHook: true if there is language designed to create an emotional connection — shared values, a cause, a community, or a belief
+- missingElements: list the specific story elements that are absent or weak — from: "founding moment", "clear why/purpose", "specific customer named", "what makes us different", "customer community language", "proof of impact", "vision for the future"`;
 
 Deno.serve(async (req) => {
   const preflight = corsPreflight(req);
@@ -235,16 +381,34 @@ Deno.serve(async (req) => {
     const websiteUrl = normaliseUrl(body.websiteUrl ?? "");
     if (!websiteUrl) return json({ error: "websiteUrl is required" }, 400);
 
-    let signals = "";
+    let combinedText = "";
     try {
       const res = await fetch(websiteUrl, {
         headers: { "User-Agent": "marktr-bot/1.0" },
         signal: AbortSignal.timeout(8000),
       });
       const html = await res.text();
-      signals = extractAllSignals(html, websiteUrl);
 
-      if (signals === "No readable content found") {
+      const baseUrl = new URL(websiteUrl).origin;
+      let aboutHtml = "";
+      for (const path of ABOUT_PATHS) {
+        aboutHtml = await fetchPage(baseUrl, path);
+        if (aboutHtml) break;
+      }
+
+      const homepageSignals = extractAllSignals(html, websiteUrl);
+      const storySignals = aboutHtml ? extractStorySignals(aboutHtml) : "";
+
+      combinedText = [
+        "=== HOMEPAGE ===",
+        homepageSignals,
+        storySignals ? "=== ABOUT/STORY PAGE ===" : "",
+        storySignals,
+      ]
+        .filter(Boolean)
+        .join("\n\n");
+
+      if (homepageSignals === "No readable content found" && !storySignals) {
         throw new Error("No readable content found");
       }
     } catch {
@@ -253,6 +417,7 @@ Deno.serve(async (req) => {
         observation: "Could not access your website — check the URL",
         strengths: [],
         gaps: [],
+        storyAssessment: null,
         breakdown: null,
       });
     }
@@ -266,13 +431,13 @@ Deno.serve(async (req) => {
         },
         body: JSON.stringify({
           model: "gpt-4o-mini",
-          max_tokens: 400,
+          max_tokens: 600,
           temperature: 0,
           messages: [
             { role: "system", content: SYSTEM_PROMPT },
             {
               role: "user",
-              content: `Website signals:\n\n${signals}`,
+              content: `Website content:\n\n${combinedText}`,
             },
           ],
         }),
@@ -311,6 +476,7 @@ Deno.serve(async (req) => {
         gaps: Array.isArray(result.gaps)
           ? result.gaps.map((g) => String(g).trim()).filter(Boolean)
           : [],
+        storyAssessment: normalizeStoryAssessment(result.storyAssessment),
         breakdown: {
           hasValueProposition: Boolean(result.hasValueProposition),
           hasClearAudience: Boolean(result.hasClearAudience),
@@ -325,6 +491,7 @@ Deno.serve(async (req) => {
         observation: "Website found but could not be fully analysed",
         strengths: [],
         gaps: [],
+        storyAssessment: null,
         breakdown: null,
       });
     }

@@ -1,3 +1,12 @@
+export interface StoryAssessment {
+  hasFounderStory: boolean;
+  founderStoryQuality: "none" | "basic" | "good" | "compelling";
+  speaksToSpecificCustomer: boolean;
+  hasDistinctivePositioning: boolean;
+  hasEmotionalHook: boolean;
+  missingElements: string[];
+}
+
 export interface HealthCheckInput {
   websiteUrl?: string;
   instagramHandle?: string;
@@ -9,6 +18,7 @@ export interface HealthCheckInput {
     observation: string;
     strengths?: string[];
     gaps?: string[];
+    storyAssessment?: StoryAssessment | null;
   } | null;
 }
 
@@ -18,6 +28,7 @@ export interface DimensionScore {
   observation: string;
   strengths?: string[];
   gaps?: string[];
+  storyAssessment?: StoryAssessment | null;
 }
 
 export interface HealthCheckScores {
@@ -96,6 +107,7 @@ export function calculateScores(input: HealthCheckInput): HealthCheckScores {
       observation: websiteObservation,
       strengths: input.websiteScore?.strengths,
       gaps: input.websiteScore?.gaps,
+      storyAssessment: input.websiteScore?.storyAssessment ?? null,
     },
     contentConsistency: {
       name: "Content Consistency",

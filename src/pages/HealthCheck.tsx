@@ -6,6 +6,7 @@ import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { WhisperButton } from "../components/ui/WhisperButton";
 import { supabase } from "../config/supabase";
+import type { StoryAssessment } from "../lib/healthCheckScoring";
 
 type Step = "welcome" | "inputs" | "loading";
 
@@ -101,6 +102,7 @@ export default function HealthCheck() {
         observation: string;
         strengths?: string[];
         gaps?: string[];
+        storyAssessment?: StoryAssessment | null;
       } | null = null;
 
       const apiPromise = (async () => {
@@ -113,6 +115,7 @@ export default function HealthCheck() {
             },
           });
           if (data?.score !== undefined) {
+            const rawStory = data.storyAssessment as StoryAssessment | null | undefined;
             websiteScore = {
               score: Number(data.score),
               observation: String(data.observation ?? ""),
@@ -122,6 +125,25 @@ export default function HealthCheck() {
               gaps: Array.isArray(data.gaps)
                 ? data.gaps.map((g: unknown) => String(g))
                 : undefined,
+              storyAssessment:
+                rawStory && typeof rawStory === "object"
+                  ? {
+                      hasFounderStory: Boolean(rawStory.hasFounderStory),
+                      founderStoryQuality:
+                        rawStory.founderStoryQuality === "basic" ||
+                        rawStory.founderStoryQuality === "good" ||
+                        rawStory.founderStoryQuality === "compelling" ||
+                        rawStory.founderStoryQuality === "none"
+                          ? rawStory.founderStoryQuality
+                          : "none",
+                      speaksToSpecificCustomer: Boolean(rawStory.speaksToSpecificCustomer),
+                      hasDistinctivePositioning: Boolean(rawStory.hasDistinctivePositioning),
+                      hasEmotionalHook: Boolean(rawStory.hasEmotionalHook),
+                      missingElements: Array.isArray(rawStory.missingElements)
+                        ? rawStory.missingElements.map((el: unknown) => String(el))
+                        : [],
+                    }
+                  : null,
             };
           }
         } catch {

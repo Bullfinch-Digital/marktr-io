@@ -4,6 +4,7 @@ import {
   calculateScores,
   type DimensionScore,
   type HealthCheckInput,
+  type StoryAssessment,
 } from "../lib/healthCheckScoring";
 import { setGuestHealthCheck } from "../lib/guestHealthCheck";
 
@@ -145,6 +146,8 @@ function ScoreCard({ dimension }: { dimension: DimensionScore }) {
   const tier =
     dimension.score >= 70 ? "high" : dimension.score >= 40 ? "mid" : "low";
   const detailTier = detail?.[tier];
+  const sa: StoryAssessment | null | undefined =
+    dimension.name === "Website Clarity" ? dimension.storyAssessment : null;
 
   return (
     <article className="rounded-2xl border border-border bg-white p-6">
@@ -208,6 +211,66 @@ function ScoreCard({ dimension }: { dimension: DimensionScore }) {
               ))}
             </>
           ) : null}
+        </div>
+      )}
+      {sa && (
+        <div className="mt-4 rounded-xl border border-[#D4871A]/20 bg-[#FDF0CC] p-4">
+          <p className="mb-3 font-['DM_Sans'] text-[10px] font-medium uppercase tracking-widest text-[#BA7517]">
+            Brand story assessment
+          </p>
+
+          <div className="mb-3 flex items-center gap-2">
+            <span
+              className={`inline-flex rounded-full px-2.5 py-1 font-['DM_Sans'] text-xs font-medium ${
+                sa.founderStoryQuality === "compelling"
+                  ? "bg-[#2D7A5F] text-white"
+                  : sa.founderStoryQuality === "good"
+                    ? "bg-[#2D7A5F]/20 text-[#2D7A5F]"
+                    : sa.founderStoryQuality === "basic"
+                      ? "bg-[#BA7517]/20 text-[#BA7517]"
+                      : "bg-[#E24B4A]/20 text-[#E24B4A]"
+              }`}
+            >
+              {sa.founderStoryQuality === "compelling"
+                ? "✓ Compelling founder story"
+                : sa.founderStoryQuality === "good"
+                  ? "~ Good founder story"
+                  : sa.founderStoryQuality === "basic"
+                    ? "~ Basic story present"
+                    : "✗ No founder story found"}
+            </span>
+          </div>
+
+          {sa.missingElements?.length > 0 && (
+            <div>
+              <p className="mb-2 font-['DM_Sans'] text-[10px] font-medium uppercase tracking-widest text-[#BA7517]">
+                Missing story elements
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {sa.missingElements.map((el) => (
+                  <span
+                    key={el}
+                    className="rounded-full border border-[#D4871A]/30 bg-white px-2.5 py-1 font-['DM_Sans'] text-[10px] text-[#0D1833]"
+                  >
+                    {el}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="mt-3 border-t border-[#D4871A]/20 pt-3">
+            <p className="font-['DM_Sans'] text-xs leading-relaxed text-[#0D1833]">
+              marktr&apos;s Story System can help you find and articulate the missing elements —
+              free in under 5 minutes.
+            </p>
+            <Link
+              to="/story"
+              className="mt-2 inline-flex font-['DM_Sans'] text-xs font-medium text-primary underline underline-offset-2"
+            >
+              Find your brand story →
+            </Link>
+          </div>
         </div>
       )}
     </article>

@@ -6,7 +6,7 @@ import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { WhisperButton } from "../components/ui/WhisperButton";
 import { supabase } from "../config/supabase";
-import type { StoryAssessment } from "../lib/healthCheckScoring";
+import type { SocialScores, StoryAssessment } from "../lib/healthCheckScoring";
 
 type Step = "welcome" | "inputs" | "loading";
 
@@ -103,6 +103,7 @@ export default function HealthCheck() {
         strengths?: string[];
         gaps?: string[];
         storyAssessment?: StoryAssessment | null;
+        socialScores?: SocialScores | null;
       } | null = null;
 
       const apiPromise = (async () => {
@@ -146,6 +147,7 @@ export default function HealthCheck() {
                         : [],
                     }
                   : null,
+              socialScores: (data.socialScores as SocialScores | null) ?? null,
             };
           }
         } catch {

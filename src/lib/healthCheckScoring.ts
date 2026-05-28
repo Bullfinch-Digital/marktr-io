@@ -7,6 +7,16 @@ export interface StoryAssessment {
   missingElements: string[];
 }
 
+export interface SocialScores {
+  instagramFound?: boolean;
+  facebookFound?: boolean;
+  instagramFollowers?: string;
+  instagramPostCount?: string;
+  instagramBioScore?: number;
+  contentConsistencyScore?: number;
+  socialObservation?: string;
+}
+
 export interface HealthCheckInput {
   websiteUrl?: string;
   instagramHandle?: string;
@@ -19,6 +29,7 @@ export interface HealthCheckInput {
     strengths?: string[];
     gaps?: string[];
     storyAssessment?: StoryAssessment | null;
+    socialScores?: SocialScores | null;
   } | null;
 }
 
@@ -72,7 +83,18 @@ export function calculateScores(input: HealthCheckInput): HealthCheckScores {
     input.linkedinUrl,
   ].filter((v) => Boolean(v && String(v).trim())).length;
 
-  const consistencyScore = Math.min(80, platforms * 20);
+  const consistencyScore =
+    input.websiteScore?.socialScores?.contentConsistencyScore ??
+    Math.min(80, platforms * 20);
+
+  const consistencyObservation =
+    input.websiteScore?.socialScores?.socialObservation ||
+    obs(
+      consistencyScore,
+      "You're maintaining a consistent presence",
+      "Some gaps in your content schedule",
+      "Irregular posting is limiting your reach"
+    );
   const audienceScore = 25 + Math.floor(Math.random() * 40);
   const engagementScore = 30 + Math.floor(Math.random() * 40);
   const coverageScore = Math.min(80, platforms * 20);
@@ -112,12 +134,7 @@ export function calculateScores(input: HealthCheckInput): HealthCheckScores {
     contentConsistency: {
       name: "Content Consistency",
       score: consistencyScore,
-      observation: obs(
-        consistencyScore,
-        "You're maintaining a consistent presence",
-        "Some gaps in your content schedule",
-        "Irregular posting is limiting your reach"
-      ),
+      observation: consistencyObservation,
     },
     audienceFit: {
       name: "Audience Fit",

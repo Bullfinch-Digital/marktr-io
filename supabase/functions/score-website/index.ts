@@ -15,6 +15,28 @@ type StoryAssessment = {
   missingElements: string[];
 };
 
+type SocialScores = {
+  instagramFound: boolean;
+  facebookFound: boolean;
+  instagramFollowers: string;
+  instagramPostCount: string;
+  instagramBioScore: number;
+  contentConsistencyScore: number;
+  socialObservation: string;
+};
+
+type InstagramFetchResult = {
+  signals: string;
+  found: boolean;
+  followers: string;
+  postCount: string;
+};
+
+type FacebookFetchResult = {
+  signals: string;
+  found: boolean;
+};
+
 type WebsiteScoreResult = {
   hasValueProposition: boolean;
   hasClearAudience: boolean;
@@ -26,6 +48,7 @@ type WebsiteScoreResult = {
   strengths?: string[];
   gaps?: string[];
   storyAssessment?: StoryAssessment | null;
+  socialScores?: SocialScores | null;
 };
 
 const ABOUT_PATHS = [
@@ -97,10 +120,17 @@ async function fetchPage(baseUrl: string, path: string): Promise<string> {
   }
 }
 
-async function fetchInstagramPublic(handle: string): Promise<string> {
+async function fetchInstagramPublic(handle: string): Promise<InstagramFetchResult> {
+  const empty: InstagramFetchResult = {
+    signals: "",
+    found: false,
+    followers: "",
+    postCount: "",
+  };
+
   try {
     const username = handle.replace("@", "").trim();
-    if (!username) return "";
+    if (!username) return empty;
 
     const url = `https://www.instagram.com/${username}/`;
 
@@ -113,7 +143,7 @@ async function fetchInstagramPublic(handle: string): Promise<string> {
       signal: AbortSignal.timeout(8000),
     });
 
-    if (!res.ok) return "";
+    if (!res.ok) return empty;
     const html = await res.text();
 
     const get = (pattern: RegExp) => {
@@ -143,27 +173,37 @@ async function fetchInstagramPublic(handle: string): Promise<string> {
       .replace(/[\d,.]+[km]?\s*posts?[,\s]*/i, "")
       .trim();
 
-    if (!ogTitle && !ogDesc) return "Instagram profile not found";
+    if (!ogTitle && !ogDesc) {
+      return { ...empty, signals: "Instagram profile not found" };
+    }
 
-    const signals = [
-      ogTitle && `Instagram account name: ${ogTitle}`,
-      followerMatch && `Followers: ${followerMatch[1]}`,
-      followingMatch && `Following: ${followingMatch[1]}`,
-      postsMatch && `Total posts: ${postsMatch[1]}`,
-      bioText && `Bio: ${bioText}`,
-    ]
-      .filter(Boolean)
-      .join("\n");
+    const signals =
+      [
+        ogTitle && `Instagram account name: ${ogTitle}`,
+        followerMatch && `Followers: ${followerMatch[1]}`,
+        followingMatch && `Following: ${followingMatch[1]}`,
+        postsMatch && `Total posts: ${postsMatch[1]}`,
+        bioText && `Bio: ${bioText}`,
+      ]
+        .filter(Boolean)
+        .join("\n") || "Instagram profile found but no data extracted";
 
-    return signals || "Instagram profile found but no data extracted";
+    return {
+      signals,
+      found: true,
+      followers: followerMatch?.[1] ?? "",
+      postCount: postsMatch?.[1] ?? "",
+    };
   } catch {
-    return "";
+    return empty;
   }
 }
 
-async function fetchFacebookPublic(facebookUrl: string): Promise<string> {
+async function fetchFacebookPublic(facebookUrl: string): Promise<FacebookFetchResult> {
+  const empty: FacebookFetchResult = { signals: "", found: false };
+
   try {
-    if (!facebookUrl.trim()) return "";
+    if (!facebookUrl.trim()) return empty;
 
     const url = facebookUrl.startsWith("http")
       ? facebookUrl
@@ -178,7 +218,7 @@ async function fetchFacebookPublic(facebookUrl: string): Promise<string> {
       signal: AbortSignal.timeout(8000),
     });
 
-    if (!res.ok) return "";
+    if (!res.ok) return empty;
     const html = await res.text();
 
     const get = (pattern: RegExp) => {
@@ -201,18 +241,22 @@ async function fetchFacebookPublic(facebookUrl: string): Promise<string> {
     const likesMatch = ogDesc.match(/([\d,.]+[km]?)\s*(?:people\s*)?likes?/i);
     const followersMatch = ogDesc.match(/([\d,.]+[km]?)\s*followers?/i);
 
-    const signals = [
-      ogTitle && `Facebook page name: ${ogTitle}`,
-      ogDesc && `Facebook page description: ${ogDesc}`,
-      likesMatch && `Page likes: ${likesMatch[1]}`,
-      followersMatch && `Page followers: ${followersMatch[1]}`,
-    ]
-      .filter(Boolean)
-      .join("\n");
+    const signals =
+      [
+        ogTitle && `Facebook page name: ${ogTitle}`,
+        ogDesc && `Facebook page description: ${ogDesc}`,
+        likesMatch && `Page likes: ${likesMatch[1]}`,
+        followersMatch && `Page followers: ${followersMatch[1]}`,
+      ]
+        .filter(Boolean)
+        .join("\n") || "Facebook page found but limited data";
 
-    return signals || "Facebook page found but limited data";
+    return {
+      signals,
+      found: Boolean(ogTitle || ogDesc),
+    };
   } catch {
-    return "";
+    return empty;
   }
 }
 
@@ -408,6 +452,45 @@ function normalizeStoryAssessment(
   };
 }
 
+function normalizeSocialScores(
+  raw: SocialScores | null | undefined,
+  instagram: InstagramFetchResult,
+  facebook: FacebookFetchResult
+): SocialScores | null {
+  const hasSocialInput = instagram.signals || facebook.signals;
+  if (!hasSocialInput && !raw) return null;
+
+  const instagramFound = instagram.found;
+  const facebookFound = facebook.found;
+  const instagramPostCount = instagram.postCount;
+
+  let contentConsistencyScore = 0;
+  if (instagramFound && instagramPostCount) {
+    contentConsistencyScore = Math.min(
+      100,
+      Math.max(0, Number(raw?.contentConsistencyScore ?? 0))
+    );
+  }
+
+  const socialObservation =
+    instagramFound || facebookFound
+      ? String(raw?.socialObservation ?? "").trim().slice(0, 180)
+      : "";
+
+  return {
+    instagramFound,
+    facebookFound,
+    instagramFollowers: instagram.followers,
+    instagramPostCount,
+    instagramBioScore: Math.min(
+      100,
+      Math.max(0, Number(raw?.instagramBioScore ?? 0))
+    ),
+    contentConsistencyScore,
+    socialObservation,
+  };
+}
+
 const SYSTEM_PROMPT = `You are a brand strategist and marketing consultant specialising in founder-led small businesses. You have been given content extracted from a business website and, when available, their public Instagram and Facebook profiles.
 
 Your job is NOT to do a generic SEO or UX audit. Your job is to assess how well this founder business communicates its story, speaks to a specific customer, and positions itself distinctively — and to identify the specific gaps that are costing them customers.
@@ -431,6 +514,15 @@ Assess the website and return ONLY valid JSON with no markdown or backticks:
     "hasDistinctivePositioning": boolean,
     "hasEmotionalHook": boolean,
     "missingElements": [string]
+  },
+  "socialScores": {
+    "instagramFound": boolean,
+    "facebookFound": boolean,
+    "instagramFollowers": string,
+    "instagramPostCount": string,
+    "instagramBioScore": number,
+    "contentConsistencyScore": number,
+    "socialObservation": string
   }
 }
 
@@ -495,7 +587,22 @@ Add social media observations to your gaps and strengths where relevant. For exa
 - "Instagram bio doesn't mention who the product is for"
 - "Strong Instagram following but bio doesn't reflect website story"
 - "Facebook and Instagram messaging inconsistent with website positioning"
-- "Instagram bio well-aligned with website value proposition"`;
+- "Instagram bio well-aligned with website value proposition"
+
+socialScores:
+- instagramFound: true if Instagram profile data was provided in the input
+- facebookFound: true if Facebook page data was provided in the input
+- instagramFollowers: follower count string from Instagram data (or empty string)
+- instagramPostCount: post count string from Instagram data (or empty string)
+- instagramBioScore: 0-100 — how well the Instagram bio speaks to a specific customer rather than everyone
+- contentConsistencyScore: 0-100 based on Instagram post count and apparent activity level. Scoring guide:
+  - If Instagram not found or no post count: return 0
+  - Posts > 500: 75-90 (very active)
+  - Posts 200-500: 60-75 (active)
+  - Posts 50-200: 40-60 (moderate)
+  - Posts < 50: 20-40 (limited)
+  - Adjust down if follower count seems very low relative to post count
+- socialObservation: max 15 words, one specific observation about their social presence — or empty string if no social data was provided`;
 
 Deno.serve(async (req) => {
   const preflight = corsPreflight(req);
@@ -522,6 +629,14 @@ Deno.serve(async (req) => {
     if (!websiteUrl) return json({ error: "websiteUrl is required" }, 400);
 
     let combinedText = "";
+    let instagramFetch: InstagramFetchResult = {
+      signals: "",
+      found: false,
+      followers: "",
+      postCount: "",
+    };
+    let facebookFetch: FacebookFetchResult = { signals: "", found: false };
+
     try {
       const res = await fetch(websiteUrl, {
         headers: { "User-Agent": "marktr-bot/1.0" },
@@ -541,21 +656,23 @@ Deno.serve(async (req) => {
 
       const instagramSignals = body.instagramHandle
         ? await fetchInstagramPublic(body.instagramHandle)
-        : "";
+        : instagramFetch;
+      instagramFetch = instagramSignals;
 
       const facebookSignals = body.facebookUrl
         ? await fetchFacebookPublic(body.facebookUrl)
-        : "";
+        : facebookFetch;
+      facebookFetch = facebookSignals;
 
       combinedText = [
         "=== HOMEPAGE ===",
         homepageSignals,
         storySignals ? "=== ABOUT/STORY PAGE ===" : "",
         storySignals,
-        instagramSignals ? "=== INSTAGRAM ===" : "",
-        instagramSignals,
-        facebookSignals ? "=== FACEBOOK ===" : "",
-        facebookSignals,
+        instagramFetch.signals ? "=== INSTAGRAM ===" : "",
+        instagramFetch.signals,
+        facebookFetch.signals ? "=== FACEBOOK ===" : "",
+        facebookFetch.signals,
       ]
         .filter(Boolean)
         .join("\n\n");
@@ -563,8 +680,8 @@ Deno.serve(async (req) => {
       if (
         homepageSignals === "No readable content found" &&
         !storySignals &&
-        !instagramSignals &&
-        !facebookSignals
+        !instagramFetch.signals &&
+        !facebookFetch.signals
       ) {
         throw new Error("No readable content found");
       }
@@ -575,6 +692,7 @@ Deno.serve(async (req) => {
         strengths: [],
         gaps: [],
         storyAssessment: null,
+        socialScores: null,
         breakdown: null,
       });
     }
@@ -588,7 +706,7 @@ Deno.serve(async (req) => {
         },
         body: JSON.stringify({
           model: "gpt-4o-mini",
-          max_tokens: 600,
+          max_tokens: 750,
           temperature: 0,
           messages: [
             { role: "system", content: SYSTEM_PROMPT },
@@ -634,6 +752,11 @@ Deno.serve(async (req) => {
           ? result.gaps.map((g) => String(g).trim()).filter(Boolean)
           : [],
         storyAssessment: normalizeStoryAssessment(result.storyAssessment),
+        socialScores: normalizeSocialScores(
+          result.socialScores,
+          instagramFetch,
+          facebookFetch
+        ),
         breakdown: {
           hasValueProposition: Boolean(result.hasValueProposition),
           hasClearAudience: Boolean(result.hasClearAudience),
@@ -649,6 +772,7 @@ Deno.serve(async (req) => {
         strengths: [],
         gaps: [],
         storyAssessment: null,
+        socialScores: null,
         breakdown: null,
       });
     }

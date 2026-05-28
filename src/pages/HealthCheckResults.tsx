@@ -4,6 +4,7 @@ import {
   calculateScores,
   type DimensionScore,
   type HealthCheckInput,
+  type SocialScores,
   type StoryAssessment,
 } from "../lib/healthCheckScoring";
 import { setGuestHealthCheck } from "../lib/guestHealthCheck";
@@ -28,9 +29,12 @@ const DIMENSION_DETAIL: Record<
     high: { meaning: string; action: string };
     mid: { meaning: string; action: string };
     low: { meaning: string; action: string };
+    socialNote?: string;
   }
 > = {
   "Website Clarity": {
+    socialNote:
+      "Website and social profile signals were compared for brand consistency.",
     high: {
       meaning:
         "Your homepage clearly communicates what you do and who you help. Visitors can understand your value within seconds of arriving.",
@@ -51,6 +55,7 @@ const DIMENSION_DETAIL: Record<
     },
   },
   "Content Consistency": {
+    socialNote: "Instagram posting volume informed this score.",
     high: {
       meaning:
         "You're showing up regularly across your channels. Consistent presence builds trust and keeps your audience engaged over time.",
@@ -71,6 +76,7 @@ const DIMENSION_DETAIL: Record<
     },
   },
   "Audience Fit": {
+    socialNote: "Public Instagram bio data hints at audience targeting.",
     high: {
       meaning:
         "Your content appears to be reaching and resonating with the right people. Strong audience fit means higher engagement and better conversion.",
@@ -91,6 +97,7 @@ const DIMENSION_DETAIL: Record<
     },
   },
   "Engagement Quality": {
+    socialNote: "Follower count and bio signals from Instagram were considered.",
     high: {
       meaning:
         "People are actively responding to your content. High engagement quality means your audience finds your posts genuinely useful or interesting.",
@@ -111,6 +118,7 @@ const DIMENSION_DETAIL: Record<
     },
   },
   "Channel Coverage": {
+    socialNote: "Instagram and Facebook presence included in this assessment.",
     high: {
       meaning:
         "You have a strong multi-channel presence. You're visible where your customers are looking, which reduces reliance on any single platform.",
@@ -141,7 +149,39 @@ function extractDomain(url: string) {
   }
 }
 
-function ScoreCard({ dimension }: { dimension: DimensionScore }) {
+function getDataSourceLabel(
+  dimensionName: string,
+  socialScores: SocialScores | null | undefined
+): string {
+  switch (dimensionName) {
+    case "Website Clarity":
+      return "Based on your website";
+    case "Content Consistency":
+      return socialScores?.instagramFound
+        ? "Based on your Instagram"
+        : "Based on platforms provided";
+    case "Audience Fit":
+      return "Connect platforms to unlock";
+    case "Engagement Quality":
+      return socialScores?.instagramFound
+        ? "Based on your Instagram"
+        : "Connect platforms to unlock";
+    case "Channel Coverage":
+      return "Based on platforms provided";
+    default:
+      return "";
+  }
+}
+
+function ScoreCard({
+  dimension,
+  dataSourceLabel,
+  hasSocialData,
+}: {
+  dimension: DimensionScore;
+  dataSourceLabel: string;
+  hasSocialData: boolean;
+}) {
   const detail = DIMENSION_DETAIL[dimension.name];
   const tier =
     dimension.score >= 70 ? "high" : dimension.score >= 40 ? "mid" : "low";
@@ -154,8 +194,11 @@ function ScoreCard({ dimension }: { dimension: DimensionScore }) {
       <p className="font-['DM_Sans'] text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
         {dimension.name}
       </p>
+      <p className="mb-1 font-['DM_Sans'] text-[9px] uppercase tracking-widest text-muted-foreground/70">
+        {dataSourceLabel}
+      </p>
       <p
-        className={`mt-2 font-['Fraunces'] text-4xl font-bold leading-none ${getScoreColor(dimension.score)}`}
+        className={`font-['Fraunces'] text-4xl font-bold leading-none ${getScoreColor(dimension.score)}`}
       >
         {dimension.score}
       </p>
@@ -181,6 +224,11 @@ function ScoreCard({ dimension }: { dimension: DimensionScore }) {
               {detailTier.action}
             </p>
           </div>
+          {hasSocialData && detail?.socialNote && (
+            <p className="mt-2 font-['DM_Sans'] text-xs leading-relaxed text-muted-foreground">
+              {detail.socialNote}
+            </p>
+          )}
         </>
       )}
       {dimension.name === "Website Clarity" && dimension.strengths?.length && (
@@ -312,6 +360,18 @@ export default function HealthCheckResults() {
   }, [state, scores]);
 
   const domain = state.websiteUrl?.trim() ? extractDomain(state.websiteUrl.trim()) : null;
+  const socialScores = state.websiteScore?.socialScores;
+  const hasSocialData = Boolean(
+    socialScores?.instagramFound || socialScores?.facebookFound
+  );
+
+  const scoreCards: { key: string; dimension: DimensionScore }[] = [
+    { key: "website", dimension: scores.websiteClarity },
+    { key: "consistency", dimension: scores.contentConsistency },
+    { key: "audience", dimension: scores.audienceFit },
+    { key: "engagement", dimension: scores.engagementQuality },
+    { key: "coverage", dimension: scores.channelCoverage },
+  ];
 
   return (
     <main className="min-h-screen bg-background">
@@ -336,11 +396,14 @@ export default function HealthCheckResults() {
         </p>
 
         <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <ScoreCard dimension={scores.websiteClarity} />
-          <ScoreCard dimension={scores.contentConsistency} />
-          <ScoreCard dimension={scores.audienceFit} />
-          <ScoreCard dimension={scores.engagementQuality} />
-          <ScoreCard dimension={scores.channelCoverage} />
+          {scoreCards.map(({ key, dimension }) => (
+            <ScoreCard
+              key={key}
+              dimension={dimension}
+              dataSourceLabel={getDataSourceLabel(dimension.name, socialScores)}
+              hasSocialData={hasSocialData}
+            />
+          ))}
         </div>
 
         <div className="mt-8 rounded-2xl border border-border bg-white p-6 text-center">

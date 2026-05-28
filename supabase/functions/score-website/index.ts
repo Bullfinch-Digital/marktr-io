@@ -108,6 +108,16 @@ Deno.serve(async (req) => {
       if (!text) {
         throw new Error("No readable text extracted");
       }
+
+      const hasUsefulContent = text.trim().length > 200;
+      if (!hasUsefulContent) {
+        return json({
+          score: 52,
+          observation:
+            "Your website loaded but uses a modern JavaScript framework — connect your account for a deeper analysis",
+          breakdown: null,
+        });
+      }
     } catch {
       return json({
         score: 35,

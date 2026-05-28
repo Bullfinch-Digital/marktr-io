@@ -7,6 +7,8 @@ import { setGuestStory } from "../lib/guestStory";
 export type StoryResultsLocationState = {
   answers: string[];
   email: string;
+  story?: BrandStoryOutput | null;
+  error?: string | null;
 };
 
 export type BrandStoryOutput = {
@@ -31,6 +33,24 @@ export default function StoryResults() {
       return;
     }
     if (!snapshot.email?.trim()) {
+      setLoading(false);
+      return;
+    }
+
+    if (snapshot.error) {
+      setError(snapshot.error);
+      setLoading(false);
+      return;
+    }
+
+    if (snapshot.story) {
+      setStory(snapshot.story);
+      setGuestStory({
+        answers: snapshot.answers,
+        email: snapshot.email.trim(),
+        output: snapshot.story,
+        created_at: new Date().toISOString(),
+      });
       setLoading(false);
       return;
     }

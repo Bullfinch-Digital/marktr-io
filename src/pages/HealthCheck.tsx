@@ -25,10 +25,43 @@ const CHECKLIST_ITEMS = [
   "Generating your report",
 ] as const;
 
+const ANALYSIS_MESSAGES = [
+  "Comparing your positioning against industry benchmarks...",
+  "Identifying your biggest growth opportunities...",
+  "Building your personalised recommendations...",
+  "Almost there — preparing your report...",
+] as const;
+
+function AnalysisMessage({ messages }: { messages: readonly string[] }) {
+  const [index, setIndex] = useState(0);
+  const [visible, setVisible] = useState(true);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setVisible(false);
+      setTimeout(() => {
+        setIndex((prev) => (prev + 1) % messages.length);
+        setVisible(true);
+      }, 300);
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [messages.length]);
+
+  return (
+    <p
+      className="max-w-xs text-center font-['DM_Sans'] text-sm leading-relaxed text-muted-foreground transition-opacity duration-300"
+      style={{ opacity: visible ? 1 : 0 }}
+    >
+      {messages[index]}
+    </p>
+  );
+}
+
 export default function HealthCheck() {
   const navigate = useNavigate();
   const [step, setStep] = useState<Step>("welcome");
   const [completedCount, setCompletedCount] = useState(0);
+  const [checklistDone, setChecklistDone] = useState(false);
 
   const [formData, setFormData] = useState<HealthCheckFormData>({
     websiteUrl: "",
@@ -41,7 +74,10 @@ export default function HealthCheck() {
   const canAnalyse = useMemo(() => formData.email.trim().length > 0, [formData.email]);
 
   useEffect(() => {
-    if (step !== "loading") return;
+    if (step !== "loading") {
+      setChecklistDone(false);
+      return;
+    }
 
     let cancelled = false;
     const timers: number[] = [];
@@ -54,6 +90,12 @@ export default function HealthCheck() {
         );
       }
 
+      timers.push(
+        window.setTimeout(() => {
+          if (!cancelled) setChecklistDone(true);
+        }, CHECKLIST_ITEMS.length * 300 + 200)
+      );
+
       let websiteScore: {
         score: number;
         observation: string;
@@ -61,7 +103,9 @@ export default function HealthCheck() {
         gaps?: string[];
       } | null = null;
 
-      if (formData.websiteUrl?.trim()) {
+      const apiPromise = (async () => {
+        if (!formData.websiteUrl?.trim()) return;
+
         try {
           const { data } = await supabase.functions.invoke("score-website", {
             body: {
@@ -83,11 +127,15 @@ export default function HealthCheck() {
         } catch {
           // Silent fail — use default scoring
         }
-      }
+      })();
 
-      await new Promise((r) =>
-        window.setTimeout(r, CHECKLIST_ITEMS.length * 300 + 500)
-      );
+      const checklistMinPromise = new Promise<void>((resolve) => {
+        timers.push(
+          window.setTimeout(() => resolve(), CHECKLIST_ITEMS.length * 300 + 500)
+        );
+      });
+
+      await Promise.all([apiPromise, checklistMinPromise]);
 
       if (!cancelled) {
         navigate("/health-check/results", {
@@ -280,6 +328,7 @@ export default function HealthCheck() {
             onClick={() => {
               if (!canAnalyse) return;
               setCompletedCount(0);
+              setChecklistDone(false);
               setStep("loading");
             }}
             disabled={!canAnalyse}
@@ -323,6 +372,24 @@ export default function HealthCheck() {
             );
           })}
         </div>
+
+        {checklistDone && (
+          <div className="mt-8 flex flex-col items-center gap-4">
+            <div className="flex items-center gap-2">
+              {[0, 1, 2].map((i) => (
+                <span
+                  key={i}
+                  className="block h-2 w-2 rounded-full bg-primary"
+                  style={{
+                    animation: "dot-pulse 1.2s ease-in-out infinite",
+                    animationDelay: `${i * 0.2}s`,
+                  }}
+                />
+              ))}
+            </div>
+            <AnalysisMessage messages={ANALYSIS_MESSAGES} />
+          </div>
+        )}
       </div>
     </section>
   );

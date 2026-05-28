@@ -5,6 +5,8 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Textarea } from "../components/ui/textarea";
 import { WhisperButton } from "../components/ui/WhisperButton";
+import { supabase } from "../config/supabase";
+import type { BrandStoryOutput } from "./StoryResults";
 
 type StoryStep =
   | "q1"
@@ -66,6 +68,38 @@ const LOADING_ITEMS = [
   "Writing your story...",
 ] as const;
 
+const ANALYSIS_MESSAGES = [
+  "Reading between the lines of your answers...",
+  "Finding the thread that connects your story...",
+  "Shaping your brand narrative...",
+  "Writing the words you've been looking for...",
+] as const;
+
+function AnalysisMessage({ messages }: { messages: readonly string[] }) {
+  const [index, setIndex] = useState(0);
+  const [visible, setVisible] = useState(true);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setVisible(false);
+      setTimeout(() => {
+        setIndex((prev) => (prev + 1) % messages.length);
+        setVisible(true);
+      }, 300);
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [messages.length]);
+
+  return (
+    <p
+      className="max-w-xs text-center font-['DM_Sans'] text-sm leading-relaxed text-muted-foreground transition-opacity duration-300"
+      style={{ opacity: visible ? 1 : 0 }}
+    >
+      {messages[index]}
+    </p>
+  );
+}
+
 const STEP_ORDER: StoryStep[] = ["q1", "q2", "q3", "email", "q4", "q5", "q6", "q7"];
 
 type QuestionOnlyStep = Exclude<StoryStep, "email" | "loading">;
@@ -81,6 +115,7 @@ export default function StoryBuild() {
   const [draft, setDraft] = useState("");
   const [email, setEmail] = useState("");
   const [completedCount, setCompletedCount] = useState(0);
+  const [checklistDone, setChecklistDone] = useState(false);
 
   const questionIndex = isQuestionStep(step) ? STEP_TO_Q_INDEX[step] : null;
 
@@ -90,18 +125,87 @@ export default function StoryBuild() {
   }, [step, questionIndex, answers]);
 
   useEffect(() => {
-    if (step !== "loading") return;
-
-    const timers: number[] = [];
-    for (let i = 1; i <= LOADING_ITEMS.length; i += 1) {
-      timers.push(window.setTimeout(() => setCompletedCount(i), i * 400));
+    if (step !== "loading") {
+      setChecklistDone(false);
+      return;
     }
-    const done = window.setTimeout(() => {
-      navigate("/story/results", { state: { answers, email: email.trim() } });
-    }, 2000);
-    timers.push(done);
 
-    return () => timers.forEach((t) => window.clearTimeout(t));
+    let cancelled = false;
+    const timers: number[] = [];
+
+    for (let i = 1; i <= LOADING_ITEMS.length; i += 1) {
+      timers.push(
+        window.setTimeout(() => {
+          if (!cancelled) setCompletedCount(i);
+        }, i * 400)
+      );
+    }
+
+    timers.push(
+      window.setTimeout(() => {
+        if (!cancelled) setChecklistDone(true);
+      }, LOADING_ITEMS.length * 400 + 200)
+    );
+
+    const run = async () => {
+      let story: BrandStoryOutput | null = null;
+      let storyError: string | null = null;
+
+      const apiPromise = (async () => {
+        try {
+          const { data, error: invokeError } = await supabase.functions.invoke(
+            "generate-brand-story",
+            {
+              body: {
+                answers,
+                email: email.trim(),
+              },
+            }
+          );
+
+          if (invokeError) throw invokeError;
+
+          const raw = data as Record<string, unknown> | null;
+          if (
+            !raw ||
+            typeof raw.foundingStory !== "string" ||
+            typeof raw.pointOfView !== "string" ||
+            typeof raw.positioningStatement !== "string" ||
+            typeof raw.brandPurpose !== "string"
+          ) {
+            throw new Error("Invalid story response from server.");
+          }
+
+          story = {
+            foundingStory: raw.foundingStory,
+            pointOfView: raw.pointOfView,
+            positioningStatement: raw.positioningStatement,
+            brandPurpose: raw.brandPurpose,
+          };
+        } catch (e) {
+          storyError = e instanceof Error ? e.message : "Something went wrong.";
+        }
+      })();
+
+      const checklistMinPromise = new Promise<void>((resolve) => {
+        timers.push(window.setTimeout(() => resolve(), LOADING_ITEMS.length * 400 + 500));
+      });
+
+      await Promise.all([apiPromise, checklistMinPromise]);
+
+      if (!cancelled) {
+        navigate("/story/results", {
+          state: { answers, email: email.trim(), story, error: storyError },
+        });
+      }
+    };
+
+    void run();
+
+    return () => {
+      cancelled = true;
+      timers.forEach((t) => window.clearTimeout(t));
+    };
   }, [step, answers, email, navigate]);
 
   const canContinueQuestion = useMemo(() => draft.trim().length > 0, [draft]);
@@ -126,6 +230,7 @@ export default function StoryBuild() {
     if (step === "q3") setStep("email");
     else if (step === "q7") {
       setCompletedCount(0);
+      setChecklistDone(false);
       setStep("loading");
     } else {
       const qOnly: QuestionOnlyStep[] = ["q1", "q2", "q3", "q4", "q5", "q6", "q7"];
@@ -144,6 +249,7 @@ export default function StoryBuild() {
     if (step === "q3") setStep("email");
     else if (step === "q7") {
       setCompletedCount(0);
+      setChecklistDone(false);
       setStep("loading");
     } else {
       const qOnly: QuestionOnlyStep[] = ["q1", "q2", "q3", "q4", "q5", "q6", "q7"];
@@ -306,6 +412,24 @@ export default function StoryBuild() {
             );
           })}
         </div>
+
+        {checklistDone && (
+          <div className="mt-8 flex flex-col items-center gap-4">
+            <div className="flex items-center gap-2">
+              {[0, 1, 2].map((i) => (
+                <span
+                  key={i}
+                  className="block h-2 w-2 rounded-full bg-primary"
+                  style={{
+                    animation: "dot-pulse 1.2s ease-in-out infinite",
+                    animationDelay: `${i * 0.2}s`,
+                  }}
+                />
+              ))}
+            </div>
+            <AnalysisMessage messages={ANALYSIS_MESSAGES} />
+          </div>
+        )}
       </div>
     </section>
   );

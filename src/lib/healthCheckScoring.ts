@@ -7,6 +7,8 @@ export interface HealthCheckInput {
   websiteScore?: {
     score: number;
     observation: string;
+    strengths?: string[];
+    gaps?: string[];
   } | null;
 }
 
@@ -14,6 +16,8 @@ export interface DimensionScore {
   name: string;
   score: number;
   observation: string;
+  strengths?: string[];
+  gaps?: string[];
 }
 
 export interface HealthCheckScores {
@@ -90,6 +94,8 @@ export function calculateScores(input: HealthCheckInput): HealthCheckScores {
       name: "Website Clarity",
       score: websiteScore,
       observation: websiteObservation,
+      strengths: input.websiteScore?.strengths,
+      gaps: input.websiteScore?.gaps,
     },
     contentConsistency: {
       name: "Content Consistency",

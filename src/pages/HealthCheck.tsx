@@ -54,7 +54,12 @@ export default function HealthCheck() {
         );
       }
 
-      let websiteScore: { score: number; observation: string } | null = null;
+      let websiteScore: {
+        score: number;
+        observation: string;
+        strengths?: string[];
+        gaps?: string[];
+      } | null = null;
 
       if (formData.websiteUrl?.trim()) {
         try {
@@ -67,6 +72,12 @@ export default function HealthCheck() {
             websiteScore = {
               score: Number(data.score),
               observation: String(data.observation ?? ""),
+              strengths: Array.isArray(data.strengths)
+                ? data.strengths.map((s: unknown) => String(s))
+                : undefined,
+              gaps: Array.isArray(data.gaps)
+                ? data.gaps.map((g: unknown) => String(g))
+                : undefined,
             };
           }
         } catch {

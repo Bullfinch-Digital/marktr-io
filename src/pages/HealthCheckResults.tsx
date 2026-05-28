@@ -180,6 +180,36 @@ function ScoreCard({ dimension }: { dimension: DimensionScore }) {
           </div>
         </>
       )}
+      {dimension.name === "Website Clarity" && dimension.strengths?.length && (
+        <div className="mt-3 space-y-2">
+          <p className="font-['DM_Sans'] text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+            What&apos;s working
+          </p>
+          {dimension.strengths.map((s, i) => (
+            <div key={i} className="flex items-start gap-2">
+              <span className="mt-0.5 text-xs text-[#2D7A5F]">✓</span>
+              <p className="font-['DM_Sans'] text-xs leading-relaxed text-[#0D1833]">
+                {s}
+              </p>
+            </div>
+          ))}
+          {dimension.gaps?.length ? (
+            <>
+              <p className="mt-3 font-['DM_Sans'] text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+                Key gaps
+              </p>
+              {dimension.gaps.map((g, i) => (
+                <div key={i} className="flex items-start gap-2">
+                  <span className="mt-0.5 text-xs text-primary">→</span>
+                  <p className="font-['DM_Sans'] text-xs leading-relaxed text-[#0D1833]">
+                    {g}
+                  </p>
+                </div>
+              ))}
+            </>
+          ) : null}
+        </div>
+      )}
     </article>
   );
 }

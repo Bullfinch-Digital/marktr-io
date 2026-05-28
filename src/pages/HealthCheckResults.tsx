@@ -326,8 +326,13 @@ export default function HealthCheckResults() {
 
         <p className="mt-4 font-['DM_Sans'] text-base text-muted-foreground">
           {domain
-            ? `Based on what marktr could see publicly for ${domain}`
+            ? `Based on publicly visible data for ${domain}`
             : "Based on your answers"}
+        </p>
+        <p className="mt-2 flex items-center gap-2 font-['DM_Sans'] text-sm text-muted-foreground">
+          <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+          Connect your social accounts for deeper analysis and personalised recommendations — unlock
+          with your free trial.
         </p>
 
         <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -353,8 +358,9 @@ export default function HealthCheckResults() {
             Your {scores.lowestDimension} score is {scores.lowestScore}. Here&apos;s what that means.
           </h2>
           <p className="mt-4 max-w-2xl font-['DM_Sans'] text-base leading-relaxed text-white/70">
-            Unlock your full marktr dashboard to see exactly what&apos;s holding you back — and get a
-            step-by-step plan to fix it. Completely free for 14 days.
+            This report is based on what marktr can see publicly. Connect your Instagram, Facebook and
+            LinkedIn inside your dashboard to unlock real engagement data, audience analysis and a
+            step-by-step plan to fix your lowest scores. Completely free for 14 days.
           </p>
 
           <Link

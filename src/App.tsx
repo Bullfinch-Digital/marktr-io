@@ -38,6 +38,7 @@ import Resources from "./pages/Resources";
 import ResourcePost from "./pages/ResourcePost";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
+import OnboardingLayout from "./layouts/OnboardingLayout";
 
 const GA_MEASUREMENT_ID = "G-9E3B7RFKGH";
 let lastTrackedPath: string | null = null;
@@ -139,13 +140,17 @@ export default function App() {
             <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/check-email" element={<CheckEmail />} />
             
-            {/* Public Routes without Header/Footer */}
-            <Route path="/onboarding-build" element={<OnboardingBuild />} />
-            <Route path="/health-check" element={<HealthCheck />} />
-            <Route path="/health-check/results" element={<HealthCheckResults />} />
-            <Route path="/story" element={<StoryBuild />} />
-            <Route path="/story/results" element={<StoryResults />} />
-          <Route path="/guest-dashboard" element={<GuestDashboardPreview />} />
+            {/* Onboarding flows — public Header, no Footer */}
+            <Route element={<OnboardingLayout />}>
+              <Route path="/onboarding-build" element={<OnboardingBuild />} />
+              <Route path="/health-check" element={<HealthCheck />} />
+              <Route path="/health-check/results" element={<HealthCheckResults />} />
+              <Route path="/story" element={<StoryBuild />} />
+              <Route path="/story/results" element={<StoryResults />} />
+              <Route path="/guest-dashboard" element={<GuestDashboardPreview />} />
+            </Route>
+
+            {/* Other public routes without Header/Footer */}
           <Route path="/icp-preview/:index" element={<GuestIcpPreview />} />
             <Route path="/paywall-demo" element={<PaywallDemo />} />
             <Route path="/payment-success" element={<PaymentSuccess />} />

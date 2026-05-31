@@ -132,11 +132,15 @@ async function fetchInstagramPublic(handle: string): Promise<InstagramFetchResul
     const username = handle.replace("@", "").trim();
     if (!username) return empty;
 
-    const url = `https://www.instagram.com/${username}/`;
+    const searchUrl =
+      `https://www.google.com/search?q=` +
+      `site:instagram.com+${encodeURIComponent(username)}` +
+      `&num=1&hl=en`;
 
-    const res = await fetch(url, {
+    const res = await fetch(searchUrl, {
       headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; marktr-bot/1.0)",
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         Accept: "text/html",
         "Accept-Language": "en-GB,en;q=0.9",
       },
@@ -146,54 +150,47 @@ async function fetchInstagramPublic(handle: string): Promise<InstagramFetchResul
     if (!res.ok) return empty;
     const html = await res.text();
 
-    const get = (pattern: RegExp) => {
-      const m = html.match(pattern);
-      return m?.[1]?.trim() ?? "";
-    };
+    const snippetMatch = html.match(
+      /(\d[\d,.]*[km]?)\s*Followers?,\s*(\d[\d,.]*[km]?)\s*Following,\s*(\d[\d,.]*[km]?)\s*Posts?\s*[-–]\s*([^<]{10,200})/i
+    );
 
-    const ogTitle =
-      get(/<meta[^>]*property=["']og:title["'][^>]*content=["']([^"']+)/i) ||
-      get(/<meta[^>]*content=["']([^"']+)["'][^>]*property=["']og:title["']/i);
+    if (snippetMatch) {
+      const followers = snippetMatch[1];
+      const following = snippetMatch[2];
+      const posts = snippetMatch[3];
+      const bio = snippetMatch[4].trim();
 
-    const ogDesc =
-      get(
-        /<meta[^>]*property=["']og:description["'][^>]*content=["']([^"']+)/i
-      ) ||
-      get(
-        /<meta[^>]*content=["']([^"']+)["'][^>]*property=["']og:description["']/i
-      );
-
-    const followerMatch = ogDesc.match(/([\d,.]+[km]?)\s*followers?/i);
-    const followingMatch = ogDesc.match(/([\d,.]+[km]?)\s*following/i);
-    const postsMatch = ogDesc.match(/([\d,.]+[km]?)\s*posts?/i);
-
-    const bioText = ogDesc
-      .replace(/[\d,.]+[km]?\s*followers?[,\s]*/i, "")
-      .replace(/[\d,.]+[km]?\s*following[,\s]*/i, "")
-      .replace(/[\d,.]+[km]?\s*posts?[,\s]*/i, "")
-      .trim();
-
-    if (!ogTitle && !ogDesc) {
-      return { ...empty, signals: "Instagram profile not found" };
-    }
-
-    const signals =
-      [
-        ogTitle && `Instagram account name: ${ogTitle}`,
-        followerMatch && `Followers: ${followerMatch[1]}`,
-        followingMatch && `Following: ${followingMatch[1]}`,
-        postsMatch && `Total posts: ${postsMatch[1]}`,
-        bioText && `Bio: ${bioText}`,
+      const signals = [
+        `Instagram handle: @${username}`,
+        `Followers: ${followers}`,
+        `Following: ${following}`,
+        `Total posts: ${posts}`,
+        bio && `Bio: ${bio}`,
       ]
         .filter(Boolean)
-        .join("\n") || "Instagram profile found but no data extracted";
+        .join("\n");
 
-    return {
-      signals,
-      found: true,
-      followers: followerMatch?.[1] ?? "",
-      postCount: postsMatch?.[1] ?? "",
-    };
+      return {
+        signals,
+        found: true,
+        followers,
+        postCount: posts,
+      };
+    }
+
+    const nameMatch = html.match(
+      new RegExp(`${username}[^<]*?on Instagram`, "i")
+    );
+    if (nameMatch) {
+      return {
+        signals: `Instagram account found: @${username} (limited data)`,
+        found: true,
+        followers: "",
+        postCount: "",
+      };
+    }
+
+    return empty;
   } catch {
     return empty;
   }

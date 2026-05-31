@@ -274,7 +274,7 @@ export default function HealthCheck() {
                     instagramHandle: val,
                   }));
                 }}
-                placeholder="apostlecoffee (or @apostlecoffee)"
+                placeholder="marktr.io (or @marktr.io)"
                 className="border border-black rounded-design bg-white px-4 py-6 text-foreground placeholder:text-foreground/40"
               />
               <WhisperButton

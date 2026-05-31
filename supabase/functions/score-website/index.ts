@@ -129,68 +129,74 @@ async function fetchInstagramPublic(handle: string): Promise<InstagramFetchResul
   };
 
   try {
-    const username = handle.replace("@", "").trim();
+    const username = handle.replace("@", "").trim().toLowerCase();
     if (!username) return empty;
 
-    const searchUrl =
-      `https://www.google.com/search?q=` +
-      `site:instagram.com+${encodeURIComponent(username)}` +
-      `&num=1&hl=en`;
+    const apiUrl =
+      "https://i.instagram.com/api/v1/users/web_profile_info/" +
+      `?username=${username}`;
 
-    const res = await fetch(searchUrl, {
+    const res = await fetch(apiUrl, {
       headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        Accept: "text/html",
-        "Accept-Language": "en-GB,en;q=0.9",
+        "User-Agent": "Instagram 219.0.0.12.117 Android",
+        Accept: "application/json",
+        "X-IG-App-ID": "936619743392459",
       },
       signal: AbortSignal.timeout(8000),
     });
 
-    if (!res.ok) return empty;
-    const html = await res.text();
-
-    const snippetMatch = html.match(
-      /(\d[\d,.]*[km]?)\s*Followers?,\s*(\d[\d,.]*[km]?)\s*Following,\s*(\d[\d,.]*[km]?)\s*Posts?\s*[-–]\s*([^<]{10,200})/i
-    );
-
-    if (snippetMatch) {
-      const followers = snippetMatch[1];
-      const following = snippetMatch[2];
-      const posts = snippetMatch[3];
-      const bio = snippetMatch[4].trim();
-
-      const signals = [
-        `Instagram handle: @${username}`,
-        `Followers: ${followers}`,
-        `Following: ${following}`,
-        `Total posts: ${posts}`,
-        bio && `Bio: ${bio}`,
-      ]
-        .filter(Boolean)
-        .join("\n");
-
-      return {
-        signals,
-        found: true,
-        followers,
-        postCount: posts,
-      };
+    if (!res.ok) {
+      const oembedUrl =
+        "https://api.instagram.com/oembed/?url=" +
+        encodeURIComponent(`https://www.instagram.com/${username}/`);
+      const oRes = await fetch(oembedUrl, {
+        headers: { "User-Agent": "marktr-bot/1.0" },
+        signal: AbortSignal.timeout(5000),
+      });
+      if (oRes.ok) {
+        const od = await oRes.json();
+        if (od?.author_name) {
+          return {
+            signals:
+              `Instagram account found: ${od.author_name} (@${username})`,
+            found: true,
+            followers: "",
+            postCount: "",
+          };
+        }
+      }
+      return empty;
     }
 
-    const nameMatch = html.match(
-      new RegExp(`${username}[^<]*?on Instagram`, "i")
-    );
-    if (nameMatch) {
-      return {
-        signals: `Instagram account found: @${username} (limited data)`,
-        found: true,
-        followers: "",
-        postCount: "",
-      };
-    }
+    const data = await res.json();
+    const user = data?.data?.user;
+    if (!user) return empty;
 
-    return empty;
+    const followers = user.edge_followed_by?.count?.toString() ?? "";
+    const posts = user.edge_owner_to_timeline_media?.count?.toString() ?? "";
+    const bio = user.biography ?? "";
+    const fullName = user.full_name ?? "";
+    const isBusinessAccount = user.is_business_account ? "yes" : "";
+    const businessCategory = user.business_category_name ?? "";
+
+    const signals = [
+      `Instagram handle: @${username}`,
+      fullName && `Account name: ${fullName}`,
+      followers && `Followers: ${Number(followers).toLocaleString()}`,
+      posts && `Total posts: ${Number(posts).toLocaleString()}`,
+      bio && `Bio: ${bio}`,
+      isBusinessAccount && "Business account: yes",
+      businessCategory && `Category: ${businessCategory}`,
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    return {
+      signals,
+      found: true,
+      followers,
+      postCount: posts,
+    };
   } catch {
     return empty;
   }
@@ -449,6 +455,15 @@ function normalizeStoryAssessment(
   };
 }
 
+function scoreFromPostCount(posts: number): number {
+  if (isNaN(posts)) return 45;
+  if (posts > 500) return 80;
+  if (posts > 200) return 68;
+  if (posts > 50) return 52;
+  if (posts > 10) return 38;
+  return 25;
+}
+
 function normalizeSocialScores(
   raw: SocialScores | null | undefined,
   instagram: InstagramFetchResult,
@@ -461,13 +476,18 @@ function normalizeSocialScores(
   const facebookFound = facebook.found;
   const instagramPostCount = instagram.postCount;
 
-  let contentConsistencyScore = 0;
-  if (instagramFound && instagramPostCount) {
-    contentConsistencyScore = Math.min(
-      100,
-      Math.max(0, Number(raw?.contentConsistencyScore ?? 0))
-    );
-  }
+  const contentConsistencyScore = !instagramFound
+    ? 0
+    : instagramPostCount
+      ? Math.min(
+          100,
+          Math.max(
+            0,
+            raw?.contentConsistencyScore ??
+              scoreFromPostCount(parseInt(instagramPostCount, 10))
+          )
+        )
+      : 45;
 
   const socialObservation =
     instagramFound || facebookFound
@@ -655,6 +675,8 @@ Deno.serve(async (req) => {
         ? await fetchInstagramPublic(body.instagramHandle)
         : instagramFetch;
       instagramFetch = instagramSignals;
+      console.log("Instagram signals:", instagramFetch.signals || "EMPTY");
+      console.log("Instagram fetch result:", JSON.stringify(instagramFetch));
 
       const facebookSignals = body.facebookUrl
         ? await fetchFacebookPublic(body.facebookUrl)

@@ -264,10 +264,17 @@ export default function HealthCheck() {
                 id="instagramHandle"
                 type="text"
                 value={formData.instagramHandle}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, instagramHandle: e.target.value }))
-                }
-                placeholder="@yourbusiness"
+                onChange={(e) => {
+                  let val = e.target.value;
+                  if (val.length > 0 && !val.startsWith("@") && !val.startsWith("http")) {
+                    val = "@" + val;
+                  }
+                  setFormData((prev) => ({
+                    ...prev,
+                    instagramHandle: val,
+                  }));
+                }}
+                placeholder="apostlecoffee (or @apostlecoffee)"
                 className="border border-black rounded-design bg-white px-4 py-6 text-foreground placeholder:text-foreground/40"
               />
               <WhisperButton

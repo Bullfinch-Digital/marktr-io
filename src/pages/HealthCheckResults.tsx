@@ -4,7 +4,6 @@ import {
   calculateScores,
   type DimensionScore,
   type HealthCheckInput,
-  type SocialScores,
   type StoryAssessment,
 } from "../lib/healthCheckScoring";
 import { setGuestHealthCheck } from "../lib/guestHealthCheck";
@@ -151,23 +150,31 @@ function extractDomain(url: string) {
 
 function getDataSourceLabel(
   dimensionName: string,
-  socialScores: SocialScores | null | undefined
+  state: HealthCheckInput,
+  domain: string | null
 ): string {
+  const channelsSummary = [
+    state.websiteUrl?.trim() && "website",
+    state.instagramHandle?.trim() && "Instagram",
+    state.facebookUrl?.trim() && "Facebook",
+    state.linkedinUrl?.trim() && "LinkedIn",
+  ]
+    .filter(Boolean)
+    .join(", ");
+
   switch (dimensionName) {
     case "Website Clarity":
-      return "Based on your website";
+      return domain || "your website";
     case "Content Consistency":
-      return socialScores?.instagramFound
-        ? "Based on your Instagram"
-        : "Based on platforms provided";
+      if (state.instagramHandle?.trim()) return state.instagramHandle.trim();
+      if (state.facebookUrl?.trim()) return "Facebook page";
+      return "platforms provided";
     case "Audience Fit":
       return "Connect platforms to unlock";
     case "Engagement Quality":
-      return socialScores?.instagramFound
-        ? "Based on your Instagram"
-        : "Connect platforms to unlock";
+      return state.instagramHandle?.trim() || "Connect platforms to unlock";
     case "Channel Coverage":
-      return "Based on platforms provided";
+      return channelsSummary || "platforms provided";
     default:
       return "";
   }
@@ -195,13 +202,20 @@ function ScoreCard({
         {dimension.name}
       </p>
       <p className="mb-1 font-['DM_Sans'] text-[9px] uppercase tracking-widest text-muted-foreground/70">
-        {dataSourceLabel}
+        Assessed: {dataSourceLabel}
       </p>
       <p
         className={`font-['Fraunces'] text-4xl font-bold leading-none ${getScoreColor(dimension.score)}`}
       >
         {dimension.score}
       </p>
+      {dimension.score === 0 &&
+        (dimension.observation.toLowerCase().includes("not found") ||
+          dimension.observation.toLowerCase().includes("check the handle")) && (
+          <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 font-['DM_Sans'] text-xs text-amber-600">
+            ⚠ We couldn&apos;t find this account. Check the handle is correct and try again.
+          </p>
+        )}
       <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-muted">
         <div
           className={`h-full rounded-full ${getBarColor(dimension.score)}`}
@@ -400,7 +414,7 @@ export default function HealthCheckResults() {
             <ScoreCard
               key={key}
               dimension={dimension}
-              dataSourceLabel={getDataSourceLabel(dimension.name, socialScores)}
+              dataSourceLabel={getDataSourceLabel(dimension.name, state, domain)}
               hasSocialData={hasSocialData}
             />
           ))}

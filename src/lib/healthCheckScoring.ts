@@ -83,18 +83,24 @@ export function calculateScores(input: HealthCheckInput): HealthCheckScores {
     input.linkedinUrl,
   ].filter((v) => Boolean(v && String(v).trim())).length;
 
-  const consistencyScore =
-    input.websiteScore?.socialScores?.contentConsistencyScore ??
-    Math.min(80, platforms * 20);
+  const instagramNotFound =
+    input.websiteScore?.socialScores?.instagramFound === false &&
+    !!input.instagramHandle?.trim();
 
-  const consistencyObservation =
-    input.websiteScore?.socialScores?.socialObservation ||
-    obs(
-      consistencyScore,
-      "You're maintaining a consistent presence",
-      "Some gaps in your content schedule",
-      "Irregular posting is limiting your reach"
-    );
+  const consistencyScore = instagramNotFound
+    ? 0
+    : (input.websiteScore?.socialScores?.contentConsistencyScore ??
+      Math.min(80, platforms * 20));
+
+  const consistencyObservation = instagramNotFound
+    ? "Instagram handle not found — check the handle and rerun"
+    : input.websiteScore?.socialScores?.socialObservation ||
+      obs(
+        consistencyScore,
+        "You're maintaining a consistent presence",
+        "Some gaps in your content schedule",
+        "Irregular posting is limiting your reach"
+      );
   const audienceScore = 25 + Math.floor(Math.random() * 40);
   const engagementScore = 30 + Math.floor(Math.random() * 40);
   const coverageScore = Math.min(80, platforms * 20);

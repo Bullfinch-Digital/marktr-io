@@ -12,9 +12,12 @@ export interface SocialScores {
   facebookFound?: boolean;
   instagramFollowers?: string;
   instagramPostCount?: string;
-  instagramBioScore?: number;
+  instagramBioScore?: number | null;
   contentConsistencyScore?: number;
   socialObservation?: string;
+  audienceObservation?: string | null;
+  engagementProxyScore?: number | null;
+  engagementObservation?: string | null;
 }
 
 export interface HealthCheckInput {
@@ -101,8 +104,23 @@ export function calculateScores(input: HealthCheckInput): HealthCheckScores {
         "Some gaps in your content schedule",
         "Irregular posting is limiting your reach"
       );
-  const audienceScore = 25 + Math.floor(Math.random() * 40);
-  const engagementScore = 30 + Math.floor(Math.random() * 40);
+  const audienceScore =
+    input.websiteScore?.socialScores?.instagramBioScore ??
+    25 + Math.floor(Math.random() * 40);
+
+  const audienceObservation = instagramNotFound
+    ? "Connect your Instagram to assess audience targeting"
+    : input.websiteScore?.socialScores?.audienceObservation ??
+      "Full analysis unlocked in your dashboard";
+
+  const engagementScore =
+    input.websiteScore?.socialScores?.engagementProxyScore ??
+    30 + Math.floor(Math.random() * 40);
+
+  const engagementObservation = instagramNotFound
+    ? "Connect platforms to see real engagement data"
+    : input.websiteScore?.socialScores?.engagementObservation ??
+      "Connect platforms to see real engagement data";
   const coverageScore = Math.min(80, platforms * 20);
 
   const scores = {
@@ -145,12 +163,12 @@ export function calculateScores(input: HealthCheckInput): HealthCheckScores {
     audienceFit: {
       name: "Audience Fit",
       score: audienceScore,
-      observation: "Full analysis unlocked in your dashboard",
+      observation: audienceObservation,
     },
     engagementQuality: {
       name: "Engagement Quality",
       score: engagementScore,
-      observation: "Connect platforms to see real engagement data",
+      observation: engagementObservation,
     },
     channelCoverage: {
       name: "Channel Coverage",

@@ -20,9 +20,12 @@ type SocialScores = {
   facebookFound: boolean;
   instagramFollowers: string;
   instagramPostCount: string;
-  instagramBioScore: number;
+  instagramBioScore?: number | null;
   contentConsistencyScore: number;
   socialObservation: string;
+  audienceObservation?: string | null;
+  engagementProxyScore?: number | null;
+  engagementObservation?: string | null;
 };
 
 type InstagramFetchResult = {
@@ -499,12 +502,20 @@ function normalizeSocialScores(
     facebookFound,
     instagramFollowers: instagram.followers,
     instagramPostCount,
-    instagramBioScore: Math.min(
-      100,
-      Math.max(0, Number(raw?.instagramBioScore ?? 0))
-    ),
+    instagramBioScore: instagramFound
+      ? Math.min(100, Math.max(0, Number(raw?.instagramBioScore ?? 0)))
+      : null,
     contentConsistencyScore,
     socialObservation,
+    audienceObservation: instagramFound
+      ? String(raw?.audienceObservation ?? "").trim().slice(0, 180) || null
+      : null,
+    engagementProxyScore: instagramFound
+      ? Math.min(100, Math.max(0, Number(raw?.engagementProxyScore ?? 0)))
+      : null,
+    engagementObservation: instagramFound
+      ? String(raw?.engagementObservation ?? "").trim().slice(0, 180) || null
+      : null,
   };
 }
 
@@ -537,9 +548,12 @@ Assess the website and return ONLY valid JSON with no markdown or backticks:
     "facebookFound": boolean,
     "instagramFollowers": string,
     "instagramPostCount": string,
-    "instagramBioScore": number,
+    "instagramBioScore": number (0-100),
     "contentConsistencyScore": number,
-    "socialObservation": string
+    "socialObservation": string,
+    "audienceObservation": string (max 15 words — based on the bio's specificity to a target customer. e.g. "Bio doesn't name who this campsite is for"),
+    "engagementProxyScore": number (0-100 — NOT real engagement, a REACH PROXY based on follower count relative to post count and account activity),
+    "engagementObservation": string (max 15 words, framed honestly as reach/visibility based on follower count — e.g. "562 followers suggests a small but engaged local audience" or "Limited following may restrict organic reach")
   }
 }
 
@@ -611,7 +625,10 @@ socialScores:
 - facebookFound: true if Facebook page data was provided in the input
 - instagramFollowers: follower count string from Instagram data (or empty string)
 - instagramPostCount: post count string from Instagram data (or empty string)
-- instagramBioScore: 0-100 — how well the Instagram bio speaks to a specific customer rather than everyone
+- instagramBioScore: 0-100, how clearly the Instagram bio speaks to a specific target customer (separate from the website audience assessment).
+- audienceObservation: max 15 words — one specific observation about whether the Instagram bio names or speaks to a defined target customer.
+- engagementProxyScore: 0-100 reach proxy based on follower count and posting activity — NOT a real engagement rate, which requires account connection. Score generously for active accounts with reasonable followings relative to their niche size.
+- engagementObservation: max 15 words — honest reach/visibility observation based on follower count and activity, not actual engagement rate.
 - contentConsistencyScore: 0-100 based on Instagram post count and apparent activity level. Scoring guide:
   - If Instagram not found or no post count: return 0
   - Posts > 500: 75-90 (very active)
@@ -619,7 +636,8 @@ socialScores:
   - Posts 50-200: 40-60 (moderate)
   - Posts < 50: 20-40 (limited)
   - Adjust down if follower count seems very low relative to post count
-- socialObservation: max 15 words, one specific observation about their social presence — or empty string if no social data was provided`;
+- socialObservation: max 15 words, one specific observation about their social presence — or empty string if no social data was provided
+- If Instagram is not found (instagramFound: false), omit or set to null: instagramBioScore, audienceObservation, engagementProxyScore, and engagementObservation`;
 
 Deno.serve(async (req) => {
   const preflight = corsPreflight(req);
@@ -642,6 +660,7 @@ Deno.serve(async (req) => {
 
   try {
     const body = (await req.json()) as Partial<Input>;
+    console.log("Raw instagramHandle received:", body.instagramHandle);
     const websiteUrl = normaliseUrl(body.websiteUrl ?? "");
     if (!websiteUrl) return json({ error: "websiteUrl is required" }, 400);
 
@@ -671,6 +690,10 @@ Deno.serve(async (req) => {
       const homepageSignals = extractAllSignals(html, websiteUrl);
       const storySignals = aboutHtml ? extractStorySignals(aboutHtml) : "";
 
+      if (body.instagramHandle) {
+        const username = body.instagramHandle.replace("@", "").trim().toLowerCase();
+        console.log("Calling Instagram API with username:", username);
+      }
       const instagramSignals = body.instagramHandle
         ? await fetchInstagramPublic(body.instagramHandle)
         : instagramFetch;

@@ -170,6 +170,12 @@ function getDataSourceLabel(
       if (state.facebookUrl?.trim()) return "Facebook page";
       return "platforms provided";
     case "Audience Fit":
+      if (
+        state.websiteScore?.socialScores?.instagramBioScore != null &&
+        state.instagramHandle?.trim()
+      ) {
+        return state.instagramHandle.trim();
+      }
       return "Connect platforms to unlock";
     case "Engagement Quality":
       return state.instagramHandle?.trim() || "Connect platforms to unlock";
@@ -246,36 +252,98 @@ function ScoreCard({
         </>
       )}
       {dimension.name === "Website Clarity" && dimension.strengths?.length && (
-        <div className="mt-3 space-y-2">
-          <p className="font-['DM_Sans'] text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
-            What&apos;s working
-          </p>
-          {dimension.strengths.map((s, i) => (
-            <div key={i} className="flex items-start gap-2">
-              <span className="mt-0.5 text-xs text-[#2D7A5F]">✓</span>
-              <p className="font-['DM_Sans'] text-xs leading-relaxed text-[#0D1833]">
-                {s}
+        <div className="mt-3 lg:grid lg:grid-cols-2 lg:gap-4">
+          <div className="space-y-2">
+            <p className="font-['DM_Sans'] text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+              What&apos;s working
+            </p>
+            {dimension.strengths.map((s, i) => (
+              <div key={i} className="flex items-start gap-2">
+                <span className="mt-0.5 text-xs text-[#2D7A5F]">✓</span>
+                <p className="font-['DM_Sans'] text-xs leading-relaxed text-[#0D1833]">
+                  {s}
+                </p>
+              </div>
+            ))}
+            {dimension.gaps?.length ? (
+              <>
+                <p className="mt-3 font-['DM_Sans'] text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+                  Key gaps
+                </p>
+                {dimension.gaps.map((g, i) => (
+                  <div key={i} className="flex items-start gap-2">
+                    <span className="mt-0.5 text-xs text-primary">→</span>
+                    <p className="font-['DM_Sans'] text-xs leading-relaxed text-[#0D1833]">
+                      {g}
+                    </p>
+                  </div>
+                ))}
+              </>
+            ) : null}
+          </div>
+          {sa ? (
+            <div className="mt-4 rounded-xl border border-[#D4871A]/20 bg-[#FDF0CC] p-4 lg:mt-0">
+              <p className="mb-3 font-['DM_Sans'] text-[10px] font-medium uppercase tracking-widest text-[#BA7517]">
+                Brand story assessment
               </p>
-            </div>
-          ))}
-          {dimension.gaps?.length ? (
-            <>
-              <p className="mt-3 font-['DM_Sans'] text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
-                Key gaps
-              </p>
-              {dimension.gaps.map((g, i) => (
-                <div key={i} className="flex items-start gap-2">
-                  <span className="mt-0.5 text-xs text-primary">→</span>
-                  <p className="font-['DM_Sans'] text-xs leading-relaxed text-[#0D1833]">
-                    {g}
+
+              <div className="mb-3 flex items-center gap-2">
+                <span
+                  className={`inline-flex rounded-full px-2.5 py-1 font-['DM_Sans'] text-xs font-medium ${
+                    sa.founderStoryQuality === "compelling"
+                      ? "bg-[#2D7A5F] text-white"
+                      : sa.founderStoryQuality === "good"
+                        ? "bg-[#2D7A5F]/20 text-[#2D7A5F]"
+                        : sa.founderStoryQuality === "basic"
+                          ? "bg-[#BA7517]/20 text-[#BA7517]"
+                          : "bg-[#E24B4A]/20 text-[#E24B4A]"
+                  }`}
+                >
+                  {sa.founderStoryQuality === "compelling"
+                    ? "✓ Compelling founder story"
+                    : sa.founderStoryQuality === "good"
+                      ? "~ Good founder story"
+                      : sa.founderStoryQuality === "basic"
+                        ? "~ Basic story present"
+                        : "✗ No founder story found"}
+                </span>
+              </div>
+
+              {sa.missingElements?.length > 0 && (
+                <div>
+                  <p className="mb-2 font-['DM_Sans'] text-[10px] font-medium uppercase tracking-widest text-[#BA7517]">
+                    Missing story elements
                   </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {sa.missingElements.map((el) => (
+                      <span
+                        key={el}
+                        className="rounded-full border border-[#D4871A]/30 bg-white px-2.5 py-1 font-['DM_Sans'] text-[10px] text-[#0D1833]"
+                      >
+                        {el}
+                      </span>
+                    ))}
+                  </div>
                 </div>
-              ))}
-            </>
+              )}
+
+              <div className="mt-3 border-t border-[#D4871A]/20 pt-3">
+                <p className="font-['DM_Sans'] text-xs leading-relaxed text-[#0D1833]">
+                  marktr&apos;s Story System can help you find and articulate the missing elements —
+                  free in under 5 minutes.
+                </p>
+                <Link
+                  to="/story"
+                  className="mt-2 inline-flex font-['DM_Sans'] text-xs font-medium text-primary underline underline-offset-2"
+                >
+                  Find your brand story →
+                </Link>
+              </div>
+            </div>
           ) : null}
         </div>
       )}
-      {sa && (
+      {dimension.name === "Website Clarity" && !dimension.strengths?.length && sa && (
         <div className="mt-4 rounded-xl border border-[#D4871A]/20 bg-[#FDF0CC] p-4">
           <p className="mb-3 font-['DM_Sans'] text-[10px] font-medium uppercase tracking-widest text-[#BA7517]">
             Brand story assessment
@@ -339,6 +407,61 @@ function ScoreCard({
   );
 }
 
+function ScoreOverviewChip({
+  shortName,
+  score,
+  href,
+  featured = false,
+}: {
+  shortName: string;
+  score: number;
+  href?: string;
+  featured?: boolean;
+}) {
+  const className = `flex-1 min-w-[100px] rounded-xl border border-border bg-white px-4 py-3 text-center transition-colors ${
+    href ? "hover:border-primary/40" : ""
+  } ${featured ? "min-w-[120px] border-primary/20 bg-primary/5 sm:flex-[1.2]" : ""}`;
+
+  const content = (
+    <>
+      <p className="font-['DM_Sans'] text-[10px] uppercase tracking-widest text-muted-foreground">
+        {shortName}
+      </p>
+      <p
+        className={`font-['Fraunces'] font-bold ${getScoreColor(score)} ${
+          featured ? "text-3xl" : "text-2xl"
+        }`}
+      >
+        {score}
+        {featured && (
+          <span className="ml-0.5 font-['DM_Sans'] text-sm font-medium text-muted-foreground">
+            /100
+          </span>
+        )}
+      </p>
+      {featured && (
+        <p className="font-['DM_Sans'] text-[10px] text-muted-foreground">Overall digital health</p>
+      )}
+      <div className="mt-1 h-1 w-full rounded-full bg-muted">
+        <div
+          className={`h-full rounded-full ${getBarColor(score)}`}
+          style={{ width: `${score}%` }}
+        />
+      </div>
+    </>
+  );
+
+  if (href) {
+    return (
+      <a href={href} className={className}>
+        {content}
+      </a>
+    );
+  }
+
+  return <div className={className}>{content}</div>;
+}
+
 export default function HealthCheckResults() {
   const location = useLocation();
   const state = (location.state ?? null) as LocationState;
@@ -379,12 +502,12 @@ export default function HealthCheckResults() {
     socialScores?.instagramFound || socialScores?.facebookFound
   );
 
-  const scoreCards: { key: string; dimension: DimensionScore }[] = [
-    { key: "website", dimension: scores.websiteClarity },
-    { key: "consistency", dimension: scores.contentConsistency },
-    { key: "audience", dimension: scores.audienceFit },
-    { key: "engagement", dimension: scores.engagementQuality },
-    { key: "coverage", dimension: scores.channelCoverage },
+  const scoreCards: { key: string; shortName: string; dimension: DimensionScore }[] = [
+    { key: "website", shortName: "Website", dimension: scores.websiteClarity },
+    { key: "consistency", shortName: "Content", dimension: scores.contentConsistency },
+    { key: "audience", shortName: "Audience", dimension: scores.audienceFit },
+    { key: "engagement", shortName: "Engagement", dimension: scores.engagementQuality },
+    { key: "coverage", shortName: "Channels", dimension: scores.channelCoverage },
   ];
 
   return (
@@ -409,25 +532,28 @@ export default function HealthCheckResults() {
           with your free trial.
         </p>
 
-        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {scoreCards.map(({ key, dimension }) => (
-            <ScoreCard
+        <div className="mt-8 flex flex-wrap gap-3">
+          <ScoreOverviewChip shortName="Overall" score={scores.overall} featured />
+          {scoreCards.map(({ key, shortName, dimension }) => (
+            <ScoreOverviewChip
               key={key}
-              dimension={dimension}
-              dataSourceLabel={getDataSourceLabel(dimension.name, state, domain)}
-              hasSocialData={hasSocialData}
+              shortName={shortName}
+              score={dimension.score}
+              href={`#section-${key}`}
             />
           ))}
         </div>
 
-        <div className="mt-8 rounded-2xl border border-border bg-white p-6 text-center">
-          <p className="font-['Fraunces'] text-5xl font-bold text-[#0D1833] sm:text-6xl">
-            {scores.overall}
-            <span className="ml-1 font-['DM_Sans'] text-2xl font-medium text-muted-foreground">
-              /100
-            </span>
-          </p>
-          <p className="mt-2 font-['DM_Sans'] text-sm text-muted-foreground">Overall digital health</p>
+        <div className="mt-8 space-y-6">
+          {scoreCards.map(({ key, dimension }) => (
+            <div key={key} id={`section-${key}`} className="scroll-mt-24">
+              <ScoreCard
+                dimension={dimension}
+                dataSourceLabel={getDataSourceLabel(dimension.name, state, domain)}
+                hasSocialData={hasSocialData}
+              />
+            </div>
+          ))}
         </div>
 
         <div className="mt-8 rounded-2xl bg-[#0D1833] p-8">

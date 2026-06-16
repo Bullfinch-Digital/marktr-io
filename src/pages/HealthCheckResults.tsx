@@ -7,6 +7,7 @@ import {
   type StoryAssessment,
 } from "../lib/healthCheckScoring";
 import { setGuestHealthCheck } from "../lib/guestHealthCheck";
+import { usePaywall } from "../contexts/PaywallContext";
 
 type LocationState = HealthCheckInput | null;
 
@@ -374,6 +375,7 @@ function ScoreOverviewChip({
 export default function HealthCheckResults() {
   const location = useLocation();
   const state = (location.state ?? null) as LocationState;
+  const { openPaywall } = usePaywall();
 
   if (!state || !state.email?.trim()) {
     return <Navigate to="/health-check" replace />;
@@ -447,11 +449,6 @@ export default function HealthCheckResults() {
             ? `Based on publicly visible data for ${domain}`
             : "Based on your answers"}
         </p>
-        <p className="mt-2 flex items-center gap-2 font-['DM_Sans'] text-sm text-muted-foreground">
-          <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
-          Connect your social accounts for deeper analysis and personalised recommendations — unlock
-          with your free trial.
-        </p>
 
         <div className="mt-8 flex flex-wrap gap-3">
           <ScoreOverviewChip shortName="Overall" score={scores.overall} featured />
@@ -463,6 +460,26 @@ export default function HealthCheckResults() {
               href={`#section-${key}`}
             />
           ))}
+        </div>
+
+        <div className="mt-6 flex flex-col gap-4 rounded-2xl border border-primary/20 bg-primary/5 px-6 py-5 sm:flex-row sm:items-center">
+          <div className="flex-1">
+            <p className="font-['DM_Sans'] text-sm font-semibold text-foreground">
+              Want the full picture?
+            </p>
+            <p className="mt-1 font-['DM_Sans'] text-sm text-muted-foreground">
+              This report is based on publicly visible data. Connect your social accounts in the
+              dashboard to unlock real engagement data, audience analysis and a step-by-step plan to
+              improve every score.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => openPaywall()}
+            className="shrink-0 whitespace-nowrap rounded-full bg-primary px-5 py-2.5 font-['DM_Sans'] text-sm font-semibold text-white transition-colors hover:bg-primary/90"
+          >
+            Start free trial →
+          </button>
         </div>
 
         <div className="mt-8 space-y-6">
@@ -482,9 +499,9 @@ export default function HealthCheckResults() {
             Your {paywallDimension.name} score is {paywallDimension.score}. Here&apos;s what that means.
           </h2>
           <p className="mt-4 max-w-2xl font-['DM_Sans'] text-base leading-relaxed text-white/70">
-            This report is based on what marktr can see publicly. Connect your Instagram, Facebook and
-            LinkedIn inside your dashboard to unlock real engagement data, audience analysis and a
-            step-by-step plan to fix your lowest scores. Completely free for 14 days.
+            This report is based on what marktr can see publicly. Connect your Instagram and Facebook
+            inside your dashboard to unlock real engagement data, audience analysis and a step-by-step
+            plan to fix your lowest scores. Completely free for 14 days.
           </p>
 
           <Link
@@ -495,7 +512,7 @@ export default function HealthCheckResults() {
           </Link>
 
           <p className="mt-3 font-['DM_Sans'] text-xs text-white/50">
-            No credit card required · Cancel anytime
+            14-day free trial · Card details required to start
           </p>
         </div>
       </section>

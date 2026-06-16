@@ -32,14 +32,14 @@ export function PaywallModal({
   const hasValidEmail = isValidEmail(trimmedEmail);
 
   const trialFeatures = [
-    "All ICP features unlocked",
-    "Full customer intelligence",
-    "Messaging that converts",
+    "Know Your Customer — full ICP profile unlocked",
+    "Digital Health Check — complete score breakdown",
+    "Brand Story System — your story, fully built",
     "Content strategy and campaign ideas",
-    "Brands and collections",
-    "Edit mode",
-    "Export to PDF and ad-ready formats",
-    "Meta Ads lookalike audiences",
+    "Connect Instagram and Facebook for real engagement data",
+    "Save and manage multiple brands",
+    "Export and share your results",
+    "Step-by-step plan to improve every score",
   ];
 
   const handleAttemptContinueFree = () => {
@@ -75,7 +75,7 @@ export function PaywallModal({
               Get full access in 60 seconds
             </h2>
             <p className="font-['Inter'] text-foreground/70 max-w-xl">
-              Start your 7-day free trial now. £0 today, then billed on day 8.
+              Start your 14-day free trial now. £0 today, then billed on day 15.
             </p>
           </div>
           <button
@@ -176,7 +176,7 @@ export function PaywallModal({
             {/* Legal Disclosure */}
             <div className="bg-accent-grey/20 border border-warm-grey rounded-design p-4 mb-6">
               <p className="font-['Inter'] text-xs text-foreground/70 text-center">
-                £0 today • Cancel anytime before day 7 • Then {selectedPlan === "annual" ? "£300/year" : "£30/month"}
+                £0 today • Cancel anytime before day 14 • Then {selectedPlan === "annual" ? "£300/year" : "£30/month"}
               </p>
             </div>
           </div>
@@ -248,7 +248,7 @@ export function PaywallModal({
               )}
             </Button>
             <p className="text-center text-xs text-foreground/60 font-['Inter']">
-              £0 today • Cancel anytime before day 7
+              £0 today • Cancel anytime before day 14
             </p>
 
             <button
@@ -306,7 +306,7 @@ export function PaywallModal({
             </div>
 
             <p className="font-['Inter'] text-sm text-foreground/70 mb-4">
-              You’ll keep 3 read-only ICP previews, but editing, exports, collections, and strategy generation stay locked.
+              You’ll keep your free health check results and brand story, but deeper analysis, content strategy and social connections stay locked.
             </p>
 
             <div className="flex flex-col gap-3">

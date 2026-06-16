@@ -342,7 +342,7 @@ Deno.serve(async (req) => {
         : {}),
       line_items: [{ price: body.priceId, quantity: 1 }],
       subscription_data: {
-        trial_period_days: 7,
+        trial_period_days: 14,
         metadata: userMetadata,
       },
       ...(user?.id ? { client_reference_id: user.id } : {}),

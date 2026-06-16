@@ -422,6 +422,24 @@ export default function HealthCheckResults() {
     { key: "social", shortName: "Social", dimension: scores.socialPresence },
   ];
 
+  const paywallDimension = (() => {
+    if (scores.lowestScore === 0) {
+      const nonZero = [
+        scores.websiteClarity,
+        scores.brandStory,
+        scores.contentConsistency,
+        scores.socialPresence,
+      ]
+        .filter((d) => d.score > 0)
+        .sort((a, b) => a.score - b.score);
+      return nonZero[0] ?? scores.websiteClarity;
+    }
+    return {
+      name: scores.lowestDimension,
+      score: scores.lowestScore,
+    };
+  })();
+
   return (
     <main className="min-h-screen bg-background">
       <section className="mx-auto max-w-3xl px-6 py-12">
@@ -470,7 +488,7 @@ export default function HealthCheckResults() {
 
         <div className="mt-8 rounded-2xl bg-[#0D1833] p-8">
           <h2 className="font-['Fraunces'] text-3xl font-bold leading-tight text-white">
-            Your {scores.lowestDimension} score is {scores.lowestScore}. Here&apos;s what that means.
+            Your {paywallDimension.name} score is {paywallDimension.score}. Here&apos;s what that means.
           </h2>
           <p className="mt-4 max-w-2xl font-['DM_Sans'] text-base leading-relaxed text-white/70">
             This report is based on what marktr can see publicly. Connect your Instagram, Facebook and

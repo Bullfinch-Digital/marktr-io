@@ -8,6 +8,7 @@ import { useICPs } from "../hooks/useICPs";
 import { useBrands } from "../hooks/useBrands";
 import { useCollections, type Collection } from "../hooks/useCollections";
 import useSubscription from "../hooks/useSubscription";
+import useProfile from "../hooks/useProfile";
 import { useOutboxSync } from "../hooks/useOutboxSync";
 import { useAuth } from "../contexts/AuthContext";
 import { usePaywall } from "../contexts/PaywallContext";
@@ -32,6 +33,7 @@ export default function Dashboard() {
 
   // Fetch data from Supabase
   const { user, loading: authLoading } = useAuth();
+  const { profile } = useProfile(user?.id ?? null);
   const {
     icps: rawICPs,
     isLoading: icpsLoading,
@@ -255,7 +257,19 @@ export default function Dashboard() {
   const showEmptyIcps = hasLoadedOnce && !icpsLoading && rawICPs.length === 0;
   const showIcpPlaceholder = !hasLoadedOnce || icpsLoading;
 
-  const brandName = brands?.[0]?.name ?? "there";
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good morning";
+    if (hour < 17) return "Good afternoon";
+    return "Good evening";
+  };
+
+  const firstName =
+    profile?.name?.split(" ")[0] ||
+    user?.email?.split("@")[0] ||
+    "";
+
+  const greetingName = firstName ? `, ${firstName}` : "";
 
   const setupProgress = useMemo(() => {
     let score = 0;
@@ -395,7 +409,8 @@ export default function Dashboard() {
           <div className="flex items-start justify-between gap-6">
             <div>
               <h1 className="font-['Fraunces'] text-4xl font-bold leading-tight text-[#0D1833]">
-                Good morning, {brandName}
+                {getGreeting()}
+                {greetingName}.
               </h1>
               <p className="mt-1 font-['DM_Sans'] text-base text-muted-foreground">
                 Here's where things stand today.

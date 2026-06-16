@@ -215,7 +215,6 @@ export function FinishAccountModal({
     try {
       if (isAnonymous) {
         const { error: updateError } = await supabase.auth.updateUser({
-          email,
           password,
           data: { name: name.trim() || null },
         });

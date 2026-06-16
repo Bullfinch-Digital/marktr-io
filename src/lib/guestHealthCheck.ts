@@ -3,15 +3,13 @@ export type GuestHealthCheck = {
     websiteUrl?: string;
     instagramHandle?: string;
     facebookUrl?: string;
-    linkedinUrl?: string;
     email: string;
   };
   scores: {
     websiteClarity: number;
+    brandStory: number;
     contentConsistency: number;
-    audienceFit: number;
-    engagementQuality: number;
-    channelCoverage: number;
+    socialPresence: number;
     overall: number;
     lowestDimension: string;
     lowestScore: number;

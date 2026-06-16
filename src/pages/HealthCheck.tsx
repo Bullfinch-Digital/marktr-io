@@ -14,7 +14,6 @@ export interface HealthCheckFormData {
   websiteUrl: string;
   instagramHandle: string;
   facebookUrl: string;
-  linkedinUrl: string;
   email: string;
 }
 
@@ -68,7 +67,6 @@ export default function HealthCheck() {
     websiteUrl: "",
     instagramHandle: "",
     facebookUrl: "",
-    linkedinUrl: "",
     email: "",
   });
 
@@ -307,23 +305,6 @@ export default function HealthCheck() {
               value={formData.facebookUrl}
               onChange={(e) => setFormData((prev) => ({ ...prev, facebookUrl: e.target.value }))}
               placeholder="facebook.com/yourbusiness"
-              className="border border-black rounded-design bg-white px-4 py-6 text-foreground placeholder:text-foreground/40"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="linkedinUrl" className="font-['DM_Sans'] text-sm text-[#0D1833]">
-                LinkedIn URL
-              </Label>
-              <span className="font-['DM_Sans'] text-xs text-muted-foreground">optional</span>
-            </div>
-            <Input
-              id="linkedinUrl"
-              type="url"
-              value={formData.linkedinUrl}
-              onChange={(e) => setFormData((prev) => ({ ...prev, linkedinUrl: e.target.value }))}
-              placeholder="linkedin.com/company/yourbusiness"
               className="border border-black rounded-design bg-white px-4 py-6 text-foreground placeholder:text-foreground/40"
             />
           </div>

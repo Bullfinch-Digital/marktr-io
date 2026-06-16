@@ -252,14 +252,13 @@ export default function GuestDashboardPreview() {
         {hasHealth && guestHealth?.scores && (
           <div className="space-y-4 rounded-2xl border border-border bg-white p-6">
             <h2 className="font-['Fraunces'] text-2xl font-bold text-[#0D1833]">Your digital health scores</h2>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               {(
                 [
                   { label: "Website Clarity", score: guestHealth.scores.websiteClarity },
+                  { label: "Brand Story", score: guestHealth.scores.brandStory },
                   { label: "Content Consistency", score: guestHealth.scores.contentConsistency },
-                  { label: "Audience Fit", score: guestHealth.scores.audienceFit },
-                  { label: "Engagement Quality", score: guestHealth.scores.engagementQuality },
-                  { label: "Channel Coverage", score: guestHealth.scores.channelCoverage },
+                  { label: "Social Presence", score: guestHealth.scores.socialPresence },
                 ] as const
               ).map(({ label, score }) => (
                 <div key={label} className="rounded-xl border border-border bg-background p-4 text-center">

@@ -32,8 +32,6 @@ const DIMENSION_DETAIL: Record<
   }
 > = {
   "Website Clarity": {
-    socialNote:
-      "Website and social profile signals were compared for brand consistency.",
     high: {
       meaning:
         "Your homepage clearly communicates what you do and who you help. Visitors can understand your value within seconds of arriving.",
@@ -51,6 +49,26 @@ const DIMENSION_DETAIL: Record<
         "Visitors to your website are likely struggling to understand what you offer and who it's for. This is costing you customers every day.",
       action:
         "Start with a clear headline: who you help, what you do, and why it matters — above the fold.",
+    },
+  },
+  "Brand Story": {
+    high: {
+      meaning:
+        "Your brand story is compelling — visitors understand who you are, why you exist, and what makes you different.",
+      action:
+        "Use this story consistently across your website, social bios, and content.",
+    },
+    mid: {
+      meaning:
+        "You have the beginnings of a brand story but key elements are missing — founder narrative, emotional hook, or clear positioning.",
+      action:
+        "Identify the one missing element that would make your story resonate — usually a specific customer or founding moment.",
+    },
+    low: {
+      meaning:
+        "Your brand story is weak or absent. Without a clear narrative, visitors have no reason to choose you over alternatives.",
+      action:
+        "Start with your founding moment — why did you start this business and who did you start it for?",
     },
   },
   "Content Consistency": {
@@ -74,67 +92,24 @@ const DIMENSION_DETAIL: Record<
         "Pick one platform and post at least twice a week for 30 days before expanding.",
     },
   },
-  "Audience Fit": {
-    socialNote: "Public Instagram bio data hints at audience targeting.",
+  "Social Presence": {
     high: {
       meaning:
-        "Your content appears to be reaching and resonating with the right people. Strong audience fit means higher engagement and better conversion.",
-      action:
-        "Document what's working — identify the content formats and topics that drive the most relevant engagement.",
-    },
-    mid: {
-      meaning:
-        "Some of your content is landing with the right audience but there's room to sharpen your targeting and messaging.",
-      action:
-        "Define your ideal customer in more specific detail — marktr's ICP Generator can help with this.",
-    },
-    low: {
-      meaning:
-        "Your content may be reaching the wrong people, or not clearly speaking to anyone in particular. This is a foundational issue that affects everything downstream.",
-      action:
-        "Before creating more content, define your ideal customer — this single step transforms how you write.",
-    },
-  },
-  "Engagement Quality": {
-    socialNote: "Follower count and bio signals from Instagram were considered.",
-    high: {
-      meaning:
-        "People are actively responding to your content. High engagement quality means your audience finds your posts genuinely useful or interesting.",
-      action:
-        "Lean into what's generating conversation — questions, opinions and specific expertise tend to drive the best engagement.",
-    },
-    mid: {
-      meaning:
-        "You're getting some engagement but it's not consistent. Some content lands well while other posts receive little response.",
-      action:
-        "Study which posts generate comments rather than just likes — those formats are your strongest signal.",
-    },
-    low: {
-      meaning:
-        "Your content isn't generating meaningful interaction. This often means the content isn't specific enough to your audience or isn't giving them a reason to respond.",
-      action:
-        "End every post with a direct question or a specific call to action tied to your ideal customer's biggest frustration.",
-    },
-  },
-  "Channel Coverage": {
-    socialNote: "Instagram and Facebook presence included in this assessment.",
-    high: {
-      meaning:
-        "You have a strong multi-channel presence. You're visible where your customers are looking, which reduces reliance on any single platform.",
+        "Your social profiles communicate clearly and you're visible across multiple platforms where customers might find you.",
       action:
         "Make sure your messaging is consistent across all channels — the same story, adapted for each platform's format.",
     },
     mid: {
       meaning:
-        "You're active on some channels but there are gaps where your ideal customer may be looking and not finding you.",
+        "You have some social visibility but your profiles could speak more clearly to your ideal customer, or you're not yet active on enough platforms.",
       action:
-        "Identify which one additional platform your ideal customer uses most and establish a basic presence there.",
+        "Sharpen your Instagram bio to name who you help, then establish a presence on one additional platform.",
     },
     low: {
       meaning:
-        "Your digital footprint is limited to very few channels. This makes you invisible to potential customers who discover brands through platforms you're not on.",
+        "Your social presence is limited or unclear. Potential customers searching for you on social may not find you or understand what you offer.",
       action:
-        "Prioritise the one or two platforms where your ideal customer spends the most time and commit to those first.",
+        "Start with one platform — optimise your bio to speak to a specific customer, then post consistently for 30 days.",
     },
   },
 };
@@ -153,60 +128,122 @@ function getDataSourceLabel(
   state: HealthCheckInput,
   domain: string | null
 ): string {
-  const channelsSummary = [
-    state.websiteUrl?.trim() && "website",
-    state.instagramHandle?.trim() && "Instagram",
-    state.facebookUrl?.trim() && "Facebook",
-    state.linkedinUrl?.trim() && "LinkedIn",
-  ]
-    .filter(Boolean)
-    .join(", ");
+  const social = state.websiteScore?.socialScores;
 
   switch (dimensionName) {
     case "Website Clarity":
+      return domain || "your website";
+    case "Brand Story":
       return domain || "your website";
     case "Content Consistency":
       if (state.instagramHandle?.trim()) return state.instagramHandle.trim();
       if (state.facebookUrl?.trim()) return "Facebook page";
       return "platforms provided";
-    case "Audience Fit":
-      if (
-        state.websiteScore?.socialScores?.instagramBioScore != null &&
-        state.instagramHandle?.trim()
-      ) {
+    case "Social Presence": {
+      if (social?.instagramFound) {
+        const parts: string[] = [];
+        if (state.instagramHandle?.trim()) parts.push(state.instagramHandle.trim());
+        if (state.facebookUrl?.trim()) parts.push("Facebook");
+        if (state.websiteUrl?.trim() || domain) parts.push("website");
+        return parts.length ? parts.join(", ") : "platforms provided";
+      }
+      if (state.instagramHandle?.trim() && social?.instagramFound === false) {
         return state.instagramHandle.trim();
       }
-      return "Connect platforms to unlock";
-    case "Engagement Quality":
-      if (
-        state.websiteScore?.socialScores?.engagementProxyScore != null &&
-        state.instagramHandle?.trim()
-      ) {
-        return state.instagramHandle.trim();
-      }
-      return "Connect platforms to unlock";
-    case "Channel Coverage":
-      return channelsSummary || "platforms provided";
+      return "Based on platforms provided";
+    }
     default:
       return "";
   }
 }
 
+function BrandStoryPanel({ sa }: { sa: StoryAssessment }) {
+  return (
+    <div className="mt-4 rounded-xl border border-[#D4871A]/20 bg-[#FDF0CC] p-4">
+      <p className="mb-3 font-['DM_Sans'] text-[10px] font-medium uppercase tracking-widest text-[#BA7517]">
+        Brand story assessment
+      </p>
+
+      <div className="mb-3 flex items-center gap-2">
+        <span
+          className={`inline-flex rounded-full px-2.5 py-1 font-['DM_Sans'] text-xs font-medium ${
+            sa.founderStoryQuality === "compelling"
+              ? "bg-[#2D7A5F] text-white"
+              : sa.founderStoryQuality === "good"
+                ? "bg-[#2D7A5F]/20 text-[#2D7A5F]"
+                : sa.founderStoryQuality === "basic"
+                  ? "bg-[#BA7517]/20 text-[#BA7517]"
+                  : "bg-[#E24B4A]/20 text-[#E24B4A]"
+          }`}
+        >
+          {sa.founderStoryQuality === "compelling"
+            ? "✓ Compelling founder story"
+            : sa.founderStoryQuality === "good"
+              ? "~ Good founder story"
+              : sa.founderStoryQuality === "basic"
+                ? "~ Basic story present"
+                : "✗ No founder story found"}
+        </span>
+      </div>
+
+      {sa.missingElements?.length > 0 && (
+        <div>
+          <p className="mb-2 font-['DM_Sans'] text-[10px] font-medium uppercase tracking-widest text-[#BA7517]">
+            Missing story elements
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {sa.missingElements.map((el) => (
+              <span
+                key={el}
+                className="rounded-full border border-[#D4871A]/30 bg-white px-2.5 py-1 font-['DM_Sans'] text-[10px] text-[#0D1833]"
+              >
+                {el}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="mt-3 border-t border-[#D4871A]/20 pt-3">
+        <p className="font-['DM_Sans'] text-xs leading-relaxed text-[#0D1833]">
+          marktr&apos;s Story System can help you find and articulate the missing elements — free in
+          under 5 minutes.
+        </p>
+        <Link
+          to="/story"
+          className="mt-2 inline-flex font-['DM_Sans'] text-xs font-medium text-primary underline underline-offset-2"
+        >
+          Find your brand story →
+        </Link>
+      </div>
+    </div>
+  );
+}
+
 function ScoreCard({
   dimension,
   dataSourceLabel,
-  hasSocialData,
+  instagramFound,
 }: {
   dimension: DimensionScore;
   dataSourceLabel: string;
-  hasSocialData: boolean;
+  instagramFound: boolean;
 }) {
   const detail = DIMENSION_DETAIL[dimension.name];
   const tier =
     dimension.score >= 70 ? "high" : dimension.score >= 40 ? "mid" : "low";
   const detailTier = detail?.[tier];
-  const sa: StoryAssessment | null | undefined =
-    dimension.name === "Website Clarity" ? dimension.storyAssessment : null;
+  const sa =
+    dimension.name === "Brand Story" ? dimension.storyAssessment : null;
+
+  const socialNote =
+    dimension.name === "Social Presence"
+      ? instagramFound
+        ? "Bio targeting, follower reach and active platforms were used to score this."
+        : "Connect your Instagram and Facebook for a complete picture."
+      : dimension.name === "Content Consistency" && instagramFound
+        ? detail?.socialNote
+        : undefined;
 
   return (
     <article className="rounded-2xl border border-border bg-white p-6">
@@ -250,165 +287,40 @@ function ScoreCard({
               {detailTier.action}
             </p>
           </div>
-          {hasSocialData && detail?.socialNote && (
+          {socialNote && (
             <p className="mt-2 font-['DM_Sans'] text-xs leading-relaxed text-muted-foreground">
-              {detail.socialNote}
+              {socialNote}
             </p>
           )}
         </>
       )}
-      {dimension.name === "Website Clarity" && dimension.strengths?.length && (
-        <div className="mt-3 lg:grid lg:grid-cols-2 lg:gap-4">
-          <div className="space-y-2">
-            <p className="font-['DM_Sans'] text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
-              What&apos;s working
-            </p>
-            {dimension.strengths.map((s, i) => (
-              <div key={i} className="flex items-start gap-2">
-                <span className="mt-0.5 text-xs text-[#2D7A5F]">✓</span>
-                <p className="font-['DM_Sans'] text-xs leading-relaxed text-[#0D1833]">
-                  {s}
-                </p>
-              </div>
-            ))}
-            {dimension.gaps?.length ? (
-              <>
-                <p className="mt-3 font-['DM_Sans'] text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
-                  Key gaps
-                </p>
-                {dimension.gaps.map((g, i) => (
-                  <div key={i} className="flex items-start gap-2">
-                    <span className="mt-0.5 text-xs text-primary">→</span>
-                    <p className="font-['DM_Sans'] text-xs leading-relaxed text-[#0D1833]">
-                      {g}
-                    </p>
-                  </div>
-                ))}
-              </>
-            ) : null}
-          </div>
-          {sa ? (
-            <div className="mt-4 rounded-xl border border-[#D4871A]/20 bg-[#FDF0CC] p-4 lg:mt-0">
-              <p className="mb-3 font-['DM_Sans'] text-[10px] font-medium uppercase tracking-widest text-[#BA7517]">
-                Brand story assessment
-              </p>
-
-              <div className="mb-3 flex items-center gap-2">
-                <span
-                  className={`inline-flex rounded-full px-2.5 py-1 font-['DM_Sans'] text-xs font-medium ${
-                    sa.founderStoryQuality === "compelling"
-                      ? "bg-[#2D7A5F] text-white"
-                      : sa.founderStoryQuality === "good"
-                        ? "bg-[#2D7A5F]/20 text-[#2D7A5F]"
-                        : sa.founderStoryQuality === "basic"
-                          ? "bg-[#BA7517]/20 text-[#BA7517]"
-                          : "bg-[#E24B4A]/20 text-[#E24B4A]"
-                  }`}
-                >
-                  {sa.founderStoryQuality === "compelling"
-                    ? "✓ Compelling founder story"
-                    : sa.founderStoryQuality === "good"
-                      ? "~ Good founder story"
-                      : sa.founderStoryQuality === "basic"
-                        ? "~ Basic story present"
-                        : "✗ No founder story found"}
-                </span>
-              </div>
-
-              {sa.missingElements?.length > 0 && (
-                <div>
-                  <p className="mb-2 font-['DM_Sans'] text-[10px] font-medium uppercase tracking-widest text-[#BA7517]">
-                    Missing story elements
-                  </p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {sa.missingElements.map((el) => (
-                      <span
-                        key={el}
-                        className="rounded-full border border-[#D4871A]/30 bg-white px-2.5 py-1 font-['DM_Sans'] text-[10px] text-[#0D1833]"
-                      >
-                        {el}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div className="mt-3 border-t border-[#D4871A]/20 pt-3">
-                <p className="font-['DM_Sans'] text-xs leading-relaxed text-[#0D1833]">
-                  marktr&apos;s Story System can help you find and articulate the missing elements —
-                  free in under 5 minutes.
-                </p>
-                <Link
-                  to="/story"
-                  className="mt-2 inline-flex font-['DM_Sans'] text-xs font-medium text-primary underline underline-offset-2"
-                >
-                  Find your brand story →
-                </Link>
-              </div>
+      {dimension.name === "Website Clarity" && dimension.strengths?.length ? (
+        <div className="mt-3 space-y-2">
+          <p className="font-['DM_Sans'] text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+            What&apos;s working
+          </p>
+          {dimension.strengths.map((s, i) => (
+            <div key={i} className="flex items-start gap-2">
+              <span className="mt-0.5 text-xs text-[#2D7A5F]">✓</span>
+              <p className="font-['DM_Sans'] text-xs leading-relaxed text-[#0D1833]">{s}</p>
             </div>
+          ))}
+          {dimension.gaps?.length ? (
+            <>
+              <p className="mt-3 font-['DM_Sans'] text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+                Key gaps
+              </p>
+              {dimension.gaps.map((g, i) => (
+                <div key={i} className="flex items-start gap-2">
+                  <span className="mt-0.5 text-xs text-primary">→</span>
+                  <p className="font-['DM_Sans'] text-xs leading-relaxed text-[#0D1833]">{g}</p>
+                </div>
+              ))}
+            </>
           ) : null}
         </div>
-      )}
-      {dimension.name === "Website Clarity" && !dimension.strengths?.length && sa && (
-        <div className="mt-4 rounded-xl border border-[#D4871A]/20 bg-[#FDF0CC] p-4">
-          <p className="mb-3 font-['DM_Sans'] text-[10px] font-medium uppercase tracking-widest text-[#BA7517]">
-            Brand story assessment
-          </p>
-
-          <div className="mb-3 flex items-center gap-2">
-            <span
-              className={`inline-flex rounded-full px-2.5 py-1 font-['DM_Sans'] text-xs font-medium ${
-                sa.founderStoryQuality === "compelling"
-                  ? "bg-[#2D7A5F] text-white"
-                  : sa.founderStoryQuality === "good"
-                    ? "bg-[#2D7A5F]/20 text-[#2D7A5F]"
-                    : sa.founderStoryQuality === "basic"
-                      ? "bg-[#BA7517]/20 text-[#BA7517]"
-                      : "bg-[#E24B4A]/20 text-[#E24B4A]"
-              }`}
-            >
-              {sa.founderStoryQuality === "compelling"
-                ? "✓ Compelling founder story"
-                : sa.founderStoryQuality === "good"
-                  ? "~ Good founder story"
-                  : sa.founderStoryQuality === "basic"
-                    ? "~ Basic story present"
-                    : "✗ No founder story found"}
-            </span>
-          </div>
-
-          {sa.missingElements?.length > 0 && (
-            <div>
-              <p className="mb-2 font-['DM_Sans'] text-[10px] font-medium uppercase tracking-widest text-[#BA7517]">
-                Missing story elements
-              </p>
-              <div className="flex flex-wrap gap-1.5">
-                {sa.missingElements.map((el) => (
-                  <span
-                    key={el}
-                    className="rounded-full border border-[#D4871A]/30 bg-white px-2.5 py-1 font-['DM_Sans'] text-[10px] text-[#0D1833]"
-                  >
-                    {el}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="mt-3 border-t border-[#D4871A]/20 pt-3">
-            <p className="font-['DM_Sans'] text-xs leading-relaxed text-[#0D1833]">
-              marktr&apos;s Story System can help you find and articulate the missing elements —
-              free in under 5 minutes.
-            </p>
-            <Link
-              to="/story"
-              className="mt-2 inline-flex font-['DM_Sans'] text-xs font-medium text-primary underline underline-offset-2"
-            >
-              Find your brand story →
-            </Link>
-          </div>
-        </div>
-      )}
+      ) : null}
+      {sa && <BrandStoryPanel sa={sa} />}
     </article>
   );
 }
@@ -485,15 +397,13 @@ export default function HealthCheckResults() {
         websiteUrl: state.websiteUrl,
         instagramHandle: state.instagramHandle,
         facebookUrl: state.facebookUrl,
-        linkedinUrl: state.linkedinUrl,
         email: state.email,
       },
       scores: {
         websiteClarity: scores.websiteClarity.score,
+        brandStory: scores.brandStory.score,
         contentConsistency: scores.contentConsistency.score,
-        audienceFit: scores.audienceFit.score,
-        engagementQuality: scores.engagementQuality.score,
-        channelCoverage: scores.channelCoverage.score,
+        socialPresence: scores.socialPresence.score,
         overall: scores.overall,
         lowestDimension: scores.lowestDimension,
         lowestScore: scores.lowestScore,
@@ -503,17 +413,13 @@ export default function HealthCheckResults() {
   }, [state, scores]);
 
   const domain = state.websiteUrl?.trim() ? extractDomain(state.websiteUrl.trim()) : null;
-  const socialScores = state.websiteScore?.socialScores;
-  const hasSocialData = Boolean(
-    socialScores?.instagramFound || socialScores?.facebookFound
-  );
+  const instagramFound = Boolean(state.websiteScore?.socialScores?.instagramFound);
 
   const scoreCards: { key: string; shortName: string; dimension: DimensionScore }[] = [
     { key: "website", shortName: "Website", dimension: scores.websiteClarity },
-    { key: "consistency", shortName: "Content", dimension: scores.contentConsistency },
-    { key: "audience", shortName: "Audience", dimension: scores.audienceFit },
-    { key: "engagement", shortName: "Engagement", dimension: scores.engagementQuality },
-    { key: "coverage", shortName: "Channels", dimension: scores.channelCoverage },
+    { key: "story", shortName: "Brand Story", dimension: scores.brandStory },
+    { key: "content", shortName: "Content", dimension: scores.contentConsistency },
+    { key: "social", shortName: "Social", dimension: scores.socialPresence },
   ];
 
   return (
@@ -556,7 +462,7 @@ export default function HealthCheckResults() {
               <ScoreCard
                 dimension={dimension}
                 dataSourceLabel={getDataSourceLabel(dimension.name, state, domain)}
-                hasSocialData={hasSocialData}
+                instagramFound={instagramFound}
               />
             </div>
           ))}

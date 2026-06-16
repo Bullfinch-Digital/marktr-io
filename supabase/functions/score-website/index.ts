@@ -145,7 +145,7 @@ async function fetchInstagramPublic(handle: string): Promise<InstagramFetchResul
   try {
     const res = await fetch(
       "https://api.apify.com/v2/acts/apify~instagram-profile-scraper/run-sync-get-dataset-items" +
-        `?token=${apiToken}&timeout=30&memory=256`,
+        `?token=${apiToken}&timeout=40&memory=256`,
       {
         method: "POST",
         headers: {
@@ -154,7 +154,7 @@ async function fetchInstagramPublic(handle: string): Promise<InstagramFetchResul
         body: JSON.stringify({
           usernames: [username],
         }),
-        signal: AbortSignal.timeout(35000),
+        signal: AbortSignal.timeout(45000),
       }
     );
 
@@ -723,27 +723,45 @@ Deno.serve(async (req) => {
     let facebookFetch: FacebookFetchResult = { signals: "", found: false };
 
     try {
-      const res = await fetch(websiteUrl, {
-        headers: { "User-Agent": "marktr-bot/1.0" },
-        signal: AbortSignal.timeout(8000),
-      });
-      const html = await res.text();
+      const emptyInstagram: InstagramFetchResult = {
+        signals: "",
+        found: false,
+        followers: "",
+        postCount: "",
+      };
 
-      const baseUrl = new URL(websiteUrl).origin;
-      let aboutHtml = "";
-      for (const path of ABOUT_PATHS) {
-        aboutHtml = await fetchPage(baseUrl, path);
-        if (aboutHtml) break;
-      }
+      const fetchHomepageSignals = async () => {
+        const res = await fetch(websiteUrl, {
+          headers: { "User-Agent": "marktr-bot/1.0" },
+          signal: AbortSignal.timeout(8000),
+        });
+        const html = await res.text();
+        return extractAllSignals(html, websiteUrl);
+      };
 
-      const homepageSignals = extractAllSignals(html, websiteUrl);
-      const storySignals = aboutHtml ? extractStorySignals(aboutHtml) : "";
+      const fetchStorySignals = async () => {
+        const baseUrl = new URL(websiteUrl).origin;
+        for (const path of ABOUT_PATHS) {
+          const aboutHtml = await fetchPage(baseUrl, path);
+          if (aboutHtml) return extractStorySignals(aboutHtml);
+        }
+        return "";
+      };
 
       if (body.instagramHandle) {
         const username = body.instagramHandle.replace("@", "").trim().toLowerCase();
         console.log("Calling Instagram API with username:", username);
-        instagramFetch = await fetchInstagramPublic(body.instagramHandle);
       }
+
+      const [homepageSignals, storySignals, instagramFetchResult] = await Promise.all([
+        fetchHomepageSignals(),
+        fetchStorySignals(),
+        body.instagramHandle
+          ? fetchInstagramPublic(body.instagramHandle)
+          : Promise.resolve(emptyInstagram),
+      ]);
+
+      instagramFetch = instagramFetchResult;
       console.log("Instagram signals:", instagramFetch.signals || "EMPTY");
       console.log("Instagram fetch result:", JSON.stringify(instagramFetch));
 

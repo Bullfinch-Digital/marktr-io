@@ -33,6 +33,8 @@ type InstagramFetchResult = {
   found: boolean;
   followers: string;
   postCount: string;
+  avgLikes?: number;
+  avgComments?: number;
 };
 
 type FacebookFetchResult = {
@@ -134,164 +136,108 @@ async function fetchInstagramPublic(handle: string): Promise<InstagramFetchResul
   const username = handle.replace("@", "").trim().toLowerCase();
   if (!username) return empty;
 
-  // METHOD 1 — Internal API
+  const apiToken = Deno.env.get("APIFY_API_TOKEN");
+  if (!apiToken) {
+    console.error("APIFY_API_TOKEN not set");
+    return empty;
+  }
+
   try {
     const res = await fetch(
-      "https://i.instagram.com/api/v1/users/web_profile_info/" +
-        `?username=${username}`,
+      "https://api.apify.com/v2/acts/apify~instagram-profile-scraper/run-sync-get-dataset-items" +
+        `?token=${apiToken}&timeout=30&memory=256`,
       {
+        method: "POST",
         headers: {
-          "User-Agent": "Instagram 219.0.0.12.117 Android",
-          Accept: "application/json",
-          "X-IG-App-ID": "936619743392459",
+          "Content-Type": "application/json",
         },
-        signal: AbortSignal.timeout(8000),
+        body: JSON.stringify({
+          usernames: [username],
+        }),
+        signal: AbortSignal.timeout(35000),
       }
     );
 
-    if (res.ok) {
-      const data = await res.json();
-      const user = data?.data?.user;
-      if (user) {
-        const followers = user.edge_followed_by?.count?.toString() ?? "";
-        const posts = user.edge_owner_to_timeline_media?.count?.toString() ?? "";
-        const bio = user.biography ?? "";
-        const fullName = user.full_name ?? "";
-        const isBusinessAccount = user.is_business_account ? "yes" : "";
-        const businessCategory = user.business_category_name ?? "";
-
-        const signals = [
-          `Instagram handle: @${username}`,
-          fullName && `Account name: ${fullName}`,
-          followers && `Followers: ${Number(followers).toLocaleString()}`,
-          posts && `Total posts: ${Number(posts).toLocaleString()}`,
-          bio && `Bio: ${bio}`,
-          isBusinessAccount && "Business account: yes",
-          businessCategory && `Category: ${businessCategory}`,
-        ]
-          .filter(Boolean)
-          .join("\n");
-
-        return {
-          signals,
-          found: true,
-          followers,
-          postCount: posts,
-        };
-      }
+    if (!res.ok) {
+      console.error("Apify API error:", res.status, await res.text());
+      return empty;
     }
-  } catch {
-    /* fall through */
-  }
 
-  // METHOD 2 — Public profile page HTML
-  try {
-    const res = await fetch(`https://www.instagram.com/${username}/`, {
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) " +
-          "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        Accept:
-          "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-        "Accept-Language": "en-GB,en;q=0.9",
-        "Accept-Encoding": "gzip, deflate, br",
-        "Cache-Control": "no-cache",
-        "Sec-Fetch-Dest": "document",
-        "Sec-Fetch-Mode": "navigate",
-        "Sec-Fetch-Site": "none",
-      },
-      signal: AbortSignal.timeout(10000),
-    });
+    const items = await res.json();
+    const profile = Array.isArray(items) ? items[0] : null;
 
-    if (res.ok) {
-      const html = await res.text();
+    if (!profile) return empty;
 
-      const getMeta = (prop: string) => {
-        const m =
-          html.match(
-            new RegExp(
-              `<meta[^>]*property=["']og:${prop}["'][^>]*content=["']([^"']+)["']`,
-              "i"
-            )
-          ) ||
-          html.match(
-            new RegExp(
-              `<meta[^>]*content=["']([^"']+)["'][^>]*property=["']og:${prop}["']`,
-              "i"
-            )
-          );
-        return m?.[1]?.trim() ?? "";
-      };
+    const followers = profile.followersCount?.toString() ?? "";
+    const following = profile.followingCount?.toString() ?? "";
+    const posts = profile.postsCount?.toString() ?? "";
+    const bio = profile.biography ?? "";
+    const fullName = profile.fullName ?? "";
+    const isVerified = profile.verified ?? false;
+    const businessCategory = profile.businessCategoryName ?? "";
+    const isBusinessAccount = profile.isBusinessAccount ?? false;
+    const website = profile.externalUrl ?? "";
 
-      const ogTitle = getMeta("title");
-      const ogDesc = getMeta("description");
-
-      const statsMatch = ogDesc.match(
-        /([\d,]+)\s*Followers?,\s*([\d,]+)\s*Following,\s*([\d,]+)\s*Posts?\s*[-–]\s*(.+)/i
+    const latestPosts = profile.latestPosts ?? [];
+    let avgLikes = 0;
+    let avgComments = 0;
+    if (latestPosts.length > 0) {
+      avgLikes = Math.round(
+        latestPosts.reduce(
+          (sum: number, p: { likesCount?: number }) => sum + (p.likesCount ?? 0),
+          0
+        ) / latestPosts.length
       );
-
-      if (statsMatch || ogTitle) {
-        const followers = statsMatch?.[1]?.replace(/,/g, "") ?? "";
-        const posts = statsMatch?.[3]?.replace(/,/g, "") ?? "";
-        const bio = statsMatch?.[4]?.trim() ?? "";
-
-        const signals = [
-          `Instagram handle: @${username}`,
-          ogTitle && `Account name: ${ogTitle}`,
-          followers && `Followers: ${Number(followers).toLocaleString()}`,
-          posts && `Total posts: ${Number(posts).toLocaleString()}`,
-          bio && `Bio: ${bio}`,
-        ]
-          .filter(Boolean)
-          .join("\n");
-
-        return {
-          signals: signals || `Instagram account found: @${username}`,
-          found: true,
-          followers,
-          postCount: posts,
-        };
-      }
-
-      if (ogTitle.toLowerCase().includes(username.toLowerCase())) {
-        return {
-          signals: `Instagram account found: @${username} (limited data)`,
-          found: true,
-          followers: "",
-          postCount: "",
-        };
-      }
+      avgComments = Math.round(
+        latestPosts.reduce(
+          (sum: number, p: { commentsCount?: number }) =>
+            sum + (p.commentsCount ?? 0),
+          0
+        ) / latestPosts.length
+      );
     }
-  } catch {
-    /* fall through */
-  }
 
-  // METHOD 3 — oEmbed last resort
-  try {
-    const res = await fetch(
-      "https://api.instagram.com/oembed/?url=" +
-        encodeURIComponent(`https://www.instagram.com/${username}/`),
-      {
-        headers: { "User-Agent": "marktr-bot/1.0" },
-        signal: AbortSignal.timeout(5000),
-      }
+    const signals = [
+      `Instagram handle: @${username}`,
+      fullName && `Account name: ${fullName}`,
+      followers && `Followers: ${Number(followers).toLocaleString()}`,
+      following && `Following: ${Number(following).toLocaleString()}`,
+      posts && `Total posts: ${Number(posts).toLocaleString()}`,
+      bio && `Bio: ${bio}`,
+      isVerified && "Verified account",
+      isBusinessAccount && "Business account: yes",
+      businessCategory && `Category: ${businessCategory}`,
+      website && `External website: ${website}`,
+      avgLikes > 0 && `Average likes per post: ${avgLikes}`,
+      avgComments > 0 && `Average comments per post: ${avgComments}`,
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    console.log(
+      "Apify Instagram result:",
+      JSON.stringify({
+        username,
+        found: true,
+        followers,
+        posts,
+        avgLikes,
+        avgComments,
+      })
     );
-    if (res.ok) {
-      const data = await res.json();
-      if (data?.author_name) {
-        return {
-          signals: `Instagram account found: ${data.author_name} (@${username})`,
-          found: true,
-          followers: "",
-          postCount: "",
-        };
-      }
-    }
-  } catch {
-    /* all methods failed */
-  }
 
-  return empty;
+    return {
+      signals,
+      found: true,
+      followers,
+      postCount: posts,
+      avgLikes: avgLikes > 0 ? avgLikes : undefined,
+      avgComments: avgComments > 0 ? avgComments : undefined,
+    };
+  } catch (err) {
+    console.error("Apify fetch error:", err);
+    return empty;
+  }
 }
 
 async function fetchFacebookPublic(facebookUrl: string): Promise<FacebookFetchResult> {
@@ -581,10 +527,24 @@ function normalizeSocialScores(
         )
       : 45;
 
-  const socialObservation =
+  let socialObservation =
     instagramFound || facebookFound
       ? String(raw?.socialObservation ?? "").trim().slice(0, 180)
       : "";
+
+  if (
+    instagramFound &&
+    (instagram.avgLikes ?? 0) > 0 &&
+    !socialObservation.toLowerCase().includes("like")
+  ) {
+    const engagementNote =
+      (instagram.avgComments ?? 0) > 0
+        ? `Recent posts average ${instagram.avgLikes} likes and ${instagram.avgComments} comments`
+        : `Recent posts average ${instagram.avgLikes} likes per post`;
+    socialObservation = socialObservation
+      ? `${socialObservation} — ${engagementNote}`.slice(0, 180)
+      : engagementNote.slice(0, 180);
+  }
 
   return {
     instagramFound,

@@ -4,6 +4,13 @@ type Input = {
   websiteUrl: string;
   instagramHandle?: string;
   facebookUrl?: string;
+  instagramData?: {
+    found: boolean;
+    followers: string;
+    postCount: string;
+    bio: string;
+    accountName: string;
+  };
 };
 
 type StoryAssessment = {
@@ -782,11 +789,32 @@ Deno.serve(async (req) => {
       if (body.instagramHandle) {
         const username = body.instagramHandle.replace("@", "").trim().toLowerCase();
         console.log("Calling Instagram API with username:", username);
+
+        const preFetchedIG = body.instagramData;
+        if (preFetchedIG) {
+          console.log("Using client-pre-fetched Instagram data:", JSON.stringify(preFetchedIG));
+          instagramFetch = {
+            found: preFetchedIG.found,
+            followers: preFetchedIG.followers,
+            postCount: preFetchedIG.postCount,
+            signals: preFetchedIG.found
+              ? [
+                  `Instagram handle: @${username}`,
+                  preFetchedIG.accountName && `Account name: ${preFetchedIG.accountName}`,
+                  preFetchedIG.followers &&
+                    `Followers: ${Number(preFetchedIG.followers).toLocaleString()}`,
+                  preFetchedIG.postCount &&
+                    `Total posts: ${Number(preFetchedIG.postCount).toLocaleString()}`,
+                  preFetchedIG.bio && `Bio: ${preFetchedIG.bio}`,
+                ]
+                  .filter(Boolean)
+                  .join("\n")
+              : "",
+          };
+        } else {
+          instagramFetch = await fetchInstagramPublic(body.instagramHandle);
+        }
       }
-      const instagramSignals = body.instagramHandle
-        ? await fetchInstagramPublic(body.instagramHandle)
-        : instagramFetch;
-      instagramFetch = instagramSignals;
       console.log("Instagram signals:", instagramFetch.signals || "EMPTY");
       console.log("Instagram fetch result:", JSON.stringify(instagramFetch));
 

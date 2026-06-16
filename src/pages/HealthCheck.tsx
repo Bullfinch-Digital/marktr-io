@@ -10,6 +10,93 @@ import type { SocialScores, StoryAssessment } from "../lib/healthCheckScoring";
 
 type Step = "welcome" | "inputs" | "loading";
 
+type InstagramClientData = {
+  found: boolean;
+  followers: string;
+  postCount: string;
+  bio: string;
+  accountName: string;
+};
+
+async function fetchInstagramClient(handle: string): Promise<InstagramClientData> {
+  const username = handle.replace("@", "").trim().toLowerCase();
+
+  const empty: InstagramClientData = {
+    found: false,
+    followers: "",
+    postCount: "",
+    bio: "",
+    accountName: "",
+  };
+
+  if (!username) return empty;
+
+  try {
+    const proxyUrl =
+      "https://api.allorigins.win/get?url=" +
+      encodeURIComponent(`https://www.instagram.com/${username}/`);
+
+    const res = await fetch(proxyUrl, {
+      signal: AbortSignal.timeout(8000),
+    });
+
+    if (!res.ok) return empty;
+
+    const json = (await res.json()) as { contents?: string };
+    const html = json?.contents ?? "";
+
+    if (!html) return empty;
+
+    const getMeta = (prop: string) => {
+      const m =
+        html.match(
+          new RegExp(
+            `<meta[^>]*property=["']og:${prop}["'][^>]*content=["']([^"']+)["']`,
+            "i"
+          )
+        ) ||
+        html.match(
+          new RegExp(
+            `<meta[^>]*content=["']([^"']+)["'][^>]*property=["']og:${prop}["']`,
+            "i"
+          )
+        );
+      return m?.[1]?.trim() ?? "";
+    };
+
+    const ogTitle = getMeta("title");
+    const ogDesc = getMeta("description");
+
+    const statsMatch = ogDesc.match(
+      /([\d,]+)\s*Followers?,\s*[\d,]+\s*Following,\s*([\d,]+)\s*Posts?\s*[-–]\s*(.+)/i
+    );
+
+    if (statsMatch) {
+      return {
+        found: true,
+        followers: statsMatch[1].replace(/,/g, ""),
+        postCount: statsMatch[2].replace(/,/g, ""),
+        bio: statsMatch[3].trim(),
+        accountName: ogTitle || username,
+      };
+    }
+
+    if (ogTitle && ogTitle.toLowerCase().includes(username.toLowerCase())) {
+      return {
+        found: true,
+        followers: "",
+        postCount: "",
+        bio: "",
+        accountName: ogTitle,
+      };
+    }
+
+    return empty;
+  } catch {
+    return empty;
+  }
+}
+
 export interface HealthCheckFormData {
   websiteUrl: string;
   instagramHandle: string;
@@ -108,11 +195,17 @@ export default function HealthCheck() {
         if (!formData.websiteUrl?.trim()) return;
 
         try {
+          let instagramData: InstagramClientData | null = null;
+          if (formData.instagramHandle?.trim()) {
+            instagramData = await fetchInstagramClient(formData.instagramHandle);
+          }
+
           const { data } = await supabase.functions.invoke("score-website", {
             body: {
               websiteUrl: formData.websiteUrl.trim(),
               instagramHandle: formData.instagramHandle?.trim() || undefined,
               facebookUrl: formData.facebookUrl?.trim() || undefined,
+              instagramData: instagramData || undefined,
             },
           });
           if (data?.score !== undefined) {

@@ -104,21 +104,23 @@ export function calculateScores(input: HealthCheckInput): HealthCheckScores {
         "Some gaps in your content schedule",
         "Irregular posting is limiting your reach"
       );
-  const audienceScore =
-    input.websiteScore?.socialScores?.instagramBioScore ??
-    25 + Math.floor(Math.random() * 40);
+  const audienceScore = instagramNotFound
+    ? 0
+    : input.websiteScore?.socialScores?.instagramBioScore ??
+      25 + Math.floor(Math.random() * 40);
 
   const audienceObservation = instagramNotFound
-    ? "Connect your Instagram to assess audience targeting"
+    ? "Instagram handle not found — check the handle and rerun"
     : input.websiteScore?.socialScores?.audienceObservation ??
       "Full analysis unlocked in your dashboard";
 
-  const engagementScore =
-    input.websiteScore?.socialScores?.engagementProxyScore ??
-    30 + Math.floor(Math.random() * 40);
+  const engagementScore = instagramNotFound
+    ? 0
+    : input.websiteScore?.socialScores?.engagementProxyScore ??
+      30 + Math.floor(Math.random() * 40);
 
   const engagementObservation = instagramNotFound
-    ? "Connect platforms to see real engagement data"
+    ? "Instagram handle not found — check the handle and rerun"
     : input.websiteScore?.socialScores?.engagementObservation ??
       "Connect platforms to see real engagement data";
   const coverageScore = Math.min(80, platforms * 20);

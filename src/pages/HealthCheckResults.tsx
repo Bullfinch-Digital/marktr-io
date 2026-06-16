@@ -178,7 +178,13 @@ function getDataSourceLabel(
       }
       return "Connect platforms to unlock";
     case "Engagement Quality":
-      return state.instagramHandle?.trim() || "Connect platforms to unlock";
+      if (
+        state.websiteScore?.socialScores?.engagementProxyScore != null &&
+        state.instagramHandle?.trim()
+      ) {
+        return state.instagramHandle.trim();
+      }
+      return "Connect platforms to unlock";
     case "Channel Coverage":
       return channelsSummary || "platforms provided";
     default:

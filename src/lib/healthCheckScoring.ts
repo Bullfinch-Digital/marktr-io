@@ -92,12 +92,12 @@ export function calculateScores(input: HealthCheckInput): HealthCheckScores {
   const platformCount = countPlatforms(input);
 
   const consistencyScore = instagramNotFound
-    ? 0
+    ? 35
     : (input.websiteScore?.socialScores?.contentConsistencyScore ??
       Math.min(80, platformCount * 20));
 
   const consistencyObservation = instagramNotFound
-    ? "Instagram handle not found — check the handle and rerun"
+    ? "Connect your Instagram account to see your content activity score"
     : obs(
         consistencyScore,
         "You're maintaining a consistent presence",
@@ -129,7 +129,7 @@ export function calculateScores(input: HealthCheckInput): HealthCheckScores {
         : "Brand story needs significant development";
 
   const socialPresenceScore = (() => {
-    if (instagramNotFound) return 0;
+    if (instagramNotFound) return 30;
 
     const social = input.websiteScore?.socialScores;
 
@@ -145,7 +145,7 @@ export function calculateScores(input: HealthCheckInput): HealthCheckScores {
 
   const socialObservation =
     instagramNotFound && input.instagramHandle?.trim()
-      ? "Instagram handle not found — check the handle and rerun"
+      ? "Connect your Instagram to get your full social presence score"
       : input.websiteScore?.socialScores?.socialObservation ||
         obs(
           socialPresenceScore,

@@ -140,15 +140,13 @@ function getDataSourceLabel(
       if (state.facebookUrl?.trim()) return "Facebook page";
       return "platforms provided";
     case "Social Presence": {
-      if (social?.instagramFound) {
-        const parts: string[] = [];
-        if (state.instagramHandle?.trim()) parts.push(state.instagramHandle.trim());
-        if (state.facebookUrl?.trim()) parts.push("Facebook");
-        if (state.websiteUrl?.trim() || domain) parts.push("website");
-        return parts.length ? parts.join(", ") : "platforms provided";
-      }
-      if (state.instagramHandle?.trim() && social?.instagramFound === false) {
-        return state.instagramHandle.trim();
+      if (state.instagramHandle?.trim()) {
+        const parts: string[] = [state.instagramHandle.trim()];
+        if (social?.instagramFound) {
+          if (state.facebookUrl?.trim()) parts.push("Facebook");
+          if (state.websiteUrl?.trim() || domain) parts.push("website");
+        }
+        return parts.join(", ");
       }
       return "Based on platforms provided";
     }
@@ -258,13 +256,6 @@ function ScoreCard({
       >
         {dimension.score}
       </p>
-      {dimension.score === 0 &&
-        (dimension.observation.toLowerCase().includes("not found") ||
-          dimension.observation.toLowerCase().includes("check the handle")) && (
-          <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 font-['DM_Sans'] text-xs text-amber-600">
-            ⚠ We couldn&apos;t find this account. Check the handle is correct and try again.
-          </p>
-        )}
       <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-muted">
         <div
           className={`h-full rounded-full ${getBarColor(dimension.score)}`}

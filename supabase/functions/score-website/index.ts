@@ -131,78 +131,167 @@ async function fetchInstagramPublic(handle: string): Promise<InstagramFetchResul
     postCount: "",
   };
 
+  const username = handle.replace("@", "").trim().toLowerCase();
+  if (!username) return empty;
+
+  // METHOD 1 — Internal API
   try {
-    const username = handle.replace("@", "").trim().toLowerCase();
-    if (!username) return empty;
-
-    const apiUrl =
+    const res = await fetch(
       "https://i.instagram.com/api/v1/users/web_profile_info/" +
-      `?username=${username}`;
+        `?username=${username}`,
+      {
+        headers: {
+          "User-Agent": "Instagram 219.0.0.12.117 Android",
+          Accept: "application/json",
+          "X-IG-App-ID": "936619743392459",
+        },
+        signal: AbortSignal.timeout(8000),
+      }
+    );
 
-    const res = await fetch(apiUrl, {
+    if (res.ok) {
+      const data = await res.json();
+      const user = data?.data?.user;
+      if (user) {
+        const followers = user.edge_followed_by?.count?.toString() ?? "";
+        const posts = user.edge_owner_to_timeline_media?.count?.toString() ?? "";
+        const bio = user.biography ?? "";
+        const fullName = user.full_name ?? "";
+        const isBusinessAccount = user.is_business_account ? "yes" : "";
+        const businessCategory = user.business_category_name ?? "";
+
+        const signals = [
+          `Instagram handle: @${username}`,
+          fullName && `Account name: ${fullName}`,
+          followers && `Followers: ${Number(followers).toLocaleString()}`,
+          posts && `Total posts: ${Number(posts).toLocaleString()}`,
+          bio && `Bio: ${bio}`,
+          isBusinessAccount && "Business account: yes",
+          businessCategory && `Category: ${businessCategory}`,
+        ]
+          .filter(Boolean)
+          .join("\n");
+
+        return {
+          signals,
+          found: true,
+          followers,
+          postCount: posts,
+        };
+      }
+    }
+  } catch {
+    /* fall through */
+  }
+
+  // METHOD 2 — Public profile page HTML
+  try {
+    const res = await fetch(`https://www.instagram.com/${username}/`, {
       headers: {
-        "User-Agent": "Instagram 219.0.0.12.117 Android",
-        Accept: "application/json",
-        "X-IG-App-ID": "936619743392459",
+        "User-Agent":
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) " +
+          "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        Accept:
+          "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+        "Accept-Language": "en-GB,en;q=0.9",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Cache-Control": "no-cache",
+        "Sec-Fetch-Dest": "document",
+        "Sec-Fetch-Mode": "navigate",
+        "Sec-Fetch-Site": "none",
       },
-      signal: AbortSignal.timeout(8000),
+      signal: AbortSignal.timeout(10000),
     });
 
-    if (!res.ok) {
-      const oembedUrl =
-        "https://api.instagram.com/oembed/?url=" +
-        encodeURIComponent(`https://www.instagram.com/${username}/`);
-      const oRes = await fetch(oembedUrl, {
+    if (res.ok) {
+      const html = await res.text();
+
+      const getMeta = (prop: string) => {
+        const m =
+          html.match(
+            new RegExp(
+              `<meta[^>]*property=["']og:${prop}["'][^>]*content=["']([^"']+)["']`,
+              "i"
+            )
+          ) ||
+          html.match(
+            new RegExp(
+              `<meta[^>]*content=["']([^"']+)["'][^>]*property=["']og:${prop}["']`,
+              "i"
+            )
+          );
+        return m?.[1]?.trim() ?? "";
+      };
+
+      const ogTitle = getMeta("title");
+      const ogDesc = getMeta("description");
+
+      const statsMatch = ogDesc.match(
+        /([\d,]+)\s*Followers?,\s*([\d,]+)\s*Following,\s*([\d,]+)\s*Posts?\s*[-–]\s*(.+)/i
+      );
+
+      if (statsMatch || ogTitle) {
+        const followers = statsMatch?.[1]?.replace(/,/g, "") ?? "";
+        const posts = statsMatch?.[3]?.replace(/,/g, "") ?? "";
+        const bio = statsMatch?.[4]?.trim() ?? "";
+
+        const signals = [
+          `Instagram handle: @${username}`,
+          ogTitle && `Account name: ${ogTitle}`,
+          followers && `Followers: ${Number(followers).toLocaleString()}`,
+          posts && `Total posts: ${Number(posts).toLocaleString()}`,
+          bio && `Bio: ${bio}`,
+        ]
+          .filter(Boolean)
+          .join("\n");
+
+        return {
+          signals: signals || `Instagram account found: @${username}`,
+          found: true,
+          followers,
+          postCount: posts,
+        };
+      }
+
+      if (ogTitle.toLowerCase().includes(username.toLowerCase())) {
+        return {
+          signals: `Instagram account found: @${username} (limited data)`,
+          found: true,
+          followers: "",
+          postCount: "",
+        };
+      }
+    }
+  } catch {
+    /* fall through */
+  }
+
+  // METHOD 3 — oEmbed last resort
+  try {
+    const res = await fetch(
+      "https://api.instagram.com/oembed/?url=" +
+        encodeURIComponent(`https://www.instagram.com/${username}/`),
+      {
         headers: { "User-Agent": "marktr-bot/1.0" },
         signal: AbortSignal.timeout(5000),
-      });
-      if (oRes.ok) {
-        const od = await oRes.json();
-        if (od?.author_name) {
-          return {
-            signals:
-              `Instagram account found: ${od.author_name} (@${username})`,
-            found: true,
-            followers: "",
-            postCount: "",
-          };
-        }
       }
-      return empty;
+    );
+    if (res.ok) {
+      const data = await res.json();
+      if (data?.author_name) {
+        return {
+          signals: `Instagram account found: ${data.author_name} (@${username})`,
+          found: true,
+          followers: "",
+          postCount: "",
+        };
+      }
     }
-
-    const data = await res.json();
-    const user = data?.data?.user;
-    if (!user) return empty;
-
-    const followers = user.edge_followed_by?.count?.toString() ?? "";
-    const posts = user.edge_owner_to_timeline_media?.count?.toString() ?? "";
-    const bio = user.biography ?? "";
-    const fullName = user.full_name ?? "";
-    const isBusinessAccount = user.is_business_account ? "yes" : "";
-    const businessCategory = user.business_category_name ?? "";
-
-    const signals = [
-      `Instagram handle: @${username}`,
-      fullName && `Account name: ${fullName}`,
-      followers && `Followers: ${Number(followers).toLocaleString()}`,
-      posts && `Total posts: ${Number(posts).toLocaleString()}`,
-      bio && `Bio: ${bio}`,
-      isBusinessAccount && "Business account: yes",
-      businessCategory && `Category: ${businessCategory}`,
-    ]
-      .filter(Boolean)
-      .join("\n");
-
-    return {
-      signals,
-      found: true,
-      followers,
-      postCount: posts,
-    };
   } catch {
-    return empty;
+    /* all methods failed */
   }
+
+  return empty;
 }
 
 async function fetchFacebookPublic(facebookUrl: string): Promise<FacebookFetchResult> {

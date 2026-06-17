@@ -86,7 +86,6 @@ Deno.serve(async (req) => {
     if (!body?.priceId) missingFields.push("priceId");
     if (!body?.successUrl) missingFields.push("successUrl");
     if (!body?.cancelUrl) missingFields.push("cancelUrl");
-    if (!customerEmail) missingFields.push("customerEmail");
     if (missingFields.length) {
       return errorJson(
         { error: "Missing required fields", fields: missingFields },

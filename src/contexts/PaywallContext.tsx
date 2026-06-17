@@ -19,7 +19,7 @@ type Plan = "monthly" | "annual";
 
 type PaywallContextValue = {
   openPaywall: (plan?: Plan) => void;
-  startCheckout: (plan?: Plan, email?: string, force?: boolean) => Promise<void>;
+  startCheckout: (plan?: Plan, force?: boolean) => Promise<void>;
   closePaywall: () => void;
   isStartingCheckout: boolean;
 };
@@ -62,15 +62,10 @@ export function PaywallProvider({ children }: { children: React.ReactNode }) {
   const normalisePlan = (p: any): Plan => (p === "yearly" ? "annual" : p);
 
   const startCheckout = useCallback(
-    async (plan?: Plan, email?: string, force?: boolean) => {
+    async (plan?: Plan, force?: boolean) => {
       const nextPlan = normalisePlan(plan ?? selectedPlan);
-      const trimmedEmail = (email ?? "").trim();
 
       try {
-        if (!trimmedEmail) {
-          console.warn("[paywall] Email required before checkout.");
-          throw new Error("Email is required to start checkout.");
-        }
         setIsStartingCheckout(true);
 
         // Prefer a real session access_token for Authorization. The Edge Function then uses the
@@ -133,7 +128,6 @@ export function PaywallProvider({ children }: { children: React.ReactNode }) {
           priceId,
           successUrl: `${origin}${redirectBasePath}?checkout=success`,
           cancelUrl: `${origin}${redirectBasePath}?checkout=cancel`,
-          customerEmail: trimmedEmail,
           force: Boolean(force),
         };
 
@@ -264,8 +258,8 @@ export function PaywallProvider({ children }: { children: React.ReactNode }) {
         isOpen={showPaywall}
         onClose={closePaywall}
         // Normalise in case PaywallModal passes "yearly"
-        onUpgrade={(plan, email, force) =>
-          startCheckout(normalisePlan(plan) as Plan, email, force)
+        onUpgrade={(plan, force) =>
+          startCheckout(normalisePlan(plan) as Plan, force)
         }
         onContinueFree={closePaywall}
         selectedPlan={selectedPlan}
@@ -426,14 +420,13 @@ export function PaywallProvider({ children }: { children: React.ReactNode }) {
                 className="border-black rounded-design"
                 onClick={async () => {
                   const plan = emailAlreadySubscribed.plan ?? "annual";
-                  const email = emailAlreadySubscribed.email ?? "";
                   setEmailAlreadySubscribed({
                     open: false,
                     email: null,
                     portalUrl: null,
                     plan: null,
                   });
-                  await startCheckout(plan, email, true);
+                  await startCheckout(plan, true);
                 }}
               >
                 Continue anyway

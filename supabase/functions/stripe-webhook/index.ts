@@ -9,6 +9,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 // Ensure supabase-js is also Deno-targeted, otherwise esm.sh may emit std/node shims
 // that crash in the Supabase Edge runtime (e.g. Deno.core.runMicrotasks).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2?target=deno";
+import Stripe from "https://esm.sh/stripe@12.18.0?target=deno";
 
 function json(resBody: unknown, status = 200) {
   return new Response(JSON.stringify(resBody), {
@@ -229,6 +230,25 @@ async function resolveUserIdFromCustomer(
   if (existing?.user_id) return existing.user_id;
 
   return null;
+}
+
+async function fetchStripeSubscription(
+  stripeSubscriptionId: string,
+  stripeSecretKey: string
+) {
+  try {
+    const stripe = new Stripe(stripeSecretKey, {
+      apiVersion: "2023-10-16",
+      httpClient: Stripe.createFetchHttpClient(),
+    });
+    return await stripe.subscriptions.retrieve(stripeSubscriptionId);
+  } catch (err) {
+    console.error("[stripe-webhook] Failed to retrieve subscription", {
+      stripeSubscriptionId,
+      error: (err as any)?.message ?? String(err),
+    });
+    return null;
+  }
 }
 
 Deno.serve(async (req) => {
@@ -487,32 +507,33 @@ Deno.serve(async (req) => {
             );
           }
 
-          const subscriptionLike = {
-            id: stripeSubscriptionId,
-            customer: stripeCustomerId,
-            items: priceId
-              ? {
-                  data: [
-                    {
-                      price: { id: priceId },
-                      plan: { id: priceId },
-                    },
-                  ],
-                }
-              : { data: [] },
-            status: session?.status ?? null,
-            trial_start: session?.subscription_data?.trial_start ?? null,
-            trial_end: session?.subscription_data?.trial_end ?? null,
-            billing_cycle_anchor:
-              session?.subscription_data?.billing_cycle_anchor ?? null,
-          };
+          const stripeSecretKey = (Deno.env.get("STRIPE_SECRET_KEY") ?? "").trim();
+          let subscription = stripeSecretKey
+            ? await fetchStripeSubscription(stripeSubscriptionId, stripeSecretKey)
+            : null;
 
-          await upsertStripeSubscriptionRow(supabaseAdmin, {
-            userId,
-            stripeCustomerId,
-            stripeSubscriptionId,
-            subscription: subscriptionLike,
-          });
+          if (!subscription) {
+            // Session status is "complete" — never use it as subscription status.
+            subscription = {
+              id: stripeSubscriptionId,
+              customer: stripeCustomerId,
+              items: priceId
+                ? {
+                    data: [
+                      {
+                        price: { id: priceId },
+                        plan: { id: priceId },
+                      },
+                    ],
+                  }
+                : { data: [] },
+              status: "trialing",
+              trial_start: null,
+              trial_end: null,
+            };
+          }
+
+          await handleSubscription(subscription, userId);
         }
         break;
       }

@@ -411,8 +411,8 @@ export default function HealthCheckResults() {
   const scoreCards: { key: string; shortName: string; dimension: DimensionScore }[] = [
     { key: "website", shortName: "Website", dimension: scores.websiteClarity },
     { key: "story", shortName: "Brand Story", dimension: scores.brandStory },
-    { key: "content", shortName: "Content", dimension: scores.contentConsistency },
     { key: "social", shortName: "Social", dimension: scores.socialPresence },
+    { key: "content", shortName: "Content", dimension: scores.contentConsistency },
   ];
 
   const paywallDimension = (() => {

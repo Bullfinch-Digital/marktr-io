@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { Button } from "../components/ui/button";
 import { ICPPreviewCard } from "../components/cards/ICPPreviewCard";
 import { CollectionCard as DashboardCollectionCard } from "../components/cards/DashboardCollectionCard";
@@ -24,6 +24,31 @@ import { canCreateICP, canCreateCollection, canViewICP, canCreateBrand, canExpor
 import { supabase } from "../config/supabase";
 import DashboardShell from "../layouts/DashboardShell";
 
+type HealthCheckRow = {
+  id: string;
+  overall_score: number | null;
+  scores: Record<string, unknown> | null;
+};
+
+type BrandStoryRow = {
+  id: string;
+  story_data: unknown;
+};
+
+function readDimensionScore(
+  scores: Record<string, unknown> | null | undefined,
+  key: string
+): number | "—" {
+  if (!scores) return "—";
+  const entry = scores[key];
+  if (typeof entry === "number") return entry;
+  if (entry && typeof entry === "object" && "score" in entry) {
+    const score = (entry as { score?: unknown }).score;
+    if (typeof score === "number") return score;
+  }
+  return "—";
+}
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -34,6 +59,8 @@ export default function Dashboard() {
   // Fetch data from Supabase
   const { user, loading: authLoading } = useAuth();
   const { profile } = useProfile(user?.id ?? null);
+  const [healthCheck, setHealthCheck] = useState<HealthCheckRow | null>(null);
+  const [brandStory, setBrandStory] = useState<BrandStoryRow | null>(null);
   const {
     icps: rawICPs,
     isLoading: icpsLoading,
@@ -253,6 +280,45 @@ export default function Dashboard() {
     };
   }, [fetchICPs, refetchBrands]);
 
+  useEffect(() => {
+    if (!user?.id) {
+      setHealthCheck(null);
+      setBrandStory(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadMarktrResults = async () => {
+      const [{ data: healthData }, { data: storyData }] = await Promise.all([
+        supabase
+          .from("health_check_results")
+          .select("id, overall_score, scores")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        supabase
+          .from("brand_story_results")
+          .select("id, story_data")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+      ]);
+
+      if (cancelled) return;
+      setHealthCheck((healthData as HealthCheckRow | null) ?? null);
+      setBrandStory((storyData as BrandStoryRow | null) ?? null);
+    };
+
+    void loadMarktrResults();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
+
   const isLoading = authLoading || icpsLoading || collectionsLoading;
   const showEmptyIcps = hasLoadedOnce && !icpsLoading && rawICPs.length === 0;
   const showIcpPlaceholder = !hasLoadedOnce || icpsLoading;
@@ -270,6 +336,31 @@ export default function Dashboard() {
     "";
 
   const greetingName = firstName ? `, ${firstName}` : "";
+
+  const healthScores = healthCheck?.scores as Record<string, unknown> | null | undefined;
+
+  const metricCards = [
+    {
+      label: "Website",
+      value: readDimensionScore(healthScores, "websiteClarity"),
+      href: "/health-check",
+    },
+    {
+      label: "Brand Story",
+      value: readDimensionScore(healthScores, "brandStory"),
+      href: "/story",
+    },
+    {
+      label: "Content",
+      value: readDimensionScore(healthScores, "contentConsistency"),
+      href: "/health-check",
+    },
+    {
+      label: "Social",
+      value: readDimensionScore(healthScores, "socialPresence"),
+      href: "/scheduling",
+    },
+  ];
 
   const setupProgress = useMemo(() => {
     let score = 0;
@@ -292,46 +383,43 @@ export default function Dashboard() {
       desc: string;
       href: string;
     }[] = [];
-    const brand = brands?.[0];
-    if (!brand) {
+
+    if (!healthCheck) {
       actions.push({
-        label: "Set up your brand",
-        tag: "BRAND",
-        desc: "Add your business details so marktr knows who you are and what you do.",
-        href: "/my-brands",
-      });
-    } else if (!brand.founding_story?.trim()) {
-      actions.push({
-        label: "Complete your brand story",
-        tag: "BRAND",
-        desc: "Your founding story and brand voice aren't set yet — these shape everything marktr creates for you.",
-        href: "/my-brands/" + brand.id,
+        label: "Check your digital health",
+        tag: "HEALTH",
+        desc: "See how your website and social presence scores today.",
+        href: "/health-check",
       });
     }
+
+    if (healthCheck && !brandStory) {
+      actions.push({
+        label: "Build your brand story",
+        tag: "STORY",
+        desc: "Turn your health check findings into a clear brand narrative.",
+        href: "/story",
+      });
+    }
+
     if (!icps || icps.length === 0) {
       actions.push({
-        label: "Generate your first ICP",
+        label: "Define your ideal customer",
         tag: "ICP",
-        desc: "Define who your ideal customer is. Every strategy and content piece will be built for them.",
+        desc: "Every strategy starts with knowing exactly who you serve.",
         href: "/onboarding-build",
       });
     }
-    if (icps && icps.length > 0 && brands && brands.length > 0) {
-      actions.push({
-        label: "Generate your first content strategy",
-        tag: "STRATEGY",
-        desc: "You have ICPs set up — now create a tailored strategy for each platform they use.",
-        href: "/strategy",
-      });
-    }
+
     actions.push({
       label: "Connect Instagram",
       tag: "CONNECT",
-      desc: "Link your account to enable one-click publishing and pull in real engagement data.",
+      desc: "Link your account to enable real engagement data.",
       href: "/scheduling",
     });
+
     return actions.slice(0, 3);
-  }, [brands, icps]);
+  }, [healthCheck, brandStory, icps]);
 
   void [
     Button,
@@ -432,37 +520,55 @@ export default function Dashboard() {
 
           {/* METRIC CARDS */}
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-            {[
-              {
-                label: "ICP PROFILES",
-                value: icps?.length ?? 0,
-                sub: `${icps?.filter((i: any) => i?.status === "active").length ?? 0} active`,
-              },
-              {
-                label: "CONTENT PIECES",
-                value: 0,
-                sub: "this month",
-              },
-              {
-                label: "POSTS SCHEDULED",
-                value: 0,
-                sub: "next 14 days",
-              },
-              {
-                label: "ENGAGEMENT RATE",
-                value: "—",
-                sub: "connect platforms to track",
-              },
-            ].map((card) => (
-              <div key={card.label} className="rounded-xl border border-border bg-white p-5">
+            {metricCards.map((card) => (
+              <button
+                key={card.label}
+                type="button"
+                onClick={() => navigate(card.href)}
+                className="rounded-xl border border-border bg-white p-5 text-left transition-colors hover:border-primary/40"
+              >
                 <p className="mb-2 font-['DM_Sans'] text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
                   {card.label}
                 </p>
                 <p className="font-['Fraunces'] text-4xl font-bold leading-none text-primary">{card.value}</p>
-                <p className="mt-1.5 font-['DM_Sans'] text-xs text-muted-foreground">{card.sub}</p>
-              </div>
+                <p className="mt-1.5 font-['DM_Sans'] text-xs text-muted-foreground">score / 100</p>
+              </button>
             ))}
           </div>
+
+          {healthCheck && (
+            <div className="rounded-xl border border-border bg-white p-6">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <p className="font-['DM_Sans'] text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                    Your Digital Health Score
+                  </p>
+                  <p className="mt-2 font-['Fraunces'] text-4xl font-bold text-primary">
+                    {healthCheck.overall_score ?? "—"}
+                    <span className="text-xl font-medium text-muted-foreground">/100</span>
+                  </p>
+                </div>
+                <Link
+                  to="/health-check"
+                  className="font-['DM_Sans'] text-sm text-primary hover:underline"
+                >
+                  View full report →
+                </Link>
+              </div>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {metricCards.map((chip) => (
+                  <button
+                    key={chip.label}
+                    type="button"
+                    onClick={() => navigate(chip.href)}
+                    className="rounded-full border border-primary/20 bg-primary/5 px-3 py-1.5 font-['DM_Sans'] text-xs text-primary transition-colors hover:border-primary/40"
+                  >
+                    {chip.label}: {chip.value}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* WHAT TO DO NEXT */}
           <div>

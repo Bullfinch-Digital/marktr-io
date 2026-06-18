@@ -38,8 +38,11 @@ async function ensureProfileInsertOnly(user: User) {
   const email = isAnonymous ? "" : user.email ?? "";
   const name = (user.user_metadata as any)?.name ?? null;
 
+  console.log("AuthContext: profile ensure start", { uid, email, name, isAnonymous, metadata: user.user_metadata });
+
   try {
     // 1) Check if a profile already exists for this user
+    console.log("AuthContext: profile ensure step 1 — fetching profile");
     const { data, error } = await supabase
       .from("profiles")
       .select("id")
@@ -51,12 +54,15 @@ async function ensureProfileInsertOnly(user: User) {
       return; // soft-fail, do not block auth
     }
 
+    console.log("AuthContext: profile ensure step 1 — profile fetched", data);
+
     if (data) {
       console.log("AuthContext: profile already exists, skipping insert for", uid);
       return;
     }
 
     // 2) Insert a fresh profile row with default free tier
+    console.log("AuthContext: profile ensure step 2 — inserting profile");
     const { error: insertErr } = await supabase.from("profiles").upsert(
       {
         id: uid,
@@ -203,8 +209,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Fire-and-forget with its own internal guard + timeouts.
     // --------------------------------------------------------------
     const runPostAuthPipeline = async (userId: string, email?: string | null) => {
+      console.log("AuthContext: post-auth step 0 — pipeline start", { userId, email });
       // Guard: run once per user id
       if (postAuthRanRef.current === userId) {
+        console.log("AuthContext: post-auth step 0 — skipped (already ran for user)", userId);
         // Still nudge UI refresh in case listeners attached late
         try {
           window.dispatchEvent(new Event("brands:changed"));
@@ -216,23 +224,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Mark onboarding lead as converted (best-effort)
       if (email) {
+        console.log("AuthContext: post-auth step 1 — markLeadConverted", email);
         try {
           await markLeadConverted(email, userId);
+          console.log("AuthContext: post-auth step 1 — markLeadConverted done");
         } catch (err) {
-          if (import.meta.env.DEV) console.warn("AuthContext: markLeadConverted error", err);
+          console.warn("AuthContext: markLeadConverted error", err);
         }
+      } else {
+        console.log("AuthContext: post-auth step 1 — markLeadConverted skipped (no email)");
       }
 
       let brandId: string | null = null;
 
       // Time-box brand creation so it can’t deadlock the UI on refresh.
+      console.log("AuthContext: post-auth step 2 — brand seed start");
       try {
         brandId = await Promise.race([
           ensureFirstBrandFromGuestSeed(userId),
           new Promise<string | null>((resolve) => setTimeout(() => resolve(null), 2000)),
         ]);
+        console.log("AuthContext: post-auth step 2 — brand seed done", { brandId });
       } catch (err) {
-        if (import.meta.env.DEV) console.warn("AuthContext: ensureFirstBrandFromGuestSeed error", err);
+        console.warn("AuthContext: ensureFirstBrandFromGuestSeed error", err);
       }
 
       try {
@@ -240,38 +254,63 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch {}
 
       // Time-box ICP flush too (already was, but keep it here in the pipeline)
+      console.log("AuthContext: post-auth step 3 — ICP flush start");
       try {
         await Promise.race([
           flushGuestICPsToSupabase(userId, { brandId }),
           new Promise((resolve) => setTimeout(resolve, 2000)),
         ]);
+        console.log("AuthContext: post-auth step 3 — ICP flush done");
       } catch (err) {
-        if (import.meta.env.DEV) console.warn("AuthContext: flushGuestICPsToSupabase error", err);
+        console.warn("AuthContext: flushGuestICPsToSupabase error", err);
       }
 
       try {
         window.dispatchEvent(new Event("icps:changed"));
       } catch {}
+      console.log("AuthContext: post-auth step 4 — pipeline complete");
     };
 
     const tryAutoLinkPending = async (activeSession: Session | null) => {
+      console.log("AuthContext: tryAutoLinkPending start", {
+        hasSession: Boolean(activeSession?.access_token),
+        userId: activeSession?.user?.id ?? null,
+      });
       // Auto-link any pending guest checkout as soon as we have a valid session.
       try {
         const userId = activeSession?.user?.id ?? null;
-        if (!activeSession?.access_token || !userId) return;
+        if (!activeSession?.access_token || !userId) {
+          console.log("AuthContext: tryAutoLinkPending — skipped (no session/user)");
+          return;
+        }
 
-        if (pendingLinkAttemptRef.current === userId) return;
+        if (pendingLinkAttemptRef.current === userId) {
+          console.log("AuthContext: tryAutoLinkPending — skipped (already attempted)");
+          return;
+        }
 
         const pending = getPendingGuestLink();
-        if (!pending) return;
+        if (!pending) {
+          console.log("AuthContext: tryAutoLinkPending — skipped (no pending link)");
+          return;
+        }
 
+        console.log("AuthContext: tryAutoLinkPending — invoking link-guest-checkout", pending);
         const body = buildLinkBody();
-        if (!body.session_id && !body.guest_ref) return;
+        if (!body.session_id && !body.guest_ref) {
+          console.log("AuthContext: tryAutoLinkPending — skipped (empty body)");
+          return;
+        }
 
         pendingLinkAttemptRef.current = userId;
 
         const { data, error } = await supabase.functions.invoke("link-guest-checkout", {
           body,
+        });
+
+        console.log("AuthContext: tryAutoLinkPending — link-guest-checkout response", {
+          error,
+          data,
         });
 
         if (!error && (data?.ok || data?.linked || data?.alreadyLinked)) {
@@ -280,12 +319,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             window.dispatchEvent(new Event("subscription:changed"));
             window.dispatchEvent(new Event("auth:changed"));
           } catch {}
-          // Optional: force refresh so tier changes are visible immediately
-          // window.location.reload();
         }
       } catch (e) {
         console.warn("[AuthContext] pending guest link failed", e);
       }
+      console.log("AuthContext: tryAutoLinkPending done");
     };
 
     // --------------------------------------------------------------
@@ -303,7 +341,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const sess = data?.session ?? null;
         setSession(sess);
         setUser(sess?.user ?? null);
-        void tryAutoLinkPending(sess);
 
         console.log("AuthContext: getSession() completed", { hasSession: !!sess });
       } catch (err) {
@@ -312,16 +349,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } finally {
         if (isMounted) {
           setLoading(false);
-          // If we hydrated with an existing session, kick post-auth pipeline in the background.
-          // (Important on refresh where INITIAL_SESSION may arrive late or not at all.)
-          try {
-            const currentUser = (await supabase.auth.getUser()).data?.user ?? null;
-            if (currentUser?.id) {
-              void runPostAuthPipeline(currentUser.id, currentUser.email ?? null);
-            }
-          } catch {
-            // ignore
-          }
+          // Defer Supabase calls — never await auth APIs in the same tick as getSession.
+          setTimeout(() => {
+            if (!isMounted) return;
+            void (async () => {
+              const { data } = await supabase.auth.getSession();
+              const sess = data?.session ?? null;
+              await tryAutoLinkPending(sess);
+              const currentUser = sess?.user ?? null;
+              if (currentUser?.id) {
+                void runPostAuthPipeline(currentUser.id, currentUser.email ?? null);
+              }
+            })();
+          }, 0);
         }
       }
     };
@@ -333,60 +373,66 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // --------------------------------------------------------------
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, nextSession) => {
+    } = supabase.auth.onAuthStateChange((event, nextSession) => {
       if (!isMounted) return;
 
-      console.log("AuthContext: onAuthStateChange event:", event, nextSession);
+      console.log("AuthContext: onAuthStateChange event:", event, {
+        userId: nextSession?.user?.id ?? null,
+      });
 
-      try {
-        const nextUser = nextSession?.user ?? null;
-        setSession(nextSession ?? null);
-        setUser(nextUser);
-        // reset guard when user changes
-        if (nextUser?.id && postAuthRanRef.current && postAuthRanRef.current !== nextUser.id) {
-          postAuthRanRef.current = null;
-        }
-        if (!nextUser?.id) {
-          pendingLinkAttemptRef.current = null;
-        } else if (
-          pendingLinkAttemptRef.current &&
-          pendingLinkAttemptRef.current !== nextUser.id
-        ) {
-          pendingLinkAttemptRef.current = null;
-        }
+      const nextUser = nextSession?.user ?? null;
+      setSession(nextSession ?? null);
+      setUser(nextUser);
 
-        await tryAutoLinkPending(nextSession ?? null);
-
-        if (
-          (event === "SIGNED_IN" || event === "INITIAL_SESSION" || event === "TOKEN_REFRESHED") &&
-          nextUser?.id
-        ) {
-          try {
-            await syncOutbox(nextUser.id);
-          } catch (err) {
-            console.warn("AuthContext: syncOutbox error", err);
-          }
-          try {
-            window.dispatchEvent(new Event("auth:changed"));
-          } catch {}
-        }
-
-        // Fire-and-forget profile ensure on SIGNED_IN
-        if (event === "SIGNED_IN" && nextUser) {
-          // Do NOT await; this must never block loading / routing
-          void ensureProfileInsertOnly(nextUser);
-        }
-
-        // IMPORTANT: never await post-auth pipeline inside auth listener.
-        if ((event === "SIGNED_IN" || event === "INITIAL_SESSION") && nextUser?.id) {
-          void runPostAuthPipeline(nextUser.id, nextUser.email ?? null);
-        }
-      } catch (err) {
-        console.warn("AuthContext: auth listener unexpected error", err);
-      } finally {
-        // Whatever happens, never leave loading=true
-        setLoading(false);
+      if (nextUser?.id && postAuthRanRef.current && postAuthRanRef.current !== nextUser.id) {
+        postAuthRanRef.current = null;
       }
+      if (!nextUser?.id) {
+        pendingLinkAttemptRef.current = null;
+      } else if (
+        pendingLinkAttemptRef.current &&
+        pendingLinkAttemptRef.current !== nextUser.id
+      ) {
+        pendingLinkAttemptRef.current = null;
+      }
+
+      // Release the UI immediately — never await Supabase inside this callback (deadlocks getSession).
+      setLoading(false);
+
+      setTimeout(() => {
+        if (!isMounted) return;
+        void (async () => {
+          try {
+            await tryAutoLinkPending(nextSession ?? null);
+
+            if (
+              (event === "SIGNED_IN" ||
+                event === "INITIAL_SESSION" ||
+                event === "TOKEN_REFRESHED") &&
+              nextUser?.id
+            ) {
+              try {
+                await syncOutbox(nextUser.id);
+              } catch (err) {
+                console.warn("AuthContext: syncOutbox error", err);
+              }
+              try {
+                window.dispatchEvent(new Event("auth:changed"));
+              } catch {}
+            }
+
+            if (event === "SIGNED_IN" && nextUser) {
+              void ensureProfileInsertOnly(nextUser);
+            }
+
+            if ((event === "SIGNED_IN" || event === "INITIAL_SESSION") && nextUser?.id) {
+              void runPostAuthPipeline(nextUser.id, nextUser.email ?? null);
+            }
+          } catch (err) {
+            console.warn("AuthContext: deferred auth listener error", err);
+          }
+        })();
+      }, 0);
     });
 
     return () => {

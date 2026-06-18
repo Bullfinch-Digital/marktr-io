@@ -5,6 +5,7 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Textarea } from "../components/ui/textarea";
 import { WhisperButton } from "../components/ui/WhisperButton";
+import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../config/supabase";
 import type { BrandStoryOutput } from "./StoryResults";
 
@@ -110,6 +111,8 @@ function isQuestionStep(step: StoryStep): step is keyof typeof STEP_TO_Q_INDEX {
 
 export default function StoryBuild() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isLoggedIn = Boolean(user && !(user as { is_anonymous?: boolean }).is_anonymous);
   const [step, setStep] = useState<StoryStep>("q1");
   const [answers, setAnswers] = useState<string[]>(() => Array(7).fill(""));
   const [draft, setDraft] = useState("");
@@ -123,6 +126,12 @@ export default function StoryBuild() {
     if (questionIndex === null) return;
     setDraft(answers[questionIndex] ?? "");
   }, [step, questionIndex, answers]);
+
+  useEffect(() => {
+    if (step === "email" && isLoggedIn) {
+      setStep("q4");
+    }
+  }, [step, isLoggedIn]);
 
   useEffect(() => {
     if (step !== "loading") {
@@ -150,6 +159,7 @@ export default function StoryBuild() {
     const run = async () => {
       let story: BrandStoryOutput | null = null;
       let storyError: string | null = null;
+      const emailToUse = isLoggedIn ? user?.email?.trim() ?? "" : email.trim();
 
       const apiPromise = (async () => {
         try {
@@ -158,7 +168,7 @@ export default function StoryBuild() {
             {
               body: {
                 answers,
-                email: email.trim(),
+                email: emailToUse,
               },
             }
           );
@@ -195,7 +205,7 @@ export default function StoryBuild() {
 
       if (!cancelled) {
         navigate("/story/results", {
-          state: { answers, email: email.trim(), story, error: storyError },
+          state: { answers, email: emailToUse, story, error: storyError },
         });
       }
     };
@@ -206,7 +216,7 @@ export default function StoryBuild() {
       cancelled = true;
       timers.forEach((t) => window.clearTimeout(t));
     };
-  }, [step, answers, email, navigate]);
+  }, [step, answers, email, navigate, isLoggedIn, user?.email]);
 
   const canContinueQuestion = useMemo(() => draft.trim().length > 0, [draft]);
 
@@ -216,9 +226,18 @@ export default function StoryBuild() {
   }, [email]);
 
   const goBack = () => {
+    if (step === "q4" && isLoggedIn) {
+      setStep("q3");
+      return;
+    }
     const idx = STEP_ORDER.indexOf(step);
     if (idx <= 0) return;
-    setStep(STEP_ORDER[idx - 1]!);
+    const prev = STEP_ORDER[idx - 1]!;
+    if (prev === "email" && isLoggedIn) {
+      setStep("q3");
+      return;
+    }
+    setStep(prev);
   };
 
   const advanceFromQuestion = () => {
@@ -227,7 +246,7 @@ export default function StoryBuild() {
     nextAnswers[questionIndex] = draft.trim();
     setAnswers(nextAnswers);
 
-    if (step === "q3") setStep("email");
+    if (step === "q3") setStep(isLoggedIn ? "q4" : "email");
     else if (step === "q7") {
       setCompletedCount(0);
       setChecklistDone(false);
@@ -246,7 +265,7 @@ export default function StoryBuild() {
     setAnswers(nextAnswers);
     setDraft("");
 
-    if (step === "q3") setStep("email");
+    if (step === "q3") setStep(isLoggedIn ? "q4" : "email");
     else if (step === "q7") {
       setCompletedCount(0);
       setChecklistDone(false);
@@ -357,17 +376,19 @@ export default function StoryBuild() {
           We&apos;ll email you a copy when it&apos;s ready.
         </p>
 
-        <Input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="you@yourbusiness.com"
-          className="mt-8 max-w-lg border border-black rounded-design bg-white px-4 py-6 font-['DM_Sans'] text-foreground placeholder:text-foreground/40"
-        />
+        {!isLoggedIn && (
+          <Input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="you@yourbusiness.com"
+            className="mt-8 max-w-lg border border-black rounded-design bg-white px-4 py-6 font-['DM_Sans'] text-foreground placeholder:text-foreground/40"
+          />
+        )}
 
         <Button
           type="button"
-          disabled={!canContinueEmail}
+          disabled={!isLoggedIn && !canContinueEmail}
           onClick={() => setStep("q4")}
           className="mt-8 w-fit rounded-full bg-primary px-8 py-6 font-['DM_Sans'] text-base font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
         >

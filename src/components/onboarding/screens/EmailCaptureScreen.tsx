@@ -11,6 +11,7 @@ interface EmailCaptureScreenProps {
   /** When Turnstile is configured, Enter must not bypass the widget (same rules as the main CTA). */
   turnstileRequired?: boolean;
   hasTurnstileToken?: boolean;
+  hideEmailInput?: boolean;
 }
 
 export function EmailCaptureScreen({ 
@@ -20,6 +21,7 @@ export function EmailCaptureScreen({
   onTokenChange,
   turnstileRequired = false,
   hasTurnstileToken = false,
+  hideEmailInput = false,
 }: EmailCaptureScreenProps) {
   const widgetIdRef = useRef<string | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -132,30 +134,38 @@ export function EmailCaptureScreen({
   return (
     <div className="space-y-6 animate-fade-in-up">
       <h1 className="font-['Fraunces'] font-bold text-4xl">
-        Enter your email to access your ICPs
+        {hideEmailInput
+          ? "Ready to generate your ICPs"
+          : "Enter your email to access your ICPs"}
       </h1>
       <p className="text-foreground/70 max-w-md">
-        Enter your email to generate your ICP and unlock access to it in your dashboard.
+        {hideEmailInput
+          ? "We'll use your account email and generate your ICPs for your dashboard."
+          : "Enter your email to generate your ICP and unlock access to it in your dashboard."}
       </p>
       
       <div className="space-y-4 pt-4">
-        <Input
-          type="email"
-          value={email}
-          onChange={(e) => onEmailChange(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="your@email.com"
-          className="border border-black rounded-design px-4 py-6 bg-white text-foreground placeholder:text-foreground/40"
-          autoFocus
-        />
+        {!hideEmailInput && (
+          <Input
+            type="email"
+            value={email}
+            onChange={(e) => onEmailChange(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="your@email.com"
+            className="border border-black rounded-design px-4 py-6 bg-white text-foreground placeholder:text-foreground/40"
+            autoFocus
+          />
+        )}
 
-        <div
-          ref={containerRef}
-          id="turnstile-container"
-          className="pt-2 min-h-[72px] flex items-start"
-          aria-label="Security verification"
-        />
-        {loadError ? (
+        {!hideEmailInput && (
+          <div
+            ref={containerRef}
+            id="turnstile-container"
+            className="pt-2 min-h-[72px] flex items-start"
+            aria-label="Security verification"
+          />
+        )}
+        {!hideEmailInput && loadError ? (
           <p className="text-xs text-red-600 font-['Inter'] max-w-md" role="alert">
             {loadError}
           </p>

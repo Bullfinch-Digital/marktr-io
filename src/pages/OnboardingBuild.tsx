@@ -71,6 +71,7 @@ export default function OnboardingBuild() {
   const { icps, isLoading: icpsLoading } = useICPs();
   const { tier: userTier, effectiveTier, loading: subscriptionLoading } = useSubscription();
   const { user, loading: authLoading } = useAuth();
+  const isLoggedIn = Boolean(user && !(user as { is_anonymous?: boolean }).is_anonymous);
   const anonInitRef = useRef(false);
   const [leadToken, setLeadToken] = useState<string | null>(null);
   const turnstileConfigured = Boolean((import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined)?.trim());
@@ -126,10 +127,23 @@ export default function OnboardingBuild() {
   const showBackButton = currentStepIndex > 1 && currentStep !== "10_Loading"; // Show back button after step 2, hide on ICP carousel
   const showProgressBar = currentStep !== "10_Loading";
 
+  const emailToUse = isLoggedIn ? user?.email?.trim() ?? "" : formData.email.trim();
+
   const handleNext = () => {
-    const nextIndex = currentStepIndex + 1;
+    let nextIndex = currentStepIndex + 1;
+    if (isLoggedIn && STEPS[nextIndex] === "9_EmailCapture") {
+      nextIndex += 1;
+    }
     if (nextIndex < STEPS.length) {
-      setCurrentStep(STEPS[nextIndex]);
+      const nextStep = STEPS[nextIndex]!;
+      if (
+        isLoggedIn &&
+        currentStep === "8_GeographyCurrency" &&
+        nextStep === "10_Loading"
+      ) {
+        void captureLead(emailToUse, null);
+      }
+      setCurrentStep(nextStep);
     }
   };
 
@@ -144,9 +158,12 @@ export default function OnboardingBuild() {
   }, [currentStep]);
 
   const handleBack = () => {
-    const prevIndex = currentStepIndex - 1;
+    let prevIndex = currentStepIndex - 1;
+    if (isLoggedIn && STEPS[prevIndex] === "9_EmailCapture") {
+      prevIndex -= 1;
+    }
     if (prevIndex >= 0) {
-      setCurrentStep(STEPS[prevIndex]);
+      setCurrentStep(STEPS[prevIndex]!);
     }
   };
 
@@ -625,19 +642,20 @@ export default function OnboardingBuild() {
             email={formData.email}
             onEmailChange={(value) => setFormData({ ...formData, email: value })}
             onTokenChange={(token) => setLeadToken(token)}
-            turnstileRequired={turnstileConfigured}
+            turnstileRequired={turnstileConfigured && !isLoggedIn}
             hasTurnstileToken={Boolean(leadToken)}
+            hideEmailInput={isLoggedIn}
             onContinue={async () => {
-              if (turnstileConfigured && !leadToken) {
+              if (turnstileConfigured && !isLoggedIn && !leadToken) {
                 console.warn("[LeadCapture] blocked: Turnstile token not ready yet");
                 return;
               }
               // reset guard each time we enter loading step
               hasRunRef.current = false;
-              console.debug("[LeadCapture] continue", { email: formData.email, leadToken });
+              console.debug("[LeadCapture] continue", { email: emailToUse, leadToken });
               // Fire-and-forget (time-boxed) lead capture so UI is never blocked
               await Promise.race([
-                captureLead(formData.email, leadToken),
+                captureLead(emailToUse, isLoggedIn ? null : leadToken),
                 new Promise((resolve) => setTimeout(resolve, 8000)),
               ]);
               setCurrentStep("10_Loading");
@@ -682,6 +700,7 @@ export default function OnboardingBuild() {
       case "8_GeographyCurrency":
         return formData.country.trim().length > 0 && formData.currency.trim().length > 0;
       case "9_EmailCapture": {
+        if (isLoggedIn) return Boolean(user?.email?.trim());
         const emailOk = formData.email.trim().length > 0 && formData.email.includes("@");
         if (!emailOk) return false;
         if (turnstileConfigured && !leadToken) return false;
@@ -696,15 +715,15 @@ export default function OnboardingBuild() {
 
   const handleCtaClick = async () => {
     if (currentStep === "9_EmailCapture") {
-      if (turnstileConfigured && !leadToken) {
+      if (turnstileConfigured && !isLoggedIn && !leadToken) {
         console.warn("[LeadCapture] blocked CTA: Turnstile token not ready yet");
         return;
       }
       hasRunRef.current = false;
-      console.debug("[LeadCapture] CTA", { email: formData.email, leadToken });
+      console.debug("[LeadCapture] CTA", { email: emailToUse, leadToken });
       // Fire-and-forget (time-boxed) lead capture so UI is never blocked
       await Promise.race([
-        captureLead(formData.email, leadToken),
+        captureLead(emailToUse, isLoggedIn ? null : leadToken),
         new Promise((resolve) => setTimeout(resolve, 8000)),
       ]);
       setCurrentStep("10_Loading");
@@ -812,7 +831,7 @@ export default function OnboardingBuild() {
                     >
                       {getCTAText()}
                     </Button>
-                    {currentStep === "9_EmailCapture" && (
+                    {currentStep === "9_EmailCapture" && !isLoggedIn && (
                       <div className="mt-2 space-y-1">
                         <p className="text-xs text-foreground/60 font-['Inter']">
                           No spam. Just your ICP and access to your dashboard.

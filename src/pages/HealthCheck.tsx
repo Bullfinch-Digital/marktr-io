@@ -215,7 +215,7 @@ export default function HealthCheck() {
         </Button>
 
         <p className="mt-4 font-['DM_Sans'] text-sm text-muted-foreground">
-          Takes about 2 minutes. No account needed.
+          {isLoggedIn ? "Takes about 2 minutes." : "Takes about 2 minutes. No account needed."}
         </p>
       </div>
     </section>

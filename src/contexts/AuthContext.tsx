@@ -32,6 +32,38 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 //  - Never updates existing rows (so subscription_tier is safe)
 //  - Runs in the background, never blocks loading
 // ------------------------------------------------------------------
+async function tryMigrateSubscriptionByEmail(user: User) {
+  const isAnonymous = (user as any)?.is_anonymous === true;
+  if (!user.email || isAnonymous) return;
+
+  try {
+    const { data, error } = await supabase.functions.invoke(
+      "migrate-subscription-by-email",
+      { body: {} }
+    );
+
+    if (error) {
+      console.warn("AuthContext: migrate-subscription-by-email failed", error);
+      return;
+    }
+
+    if (data?.migrated) {
+      console.log(
+        "AuthContext: migrated subscription from",
+        data.fromUserId,
+        "to",
+        user.id
+      );
+      try {
+        window.dispatchEvent(new Event("subscription:changed"));
+        window.dispatchEvent(new Event("auth:changed"));
+      } catch {}
+    }
+  } catch (err) {
+    console.warn("AuthContext: tryMigrateSubscriptionByEmail unexpected error", err);
+  }
+}
+
 async function ensureProfileInsertOnly(user: User) {
   const uid = user.id;
   const isAnonymous = (user as any)?.is_anonymous === true;
@@ -422,7 +454,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
 
             if (event === "SIGNED_IN" && nextUser) {
-              void ensureProfileInsertOnly(nextUser);
+              await ensureProfileInsertOnly(nextUser);
+              if (!(nextUser as any)?.is_anonymous) {
+                await tryMigrateSubscriptionByEmail(nextUser);
+              }
             }
 
             if ((event === "SIGNED_IN" || event === "INITIAL_SESSION") && nextUser?.id) {

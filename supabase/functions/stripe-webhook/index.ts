@@ -301,7 +301,7 @@ async function tryMigrateAnonymousSubscriptionToRealUser(
   if (stripeCustomerId) {
     const { error: customerError } = await supabaseAdmin
       .from("stripe_customers")
-      .update({ user_id: realUserId })
+      .update({ user_id: realUserId, email: normalizedEmail })
       .eq("user_id", anonymousUserId);
     if (customerError) {
       console.warn("[stripe-webhook] migrate: stripe_customers update failed", customerError);
@@ -437,7 +437,8 @@ Deno.serve(async (req) => {
 
   const handleSubscription = async (
     subscription: any,
-    userIdHint?: string | null
+    userIdHint?: string | null,
+    customerEmail?: string | null
   ) => {
     const stripeCustomerId =
       typeof subscription.customer === "string"
@@ -474,6 +475,7 @@ Deno.serve(async (req) => {
         {
           user_id: userId,
           stripe_customer_id: stripeCustomerId,
+          ...(customerEmail?.trim() ? { email: customerEmail.trim() } : {}),
         },
         { onConflict: "user_id" }
       );
@@ -566,6 +568,7 @@ Deno.serve(async (req) => {
             {
               user_id: sessionUserId,
               stripe_customer_id: stripeCustomerId,
+              ...(email?.trim() ? { email: email.trim() } : {}),
             },
             { onConflict: "user_id" }
           );
@@ -595,6 +598,7 @@ Deno.serve(async (req) => {
               {
                 user_id: userId,
                 stripe_customer_id: stripeCustomerId,
+                ...(email?.trim() ? { email: email.trim() } : {}),
               },
               { onConflict: "user_id" }
             );
@@ -626,7 +630,7 @@ Deno.serve(async (req) => {
             };
           }
 
-          await handleSubscription(subscription, userId);
+          await handleSubscription(subscription, userId, email);
 
           await tryMigrateAnonymousSubscriptionToRealUser(supabaseAdmin, {
             anonymousUserId: userId,

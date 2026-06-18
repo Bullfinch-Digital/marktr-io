@@ -5,6 +5,7 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { WhisperButton } from "../components/ui/WhisperButton";
+import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../config/supabase";
 import type { SocialScores, StoryAssessment } from "../lib/healthCheckScoring";
 
@@ -59,6 +60,8 @@ function AnalysisMessage({ messages }: { messages: readonly string[] }) {
 
 export default function HealthCheck() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isLoggedIn = Boolean(user && !(user as { is_anonymous?: boolean }).is_anonymous);
   const [step, setStep] = useState<Step>("welcome");
   const [completedCount, setCompletedCount] = useState(0);
   const [checklistDone, setChecklistDone] = useState(false);
@@ -70,7 +73,10 @@ export default function HealthCheck() {
     email: "",
   });
 
-  const canAnalyse = useMemo(() => formData.email.trim().length > 0, [formData.email]);
+  const canAnalyse = useMemo(() => {
+    if (isLoggedIn) return Boolean(user?.email?.trim());
+    return formData.email.trim().length > 0;
+  }, [isLoggedIn, user?.email, formData.email]);
 
   useEffect(() => {
     if (step !== "loading") {
@@ -162,9 +168,11 @@ export default function HealthCheck() {
       await Promise.all([apiPromise, checklistMinPromise]);
 
       if (!cancelled) {
+        const emailToUse = isLoggedIn ? user?.email ?? "" : formData.email;
         navigate("/health-check/results", {
           state: {
             ...formData,
+            email: emailToUse,
             websiteScore,
           },
         });
@@ -177,7 +185,7 @@ export default function HealthCheck() {
       cancelled = true;
       timers.forEach((t) => window.clearTimeout(t));
     };
-  }, [step, formData, navigate]);
+  }, [step, formData, navigate, isLoggedIn, user?.email]);
 
   const renderWelcome = () => (
     <section className="mx-auto flex min-h-screen w-full max-w-3xl flex-col justify-center px-6 py-12">
@@ -309,22 +317,24 @@ export default function HealthCheck() {
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="email" className="font-['DM_Sans'] text-sm text-[#0D1833]">
-              Email address (required)
-            </Label>
-            <Input
-              id="email"
-              type="email"
-              value={formData.email}
-              onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
-              placeholder="you@yourbusiness.com"
-              className="border border-black rounded-design bg-white px-4 py-6 text-foreground placeholder:text-foreground/40"
-            />
-            <p className="font-['DM_Sans'] text-xs text-muted-foreground">
-              Your report will be sent here
-            </p>
-          </div>
+          {!isLoggedIn && (
+            <div className="space-y-2">
+              <Label htmlFor="email" className="font-['DM_Sans'] text-sm text-[#0D1833]">
+                Email address (required)
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
+                placeholder="you@yourbusiness.com"
+                className="border border-black rounded-design bg-white px-4 py-6 text-foreground placeholder:text-foreground/40"
+              />
+              <p className="font-['DM_Sans'] text-xs text-muted-foreground">
+                Your report will be sent here
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="mt-10 flex items-center gap-3">

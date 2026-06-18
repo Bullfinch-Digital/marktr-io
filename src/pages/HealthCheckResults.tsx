@@ -11,6 +11,7 @@ import { usePaywall } from "../contexts/PaywallContext";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../config/supabase";
 import useSubscription from "../hooks/useSubscription";
+import useProfile from "../hooks/useProfile";
 
 type LocationState = HealthCheckInput | null;
 
@@ -381,9 +382,35 @@ export default function HealthCheckResults() {
   const state = (location.state ?? null) as LocationState;
   const { openPaywall } = usePaywall();
   const { user } = useAuth();
-  const { tier } = useSubscription();
-  const isPro = tier === "pro";
+  const { isPro: subscriptionIsPro, tier, loading: subscriptionLoading } = useSubscription();
+  const { profile } = useProfile(user?.id ?? null);
+  const isLoggedInReal = Boolean(
+    user && !(user as { is_anonymous?: boolean }).is_anonymous
+  );
+  const hasPaidAccess =
+    subscriptionIsPro || profile?.subscription_tier === "pro";
+  // Show dashboard CTA while subscription resolves for logged-in users (avoids empty bottom)
+  const showProUpsell =
+    hasPaidAccess || (isLoggedInReal && subscriptionLoading);
+  const showPaywallUpsell = !showProUpsell;
   const savedToDbRef = useRef(false);
+
+  useEffect(() => {
+    console.log(
+      "[HealthCheckResults] tier:",
+      tier,
+      "subscriptionIsPro:",
+      subscriptionIsPro,
+      "hasPaidAccess:",
+      hasPaidAccess,
+      "showProUpsell:",
+      showProUpsell,
+      "subscriptionLoading:",
+      subscriptionLoading,
+      "profileTier:",
+      profile?.subscription_tier
+    );
+  }, [tier, subscriptionIsPro, hasPaidAccess, showProUpsell, subscriptionLoading, profile?.subscription_tier]);
 
   const scores = useMemo(
     () => (state?.email?.trim() ? calculateScores(state) : null),
@@ -509,7 +536,7 @@ export default function HealthCheckResults() {
           ))}
         </div>
 
-        {!isPro && (
+        {showPaywallUpsell && (
           <div className="mt-6 flex flex-col gap-4 rounded-2xl border border-primary/20 bg-primary/5 px-6 py-5 sm:flex-row sm:items-center">
             <div className="flex-1">
               <p className="font-['DM_Sans'] text-sm font-semibold text-foreground">
@@ -531,7 +558,7 @@ export default function HealthCheckResults() {
           </div>
         )}
 
-        {isPro && (
+        {showProUpsell && (
           <div className="mt-6 flex flex-col gap-4 rounded-2xl border border-primary/20 bg-primary/5 px-6 py-5 sm:flex-row sm:items-center">
             <div className="flex-1">
               <p className="font-['DM_Sans'] text-sm font-semibold text-foreground">
@@ -564,7 +591,7 @@ export default function HealthCheckResults() {
           ))}
         </div>
 
-        {!isPro && (
+        {showPaywallUpsell && (
           <div className="mt-8 rounded-2xl bg-[#0D1833] p-8">
             <h2 className="font-['Fraunces'] text-3xl font-bold leading-tight text-white">
               Your {paywallDimension.name} score is {paywallDimension.score}. Here&apos;s what that means.
@@ -588,12 +615,12 @@ export default function HealthCheckResults() {
           </div>
         )}
 
-        {isPro && (
-          <div className="mt-8 rounded-2xl bg-foreground px-8 py-8 text-background">
+        {showProUpsell && (
+          <div className="mt-8 rounded-2xl bg-[#0D1833] px-8 py-8 text-white">
             <h2 className="mb-3 font-['Fraunces'] text-3xl font-semibold">
               Your scores are saved.
             </h2>
-            <p className="mb-6 max-w-lg font-['DM_Sans'] text-sm text-background/70">
+            <p className="mb-6 max-w-lg font-['DM_Sans'] text-sm text-white/70">
               Connect your Instagram and Facebook in the dashboard to unlock real engagement data and a
               step-by-step improvement plan.
             </p>

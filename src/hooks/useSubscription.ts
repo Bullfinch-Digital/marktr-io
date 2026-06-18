@@ -104,7 +104,11 @@ export default function useSubscription() {
       void fetchProfile();
     };
     window.addEventListener("auth:changed", handler);
-    return () => window.removeEventListener("auth:changed", handler);
+    window.addEventListener("subscription:changed", handler);
+    return () => {
+      window.removeEventListener("auth:changed", handler);
+      window.removeEventListener("subscription:changed", handler);
+    };
   }, [fetchProfile]);
 
   const bypassPaywall =

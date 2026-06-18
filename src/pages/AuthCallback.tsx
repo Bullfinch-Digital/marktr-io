@@ -5,7 +5,7 @@ import { useAuth } from "../contexts/AuthContext";
 
 function getNextFromSearch(search: string) {
   const params = new URLSearchParams(search);
-  return params.get("next") || "/account";
+  return params.get("next") || "/dashboard";
 }
 
 export default function AuthCallback() {

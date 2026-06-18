@@ -74,8 +74,8 @@ function AuthRedirect() {
 export default function App() {
   return (
     <AuthProvider>
-      <PaywallProvider>
-        <AuthModalProvider>
+      <AuthModalProvider>
+        <PaywallProvider>
           <Router>
             <GA4RouteTracker />
             <div className="min-h-screen bg-background">
@@ -235,8 +235,8 @@ export default function App() {
               </Routes>
             </div>
           </Router>
-        </AuthModalProvider>
-      </PaywallProvider>
+        </PaywallProvider>
+      </AuthModalProvider>
     </AuthProvider>
   );
 }

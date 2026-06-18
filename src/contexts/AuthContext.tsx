@@ -19,6 +19,7 @@ type AuthContextType = {
   loading: boolean;
   signUp: (args: { email: string; password: string; name: string }) => Promise<{ error: AuthError | null }>;
   signInWithPassword: (args: { email: string; password: string }) => Promise<{ error: AuthError | null }>;
+  signInWithGoogle: (redirectPath?: string) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
 };
 
@@ -439,6 +440,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   // --------------------------------------------------------------
+  // GOOGLE OAUTH
+  // --------------------------------------------------------------
+  const signInWithGoogle = async (redirectPath = "/dashboard") => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo:
+          `${window.location.origin}` +
+          `/auth/callback?next=` +
+          encodeURIComponent(redirectPath),
+      },
+    });
+    return { error };
+  };
+
+  // --------------------------------------------------------------
   // SIGN OUT
   // --------------------------------------------------------------
   const signOut = async () => {
@@ -464,6 +481,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loading,
         signUp,
         signInWithPassword,
+        signInWithGoogle,
         signOut,
       }}
     >

@@ -1,6 +1,13 @@
-import { createContext, useCallback, useContext, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { PaywallModal } from "../components/modals/PaywallModal";
 import { supabase } from "../config/supabase";
+import { useAuth } from "./AuthContext";
+import { useAuthModal } from "./AuthModalContext";
+import {
+  clearPendingCheckoutPlan,
+  getPendingCheckoutPlan,
+  setPendingCheckoutPlan,
+} from "../utils/pendingCheckout";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -32,6 +39,9 @@ type AlreadySubscribedState = {
 const PaywallContext = createContext<PaywallContextValue | undefined>(undefined);
 
 export function PaywallProvider({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
+  const { openSignIn } = useAuthModal();
+  const resumeCheckoutRef = useRef(false);
   const [showPaywall, setShowPaywall] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<Plan>("annual");
   const [isStartingCheckout, setIsStartingCheckout] = useState(false);
@@ -61,38 +71,19 @@ export function PaywallProvider({ children }: { children: React.ReactNode }) {
   // Defensive: if any caller accidentally passes "yearly", normalise it.
   const normalisePlan = (p: any): Plan => (p === "yearly" ? "annual" : p);
 
-  const startCheckout = useCallback(
-    async (plan?: Plan, force?: boolean) => {
-      const nextPlan = normalisePlan(plan ?? selectedPlan);
+  const proceedToStripe = useCallback(
+    async (plan: Plan, force?: boolean) => {
+      const nextPlan = normalisePlan(plan);
 
       try {
         setIsStartingCheckout(true);
 
-        // Prefer a real session access_token for Authorization. The Edge Function then uses the
-        // authenticated branch and does not require CHECKOUT_GUEST_SECRET. If getUser() errors
-        // (e.g. stale refresh), we still try anon sign-in rather than skipping it.
-        let accessToken = "";
-        {
-          const { data: s0 } = await supabase.auth.getSession();
-          accessToken = s0?.session?.access_token ?? "";
-          if (!accessToken) {
-            const {
-              data: { user: existingUser },
-            } = await supabase.auth.getUser();
-            if (existingUser) {
-              const { data: refreshed } = await supabase.auth.refreshSession();
-              accessToken = refreshed.session?.access_token ?? "";
-            }
-          }
-          if (!accessToken) {
-            const { error: anonError } = await supabase.auth.signInAnonymously();
-            if (anonError) {
-              console.warn("[paywall] signInAnonymously failed", anonError);
-            } else {
-              const { data: s1 } = await supabase.auth.getSession();
-              accessToken = s1?.session?.access_token ?? "";
-            }
-          }
+        const { data: userData } = await supabase.auth.getUser();
+        const authedUser = userData?.user ?? null;
+        const accessToken = (await supabase.auth.getSession()).data.session?.access_token ?? "";
+
+        if (!accessToken || !authedUser || (authedUser as any).is_anonymous) {
+          throw new Error("Please sign in before starting checkout.");
         }
 
         const monthlyPriceId = import.meta.env.VITE_STRIPE_PRICE_MONTHLY as
@@ -105,7 +96,7 @@ export function PaywallProvider({ children }: { children: React.ReactNode }) {
         const priceId = nextPlan === "monthly" ? monthlyPriceId : annualPriceId;
         const origin = window.location.origin;
 
-        console.log("[paywall] startCheckout", { plan: nextPlan, priceId, origin });
+        console.log("[paywall] proceedToStripe", { plan: nextPlan, priceId, origin });
 
         if (!priceId) {
           console.error("[paywall] Missing Stripe priceId", {
@@ -120,36 +111,24 @@ export function PaywallProvider({ children }: { children: React.ReactNode }) {
 
         const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL || "").trim();
         const supabaseAnonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY || "").trim();
-        const checkoutGuestSecret = (import.meta.env.VITE_CHECKOUT_GUEST_SECRET || "").trim();
         const checkoutUrl = `${supabaseUrl}/functions/v1/create-checkout-session`;
-        const redirectBasePath = accessToken ? "/dashboard" : "/guest-dashboard";
 
         const payload = {
           priceId,
-          successUrl: `${origin}${redirectBasePath}?checkout=success`,
-          cancelUrl: `${origin}${redirectBasePath}?checkout=cancel`,
+          successUrl: `${origin}/dashboard?checkout=success`,
+          cancelUrl: `${origin}/dashboard?checkout=cancel`,
           force: Boolean(force),
+          customerEmail: authedUser.email ?? undefined,
         };
 
         console.log("[paywall] create-checkout-session payload", payload);
 
-        console.log("[paywall] checkout session info", {
-          supabaseUrl,
-          hasAccessToken: Boolean(accessToken),
-          tokenPreview: accessToken ? accessToken.slice(0, 20) : "",
-        });
-        console.log("[paywall] create-checkout-session url", checkoutUrl);
         const headers: Record<string, string> = {
           "Content-Type": "application/json",
           apikey: supabaseAnonKey,
-          // Functions gateway may require a JWT in Authorization before our code runs.
-          // With a real session we send the user access token; otherwise the public anon JWT
-          // (Edge Function optionally validates x-guest-secret when secrets are configured).
-          Authorization: `Bearer ${accessToken || supabaseAnonKey}`,
+          Authorization: `Bearer ${accessToken}`,
         };
-        if (!accessToken && checkoutGuestSecret) {
-          headers["x-guest-secret"] = checkoutGuestSecret;
-        }
+
         const res = await fetch(checkoutUrl, {
           method: "POST",
           headers,
@@ -169,7 +148,6 @@ export function PaywallProvider({ children }: { children: React.ReactNode }) {
           console.error("[paywall] checkout response parse error", parseError);
         }
 
-        // Surface the real error details (critical for debugging)
         if (!res.ok) {
           console.error("[paywall] create-checkout-session response not ok", {
             status: res.status,
@@ -224,11 +202,9 @@ export function PaywallProvider({ children }: { children: React.ReactNode }) {
         const redirectUrl = (data as any)?.checkoutUrl;
         if (!redirectUrl) throw new Error("Checkout URL missing");
         console.log("[paywall] branch: redirecting to checkout", redirectUrl);
-        // NOTE: we intentionally do not unset isStartingCheckout here because
-        // the browser will navigate away immediately.
         window.location.assign(redirectUrl);
       } catch (err) {
-        console.error("[paywall] startCheckout failed", err);
+        console.error("[paywall] proceedToStripe failed", err);
         alert(
           err instanceof Error
             ? `Unable to start checkout: ${err.message}`
@@ -237,8 +213,44 @@ export function PaywallProvider({ children }: { children: React.ReactNode }) {
         setIsStartingCheckout(false);
       }
     },
-    [selectedPlan]
+    []
   );
+
+  const startCheckout = useCallback(
+    async (plan?: Plan, force?: boolean) => {
+      const nextPlan = normalisePlan(plan ?? selectedPlan);
+
+      const { data: userData } = await supabase.auth.getUser();
+      const currentUser = userData?.user ?? null;
+      const isRealUser = Boolean(currentUser && !(currentUser as any).is_anonymous);
+
+      if (!isRealUser) {
+        setPendingCheckoutPlan(nextPlan);
+        setShowPaywall(false);
+        openSignIn({
+          redirectPath: "/dashboard",
+          heading: "Sign in to start your trial",
+          subheading: "Takes 10 seconds. Your results are saved.",
+        });
+        return;
+      }
+
+      await proceedToStripe(nextPlan, force);
+    },
+    [selectedPlan, openSignIn, proceedToStripe]
+  );
+
+  useEffect(() => {
+    if (!user || (user as any).is_anonymous) return;
+    if (resumeCheckoutRef.current) return;
+
+    const pendingPlan = getPendingCheckoutPlan();
+    if (!pendingPlan) return;
+
+    resumeCheckoutRef.current = true;
+    clearPendingCheckoutPlan();
+    void proceedToStripe(pendingPlan);
+  }, [user, proceedToStripe]);
 
   const value = useMemo(
     () => ({

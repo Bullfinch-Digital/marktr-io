@@ -5,6 +5,8 @@ import { supabase } from "../../config/supabase";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
+import { useAuth } from "../../contexts/AuthContext";
+import { GoogleIcon } from "../icons/GoogleIcon";
 import {
   buildLinkBody,
   clearPendingGuestLink,
@@ -27,6 +29,7 @@ export function LoginModal({
   sessionId,
   onClose,
 }: LoginModalProps) {
+  const { signInWithGoogle } = useAuth();
   const handleClose = () => {
     const params = new URLSearchParams(window.location.search);
     const next = params.get("next");
@@ -50,6 +53,7 @@ export function LoginModal({
   const [localEmail, setLocalEmail] = useState(email ?? "");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -57,6 +61,20 @@ export function LoginModal({
   }, [email]);
 
   if (!isOpen) return null;
+
+  const handleGoogle = async () => {
+    setError(null);
+    setGoogleLoading(true);
+    const params = new URLSearchParams(window.location.search);
+    const next = params.get("next");
+    const redirectPath =
+      next && next.startsWith("/") ? next : "/dashboard";
+    const { error: oauthError } = await signInWithGoogle(redirectPath);
+    if (oauthError) {
+      setError(oauthError.message);
+      setGoogleLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -127,6 +145,27 @@ export function LoginModal({
           >
             ✕
           </button>
+        </div>
+
+        <button
+          type="button"
+          onClick={handleGoogle}
+          disabled={googleLoading || loading}
+          className="w-full flex items-center justify-center gap-3 border border-black rounded-design px-4 py-3 bg-white font-['DM_Sans'] text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-60"
+        >
+          <GoogleIcon />
+          {googleLoading ? "Redirecting…" : "Continue with Google"}
+        </button>
+
+        <div className="relative my-4">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-warm-grey" />
+          </div>
+          <div className="relative flex justify-center text-xs">
+            <span className="bg-background px-2 text-muted-foreground">
+              or continue with email
+            </span>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">

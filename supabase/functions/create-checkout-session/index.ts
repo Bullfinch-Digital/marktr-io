@@ -15,6 +15,7 @@ type CreateCheckoutInput = {
   successUrl: string;
   cancelUrl: string;
   customerEmail?: string;
+  email?: string;
   force?: boolean;
 };
 
@@ -80,7 +81,8 @@ Deno.serve(async (req) => {
 
     const body = (await req.json()) as CreateCheckoutInput;
     const force = Boolean(body?.force);
-    const customerEmail = body?.customerEmail?.trim() || null;
+    const customerEmail =
+      body?.customerEmail?.trim() || body?.email?.trim() || null;
     console.log("[create-checkout-session] received email", customerEmail ?? "(none)");
     const missingFields: string[] = [];
     if (!body?.priceId) missingFields.push("priceId");

@@ -53,7 +53,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const location = useLocation();
   const { openPaywall } = usePaywall();
-  const { openFinishAccount } = useAuthModal();
+  const { openSignIn } = useAuthModal();
   const finishPromptedRef = useRef(false);
 
   // Fetch data from Supabase
@@ -123,14 +123,15 @@ export default function Dashboard() {
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const checkout = params.get("checkout");
-    const guestRef = params.get("guest_ref");
     const isAnonymous = Boolean((user as any)?.is_anonymous);
     if (checkout === "success" && !finishPromptedRef.current) {
       finishPromptedRef.current = true;
-      if (guestRef) {
-        openFinishAccount({ guestRef });
-      } else if (isAnonymous) {
-        openFinishAccount();
+      if (isAnonymous) {
+        openSignIn({
+          redirectPath: "/dashboard",
+          heading: "Your trial is ready",
+          subheading: "Sign in with Google to activate it.",
+        });
       }
 
       const url = new URL(window.location.href);
@@ -139,16 +140,20 @@ export default function Dashboard() {
       url.searchParams.delete("session_id");
       window.history.replaceState({}, "", `${url.pathname}${url.search}`);
     }
-  }, [location.search, openFinishAccount, user]);
+  }, [location.search, openSignIn, user]);
 
   useEffect(() => {
     if (finishPromptedRef.current) return;
     const isAnonymous = Boolean((user as any)?.is_anonymous);
     if (isAnonymous && isPro) {
       finishPromptedRef.current = true;
-      openFinishAccount();
+      openSignIn({
+        redirectPath: "/dashboard",
+        heading: "Your trial is ready",
+        subheading: "Sign in with Google to activate it.",
+      });
     }
-  }, [user, isPro, openFinishAccount]);
+  }, [user, isPro, openSignIn]);
 
   const [icpAvatarModal, setIcpAvatarModal] = useState({
     open: false,

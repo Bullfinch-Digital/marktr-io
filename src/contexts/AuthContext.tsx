@@ -7,6 +7,7 @@ import { flushGuestICPsToSupabase } from "../lib/guestICP";
 import { syncOutbox } from "../lib/syncOutbox";
 import { markLeadConverted } from "../lib/leadCapture";
 import { getGuestBrandSeed, clearGuestBrandSeed } from "../lib/guestBrandSeed";
+import { setOAuthNext } from "../utils/oauthRedirect";
 import {
   buildLinkBody,
   clearPendingGuestLink,
@@ -443,13 +444,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // GOOGLE OAUTH
   // --------------------------------------------------------------
   const signInWithGoogle = async (redirectPath = "/dashboard") => {
+    const safePath = redirectPath.startsWith("/") ? redirectPath : "/dashboard";
+    setOAuthNext(safePath);
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
         redirectTo:
           `${window.location.origin}` +
           `/auth/callback?next=` +
-          encodeURIComponent(redirectPath),
+          encodeURIComponent(safePath),
       },
     });
     return { error };

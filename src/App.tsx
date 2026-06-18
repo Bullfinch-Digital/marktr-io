@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { PaywallProvider } from "./contexts/PaywallContext";
 import { AuthModalProvider } from "./contexts/AuthModalContext";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
+import { OAuthReturnHandler } from "./components/auth/OAuthReturnHandler";
 import { AdminRoute } from "./components/auth/AdminRoute";
 import { Header, Footer } from "./components";
 import Home from "./pages/Home";
@@ -78,6 +79,7 @@ export default function App() {
         <PaywallProvider>
           <Router>
             <GA4RouteTracker />
+            <OAuthReturnHandler />
             <div className="min-h-screen bg-background">
               <Routes>
             {/* Public Routes with Header/Footer */}

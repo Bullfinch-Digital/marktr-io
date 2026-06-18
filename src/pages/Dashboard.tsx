@@ -529,14 +529,22 @@ export default function Dashboard() {
               <button
                 key={card.label}
                 type="button"
-                onClick={() => navigate(card.href)}
+                onClick={() => navigate(healthCheck ? card.href : "/health-check")}
                 className="rounded-xl border border-border bg-white p-5 text-left transition-colors hover:border-primary/40"
               >
                 <p className="mb-2 font-['DM_Sans'] text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
                   {card.label}
                 </p>
-                <p className="font-['Fraunces'] text-4xl font-bold leading-none text-primary">{card.value}</p>
-                <p className="mt-1.5 font-['DM_Sans'] text-xs text-muted-foreground">score / 100</p>
+                <p className="font-['Fraunces'] text-4xl font-bold leading-none text-primary">
+                  {healthCheck ? card.value : "—"}
+                </p>
+                {healthCheck ? (
+                  <p className="mt-1.5 font-['DM_Sans'] text-xs text-muted-foreground">score / 100</p>
+                ) : (
+                  <p className="mt-1.5 font-['DM_Sans'] text-xs text-primary">
+                    Run health check →
+                  </p>
+                )}
               </button>
             ))}
           </div>

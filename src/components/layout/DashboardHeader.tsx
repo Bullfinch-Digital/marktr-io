@@ -1,20 +1,16 @@
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "../ui/button";
-import { Moon, Sun, Menu, X, Crown, LogOut, Plus } from "lucide-react";
+import { Moon, Sun, Menu, X, LogOut, Plus } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 
 interface DashboardHeaderProps {
-  userTier: "free" | "paid";
-  onUpgrade: () => void;
   onCreateNew?: () => void;
   guestMode?: boolean;
   onGuestAction?: () => void;
 }
 
 export function DashboardHeader({
-  userTier,
-  onUpgrade,
   onCreateNew,
   guestMode = false,
   onGuestAction,
@@ -68,18 +64,6 @@ export function DashboardHeader({
 
           {/* Right Side Actions */}
           <div className="flex items-center gap-3">
-            {/* Upgrade Badge - Free Users Only */}
-            {userTier === "free" && (
-              <Button
-                onClick={onUpgrade}
-                variant="outline"
-                className="hidden sm:flex border-black rounded-design transition-all hover:scale-[1.02] items-center gap-2 bg-gradient-to-r from-[#FFD336] to-[#FF9922] text-text-dark"
-              >
-                <Crown className="w-4 h-4" />
-                <span className="hidden lg:inline">Upgrade</span>
-              </Button>
-            )}
-
             {/* Sign Out */}
             <Button
               onClick={handleSignOut}
@@ -135,20 +119,6 @@ export function DashboardHeader({
                   Create New ICP
                 </Button>
               )}
-
-              {userTier === "free" && (
-                <Button
-                  onClick={() => {
-                    onUpgrade();
-                    setIsMobileMenuOpen(false);
-                  }}
-                  variant="outline"
-                  className="w-full border-black rounded-design bg-gradient-to-r from-[#FFD336] to-[#FF9922] text-text-dark"
-              >
-                <Crown className="w-4 h-4 mr-2" />
-                Upgrade to Pro
-              </Button>
-            )}
 
               <Button
                 onClick={() => {

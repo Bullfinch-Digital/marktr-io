@@ -62,8 +62,6 @@ export default function DashboardShell({
         <div className="flex-1 flex flex-col min-h-screen">
           <DashboardHeader
             onCreateNew={onCreateNew ?? (() => {})}
-            userTier={userTier === "free" && !trialActive ? "free" : "paid"}
-            onUpgrade={handleUpgrade}
             guestMode={guestMode}
             onGuestAction={onGuestAction}
           />

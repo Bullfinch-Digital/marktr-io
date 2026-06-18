@@ -334,10 +334,7 @@ export default function CollectionView() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
         {/* Header */}
-        <DashboardHeader
-          userTier={userTier === "free" && !trialActive ? "free" : "paid"}
-          onUpgrade={handleUpgrade}
-        />
+        <DashboardHeader />
 
         {/* Content Area */}
         <main className="flex-1 px-6 py-8 lg:px-12">

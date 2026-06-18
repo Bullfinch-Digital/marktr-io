@@ -1,5 +1,5 @@
-import { Link, Navigate, useLocation } from "react-router-dom";
-import { useEffect, useMemo } from "react";
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useRef } from "react";
 import {
   calculateScores,
   type DimensionScore,
@@ -8,6 +8,8 @@ import {
 } from "../lib/healthCheckScoring";
 import { setGuestHealthCheck } from "../lib/guestHealthCheck";
 import { usePaywall } from "../contexts/PaywallContext";
+import { useAuth } from "../contexts/AuthContext";
+import { supabase } from "../config/supabase";
 import useSubscription from "../hooks/useSubscription";
 
 type LocationState = HealthCheckInput | null;
@@ -375,16 +377,18 @@ function ScoreOverviewChip({
 
 export default function HealthCheckResults() {
   const location = useLocation();
+  const navigate = useNavigate();
   const state = (location.state ?? null) as LocationState;
   const { openPaywall } = usePaywall();
+  const { user } = useAuth();
   const { tier } = useSubscription();
   const isPro = tier === "pro";
+  const savedToDbRef = useRef(false);
 
-  if (!state || !state.email?.trim()) {
-    return <Navigate to="/health-check" replace />;
-  }
-
-  const scores = useMemo(() => calculateScores(state), [state]);
+  const scores = useMemo(
+    () => (state?.email?.trim() ? calculateScores(state) : null),
+    [state]
+  );
 
   useEffect(() => {
     if (!state?.email?.trim() || !scores) return;
@@ -407,6 +411,46 @@ export default function HealthCheckResults() {
       created_at: new Date().toISOString(),
     });
   }, [state, scores]);
+
+  useEffect(() => {
+    const isAnonymous = (user as { is_anonymous?: boolean } | null)?.is_anonymous === true;
+    if (!user?.id || isAnonymous || !scores || !state || savedToDbRef.current) return;
+
+    savedToDbRef.current = true;
+
+    const domainValue = state.websiteUrl?.trim()
+      ? extractDomain(state.websiteUrl.trim())
+      : "";
+
+    void supabase
+      .from("health_check_results")
+      .insert({
+        user_id: user.id,
+        domain: domainValue,
+        instagram_handle: state.instagramHandle || "",
+        facebook_url: state.facebookUrl || "",
+        overall_score: scores.overall || 0,
+        scores: {
+          websiteClarity: { score: scores.websiteClarity.score },
+          brandStory: { score: scores.brandStory.score },
+          contentConsistency: { score: scores.contentConsistency.score },
+          socialPresence: { score: scores.socialPresence.score },
+          overall: scores.overall,
+          lowestDimension: scores.lowestDimension,
+          lowestScore: scores.lowestScore,
+        },
+      })
+      .then(({ error }) => {
+        if (error) {
+          console.warn("[HealthCheckResults] save health check failed", error);
+          savedToDbRef.current = false;
+        }
+      });
+  }, [user, scores, state]);
+
+  if (!state || !state.email?.trim() || !scores) {
+    return <Navigate to="/health-check" replace />;
+  }
 
   const domain = state.websiteUrl?.trim() ? extractDomain(state.websiteUrl.trim()) : null;
   const instagramFound = Boolean(state.websiteScore?.socialScores?.instagramFound);
@@ -487,6 +531,27 @@ export default function HealthCheckResults() {
           </div>
         )}
 
+        {isPro && (
+          <div className="mt-6 flex flex-col gap-4 rounded-2xl border border-primary/20 bg-primary/5 px-6 py-5 sm:flex-row sm:items-center">
+            <div className="flex-1">
+              <p className="font-['DM_Sans'] text-sm font-semibold text-foreground">
+                Your scores are saved to your dashboard.
+              </p>
+              <p className="mt-1 font-['DM_Sans'] text-sm text-muted-foreground">
+                Head to your dashboard to track progress, connect your social accounts and get a
+                step-by-step plan to improve every score.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => navigate("/dashboard")}
+              className="shrink-0 whitespace-nowrap rounded-full bg-primary px-5 py-2.5 font-['DM_Sans'] text-sm font-semibold text-white transition-colors hover:bg-primary/90"
+            >
+              Go to dashboard →
+            </button>
+          </div>
+        )}
+
         <div className="mt-8 space-y-6">
           {scoreCards.map(({ key, dimension }) => (
             <div key={key} id={`section-${key}`} className="scroll-mt-24">
@@ -520,6 +585,25 @@ export default function HealthCheckResults() {
             <p className="mt-3 font-['DM_Sans'] text-xs text-white/50">
               14-day free trial · Card details required to start
             </p>
+          </div>
+        )}
+
+        {isPro && (
+          <div className="mt-8 rounded-2xl bg-foreground px-8 py-8 text-background">
+            <h2 className="mb-3 font-['Fraunces'] text-3xl font-semibold">
+              Your scores are saved.
+            </h2>
+            <p className="mb-6 max-w-lg font-['DM_Sans'] text-sm text-background/70">
+              Connect your Instagram and Facebook in the dashboard to unlock real engagement data and a
+              step-by-step improvement plan.
+            </p>
+            <button
+              type="button"
+              onClick={() => navigate("/dashboard")}
+              className="rounded-full bg-primary px-6 py-3 font-['DM_Sans'] text-sm font-semibold text-white transition-colors hover:bg-primary/90"
+            >
+              Go to your dashboard →
+            </button>
           </div>
         )}
       </section>

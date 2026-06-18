@@ -133,7 +133,7 @@ export function LoginModal({
           <div>
             <h2 className="font-['Fraunces'] text-2xl mb-1">Welcome Back</h2>
             <p className="font-['Inter'] text-sm text-foreground/70">
-              Log in to access your ICP Dashboard.
+              Log in to access your dashboard.
             </p>
           </div>
           <button

@@ -145,7 +145,7 @@ async function fetchInstagramPublic(handle: string): Promise<InstagramFetchResul
   try {
     const res = await fetch(
       "https://api.apify.com/v2/acts/apify~instagram-profile-scraper/run-sync-get-dataset-items" +
-        `?token=${apiToken}&timeout=40&memory=256`,
+        `?token=${apiToken}&timeout=25&memory=256`,
       {
         method: "POST",
         headers: {
@@ -154,7 +154,7 @@ async function fetchInstagramPublic(handle: string): Promise<InstagramFetchResul
         body: JSON.stringify({
           usernames: [username],
         }),
-        signal: AbortSignal.timeout(45000),
+        signal: AbortSignal.timeout(28000),
       }
     );
 

@@ -232,6 +232,99 @@ async function resolveUserIdFromCustomer(
   return null;
 }
 
+async function tryMigrateAnonymousSubscriptionToRealUser(
+  supabaseAdmin: ReturnType<typeof createClient>,
+  opts: {
+    anonymousUserId: string;
+    customerEmail: string | null;
+    stripeCustomerId: string | null;
+  }
+) {
+  const { anonymousUserId, customerEmail, stripeCustomerId } = opts;
+  const normalizedEmail = customerEmail?.trim() ?? "";
+  if (!normalizedEmail) return;
+
+  const { data: anonymousAuth, error: anonymousAuthError } =
+    await supabaseAdmin.auth.admin.getUserById(anonymousUserId);
+  if (anonymousAuthError) {
+    console.warn("[stripe-webhook] migrate: anonymous auth lookup failed", {
+      anonymousUserId,
+      error: anonymousAuthError,
+    });
+    return;
+  }
+
+  const isAnonymous =
+    anonymousAuth?.user?.is_anonymous === true ||
+    !anonymousAuth?.user?.email?.trim();
+  if (!isAnonymous) return;
+
+  const { data: matchedProfile, error: profileError } = await supabaseAdmin
+    .from("profiles")
+    .select("id, email")
+    .eq("email", normalizedEmail)
+    .neq("id", anonymousUserId)
+    .maybeSingle();
+
+  if (profileError) {
+    console.warn("[stripe-webhook] migrate: profile lookup failed", profileError);
+    return;
+  }
+  if (!matchedProfile?.id) return;
+
+  const { data: matchedAuth, error: matchedAuthError } =
+    await supabaseAdmin.auth.admin.getUserById(matchedProfile.id);
+  if (matchedAuthError) {
+    console.warn("[stripe-webhook] migrate: matched auth lookup failed", {
+      matchedUserId: matchedProfile.id,
+      error: matchedAuthError,
+    });
+    return;
+  }
+
+  const matchedIsRealUser =
+    matchedAuth?.user?.is_anonymous !== true &&
+    Boolean(matchedAuth?.user?.email?.trim());
+  if (!matchedIsRealUser) return;
+
+  const realUserId = matchedProfile.id;
+
+  const { error: subError } = await supabaseAdmin
+    .from("stripe_subscriptions")
+    .update({ user_id: realUserId, updated_at: new Date().toISOString() })
+    .eq("user_id", anonymousUserId);
+  if (subError) {
+    console.warn("[stripe-webhook] migrate: stripe_subscriptions update failed", subError);
+    return;
+  }
+
+  if (stripeCustomerId) {
+    const { error: customerError } = await supabaseAdmin
+      .from("stripe_customers")
+      .update({ user_id: realUserId })
+      .eq("user_id", anonymousUserId);
+    if (customerError) {
+      console.warn("[stripe-webhook] migrate: stripe_customers update failed", customerError);
+    }
+  }
+
+  const { error: profileUpdateError } = await supabaseAdmin
+    .from("profiles")
+    .update({ subscription_tier: "pro" })
+    .eq("id", realUserId);
+  if (profileUpdateError) {
+    console.warn("[stripe-webhook] migrate: profile tier update failed", profileUpdateError);
+  }
+
+  console.log(
+    "[stripe-webhook] Migrated subscription from anonymous",
+    anonymousUserId,
+    "to real user",
+    realUserId,
+    { email: normalizedEmail }
+  );
+}
+
 async function fetchStripeSubscription(
   stripeSubscriptionId: string,
   stripeSecretKey: string
@@ -534,6 +627,12 @@ Deno.serve(async (req) => {
           }
 
           await handleSubscription(subscription, userId);
+
+          await tryMigrateAnonymousSubscriptionToRealUser(supabaseAdmin, {
+            anonymousUserId: userId,
+            customerEmail: email,
+            stripeCustomerId,
+          });
         }
         break;
       }

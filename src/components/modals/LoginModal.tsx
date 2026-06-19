@@ -127,9 +127,9 @@ export function LoginModal({
       <div className="bg-background border border-black rounded-design shadow-2xl w-full max-w-md p-6">
         <div className="flex items-start justify-between gap-4 mb-4">
           <div>
-            <h2 className="font-['Fraunces'] text-2xl mb-1">Welcome Back</h2>
+            <h2 className="font-['Fraunces'] text-2xl mb-1">Sign in to marktr.</h2>
             <p className="font-['Inter'] text-sm text-foreground/70">
-              Log in to access your dashboard.
+              New here? Signing in with Google creates your account automatically.
             </p>
           </div>
           <button

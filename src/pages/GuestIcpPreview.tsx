@@ -1,7 +1,6 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, type ReactNode } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Lock } from "lucide-react";
-import DashboardShell from "../layouts/DashboardShell";
 import { useAuth } from "../contexts/AuthContext";
 import { isRealUser } from "../utils/isRealUser";
 import { getGuestICPs } from "../lib/guestICP";
@@ -10,6 +9,25 @@ import { Button } from "../components/ui/button";
 import { ICPProfileLayout } from "../components/icp/ICPProfileLayout";
 import { usePaywall } from "../contexts/PaywallContext";
 import useSubscription from "@/hooks/useSubscription";
+
+function GuestPreviewShell({ children }: { children: ReactNode }) {
+  const navigate = useNavigate();
+
+  return (
+    <main className="min-h-screen bg-background">
+      <div className="container mx-auto max-w-7xl px-6 pb-12 pt-8 lg:px-12">
+        <button
+          type="button"
+          onClick={() => navigate("/guest-dashboard")}
+          className="mb-6 font-['DM_Sans'] text-sm font-medium text-primary hover:underline"
+        >
+          ← Back to your dashboard
+        </button>
+        {children}
+      </div>
+    </main>
+  );
+}
 
 export default function GuestIcpPreview() {
   const { index } = useParams<{ index: string }>();
@@ -61,11 +79,7 @@ export default function GuestIcpPreview() {
 
   if (!icp) {
     return (
-      <DashboardShell
-        guestMode
-        onGuestAction={() => openPaywall()}
-        contentClassName="flex-1 px-6 py-8 lg:px-12"
-      >
+      <GuestPreviewShell>
         <div className="max-w-4xl mx-auto text-center space-y-4">
           <h1 className="font-['Fraunces'] text-3xl lg:text-4xl">No ICPs yet</h1>
           <p className="font-['Inter'] text-foreground/70">
@@ -78,16 +92,12 @@ export default function GuestIcpPreview() {
             Create a free ICP
           </Button>
         </div>
-      </DashboardShell>
+      </GuestPreviewShell>
     );
   }
 
   return (
-    <DashboardShell
-      guestMode
-      onGuestAction={() => openPaywall()}
-      contentClassName="flex-1 px-6 py-8 lg:px-12"
-    >
+    <GuestPreviewShell>
       <ICPProfileLayout
         headerLeft={
           <div>
@@ -210,7 +220,7 @@ export default function GuestIcpPreview() {
           ) : null
         }
       />
-    </DashboardShell>
+    </GuestPreviewShell>
   );
 }
 

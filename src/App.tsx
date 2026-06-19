@@ -154,10 +154,10 @@ export default function App() {
               <Route path="/story" element={<StoryBuild />} />
               <Route path="/story/results" element={<StoryResults />} />
               <Route path="/guest-dashboard" element={<GuestDashboardPreview />} />
+              <Route path="/icp-preview/:index" element={<GuestIcpPreview />} />
             </Route>
 
             {/* Other public routes without Header/Footer */}
-          <Route path="/icp-preview/:index" element={<GuestIcpPreview />} />
             <Route path="/paywall-demo" element={<PaywallDemo />} />
             <Route path="/payment-success" element={<PaymentSuccess />} />
             

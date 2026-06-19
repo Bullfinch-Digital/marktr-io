@@ -377,6 +377,8 @@ export type HealthCheckReportViewProps = {
   showDashboardCta: boolean;
   onOpenPaywall?: () => void;
   onGoToDashboard?: () => void;
+  /** When true, omits standalone page chrome (used inside DashboardShell). */
+  embedded?: boolean;
 };
 
 export function HealthCheckReportView({
@@ -386,6 +388,7 @@ export function HealthCheckReportView({
   showDashboardCta,
   onOpenPaywall,
   onGoToDashboard,
+  embedded = false,
 }: HealthCheckReportViewProps) {
   const displayDomain = input.websiteUrl?.trim()
     ? extractDomain(input.websiteUrl.trim())
@@ -418,132 +421,140 @@ export function HealthCheckReportView({
     };
   })();
 
+  const reportContent = (
+    <>
+      <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 font-['DM_Sans'] text-xs font-medium text-primary">
+        Your Digital Health Report
+      </span>
+
+      <h1 className="mt-4 font-['Fraunces'] text-4xl font-bold leading-tight text-[#0D1833] sm:text-5xl">
+        Here&apos;s how your marketing scores today.
+      </h1>
+
+      <p className="mt-4 font-['DM_Sans'] text-base text-muted-foreground">
+        {displayDomain
+          ? `Based on publicly visible data for ${displayDomain}`
+          : "Based on your answers"}
+      </p>
+
+      <div className="mt-8 flex flex-wrap gap-3">
+        <ScoreOverviewChip shortName="Overall" score={scores.overall} featured />
+        {scoreCards.map(({ key, shortName, dimension }) => (
+          <ScoreOverviewChip
+            key={key}
+            shortName={shortName}
+            score={dimension.score}
+            href={`#section-${key}`}
+          />
+        ))}
+      </div>
+
+      {showPaywallUpsell && (
+        <div className="mt-6 flex flex-col gap-4 rounded-2xl border border-primary/20 bg-primary/5 px-6 py-5 sm:flex-row sm:items-center">
+          <div className="flex-1">
+            <p className="font-['DM_Sans'] text-sm font-semibold text-foreground">
+              Want the full picture?
+            </p>
+            <p className="mt-1 font-['DM_Sans'] text-sm text-muted-foreground">
+              This report is based on publicly visible data. Connect your social accounts in the
+              dashboard to unlock real engagement data, audience analysis and a step-by-step plan to
+              improve every score.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => onOpenPaywall?.()}
+            className="shrink-0 whitespace-nowrap rounded-full bg-primary px-5 py-2.5 font-['DM_Sans'] text-sm font-semibold text-white transition-colors hover:bg-primary/90"
+          >
+            Start free trial →
+          </button>
+        </div>
+      )}
+
+      {showDashboardCta && (
+        <div className="mt-6 flex flex-col gap-4 rounded-2xl border border-primary/20 bg-primary/5 px-6 py-5 sm:flex-row sm:items-center">
+          <div className="flex-1">
+            <p className="font-['DM_Sans'] text-sm font-semibold text-foreground">
+              Your scores are saved to your dashboard.
+            </p>
+            <p className="mt-1 font-['DM_Sans'] text-sm text-muted-foreground">
+              Head to your dashboard to track progress, connect your social accounts and get a
+              step-by-step plan to improve every score.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => onGoToDashboard?.()}
+            className="shrink-0 whitespace-nowrap rounded-full bg-primary px-5 py-2.5 font-['DM_Sans'] text-sm font-semibold text-white transition-colors hover:bg-primary/90"
+          >
+            Go to dashboard →
+          </button>
+        </div>
+      )}
+
+      <div className="mt-8 space-y-6">
+        {scoreCards.map(({ key, dimension }) => (
+          <div key={key} id={`section-${key}`} className="scroll-mt-24">
+            <ScoreCard
+              dimension={dimension}
+              dataSourceLabel={getDataSourceLabel(dimension.name, input, displayDomain)}
+              instagramFound={instagramFound}
+            />
+          </div>
+        ))}
+      </div>
+
+      {showPaywallUpsell && (
+        <div className="mt-8 rounded-2xl bg-[#0D1833] p-8">
+          <h2 className="font-['Fraunces'] text-3xl font-bold leading-tight text-white">
+            Your {paywallDimension.name} score is {paywallDimension.score}. Here&apos;s what that
+            means.
+          </h2>
+          <p className="mt-4 max-w-2xl font-['DM_Sans'] text-base leading-relaxed text-white/70">
+            This report is based on what marktr can see publicly. Connect your Instagram and
+            Facebook inside your dashboard to unlock real engagement data, audience analysis and a
+            step-by-step plan to fix your lowest scores. Completely free for 14 days.
+          </p>
+
+          <Link
+            to="/guest-dashboard"
+            className="mt-8 inline-flex items-center justify-center rounded-full bg-primary px-7 py-3 font-['DM_Sans'] text-sm font-medium text-primary-foreground hover:opacity-90"
+          >
+            Unlock your full dashboard — free for 14 days
+          </Link>
+
+          <p className="mt-3 font-['DM_Sans'] text-xs text-white/50">
+            14-day free trial · Card details required to start
+          </p>
+        </div>
+      )}
+
+      {showDashboardCta && (
+        <div className="mt-8 rounded-2xl bg-[#0D1833] px-8 py-8 text-white">
+          <h2 className="mb-3 font-['Fraunces'] text-3xl font-semibold">Your scores are saved.</h2>
+          <p className="mb-6 max-w-lg font-['DM_Sans'] text-sm text-white/70">
+            Connect your Instagram and Facebook in the dashboard to unlock real engagement data and a
+            step-by-step improvement plan.
+          </p>
+          <button
+            type="button"
+            onClick={() => onGoToDashboard?.()}
+            className="rounded-full bg-primary px-6 py-3 font-['DM_Sans'] text-sm font-semibold text-white transition-colors hover:bg-primary/90"
+          >
+            Go to your dashboard →
+          </button>
+        </div>
+      )}
+    </>
+  );
+
+  if (embedded) {
+    return <div className="max-w-5xl">{reportContent}</div>;
+  }
+
   return (
     <main className="min-h-screen bg-background">
-      <section className="mx-auto max-w-3xl px-6 py-12">
-        <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 font-['DM_Sans'] text-xs font-medium text-primary">
-          Your Digital Health Report
-        </span>
-
-        <h1 className="mt-4 font-['Fraunces'] text-4xl font-bold leading-tight text-[#0D1833] sm:text-5xl">
-          Here&apos;s how your marketing scores today.
-        </h1>
-
-        <p className="mt-4 font-['DM_Sans'] text-base text-muted-foreground">
-          {displayDomain
-            ? `Based on publicly visible data for ${displayDomain}`
-            : "Based on your answers"}
-        </p>
-
-        <div className="mt-8 flex flex-wrap gap-3">
-          <ScoreOverviewChip shortName="Overall" score={scores.overall} featured />
-          {scoreCards.map(({ key, shortName, dimension }) => (
-            <ScoreOverviewChip
-              key={key}
-              shortName={shortName}
-              score={dimension.score}
-              href={`#section-${key}`}
-            />
-          ))}
-        </div>
-
-        {showPaywallUpsell && (
-          <div className="mt-6 flex flex-col gap-4 rounded-2xl border border-primary/20 bg-primary/5 px-6 py-5 sm:flex-row sm:items-center">
-            <div className="flex-1">
-              <p className="font-['DM_Sans'] text-sm font-semibold text-foreground">
-                Want the full picture?
-              </p>
-              <p className="mt-1 font-['DM_Sans'] text-sm text-muted-foreground">
-                This report is based on publicly visible data. Connect your social accounts in the
-                dashboard to unlock real engagement data, audience analysis and a step-by-step plan to
-                improve every score.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => onOpenPaywall?.()}
-              className="shrink-0 whitespace-nowrap rounded-full bg-primary px-5 py-2.5 font-['DM_Sans'] text-sm font-semibold text-white transition-colors hover:bg-primary/90"
-            >
-              Start free trial →
-            </button>
-          </div>
-        )}
-
-        {showDashboardCta && (
-          <div className="mt-6 flex flex-col gap-4 rounded-2xl border border-primary/20 bg-primary/5 px-6 py-5 sm:flex-row sm:items-center">
-            <div className="flex-1">
-              <p className="font-['DM_Sans'] text-sm font-semibold text-foreground">
-                Your scores are saved to your dashboard.
-              </p>
-              <p className="mt-1 font-['DM_Sans'] text-sm text-muted-foreground">
-                Head to your dashboard to track progress, connect your social accounts and get a
-                step-by-step plan to improve every score.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => onGoToDashboard?.()}
-              className="shrink-0 whitespace-nowrap rounded-full bg-primary px-5 py-2.5 font-['DM_Sans'] text-sm font-semibold text-white transition-colors hover:bg-primary/90"
-            >
-              Go to dashboard →
-            </button>
-          </div>
-        )}
-
-        <div className="mt-8 space-y-6">
-          {scoreCards.map(({ key, dimension }) => (
-            <div key={key} id={`section-${key}`} className="scroll-mt-24">
-              <ScoreCard
-                dimension={dimension}
-                dataSourceLabel={getDataSourceLabel(dimension.name, input, displayDomain)}
-                instagramFound={instagramFound}
-              />
-            </div>
-          ))}
-        </div>
-
-        {showPaywallUpsell && (
-          <div className="mt-8 rounded-2xl bg-[#0D1833] p-8">
-            <h2 className="font-['Fraunces'] text-3xl font-bold leading-tight text-white">
-              Your {paywallDimension.name} score is {paywallDimension.score}. Here&apos;s what that
-              means.
-            </h2>
-            <p className="mt-4 max-w-2xl font-['DM_Sans'] text-base leading-relaxed text-white/70">
-              This report is based on what marktr can see publicly. Connect your Instagram and
-              Facebook inside your dashboard to unlock real engagement data, audience analysis and a
-              step-by-step plan to fix your lowest scores. Completely free for 14 days.
-            </p>
-
-            <Link
-              to="/guest-dashboard"
-              className="mt-8 inline-flex items-center justify-center rounded-full bg-primary px-7 py-3 font-['DM_Sans'] text-sm font-medium text-primary-foreground hover:opacity-90"
-            >
-              Unlock your full dashboard — free for 14 days
-            </Link>
-
-            <p className="mt-3 font-['DM_Sans'] text-xs text-white/50">
-              14-day free trial · Card details required to start
-            </p>
-          </div>
-        )}
-
-        {showDashboardCta && (
-          <div className="mt-8 rounded-2xl bg-[#0D1833] px-8 py-8 text-white">
-            <h2 className="mb-3 font-['Fraunces'] text-3xl font-semibold">Your scores are saved.</h2>
-            <p className="mb-6 max-w-lg font-['DM_Sans'] text-sm text-white/70">
-              Connect your Instagram and Facebook in the dashboard to unlock real engagement data and a
-              step-by-step improvement plan.
-            </p>
-            <button
-              type="button"
-              onClick={() => onGoToDashboard?.()}
-              className="rounded-full bg-primary px-6 py-3 font-['DM_Sans'] text-sm font-semibold text-white transition-colors hover:bg-primary/90"
-            >
-              Go to your dashboard →
-            </button>
-          </div>
-        )}
-      </section>
+      <section className="mx-auto max-w-3xl px-6 py-12">{reportContent}</section>
     </main>
   );
 }

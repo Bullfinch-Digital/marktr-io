@@ -3,8 +3,7 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../config/supabase";
-import useSubscription from "../hooks/useSubscription";
-import useProfile from "../hooks/useProfile";
+import DashboardShell from "../layouts/DashboardShell";
 import { HealthCheckReportView } from "../components/healthCheck/HealthCheckReportView";
 import { parseStoredScores } from "../lib/healthCheckReportStorage";
 
@@ -18,19 +17,8 @@ type HealthCheckRow = {
 export default function HealthReport() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
-  const { isPro: subscriptionIsPro, loading: subscriptionLoading } = useSubscription();
-  const { profile } = useProfile(user?.id ?? null);
   const [report, setReport] = useState<HealthCheckRow | null>(null);
   const [loading, setLoading] = useState(true);
-
-  const isLoggedInReal = Boolean(
-    user && !(user as { is_anonymous?: boolean }).is_anonymous
-  );
-  const hasPaidAccess =
-    subscriptionIsPro || profile?.subscription_tier === "pro";
-  const showDashboardCta =
-    hasPaidAccess || (isLoggedInReal && subscriptionLoading);
-  const showPaywallUpsell = !showDashboardCta;
 
   useEffect(() => {
     if (authLoading) return;
@@ -64,16 +52,18 @@ export default function HealthReport() {
     };
   }, [authLoading, user?.id]);
 
-  if (authLoading || loading) {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </main>
-    );
+  if (!authLoading && !user?.id) {
+    return <Navigate to="/login" replace />;
   }
 
-  if (!user?.id) {
-    return <Navigate to="/login" replace />;
+  if (authLoading || loading) {
+    return (
+      <DashboardShell>
+        <div className="flex items-center justify-center py-24">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </DashboardShell>
+    );
   }
 
   const parsed = report ? parseStoredScores(report.scores) : null;
@@ -88,18 +78,21 @@ export default function HealthReport() {
     : "";
 
   return (
-    <HealthCheckReportView
-      scores={parsed.scores}
-      input={{
-        websiteUrl,
-        instagramHandle: report.instagram_handle ?? "",
-        facebookUrl: report.facebook_url ?? "",
-        websiteScore: parsed.websiteScore,
-      }}
-      showPaywallUpsell={showPaywallUpsell}
-      showDashboardCta={showDashboardCta}
-      onOpenPaywall={() => navigate("/health-check")}
-      onGoToDashboard={() => navigate("/dashboard")}
-    />
+    <DashboardShell onCreateNew={() => navigate("/onboarding-build")}>
+      <HealthCheckReportView
+        embedded
+        scores={parsed.scores}
+        input={{
+          websiteUrl,
+          instagramHandle: report.instagram_handle ?? "",
+          facebookUrl: report.facebook_url ?? "",
+          websiteScore: parsed.websiteScore,
+        }}
+        showPaywallUpsell={false}
+        showDashboardCta={false}
+        onOpenPaywall={() => navigate("/health-check")}
+        onGoToDashboard={() => navigate("/dashboard")}
+      />
+    </DashboardShell>
   );
 }

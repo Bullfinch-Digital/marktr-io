@@ -49,7 +49,7 @@ export default function IcpReport() {
   }
 
   if (!user?.id) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/" replace />;
   }
 
   if (icpCount === 0) {

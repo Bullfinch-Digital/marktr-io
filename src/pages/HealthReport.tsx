@@ -53,7 +53,7 @@ export default function HealthReport() {
   }, [authLoading, user?.id]);
 
   if (!authLoading && !user?.id) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/" replace />;
   }
 
   if (authLoading || loading) {

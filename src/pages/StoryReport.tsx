@@ -79,7 +79,7 @@ export default function StoryReport() {
   }
 
   if (!user?.id) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/" replace />;
   }
 
   if (!story) {

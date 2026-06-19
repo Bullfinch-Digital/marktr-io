@@ -72,7 +72,8 @@ function GA4RouteTracker() {
 function AuthRedirect() {
   const { user, loading } = useAuth();
   if (loading) return null;
-  return <Navigate to={user ? "/dashboard" : "/guest-dashboard"} replace />;
+  const isRealUser = user && !(user as any).is_anonymous;
+  return <Navigate to={isRealUser ? "/dashboard" : "/"} replace />;
 }
 
 export default function App() {
@@ -136,7 +137,7 @@ export default function App() {
             } />
             <Route path="/terms" element={<Navigate to="/terms-of-service" replace />} />
             
-            {/* Auth Routes */}
+            {/* Auth Routes — /login and /signup are legacy entry points; AuthRedirect sends real users to /dashboard, others to / */}
             <Route path="/login" element={<AuthRedirect />} />
             <Route path="/signup" element={<AuthRedirect />} />
             <Route path="/beta-signup" element={<BetaSignup />} />

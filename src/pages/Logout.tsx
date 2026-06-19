@@ -9,7 +9,7 @@ export default function Logout() {
   useEffect(() => {
     const handleLogout = async () => {
       await signOut();
-      navigate("/login");
+      navigate("/");
     };
 
     handleLogout();

@@ -31,11 +31,7 @@ export function LoginModal({
 }: LoginModalProps) {
   const { signInWithGoogle } = useAuth();
   const handleClose = () => {
-    const params = new URLSearchParams(window.location.search);
-    const next = params.get("next");
-    const target = next && next.startsWith("/") ? next : "/guest-dashboard";
     onClose();
-    window.location.assign(`${window.location.origin}${target}`);
   };
 
   const redirectAfterLogin = async () => {

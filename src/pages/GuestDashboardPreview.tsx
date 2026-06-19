@@ -64,10 +64,14 @@ export default function GuestDashboardPreview() {
     if (hasStory && !hasICPs && !hasHealth) return "Your brand story is ready.";
     if (hasICPs && !hasStory && !hasHealth) return "Your ideal customers, defined.";
     if (hasHealth && !hasICPs && !hasStory) return "Your digital health scores are in.";
+    if (completedCount === 0) return "Welcome to marktr.";
     return "Your marktr results are ready.";
   })();
 
   const headerSubtitle = (() => {
+    if (completedCount === 0) {
+      return "Start with one of our free tools below — no account needed.";
+    }
     if (completedCount === 3) {
       return "You've completed all three steps. Sign up free to save your work and unlock your full dashboard.";
     }

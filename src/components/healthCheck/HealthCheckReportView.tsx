@@ -386,7 +386,6 @@ export function HealthCheckReportView({
   input,
   showPaywallUpsell,
   showDashboardCta,
-  onOpenPaywall,
   onGoToDashboard,
   embedded = false,
 }: HealthCheckReportViewProps) {
@@ -402,24 +401,6 @@ export function HealthCheckReportView({
   ];
 
   const instagramFound = Boolean(input.websiteScore?.socialScores?.instagramFound);
-
-  const paywallDimension = (() => {
-    if (scores.lowestScore === 0) {
-      const nonZero = [
-        scores.websiteClarity,
-        scores.brandStory,
-        scores.contentConsistency,
-        scores.socialPresence,
-      ]
-        .filter((d) => d.score > 0)
-        .sort((a, b) => a.score - b.score);
-      return nonZero[0] ?? scores.websiteClarity;
-    }
-    return {
-      name: scores.lowestDimension,
-      score: scores.lowestScore,
-    };
-  })();
 
   const reportContent = (
     <>
@@ -453,21 +434,20 @@ export function HealthCheckReportView({
         <div className="mt-6 flex flex-col gap-4 rounded-2xl border border-primary/20 bg-primary/5 px-6 py-5 sm:flex-row sm:items-center">
           <div className="flex-1">
             <p className="font-['DM_Sans'] text-sm font-semibold text-foreground">
-              Want the full picture?
+              This is just the start.
             </p>
             <p className="mt-1 font-['DM_Sans'] text-sm text-muted-foreground">
-              This report is based on publicly visible data. Connect your social accounts in the
-              dashboard to unlock real engagement data, audience analysis and a step-by-step plan to
-              improve every score.
+              Your digital health scores are based on what&apos;s publicly visible. Complete your brand
+              story and ideal customer profile to get the full picture — then marktr builds your entire
+              content strategy around it.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => onOpenPaywall?.()}
+          <Link
+            to="/guest-dashboard"
             className="shrink-0 whitespace-nowrap rounded-full bg-primary px-5 py-2.5 font-['DM_Sans'] text-sm font-semibold text-white transition-colors hover:bg-primary/90"
           >
-            Start free trial →
-          </button>
+            Complete your profile →
+          </Link>
         </div>
       )}
 
@@ -507,24 +487,22 @@ export function HealthCheckReportView({
       {showPaywallUpsell && (
         <div className="mt-8 rounded-2xl bg-[#0D1833] p-8">
           <h2 className="font-['Fraunces'] text-3xl font-bold leading-tight text-white">
-            Your {paywallDimension.name} score is {paywallDimension.score}. Here&apos;s what that
-            means.
+            Ready to turn these scores into a plan?
           </h2>
           <p className="mt-4 max-w-2xl font-['DM_Sans'] text-base leading-relaxed text-white/70">
-            This report is based on what marktr can see publicly. Connect your Instagram and
-            Facebook inside your dashboard to unlock real engagement data, audience analysis and a
-            step-by-step plan to fix your lowest scores. Completely free for 14 days.
+            You&apos;ve seen where you stand. Now complete your ideal customer profile and brand story
+            — marktr uses all three to build a content strategy that&apos;s specific to your business.
           </p>
 
           <Link
             to="/guest-dashboard"
             className="mt-8 inline-flex items-center justify-center rounded-full bg-primary px-7 py-3 font-['DM_Sans'] text-sm font-medium text-primary-foreground hover:opacity-90"
           >
-            Unlock your full dashboard — free for 14 days
+            Build the full picture →
           </Link>
 
           <p className="mt-3 font-['DM_Sans'] text-xs text-white/50">
-            14-day free trial · Card details required to start
+            Free to start · No account needed
           </p>
         </div>
       )}

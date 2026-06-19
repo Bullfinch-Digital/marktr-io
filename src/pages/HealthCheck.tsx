@@ -9,7 +9,7 @@ import { AlreadyCompletedPrompt } from "../components/AlreadyCompletedPrompt";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../config/supabase";
 import type { SocialScores, StoryAssessment } from "../lib/healthCheckScoring";
-import { normaliseFacebookUrl } from "../lib/normaliseFacebookUrl";
+import { formatFacebookInput, normaliseFacebookUrl } from "../lib/normaliseFacebookUrl";
 
 type Step = "welcome" | "inputs" | "loading";
 
@@ -376,8 +376,13 @@ export default function HealthCheck() {
                 id="facebookUrl"
                 type="text"
                 value={formData.facebookUrl}
-                onChange={(e) => setFormData((prev) => ({ ...prev, facebookUrl: e.target.value }))}
-                placeholder="facebook.com/yourbusiness or yourbusiness"
+                onChange={(e) => {
+                  setFormData((prev) => ({
+                    ...prev,
+                    facebookUrl: formatFacebookInput(e.target.value),
+                  }));
+                }}
+                placeholder="yourbusiness (or full URL)"
                 className="border border-black rounded-design bg-white px-4 py-6 text-foreground placeholder:text-foreground/40"
               />
               <WhisperButton
@@ -388,7 +393,7 @@ export default function HealthCheck() {
                     ...prev,
                     facebookUrl: prev.facebookUrl.trim()
                       ? `${prev.facebookUrl.trim()} ${trimmed}`
-                      : trimmed,
+                      : formatFacebookInput(trimmed),
                   }));
                 }}
                 className="pt-1"

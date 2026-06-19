@@ -9,6 +9,7 @@ import { AlreadyCompletedPrompt } from "../components/AlreadyCompletedPrompt";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../config/supabase";
 import type { SocialScores, StoryAssessment } from "../lib/healthCheckScoring";
+import { normaliseFacebookUrl } from "../lib/normaliseFacebookUrl";
 
 type Step = "welcome" | "inputs" | "loading";
 
@@ -145,6 +146,8 @@ export default function HealthCheck() {
         socialScores?: SocialScores | null;
       } | null = null;
 
+      const facebookUrl = normaliseFacebookUrl(formData.facebookUrl);
+
       const apiPromise = (async () => {
         if (!formData.websiteUrl?.trim()) return;
 
@@ -153,7 +156,7 @@ export default function HealthCheck() {
             body: {
               websiteUrl: formData.websiteUrl.trim(),
               instagramHandle: formData.instagramHandle?.trim() || undefined,
-              facebookUrl: formData.facebookUrl?.trim() || undefined,
+              facebookUrl: facebookUrl || undefined,
             },
           });
           if (data?.score !== undefined) {
@@ -207,6 +210,7 @@ export default function HealthCheck() {
         navigate("/health-check/results", {
           state: {
             ...formData,
+            facebookUrl,
             email: emailToUse,
             websiteScore,
           },
@@ -370,10 +374,10 @@ export default function HealthCheck() {
             <div className="flex items-start gap-2">
               <Input
                 id="facebookUrl"
-                type="url"
+                type="text"
                 value={formData.facebookUrl}
                 onChange={(e) => setFormData((prev) => ({ ...prev, facebookUrl: e.target.value }))}
-                placeholder="facebook.com/yourbusiness"
+                placeholder="facebook.com/yourbusiness or yourbusiness"
                 className="border border-black rounded-design bg-white px-4 py-6 text-foreground placeholder:text-foreground/40"
               />
               <WhisperButton

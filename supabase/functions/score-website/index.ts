@@ -110,6 +110,23 @@ function normaliseUrl(url: string) {
   return `https://${trimmed}`;
 }
 
+function normaliseFacebookUrl(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+
+  const withoutAt = trimmed.replace(/^@+/, "").replace(/^\/+/, "");
+
+  if (/facebook\.com/i.test(withoutAt)) {
+    if (/^https?:\/\//i.test(withoutAt)) return withoutAt;
+    return `https://${withoutAt.replace(/^\/\//, "")}`;
+  }
+
+  const slug = withoutAt.split(/[/?#]/)[0]?.trim();
+  if (!slug) return "";
+
+  return `https://facebook.com/${slug}`;
+}
+
 async function fetchPage(baseUrl: string, path: string): Promise<string> {
   try {
     const url = baseUrl.replace(/\/+$/, "") + path;
@@ -244,11 +261,8 @@ async function fetchFacebookPublic(facebookUrl: string): Promise<FacebookFetchRe
   const empty: FacebookFetchResult = { signals: "", found: false };
 
   try {
-    if (!facebookUrl.trim()) return empty;
-
-    const url = facebookUrl.startsWith("http")
-      ? facebookUrl
-      : `https://${facebookUrl}`;
+    const url = normaliseFacebookUrl(facebookUrl);
+    if (!url) return empty;
 
     const res = await fetch(url, {
       headers: {

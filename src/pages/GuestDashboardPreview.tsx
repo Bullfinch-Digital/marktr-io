@@ -1,7 +1,6 @@
 import { useEffect, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Activity, BookOpen, Users } from "lucide-react";
-import DashboardShell from "../layouts/DashboardShell";
 import { Button } from "../components/ui/button";
 import { ICPPreviewCard } from "../components/cards/ICPPreviewCard";
 import { usePaywall } from "../contexts/PaywallContext";
@@ -20,10 +19,11 @@ export default function GuestDashboardPreview() {
   const guestHealth = getGuestHealthCheck();
 
   useEffect(() => {
-    if (user?.id) {
+    const isRealUser = user && !(user as { is_anonymous?: boolean }).is_anonymous;
+    if (isRealUser) {
       navigate("/dashboard", { replace: true });
     }
-  }, [user?.id, navigate]);
+  }, [user, navigate]);
 
   const brandSeed = getGuestBrandSeed();
   const guestBrand = useMemo(
@@ -89,12 +89,8 @@ export default function GuestDashboardPreview() {
   };
 
   return (
-    <DashboardShell
-      contentClassName="flex-1 px-6 py-8 lg:px-12"
-      guestMode
-      onGuestAction={() => openPaywall()}
-    >
-      <div className="-mx-6 mb-8 flex flex-col gap-3 bg-primary px-6 py-3 sm:flex-row sm:items-center sm:justify-between lg:-mx-12 lg:px-12">
+    <main className="min-h-screen bg-background">
+      <div className="mb-8 flex flex-col gap-3 bg-primary px-6 py-3 sm:flex-row sm:items-center sm:justify-between lg:px-12">
         <p className="font-['DM_Sans'] text-sm font-medium text-white">
           Your results are stored temporarily in your browser. Sign up free to save them permanently.
         </p>
@@ -106,7 +102,7 @@ export default function GuestDashboardPreview() {
         </Button>
       </div>
 
-      <div className="mx-auto max-w-7xl space-y-10 pb-12">
+      <div className="container mx-auto max-w-7xl space-y-10 px-6 pb-12 pt-8 lg:px-12">
         <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="mb-2 font-['Fraunces'] text-3xl text-[#0D1833] lg:text-4xl">{headerTitle}</h1>
@@ -309,6 +305,6 @@ export default function GuestDashboardPreview() {
           </div>
         </div>
       </div>
-    </DashboardShell>
+    </main>
   );
 }

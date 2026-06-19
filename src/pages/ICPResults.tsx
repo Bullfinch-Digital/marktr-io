@@ -30,8 +30,9 @@ export default function ICPResults() {
   const { openPaywall } = usePaywall();
   const { openLogin } = useAuthModal();
   const [guestICPs, setGuestICPsState] = useState<any[]>([]);
-  const isGuest = !user;
-  const dashboardPath = user ? "/dashboard" : "/guest-dashboard";
+  const isRealUser = Boolean(user && !(user as { is_anonymous?: boolean }).is_anonymous);
+  const isGuest = !isRealUser;
+  const dashboardPath = isRealUser ? "/dashboard" : "/guest-dashboard";
   const brandSeed = useMemo(() => getGuestBrandSeed(), []);
 
   const handleGoToDashboard = () => {
@@ -51,14 +52,14 @@ export default function ICPResults() {
   }, []);
 
   useEffect(() => {
-    if (user) {
+    if (isRealUser) {
       const timeout = setTimeout(() => {
         navigate("/dashboard");
       }, 800);
 
       return () => clearTimeout(timeout);
     }
-  }, [user, navigate]);
+  }, [isRealUser, navigate]);
 
   const icpData: ICPData[] = useMemo(() => {
     // 1) Prefer guest generated ICPs (from onboarding)

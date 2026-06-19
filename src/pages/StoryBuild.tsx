@@ -5,11 +5,13 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Textarea } from "../components/ui/textarea";
 import { WhisperButton } from "../components/ui/WhisperButton";
+import { AlreadyCompletedPrompt } from "../components/AlreadyCompletedPrompt";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../config/supabase";
 import type { BrandStoryOutput } from "./StoryResults";
 
 type StoryStep =
+  | "intro"
   | "q1"
   | "q2"
   | "q3"
@@ -51,7 +53,7 @@ const QUESTIONS: { heading: string; subtext: string }[] = [
   },
 ];
 
-const STEP_TO_Q_INDEX: Record<Exclude<StoryStep, "email" | "loading">, number> = {
+const STEP_TO_Q_INDEX: Record<Exclude<StoryStep, "email" | "loading" | "intro">, number> = {
   q1: 0,
   q2: 1,
   q3: 2,
@@ -103,10 +105,10 @@ function AnalysisMessage({ messages }: { messages: readonly string[] }) {
 
 const STEP_ORDER: StoryStep[] = ["q1", "q2", "q3", "email", "q4", "q5", "q6", "q7"];
 
-type QuestionOnlyStep = Exclude<StoryStep, "email" | "loading">;
+type QuestionOnlyStep = Exclude<StoryStep, "email" | "loading" | "intro">;
 
-function isQuestionStep(step: StoryStep): step is keyof typeof STEP_TO_Q_INDEX {
-  return step !== "email" && step !== "loading";
+function isQuestionStep(step: StoryStep): step is QuestionOnlyStep {
+  return step !== "email" && step !== "loading" && step !== "intro";
 }
 
 export default function StoryBuild() {
@@ -114,6 +116,9 @@ export default function StoryBuild() {
   const { user } = useAuth();
   const isLoggedIn = Boolean(user && !(user as { is_anonymous?: boolean }).is_anonymous);
   const [step, setStep] = useState<StoryStep>("q1");
+  const [existingRun, setExistingRun] = useState<{ id: string; created_at: string } | null>(
+    null
+  );
   const [answers, setAnswers] = useState<string[]>(() => Array(7).fill(""));
   const [draft, setDraft] = useState("");
   const [email, setEmail] = useState("");
@@ -121,6 +126,34 @@ export default function StoryBuild() {
   const [checklistDone, setChecklistDone] = useState(false);
 
   const questionIndex = isQuestionStep(step) ? STEP_TO_Q_INDEX[step] : null;
+
+  useEffect(() => {
+    if (!isLoggedIn || !user?.id) {
+      setExistingRun(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    void supabase
+      .from("brand_story_results")
+      .select("id, created_at")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (cancelled) return;
+        if (data?.id && data?.created_at) {
+          setExistingRun({ id: data.id, created_at: data.created_at });
+          setStep("intro");
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isLoggedIn, user?.id]);
 
   useEffect(() => {
     if (questionIndex === null) return;
@@ -276,6 +309,28 @@ export default function StoryBuild() {
       setStep(qOnly[i + 1]!);
     }
   };
+
+  const renderIntro = () => (
+    <section className="relative mx-auto flex min-h-screen w-full max-w-3xl flex-col justify-center px-6 py-12">
+      <div className="mb-8">
+        <Link
+          to="/"
+          className="inline-flex items-center gap-2 font-['DM_Sans'] text-sm text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to home
+        </Link>
+      </div>
+      {existingRun && (
+        <AlreadyCompletedPrompt
+          toolName="Brand Story"
+          reportPath="/story-report"
+          createdAt={existingRun.created_at}
+          onRunAgain={() => setStep("q1")}
+        />
+      )}
+    </section>
+  );
 
   const renderQuestion = () => {
     if (questionIndex === null) return null;
@@ -457,6 +512,7 @@ export default function StoryBuild() {
 
   return (
     <main className="min-h-screen bg-background">
+      {step === "intro" && renderIntro()}
       {isQuestionStep(step) && renderQuestion()}
       {step === "email" && renderEmail()}
       {step === "loading" && renderLoading()}

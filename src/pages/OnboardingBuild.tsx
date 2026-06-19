@@ -4,6 +4,7 @@ import { ArrowLeft, Home } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { ProgressBar } from "../components/onboarding/ProgressBar";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
+import { AlreadyCompletedPrompt } from "../components/AlreadyCompletedPrompt";
 import { useICPs } from "../hooks/useICPs";
 import useSubscription from "../hooks/useSubscription";
 import { canCreateICP } from "../config/accessRules";
@@ -76,6 +77,10 @@ export default function OnboardingBuild() {
   const [leadToken, setLeadToken] = useState<string | null>(null);
   const turnstileConfigured = Boolean((import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined)?.trim());
   const [currentStep, setCurrentStep] = useState<Step>("1_Welcome");
+  const [existingIcpRun, setExistingIcpRun] = useState<{ id: string; created_at: string } | null>(
+    null
+  );
+  const [icpPromptDismissed, setIcpPromptDismissed] = useState(false);
   const hasRunRef = useRef(false);
   const hasPersistedRef = useRef(false);
   const unsavedPreviewRef = useRef(false);
@@ -103,6 +108,36 @@ export default function OnboardingBuild() {
       console.warn("[Onboarding] anonymous sign-in failed", err);
     });
   }, [authLoading, user]);
+
+  useEffect(() => {
+    if (!isLoggedIn || !user?.id) {
+      setExistingIcpRun(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    void supabase
+      .from("icps")
+      .select("id, created_at")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!cancelled) {
+          setExistingIcpRun(
+            data?.id && data?.created_at
+              ? { id: data.id, created_at: data.created_at }
+              : null
+          );
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isLoggedIn, user?.id]);
 
   const captureLead = useCallback(
     async (email: string, token: string | null) => {
@@ -556,6 +591,16 @@ export default function OnboardingBuild() {
   const renderScreen = () => {
     switch (currentStep) {
       case "1_Welcome":
+        if (existingIcpRun && !icpPromptDismissed && isLoggedIn) {
+          return (
+            <AlreadyCompletedPrompt
+              toolName="Know Your Customer"
+              reportPath="/icp-report"
+              createdAt={existingIcpRun.created_at}
+              onRunAgain={() => setIcpPromptDismissed(true)}
+            />
+          );
+        }
         return <WelcomeScreen onContinue={handleNext} />;
       
       case "2_Name":
@@ -847,7 +892,7 @@ export default function OnboardingBuild() {
                 )}
 
                 {/* Welcome Screen Button */}
-                {currentStep === "1_Welcome" && (
+                {currentStep === "1_Welcome" && !(existingIcpRun && !icpPromptDismissed && isLoggedIn) && (
                   <div className="mt-8 animate-fade-in-up delay-300">
                     <Button
                       onClick={handleNext}

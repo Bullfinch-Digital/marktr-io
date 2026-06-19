@@ -11,8 +11,11 @@ import Home from "./pages/Home";
 import OnboardingBuild from "./pages/OnboardingBuild";
 import HealthCheck from "./pages/HealthCheck";
 import HealthCheckResults from "./pages/HealthCheckResults";
+import HealthReport from "./pages/HealthReport";
 import StoryBuild from "./pages/StoryBuild";
 import StoryResults from "./pages/StoryResults";
+import StoryReport from "./pages/StoryReport";
+import IcpReport from "./pages/IcpReport";
 import GuestDashboardPreview from "./pages/GuestDashboardPreview";
 import Dashboard from "./pages/Dashboard";
 import ICPEditor from "./pages/ICPEditor";
@@ -161,6 +164,21 @@ export default function App() {
             <Route path="/dashboard" element={
               <ProtectedRoute>
                 <Dashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/health-report" element={
+              <ProtectedRoute>
+                <HealthReport />
+              </ProtectedRoute>
+            } />
+            <Route path="/story-report" element={
+              <ProtectedRoute>
+                <StoryReport />
+              </ProtectedRoute>
+            } />
+            <Route path="/icp-report" element={
+              <ProtectedRoute>
+                <IcpReport />
               </ProtectedRoute>
             } />
             <Route path="/icp/:id" element={

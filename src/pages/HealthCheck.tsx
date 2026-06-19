@@ -5,6 +5,7 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { WhisperButton } from "../components/ui/WhisperButton";
+import { AlreadyCompletedPrompt } from "../components/AlreadyCompletedPrompt";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../config/supabase";
 import type { SocialScores, StoryAssessment } from "../lib/healthCheckScoring";
@@ -63,6 +64,10 @@ export default function HealthCheck() {
   const { user } = useAuth();
   const isLoggedIn = Boolean(user && !(user as { is_anonymous?: boolean }).is_anonymous);
   const [step, setStep] = useState<Step>("welcome");
+  const [existingRun, setExistingRun] = useState<{ id: string; created_at: string } | null>(
+    null
+  );
+  const [rerunPromptDismissed, setRerunPromptDismissed] = useState(false);
   const [completedCount, setCompletedCount] = useState(0);
   const [checklistDone, setChecklistDone] = useState(false);
 
@@ -77,6 +82,36 @@ export default function HealthCheck() {
     if (isLoggedIn) return Boolean(user?.email?.trim());
     return formData.email.trim().length > 0;
   }, [isLoggedIn, user?.email, formData.email]);
+
+  useEffect(() => {
+    if (!isLoggedIn || !user?.id) {
+      setExistingRun(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    void supabase
+      .from("health_check_results")
+      .select("id, created_at")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!cancelled) {
+          setExistingRun(
+            data?.id && data?.created_at
+              ? { id: data.id, created_at: data.created_at }
+              : null
+          );
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isLoggedIn, user?.id]);
 
   useEffect(() => {
     if (step !== "loading") {
@@ -189,35 +224,45 @@ export default function HealthCheck() {
 
   const renderWelcome = () => (
     <section className="mx-auto flex min-h-screen w-full max-w-3xl flex-col justify-center px-6 py-12">
-      <div className="rounded-3xl border border-border bg-white p-8 shadow-sm sm:p-12">
-        <div className="mb-8">
-          <Link
-            to="/"
-            className="inline-flex items-center gap-2 font-['DM_Sans'] text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to home
-          </Link>
-        </div>
-        <h1 className="font-['Fraunces'] text-4xl font-bold leading-tight text-[#0D1833] sm:text-5xl">
-          Let&apos;s check your digital health.
-        </h1>
-        <p className="mt-5 max-w-2xl font-['DM_Sans'] text-base leading-relaxed text-muted-foreground sm:text-lg">
-          Answer 5 quick questions and marktr will score your digital presence across the
-          dimensions that matter most to founders.
-        </p>
-
-        <Button
-          onClick={() => setStep("inputs")}
-          className="mt-10 rounded-full bg-primary px-8 py-6 font-['DM_Sans'] text-base font-medium text-primary-foreground hover:opacity-90"
+      <div className="mb-8">
+        <Link
+          to="/"
+          className="inline-flex items-center gap-2 font-['DM_Sans'] text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
-          Start my digital health check →
-        </Button>
-
-        <p className="mt-4 font-['DM_Sans'] text-sm text-muted-foreground">
-          {isLoggedIn ? "Takes about 2 minutes." : "Takes about 2 minutes. No account needed."}
-        </p>
+          <ArrowLeft className="h-4 w-4" />
+          Back to home
+        </Link>
       </div>
+
+      {existingRun && !rerunPromptDismissed ? (
+        <AlreadyCompletedPrompt
+          toolName="Digital Health Check"
+          reportPath="/health-report"
+          createdAt={existingRun.created_at}
+          onRunAgain={() => setRerunPromptDismissed(true)}
+        />
+      ) : (
+        <div className="rounded-3xl border border-border bg-white p-8 shadow-sm sm:p-12">
+          <h1 className="font-['Fraunces'] text-4xl font-bold leading-tight text-[#0D1833] sm:text-5xl">
+            Let&apos;s check your digital health.
+          </h1>
+          <p className="mt-5 max-w-2xl font-['DM_Sans'] text-base leading-relaxed text-muted-foreground sm:text-lg">
+            Answer 5 quick questions and marktr will score your digital presence across the
+            dimensions that matter most to founders.
+          </p>
+
+          <Button
+            onClick={() => setStep("inputs")}
+            className="mt-10 rounded-full bg-primary px-8 py-6 font-['DM_Sans'] text-base font-medium text-primary-foreground hover:opacity-90"
+          >
+            Start my digital health check →
+          </Button>
+
+          <p className="mt-4 font-['DM_Sans'] text-sm text-muted-foreground">
+            {isLoggedIn ? "Takes about 2 minutes." : "Takes about 2 minutes. No account needed."}
+          </p>
+        </div>
+      )}
     </section>
   );
 
@@ -248,14 +293,29 @@ export default function HealthCheck() {
               </Label>
               <span className="font-['DM_Sans'] text-xs text-muted-foreground">optional</span>
             </div>
-            <Input
-              id="websiteUrl"
-              type="url"
-              value={formData.websiteUrl}
-              onChange={(e) => setFormData((prev) => ({ ...prev, websiteUrl: e.target.value }))}
-              placeholder="https://yourbusiness.com"
-              className="border border-black rounded-design bg-white px-4 py-6 text-foreground placeholder:text-foreground/40"
-            />
+            <div className="flex items-start gap-2">
+              <Input
+                id="websiteUrl"
+                type="url"
+                value={formData.websiteUrl}
+                onChange={(e) => setFormData((prev) => ({ ...prev, websiteUrl: e.target.value }))}
+                placeholder="https://yourbusiness.com"
+                className="border border-black rounded-design bg-white px-4 py-6 text-foreground placeholder:text-foreground/40"
+              />
+              <WhisperButton
+                onTranscript={(text) => {
+                  const trimmed = text.trim();
+                  if (!trimmed) return;
+                  setFormData((prev) => ({
+                    ...prev,
+                    websiteUrl: prev.websiteUrl.trim()
+                      ? `${prev.websiteUrl.trim()} ${trimmed}`
+                      : trimmed,
+                  }));
+                }}
+                className="pt-1"
+              />
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -307,14 +367,29 @@ export default function HealthCheck() {
               </Label>
               <span className="font-['DM_Sans'] text-xs text-muted-foreground">optional</span>
             </div>
-            <Input
-              id="facebookUrl"
-              type="url"
-              value={formData.facebookUrl}
-              onChange={(e) => setFormData((prev) => ({ ...prev, facebookUrl: e.target.value }))}
-              placeholder="facebook.com/yourbusiness"
-              className="border border-black rounded-design bg-white px-4 py-6 text-foreground placeholder:text-foreground/40"
-            />
+            <div className="flex items-start gap-2">
+              <Input
+                id="facebookUrl"
+                type="url"
+                value={formData.facebookUrl}
+                onChange={(e) => setFormData((prev) => ({ ...prev, facebookUrl: e.target.value }))}
+                placeholder="facebook.com/yourbusiness"
+                className="border border-black rounded-design bg-white px-4 py-6 text-foreground placeholder:text-foreground/40"
+              />
+              <WhisperButton
+                onTranscript={(text) => {
+                  const trimmed = text.trim();
+                  if (!trimmed) return;
+                  setFormData((prev) => ({
+                    ...prev,
+                    facebookUrl: prev.facebookUrl.trim()
+                      ? `${prev.facebookUrl.trim()} ${trimmed}`
+                      : trimmed,
+                  }));
+                }}
+                className="pt-1"
+              />
+            </div>
           </div>
 
           {!isLoggedIn && (

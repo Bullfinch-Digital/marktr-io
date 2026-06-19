@@ -562,7 +562,7 @@ export default function Dashboard() {
                   </p>
                 </div>
                 <Link
-                  to="/health-check"
+                  to="/health-report"
                   className="font-['DM_Sans'] text-sm text-primary hover:underline"
                 >
                   View full report →

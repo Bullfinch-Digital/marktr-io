@@ -1,6 +1,5 @@
 import { useEffect, useMemo, type ReactNode } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Lock } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { isRealUser } from "../utils/isRealUser";
 import { getGuestICPs } from "../lib/guestICP";
@@ -8,7 +7,6 @@ import { getGuestBrandSeed } from "../lib/guestBrandSeed";
 import { Button } from "../components/ui/button";
 import { ICPProfileLayout } from "../components/icp/ICPProfileLayout";
 import { usePaywall } from "../contexts/PaywallContext";
-import useSubscription from "@/hooks/useSubscription";
 
 function GuestPreviewShell({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
@@ -34,7 +32,6 @@ export default function GuestIcpPreview() {
   const navigate = useNavigate();
   const { openPaywall } = usePaywall();
   const { user } = useAuth();
-  const { effectiveTier } = useSubscription();
 
   // Redirect real authenticated users to the dashboard.
   useEffect(() => {
@@ -103,7 +100,7 @@ export default function GuestIcpPreview() {
           <div>
             <h1 className="font-['Fraunces'] text-3xl lg:text-4xl">ICP Preview</h1>
             <p className="font-['Inter'] text-foreground/70">
-              Explore your first profile. Sign up to edit, save and unlock marketing insights.
+              Explore your first profile. Start your free trial to edit, save and unlock marketing insights.
             </p>
           </div>
         }
@@ -197,27 +194,6 @@ export default function GuestIcpPreview() {
               </div>
             </div>
           </div>
-        }
-        footerCta={
-          effectiveTier === "free" ? (
-            <div className="text-center animate-fade-in-up">
-              <div className="bg-gradient-to-br from-[#FFD336]/20 to-[#FF9922]/20 rounded-design p-8">
-                <Lock className="w-8 h-8 mx-auto mb-4 text-foreground/60" />
-                <h3 className="font-['Fraunces'] text-xl mb-3">
-                  Unlock full editing & exports
-                </h3>
-                <p className="font-['Inter'] text-foreground/70 mb-6 max-w-md mx-auto">
-                  Upgrade to edit all sections, generate marketing strategies, and export to PDF.
-                </p>
-                <Button
-                  className="bg-button-green hover:bg-button-green/90 text-foreground border border-black rounded-design px-8 py-6 transition-all hover:scale-[1.02] hover:shadow-lg"
-                  onClick={() => openPaywall()}
-                >
-                  Start your 14-day free trial
-                </Button>
-              </div>
-            </div>
-          ) : null
         }
       />
     </GuestPreviewShell>

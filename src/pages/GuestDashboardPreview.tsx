@@ -73,7 +73,7 @@ export default function GuestDashboardPreview() {
       return "Start with one of our free tools below — no account needed.";
     }
     if (completedCount === 3) {
-      return "You've completed all three steps. Sign up free to save your work and unlock your full dashboard.";
+      return "You've completed all three steps. Start your free trial to save your work and put it all to work.";
     }
     const remaining = [
       !hasICPs && "customer profiles",
@@ -81,7 +81,7 @@ export default function GuestDashboardPreview() {
       !hasHealth && "digital health check",
     ].filter(Boolean) as string[];
     const remainingText = remaining.join(" and ");
-    return `Complete your ${remainingText} to get the full picture — then unlock your dashboard free for 14 days.`;
+    return `Complete your ${remainingText} to get the full picture — then start your free trial to put it all to work.`;
   })();
 
   const handleUpgrade = () => {
@@ -113,7 +113,7 @@ export default function GuestDashboardPreview() {
               className="rounded-full bg-primary px-6 py-2 font-['DM_Sans'] text-sm font-medium text-primary-foreground hover:opacity-90"
               onClick={() => openPaywall()}
             >
-              Unlock your dashboard — free for 14 days
+              Start your free trial →
             </Button>
           </div>
         </header>
@@ -198,7 +198,7 @@ export default function GuestDashboardPreview() {
               <div>
                 <h2 className="font-['Fraunces'] text-2xl text-[#0D1833]">Your customer profiles</h2>
                 <p className="font-['DM_Sans'] text-sm text-muted-foreground">
-                  marktr has identified three distinct customers for your business. Unlock the platform to build content
+                  marktr has identified three distinct customers for your business. Start your free trial to build content
                   strategies for each one.
                 </p>
               </div>
@@ -285,22 +285,22 @@ export default function GuestDashboardPreview() {
 
         <div className="mt-4 rounded-2xl bg-[#0D1833] p-8">
           <h2 className="font-['Fraunces'] text-2xl font-bold text-white sm:text-3xl">
-            Unlock your full marktr dashboard — completely free for 14 days.
+            Now put it all to work.
           </h2>
           <p className="mt-3 max-w-xl font-['DM_Sans'] text-base leading-relaxed text-white/70">
-            Save your customer profiles, build your brand story, generate content strategies and create a month of posts — all
-            in one platform. No agency required.
+            You&apos;ve scored your digital presence, defined your ideal customer, and found your brand story. marktr uses
+            all three to plan your content, write your posts, schedule across every channel, and track what&apos;s working
+            — all built around your business, not a generic template.
           </p>
           <div className="mt-6 flex flex-col items-start gap-4 sm:flex-row">
             <Button
               className="rounded-full bg-primary px-8 py-3 font-['DM_Sans'] text-base font-medium text-primary-foreground hover:opacity-90"
               onClick={() => openPaywall()}
             >
-              Start free — 14 days on us
+              Start your 14-day free trial →
             </Button>
             <div className="flex flex-col gap-1">
-              <p className="font-['DM_Sans'] text-xs text-white/50">No credit card required</p>
-              <p className="font-['DM_Sans'] text-xs text-white/50">Cancel anytime</p>
+              <p className="font-['DM_Sans'] text-xs text-white/50">14-day free trial · Card details required to start</p>
             </div>
           </div>
         </div>

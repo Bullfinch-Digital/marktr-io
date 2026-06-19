@@ -93,6 +93,8 @@ interface ICPPreviewCardProps {
   onDelete?: () => void;
   onMoveToBrand?: (icpId: string, brandId: string | null) => Promise<void> | void;
   onCardClickOverride?: () => void;
+  /** Guest preview — card is display-only, no navigation on click */
+  previewOnly?: boolean;
   // Optional brand list so the card can resolve a brand name globally
   brands?: Array<{ id: string; name: string }>;
 }
@@ -111,6 +113,7 @@ export function ICPPreviewCard(props: ICPPreviewCardProps) {
     onDelete,
     onMoveToBrand,
     onCardClickOverride,
+    previewOnly = false,
   } = props;
   const [isHovered, setIsHovered] = useState(false);
   const [shake, setShake] = useState(false);
@@ -327,6 +330,8 @@ export function ICPPreviewCard(props: ICPPreviewCardProps) {
       onClick={(e) => {
         // EXACT same pattern as CollectionCard
         if ((e.target as HTMLElement).closest("[data-no-card-click='true']")) return;
+
+        if (previewOnly) return;
 
         if (onCardClickOverride) {
           onCardClickOverride();

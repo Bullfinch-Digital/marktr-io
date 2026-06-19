@@ -2,12 +2,13 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "../components/ui/button";
 import { usePaywall } from "../contexts/PaywallContext";
 import { useAuth } from "../contexts/AuthContext";
+import { isRealUser } from "../utils/isRealUser";
 
 export default function PaywallDemo() {
   const navigate = useNavigate();
   const { openPaywall } = usePaywall();
   const { user } = useAuth();
-  const dashboardPath = user ? "/dashboard" : "/guest-dashboard";
+  const dashboardPath = isRealUser(user) ? "/dashboard" : "/guest-dashboard";
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">

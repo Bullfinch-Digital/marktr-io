@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { Lock } from "lucide-react";
 import DashboardShell from "../layouts/DashboardShell";
 import { useAuth } from "../contexts/AuthContext";
+import { isRealUser } from "../utils/isRealUser";
 import { getGuestICPs } from "../lib/guestICP";
 import { getGuestBrandSeed } from "../lib/guestBrandSeed";
 import { Button } from "../components/ui/button";
@@ -17,12 +18,12 @@ export default function GuestIcpPreview() {
   const { user } = useAuth();
   const { effectiveTier } = useSubscription();
 
-  // Redirect authenticated users to the real dashboard.
+  // Redirect real authenticated users to the dashboard.
   useEffect(() => {
-    if (user?.id) {
+    if (isRealUser(user)) {
       navigate("/dashboard", { replace: true });
     }
-  }, [user?.id, navigate]);
+  }, [user, navigate]);
 
   const brandSeed = getGuestBrandSeed();
   const guestBrand = useMemo(

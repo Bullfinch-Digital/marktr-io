@@ -218,7 +218,7 @@ export default function OnboardingBuild() {
 
   useEffect(() => {
     // Only enforce ICP creation limits for logged-in users.
-    if (!user?.id) return;
+    if (!isLoggedIn) return;
     if (icpsLoading) return;
     if (subscriptionLoading) return;
     if (!icps) return;

@@ -13,6 +13,7 @@ import {
   Calendar,
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
+import { isRealUser } from "../../utils/isRealUser";
 
 interface DashboardSidebarProps {
   userTier: "free" | "paid";
@@ -32,7 +33,7 @@ export function DashboardSidebar({
   const [isCollapsed, setIsCollapsed] = useState(false);
   const location = useLocation();
   const { user } = useAuth();
-  const dashboardPath = user ? "/dashboard" : "/guest-dashboard";
+  const dashboardPath = isRealUser(user) ? "/dashboard" : "/guest-dashboard";
 
   const navItems = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, locked: false, path: dashboardPath },

@@ -5,6 +5,7 @@ import { Button } from "../components/ui/button";
 import { ICPPreviewCard } from "../components/cards/ICPPreviewCard";
 import { usePaywall } from "../contexts/PaywallContext";
 import { useAuth } from "../contexts/AuthContext";
+import { isRealUser } from "../utils/isRealUser";
 import { getGuestICPs } from "../lib/guestICP";
 import { getGuestBrandSeed } from "../lib/guestBrandSeed";
 import { getGuestStory } from "../lib/guestStory";
@@ -19,8 +20,7 @@ export default function GuestDashboardPreview() {
   const guestHealth = getGuestHealthCheck();
 
   useEffect(() => {
-    const isRealUser = user && !(user as { is_anonymous?: boolean }).is_anonymous;
-    if (isRealUser) {
+    if (isRealUser(user)) {
       navigate("/dashboard", { replace: true });
     }
   }, [user, navigate]);
@@ -205,13 +205,14 @@ export default function GuestDashboardPreview() {
             </div>
 
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {guestICPs.map((icp: any, index: number) => (
+              {guestICPs.map((icp: any) => (
                 <ICPPreviewCard
                   key={icp.id}
                   icp={icp}
                   userTier="free"
                   onUpgrade={handleUpgrade}
                   isLocked={icp.isLocked}
+                  previewOnly
                   brands={[{ id: guestBrand.id, name: guestBrand.name }]}
                   onChangeColor={() => handleUpgrade()}
                   onChangeAvatar={() => handleUpgrade()}
@@ -219,7 +220,6 @@ export default function GuestDashboardPreview() {
                   onDelete={() => {}}
                   onRemoveFromCollection={() => {}}
                   onAddToCollection={() => {}}
-                  onCardClickOverride={() => navigate(`/icp-preview/${index}`)}
                 />
               ))}
             </div>

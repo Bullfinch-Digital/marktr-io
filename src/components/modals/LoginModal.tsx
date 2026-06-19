@@ -13,6 +13,7 @@ import {
   getPendingGuestLink,
   setPendingGuestLink,
 } from "../../utils/pendingGuestLink";
+import { isRealUser } from "../../utils/isRealUser";
 
 type LoginModalProps = {
   isOpen: boolean;
@@ -42,8 +43,8 @@ export function LoginModal({
       return;
     }
     const { data } = await supabase.auth.getSession();
-    const isAuthed = Boolean(data?.session?.user?.id);
-    const target = isAuthed ? "/dashboard" : "/guest-dashboard";
+    const sessionUser = data?.session?.user ?? null;
+    const target = isRealUser(sessionUser) ? "/dashboard" : "/guest-dashboard";
     window.location.assign(`${window.location.origin}${target}`);
   };
   const [localEmail, setLocalEmail] = useState(email ?? "");

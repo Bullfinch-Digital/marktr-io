@@ -2,7 +2,7 @@ import { useEffect, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Activity, BookOpen, Users } from "lucide-react";
 import { Button } from "../components/ui/button";
-import { ICPPreviewCard } from "../components/cards/ICPPreviewCard";
+import { GuestICPCard } from "../components/cards/GuestICPCard";
 import { usePaywall } from "../contexts/PaywallContext";
 import { useAuth } from "../contexts/AuthContext";
 import { isRealUser } from "../utils/isRealUser";
@@ -83,10 +83,6 @@ export default function GuestDashboardPreview() {
     const remainingText = remaining.join(" and ");
     return `Complete your ${remainingText} to get the full picture — then start your free trial to put it all to work.`;
   })();
-
-  const handleUpgrade = () => {
-    openPaywall();
-  };
 
   return (
     <main className="min-h-screen bg-background">
@@ -206,20 +202,10 @@ export default function GuestDashboardPreview() {
 
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
               {guestICPs.map((icp: any) => (
-                <ICPPreviewCard
+                <GuestICPCard
                   key={icp.id}
                   icp={icp}
-                  userTier="free"
-                  onUpgrade={handleUpgrade}
-                  isLocked={icp.isLocked}
-                  previewOnly
-                  brands={[{ id: guestBrand.id, name: guestBrand.name }]}
-                  onChangeColor={() => handleUpgrade()}
-                  onChangeAvatar={() => handleUpgrade()}
-                  onMoveToBrand={() => handleUpgrade()}
-                  onDelete={() => {}}
-                  onRemoveFromCollection={() => {}}
-                  onAddToCollection={() => {}}
+                  brandName={guestBrand.name}
                 />
               ))}
             </div>

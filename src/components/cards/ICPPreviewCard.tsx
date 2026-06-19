@@ -151,6 +151,17 @@ export function ICPPreviewCard(props: ICPPreviewCardProps) {
 
   const hasBrand = !!displayBrandName || !!icp.brand_id;
 
+  const companySize = (icp as any).company_size ?? icp.companySize;
+  const previewMetaLine = [icp.industry, companySize, icp.location]
+    .filter(Boolean)
+    .join(" · ");
+  const previewPainPoints =
+    ((icp as any).pain_points as string[] | undefined) ?? icp.painPoints ?? [];
+  const previewGoals = icp.goals ?? [];
+  const previewBullets = (
+    previewPainPoints.length ? previewPainPoints : previewGoals
+  ).slice(0, 2);
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     if (Number.isNaN(date.getTime())) return "Invalid Date";
@@ -331,12 +342,12 @@ export function ICPPreviewCard(props: ICPPreviewCardProps) {
         // EXACT same pattern as CollectionCard
         if ((e.target as HTMLElement).closest("[data-no-card-click='true']")) return;
 
-        if (previewOnly) return;
-
         if (onCardClickOverride) {
           onCardClickOverride();
           return;
         }
+
+        if (previewOnly) return;
 
         if (locked) {
           triggerShake();
@@ -371,7 +382,8 @@ export function ICPPreviewCard(props: ICPPreviewCardProps) {
             </div>
           )}
 
-          {/* Three-dots menu — same interaction pattern as CollectionCard */}
+          {/* Three-dots menu — hidden in guest preview mode */}
+          {!previewOnly && (
           <div className="absolute top-3 right-3">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -479,6 +491,7 @@ export function ICPPreviewCard(props: ICPPreviewCardProps) {
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
+          )}
 
           {/* Avatar badge (image placeholder or custom avatar) */}
           <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2">
@@ -556,6 +569,41 @@ export function ICPPreviewCard(props: ICPPreviewCardProps) {
         )}
 
         {/* Body */}
+        {previewOnly ? (
+          <div className="p-6 pt-12 bg-background text-left">
+            <h3 className="font-['Fraunces'] text-lg mb-1 truncate">{icp.name}</h3>
+
+            {previewMetaLine && (
+              <p className="font-['Inter'] text-xs text-foreground/60 mb-3 truncate">
+                {previewMetaLine}
+              </p>
+            )}
+
+            {icp.description && (
+              <p className="font-['Inter'] text-sm text-foreground/70 mb-3 line-clamp-3">
+                {icp.description}
+              </p>
+            )}
+
+            {previewBullets.length > 0 && (
+              <ul className="mb-4 space-y-1">
+                {previewBullets.map((item, idx) => (
+                  <li
+                    key={`preview-bullet-${idx}`}
+                    className="font-['Inter'] text-xs text-foreground/70 flex gap-1.5"
+                  >
+                    <span className="text-foreground/40 shrink-0">•</span>
+                    <span className="line-clamp-2">{item}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            <p className="font-['DM_Sans'] text-sm font-medium text-primary">
+              View full profile →
+            </p>
+          </div>
+        ) : (
         <div className="p-6 pt-12 text-center bg-background">
           <h3 className="font-['Fraunces'] text-lg mb-2 truncate">
             {icp.name}
@@ -672,6 +720,7 @@ export function ICPPreviewCard(props: ICPPreviewCardProps) {
             </div>
           </TooltipProvider>
         </div>
+        )}
       </Card>
     </div>
   );

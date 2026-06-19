@@ -4,6 +4,8 @@ import { createContext, useContext, useEffect, useState, ReactNode, useRef } fro
 import type { User, Session, AuthError } from "@supabase/supabase-js";
 import { supabase } from "../config/supabase";
 import { flushGuestICPsToSupabase } from "../lib/guestICP";
+import { transferGuestMarktrData } from "../lib/transferGuestMarktrData";
+import { isRealUser } from "../utils/isRealUser";
 import { syncOutbox } from "../lib/syncOutbox";
 import { markLeadConverted } from "../lib/leadCapture";
 import { getGuestBrandSeed, clearGuestBrandSeed } from "../lib/guestBrandSeed";
@@ -285,14 +287,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         window.dispatchEvent(new Event("brands:changed"));
       } catch {}
 
+      // Time-box health/story transfer (Google OAuth + email sign-in paths)
+      console.log("AuthContext: post-auth step 3 — guest health/story transfer start");
+      try {
+        await Promise.race([
+          transferGuestMarktrData(userId),
+          new Promise((resolve) => setTimeout(resolve, 2000)),
+        ]);
+        console.log("AuthContext: post-auth step 3 — guest health/story transfer done");
+      } catch (err) {
+        console.warn("AuthContext: transferGuestMarktrData error", err);
+      }
+
       // Time-box ICP flush too (already was, but keep it here in the pipeline)
-      console.log("AuthContext: post-auth step 3 — ICP flush start");
+      console.log("AuthContext: post-auth step 4 — ICP flush start");
       try {
         await Promise.race([
           flushGuestICPsToSupabase(userId, { brandId }),
           new Promise((resolve) => setTimeout(resolve, 2000)),
         ]);
-        console.log("AuthContext: post-auth step 3 — ICP flush done");
+        console.log("AuthContext: post-auth step 4 — ICP flush done");
       } catch (err) {
         console.warn("AuthContext: flushGuestICPsToSupabase error", err);
       }
@@ -300,7 +314,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         window.dispatchEvent(new Event("icps:changed"));
       } catch {}
-      console.log("AuthContext: post-auth step 4 — pipeline complete");
+      console.log("AuthContext: post-auth step 5 — pipeline complete");
     };
 
     const tryAutoLinkPending = async (activeSession: Session | null) => {
@@ -389,8 +403,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               const sess = data?.session ?? null;
               await tryAutoLinkPending(sess);
               const currentUser = sess?.user ?? null;
-              if (currentUser?.id) {
-                void runPostAuthPipeline(currentUser.id, currentUser.email ?? null);
+              if (isRealUser(currentUser)) {
+                void runPostAuthPipeline(currentUser!.id, currentUser!.email ?? null);
               }
             })();
           }, 0);
@@ -460,8 +474,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               }
             }
 
-            if ((event === "SIGNED_IN" || event === "INITIAL_SESSION") && nextUser?.id) {
-              void runPostAuthPipeline(nextUser.id, nextUser.email ?? null);
+            if (
+              (event === "SIGNED_IN" || event === "INITIAL_SESSION") &&
+              isRealUser(nextUser)
+            ) {
+              void runPostAuthPipeline(nextUser!.id, nextUser!.email ?? null);
             }
           } catch (err) {
             console.warn("AuthContext: deferred auth listener error", err);

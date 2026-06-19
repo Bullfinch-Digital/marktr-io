@@ -103,7 +103,7 @@ export default function GuestIcpPreview() {
               className="bg-button-green hover:bg-button-green/90 text-foreground border border-black rounded-design px-4 py-2"
               onClick={() => openPaywall()}
             >
-              Start 7-day free trial
+              Start 14-day free trial
             </Button>
           </>
         }
@@ -181,7 +181,7 @@ export default function GuestIcpPreview() {
                     className="bg-button-green hover:bg-button-green/90 text-foreground border border-black rounded-design px-6 py-3"
                     onClick={() => openPaywall()}
                   >
-                    Start your FREE 7-day trial
+                    Start your 14-day free trial
                   </Button>
                 </div>
               </div>
@@ -203,7 +203,7 @@ export default function GuestIcpPreview() {
                   className="bg-button-green hover:bg-button-green/90 text-foreground border border-black rounded-design px-8 py-6 transition-all hover:scale-[1.02] hover:shadow-lg"
                   onClick={() => openPaywall()}
                 >
-                  Start your FREE 7-day trial
+                  Start your 14-day free trial
                 </Button>
               </div>
             </div>

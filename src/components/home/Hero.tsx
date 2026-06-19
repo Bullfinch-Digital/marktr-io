@@ -24,7 +24,7 @@ export function Hero() {
           {/* Onboarding Button */}
           <div className="mb-8 flex w-full max-w-md flex-col gap-3 mx-auto justify-center items-center opacity-0 animate-fade-in-up delay-300">
             <Button variant="cta" href="/health-check">
-              Check your health — free
+              Check your digital health - free
             </Button>
             <p className="text-sm text-foreground/60 text-center">No credit card required</p>
           </div>

@@ -7,6 +7,7 @@ import { getGuestBrandSeed } from "../lib/guestBrandSeed";
 import { Button } from "../components/ui/button";
 import { ICPProfileLayout } from "../components/icp/ICPProfileLayout";
 import { usePaywall } from "../contexts/PaywallContext";
+import { useAuthModal } from "../contexts/AuthModalContext";
 
 function GuestPreviewShell({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
@@ -31,6 +32,7 @@ export default function GuestIcpPreview() {
   const { index } = useParams<{ index: string }>();
   const navigate = useNavigate();
   const { openPaywall } = usePaywall();
+  const { openSignIn } = useAuthModal();
   const { user } = useAuth();
 
   // Redirect real authenticated users to the dashboard.
@@ -126,7 +128,14 @@ export default function GuestIcpPreview() {
               <Button
                 variant="outline"
                 className="border-black rounded-design"
-                onClick={() => openPaywall()}
+                onClick={() =>
+                  openSignIn({
+                    redirectPath: `/icp-preview/${resolvedIndex}`,
+                    heading: "Edit and export your ICPs",
+                    subheading:
+                      "Start your 14-day free trial to edit, save, and export your customer profiles.",
+                  })
+                }
               >
                 Edit this ICP
               </Button>

@@ -197,8 +197,8 @@ export default function ResourcePost() {
                       Start free and see who your real customers are...
                     </p>
                     <div className="flex flex-col gap-3 items-center">
-                      <Button variant="cta" href="/onboarding-build">
-                        Generate Free Now
+                      <Button variant="cta" href="/health-check">
+                        Check your health — free
                       </Button>
                       <p className="text-sm text-foreground/60 text-center">
                         No credit card required

@@ -136,12 +136,12 @@ export function Header() {
                   Login
                 </Button>
 
-                <Link to="/onboarding-build">
+                <Link to="/health-check">
                   <Button
                     variant="default"
                     className="hidden bg-button-green text-text-dark transition-all hover:scale-105 hover:bg-button-green/90 hover:shadow-lg active:scale-95 md:flex font-bold font-['Fraunces']"
                   >
-                    Generate Free Now
+                    Check your health — free
                   </Button>
                 </Link>
               </>
@@ -235,9 +235,9 @@ export function Header() {
                 >
                   Login
                 </Button>
-                <Link to="/onboarding-build" onClick={() => setIsMobileMenuOpen(false)}>
+                <Link to="/health-check" onClick={() => setIsMobileMenuOpen(false)}>
                   <Button className="w-full bg-button-green text-text-dark hover:bg-button-green/90 font-bold font-['Fraunces']">
-                    Get Started
+                    Check your health — free
                   </Button>
                 </Link>
               </>

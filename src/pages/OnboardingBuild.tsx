@@ -15,6 +15,12 @@ import { setGuestICPs } from "../lib/guestICP";
 import { upsertOnboardingLead } from "../lib/leadCapture";
 import { clearGuestBrandSeed, getGuestBrandSeed, setGuestBrandSeed } from "../lib/guestBrandSeed";
 import {
+  getGuestContext,
+  getGuestIdentityEmail,
+  getGuestIdentityName,
+  updateGuestContext,
+} from "../lib/guestContext";
+import {
   WelcomeScreen,
   NameScreen,
   BrandNameScreen,
@@ -100,6 +106,56 @@ export default function OnboardingBuild() {
   });
 
   useEffect(() => {
+    const ctx = getGuestContext();
+    setFormData((prev) => ({
+      ...prev,
+      name: ctx.identity.name || prev.name,
+      email: ctx.identity.email || prev.email,
+      brandName: ctx.business.businessName || prev.brandName,
+    }));
+  }, []);
+
+  const shouldSkipStep = useCallback(
+    (step: Step): boolean => {
+      const ctx = getGuestContext();
+      if (step === "2_Name" && (ctx.identity.name?.trim() || formData.name.trim())) {
+        return true;
+      }
+      if (step === "3_BrandName" && (ctx.business.businessName?.trim() || formData.brandName.trim())) {
+        return true;
+      }
+      if (
+        step === "9_EmailCapture" &&
+        (isLoggedIn || ctx.identity.email?.trim() || formData.email.trim())
+      ) {
+        return true;
+      }
+      return false;
+    },
+    [formData.brandName, formData.email, formData.name, isLoggedIn]
+  );
+
+  const resolveStepIndex = useCallback(
+    (fromIndex: number, direction: 1 | -1): number => {
+      let index = fromIndex + direction;
+      while (index >= 0 && index < STEPS.length) {
+        const step = STEPS[index]!;
+        if (direction === 1 && shouldSkipStep(step)) {
+          index += direction;
+          continue;
+        }
+        if (direction === -1 && shouldSkipStep(step)) {
+          index += direction;
+          continue;
+        }
+        break;
+      }
+      return Math.max(0, Math.min(STEPS.length - 1, index));
+    },
+    [shouldSkipStep]
+  );
+
+  useEffect(() => {
     if (anonInitRef.current) return;
     if (authLoading) return;
     if (user) return;
@@ -141,14 +197,14 @@ export default function OnboardingBuild() {
 
   const captureLead = useCallback(
     async (email: string, token: string | null) => {
-      const trimmed = email?.trim();
+      const trimmed = email?.trim() || getGuestIdentityEmail();
       if (!trimmed) return;
       try {
         await upsertOnboardingLead(trimmed, {
           source: "onboarding",
           userId: user?.id ?? null,
           token,
-          name: formData.name,
+          name: formData.name.trim() || getGuestIdentityName() || null,
           metadata: {},
         });
       } catch {
@@ -162,21 +218,19 @@ export default function OnboardingBuild() {
   const showBackButton = currentStepIndex > 1 && currentStep !== "10_Loading"; // Show back button after step 2, hide on ICP carousel
   const showProgressBar = currentStep !== "10_Loading";
 
-  const emailToUse = isLoggedIn ? user?.email?.trim() ?? "" : formData.email.trim();
+  const emailToUse = isLoggedIn
+    ? user?.email?.trim() ?? ""
+    : formData.email.trim() || getGuestIdentityEmail() || "";
 
   const handleNext = () => {
-    let nextIndex = currentStepIndex + 1;
-    if (isLoggedIn && STEPS[nextIndex] === "9_EmailCapture") {
-      nextIndex += 1;
-    }
+    let nextIndex = resolveStepIndex(currentStepIndex, 1);
     if (nextIndex < STEPS.length) {
       const nextStep = STEPS[nextIndex]!;
       if (
-        isLoggedIn &&
         currentStep === "8_GeographyCurrency" &&
         nextStep === "10_Loading"
       ) {
-        void captureLead(emailToUse, null);
+        void captureLead(emailToUse, isLoggedIn ? null : leadToken);
       }
       setCurrentStep(nextStep);
     }
@@ -193,10 +247,7 @@ export default function OnboardingBuild() {
   }, [currentStep]);
 
   const handleBack = () => {
-    let prevIndex = currentStepIndex - 1;
-    if (isLoggedIn && STEPS[prevIndex] === "9_EmailCapture") {
-      prevIndex -= 1;
-    }
+    const prevIndex = resolveStepIndex(currentStepIndex, -1);
     if (prevIndex >= 0) {
       setCurrentStep(STEPS[prevIndex]!);
     }
@@ -247,6 +298,7 @@ export default function OnboardingBuild() {
 
     const desiredNameRaw =
       (formData.brandName || "").trim() ||
+      getGuestContext().business.businessName?.trim() ||
       (getGuestBrandSeed()?.brandName || "").trim();
 
     if (!desiredNameRaw) return null;
@@ -387,6 +439,15 @@ export default function OnboardingBuild() {
       regionOrCity: formData.regionOrCity,
       currency: formData.currency,
       created_at: new Date().toISOString(),
+    });
+    updateGuestContext({
+      identity: {
+        name: formData.name.trim() || undefined,
+        email: emailToUse || undefined,
+      },
+      business: {
+        businessName: formData.brandName.trim() || undefined,
+      },
     });
 
     // Only save if:
@@ -607,7 +668,10 @@ export default function OnboardingBuild() {
         return (
           <NameScreen
             value={formData.name}
-            onChange={(value) => setFormData({ ...formData, name: value })}
+            onChange={(value) => {
+              setFormData({ ...formData, name: value });
+              updateGuestContext({ identity: { name: value.trim() || undefined } });
+            }}
             onContinue={handleNext}
             onBack={handleBack}
           />
@@ -617,7 +681,10 @@ export default function OnboardingBuild() {
         return (
           <BrandNameScreen
             value={formData.brandName}
-            onChange={(value) => setFormData({ ...formData, brandName: value })}
+            onChange={(value) => {
+              setFormData({ ...formData, brandName: value });
+              updateGuestContext({ business: { businessName: value.trim() || undefined } });
+            }}
             onContinue={handleNext}
             onBack={handleBack}
           />
@@ -685,7 +752,10 @@ export default function OnboardingBuild() {
         return (
           <EmailCaptureScreen
             email={formData.email}
-            onEmailChange={(value) => setFormData({ ...formData, email: value })}
+            onEmailChange={(value) => {
+              setFormData({ ...formData, email: value });
+              updateGuestContext({ identity: { email: value.trim() || undefined } });
+            }}
             onTokenChange={(token) => setLeadToken(token)}
             turnstileRequired={turnstileConfigured && !isLoggedIn}
             hasTurnstileToken={Boolean(leadToken)}
@@ -731,9 +801,9 @@ export default function OnboardingBuild() {
       case "1_Welcome":
         return true;
       case "2_Name":
-        return formData.name.trim().length > 0;
+        return formData.name.trim().length > 0 || Boolean(getGuestIdentityName());
       case "3_BrandName":
-        return formData.brandName.trim().length > 0;
+        return formData.brandName.trim().length > 0 || Boolean(getGuestContext().business.businessName?.trim());
       case "4_BusinessDescription":
         return formData.businessDescription.trim().length > 0;
       case "5_ProductOrService":
@@ -746,6 +816,7 @@ export default function OnboardingBuild() {
         return formData.country.trim().length > 0 && formData.currency.trim().length > 0;
       case "9_EmailCapture": {
         if (isLoggedIn) return Boolean(user?.email?.trim());
+        if (getGuestIdentityEmail()) return true;
         const emailOk = formData.email.trim().length > 0 && formData.email.includes("@");
         if (!emailOk) return false;
         if (turnstileConfigured && !leadToken) return false;

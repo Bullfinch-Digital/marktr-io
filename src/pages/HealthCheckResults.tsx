@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { calculateScores, type HealthCheckInput } from "../lib/healthCheckScoring";
 import { mergeHealthFindings } from "../lib/healthCheckFindings";
 import { setGuestHealthCheck } from "../lib/guestHealthCheck";
+import { getGuestIdentityEmail } from "../lib/guestContext";
 import { usePaywall } from "../contexts/PaywallContext";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../config/supabase";
@@ -31,20 +32,27 @@ export default function HealthCheckResults() {
   const showPaywallUpsell = !showDashboardCta;
   const savedToDbRef = useRef(false);
 
+  const effectiveEmail = state?.email?.trim() || getGuestIdentityEmail() || "";
+
   const scores = useMemo(
-    () => (state?.email?.trim() ? calculateScores(state) : null),
-    [state]
+    () =>
+      effectiveEmail && state
+        ? calculateScores({ ...state, email: effectiveEmail })
+        : null,
+    [state, effectiveEmail]
   );
 
   useEffect(() => {
-    if (!state?.email?.trim() || !scores) return;
+    if (!state || !scores) return;
+    const email = state.email?.trim() || getGuestIdentityEmail() || "";
+    if (!email) return;
     const findings = mergeHealthFindings(scores, state.websiteScore?.findings);
     setGuestHealthCheck({
       input: {
         websiteUrl: state.websiteUrl,
         instagramHandle: state.instagramHandle,
         facebookUrl: state.facebookUrl,
-        email: state.email,
+        email,
       },
       scores: {
         websiteClarity: scores.websiteClarity.score,
@@ -89,7 +97,7 @@ export default function HealthCheckResults() {
       });
   }, [user, scores, state]);
 
-  if (!state || !state.email?.trim() || !scores) {
+  if (!state || !effectiveEmail || !scores) {
     return <Navigate to="/health-check" replace />;
   }
 

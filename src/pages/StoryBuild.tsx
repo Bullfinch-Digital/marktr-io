@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, CheckCircle2, Loader2 } from "lucide-react";
 import { Button } from "../components/ui/button";
-import { Input } from "../components/ui/input";
 import { Textarea } from "../components/ui/textarea";
 import { WhisperButton } from "../components/ui/WhisperButton";
 import { AlreadyCompletedPrompt } from "../components/AlreadyCompletedPrompt";
@@ -10,7 +9,15 @@ import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../config/supabase";
 import type { BrandStoryOutput } from "../lib/brandStory";
 import { parseBrandStoryFromApi } from "../lib/brandStory";
-import { getGuestBusinessName } from "../lib/guestBrandSeed";
+import { IdentityCapture } from "../components/guest/IdentityCapture";
+import {
+  getGuestContext,
+  getGuestBusinessName,
+  getGuestIdentityEmail,
+  getGuestIdentityName,
+  hasGuestIdentity,
+  updateGuestContext,
+} from "../lib/guestContext";
 
 type StoryStep =
   | "intro"
@@ -124,8 +131,15 @@ export default function StoryBuild() {
   const [answers, setAnswers] = useState<string[]>(() => Array(7).fill(""));
   const [draft, setDraft] = useState("");
   const [email, setEmail] = useState("");
+  const [identityName, setIdentityName] = useState("");
   const [completedCount, setCompletedCount] = useState(0);
   const [checklistDone, setChecklistDone] = useState(false);
+
+  useEffect(() => {
+    const ctx = getGuestContext();
+    setEmail(ctx.identity.email || "");
+    setIdentityName(ctx.identity.name || "");
+  }, []);
 
   const questionIndex = isQuestionStep(step) ? STEP_TO_Q_INDEX[step] : null;
 
@@ -163,7 +177,7 @@ export default function StoryBuild() {
   }, [step, questionIndex, answers]);
 
   useEffect(() => {
-    if (step === "email" && isLoggedIn) {
+    if (step === "email" && (isLoggedIn || hasGuestIdentity())) {
       setStep("q4");
     }
   }, [step, isLoggedIn]);
@@ -194,7 +208,17 @@ export default function StoryBuild() {
     const run = async () => {
       let story: BrandStoryOutput | null = null;
       let storyError: string | null = null;
-      const emailToUse = isLoggedIn ? user?.email?.trim() ?? "" : email.trim();
+      const emailToUse = isLoggedIn
+        ? user?.email?.trim() ?? ""
+        : email.trim() || getGuestIdentityEmail() || "";
+      const nameToUse = identityName.trim() || getGuestIdentityName() || "";
+
+      updateGuestContext({
+        identity: {
+          name: nameToUse || undefined,
+          email: emailToUse || undefined,
+        },
+      });
 
       const businessName = getGuestBusinessName();
 
@@ -244,24 +268,26 @@ export default function StoryBuild() {
       cancelled = true;
       timers.forEach((t) => window.clearTimeout(t));
     };
-  }, [step, answers, email, navigate, isLoggedIn, user?.email]);
+  }, [step, answers, email, identityName, navigate, isLoggedIn, user?.email]);
 
   const canContinueQuestion = useMemo(() => draft.trim().length > 0, [draft]);
 
   const canContinueEmail = useMemo(() => {
-    const e = email.trim();
-    return e.length > 0 && e.includes("@");
-  }, [email]);
+    if (isLoggedIn || hasGuestIdentity()) return true;
+    const e = email.trim() || getGuestIdentityEmail() || "";
+    const n = identityName.trim() || getGuestIdentityName() || "";
+    return e.length > 0 && e.includes("@") && n.length > 0;
+  }, [email, identityName, isLoggedIn]);
 
   const goBack = () => {
-    if (step === "q4" && isLoggedIn) {
+    if (step === "q4" && (isLoggedIn || hasGuestIdentity())) {
       setStep("q3");
       return;
     }
     const idx = STEP_ORDER.indexOf(step);
     if (idx <= 0) return;
     const prev = STEP_ORDER[idx - 1]!;
-    if (prev === "email" && isLoggedIn) {
+    if (prev === "email" && (isLoggedIn || hasGuestIdentity())) {
       setStep("q3");
       return;
     }
@@ -274,8 +300,10 @@ export default function StoryBuild() {
     nextAnswers[questionIndex] = draft.trim();
     setAnswers(nextAnswers);
 
-    if (step === "q3") setStep(isLoggedIn ? "q4" : "email");
-    else if (step === "q7") {
+    if (step === "q3") {
+      if (isLoggedIn || hasGuestIdentity()) setStep("q4");
+      else setStep("email");
+    } else if (step === "q7") {
       setCompletedCount(0);
       setChecklistDone(false);
       setStep("loading");
@@ -293,8 +321,10 @@ export default function StoryBuild() {
     setAnswers(nextAnswers);
     setDraft("");
 
-    if (step === "q3") setStep(isLoggedIn ? "q4" : "email");
-    else if (step === "q7") {
+    if (step === "q3") {
+      if (isLoggedIn || hasGuestIdentity()) setStep("q4");
+      else setStep("email");
+    } else if (step === "q7") {
       setCompletedCount(0);
       setChecklistDone(false);
       setStep("loading");
@@ -404,7 +434,11 @@ export default function StoryBuild() {
     );
   };
 
-  const renderEmail = () => (
+  const renderEmail = () => {
+    const showName = !getGuestIdentityName();
+    const showEmail = !getGuestIdentityEmail();
+
+    return (
     <section className="relative mx-auto flex min-h-screen w-full max-w-3xl flex-col px-6 py-12">
       <div className="mb-8 flex items-start justify-between gap-4">
         <button
@@ -420,33 +454,50 @@ export default function StoryBuild() {
 
       <div className="flex flex-1 flex-col justify-center pb-12">
         <h1 className="font-['Fraunces'] text-3xl font-bold leading-tight text-[#0D1833] sm:text-4xl">
-          Where should we send your brand story?
+          Before we write your story
         </h1>
         <p className="mt-4 max-w-lg font-['DM_Sans'] text-base text-muted-foreground">
-          We&apos;ll email you a copy when it&apos;s ready.
+          We&apos;ll save your results and send you a copy when it&apos;s ready.
         </p>
 
         {!isLoggedIn && (
-          <Input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@yourbusiness.com"
-            className="mt-8 max-w-lg border border-black rounded-design bg-white px-4 py-6 font-['DM_Sans'] text-foreground placeholder:text-foreground/40"
+          <IdentityCapture
+            className="mt-8 max-w-lg"
+            name={identityName}
+            email={email}
+            showName={showName}
+            showEmail={showEmail}
+            onNameChange={(value) => {
+              setIdentityName(value);
+              updateGuestContext({ identity: { name: value.trim() || undefined } });
+            }}
+            onEmailChange={(value) => {
+              setEmail(value);
+              updateGuestContext({ identity: { email: value.trim() || undefined } });
+            }}
           />
         )}
 
         <Button
           type="button"
-          disabled={!isLoggedIn && !canContinueEmail}
-          onClick={() => setStep("q4")}
+          disabled={!canContinueEmail}
+          onClick={() => {
+            updateGuestContext({
+              identity: {
+                name: identityName.trim() || getGuestIdentityName() || undefined,
+                email: email.trim() || getGuestIdentityEmail() || undefined,
+              },
+            });
+            setStep("q4");
+          }}
           className="mt-8 w-fit rounded-full bg-primary px-8 py-6 font-['DM_Sans'] text-base font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
         >
           Continue building →
         </Button>
       </div>
     </section>
-  );
+    );
+  };
 
   const renderLoading = () => (
     <section className="mx-auto flex min-h-screen w-full max-w-3xl flex-col justify-center px-6 py-12">

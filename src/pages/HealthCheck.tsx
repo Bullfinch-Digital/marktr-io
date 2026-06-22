@@ -11,10 +11,20 @@ import { supabase } from "../config/supabase";
 import type { SocialScores, StoryAssessment } from "../lib/healthCheckScoring";
 import { parseApiFindings } from "../lib/healthCheckFindings";
 import { formatFacebookInput, normaliseFacebookUrl } from "../lib/normaliseFacebookUrl";
+import { IdentityCapture } from "../components/guest/IdentityCapture";
+import {
+  getGuestContext,
+  getGuestIdentityEmail,
+  getGuestIdentityName,
+  hasGuestIdentity,
+  suggestBusinessNameFromUrl,
+  updateGuestContext,
+} from "../lib/guestContext";
 
 type Step = "welcome" | "inputs" | "loading";
 
 export interface HealthCheckFormData {
+  businessName: string;
   websiteUrl: string;
   instagramHandle: string;
   facebookUrl: string;
@@ -74,16 +84,49 @@ export default function HealthCheck() {
   const [checklistDone, setChecklistDone] = useState(false);
 
   const [formData, setFormData] = useState<HealthCheckFormData>({
+    businessName: "",
     websiteUrl: "",
     instagramHandle: "",
     facebookUrl: "",
     email: "",
   });
+  const [identityName, setIdentityName] = useState("");
+  const [businessNameTouched, setBusinessNameTouched] = useState(false);
+
+  useEffect(() => {
+    const ctx = getGuestContext();
+    setFormData((prev) => ({
+      ...prev,
+      businessName: ctx.business.businessName || prev.businessName,
+      websiteUrl: ctx.business.websiteUrl || prev.websiteUrl,
+      instagramHandle: ctx.business.instagramHandle || prev.instagramHandle,
+      facebookUrl: ctx.business.facebookUrl || prev.facebookUrl,
+      email: ctx.identity.email || prev.email,
+    }));
+    setIdentityName(ctx.identity.name || "");
+    if (ctx.business.businessName?.trim()) {
+      setBusinessNameTouched(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (businessNameTouched || formData.businessName.trim()) return;
+    const suggested = suggestBusinessNameFromUrl(formData.websiteUrl);
+    if (!suggested) return;
+    setFormData((prev) => ({ ...prev, businessName: suggested }));
+    updateGuestContext({ business: { businessName: suggested } });
+  }, [formData.websiteUrl, formData.businessName, businessNameTouched]);
+
+  const resolvedGuestEmail = formData.email.trim() || getGuestIdentityEmail() || "";
+  const resolvedGuestName = identityName.trim() || getGuestIdentityName() || "";
 
   const canAnalyse = useMemo(() => {
     if (isLoggedIn) return Boolean(user?.email?.trim());
-    return formData.email.trim().length > 0;
-  }, [isLoggedIn, user?.email, formData.email]);
+    return resolvedGuestEmail.length > 0 && resolvedGuestName.length > 0;
+  }, [isLoggedIn, user?.email, resolvedGuestEmail, resolvedGuestName]);
+
+  const showIdentityName = !isLoggedIn && !getGuestIdentityName();
+  const showIdentityEmail = !isLoggedIn && !getGuestIdentityEmail();
 
   useEffect(() => {
     if (!isLoggedIn || !user?.id) {
@@ -209,7 +252,19 @@ export default function HealthCheck() {
       await Promise.all([apiPromise, checklistMinPromise]);
 
       if (!cancelled) {
-        const emailToUse = isLoggedIn ? user?.email ?? "" : formData.email;
+        const emailToUse = isLoggedIn ? user?.email ?? "" : resolvedGuestEmail;
+        updateGuestContext({
+          identity: {
+            name: resolvedGuestName,
+            email: emailToUse,
+          },
+          business: {
+            businessName: formData.businessName.trim() || undefined,
+            websiteUrl: formData.websiteUrl.trim() || undefined,
+            instagramHandle: formData.instagramHandle.trim() || undefined,
+            facebookUrl: facebookUrl || undefined,
+          },
+        });
         navigate("/health-check/results", {
           state: {
             ...formData,
@@ -227,7 +282,7 @@ export default function HealthCheck() {
       cancelled = true;
       timers.forEach((t) => window.clearTimeout(t));
     };
-  }, [step, formData, navigate, isLoggedIn, user?.email]);
+  }, [step, formData, navigate, isLoggedIn, user?.email, resolvedGuestEmail, resolvedGuestName]);
 
   const renderWelcome = () => (
     <section className="mx-auto flex min-h-screen w-full max-w-3xl flex-col justify-center px-6 py-12">
@@ -294,6 +349,25 @@ export default function HealthCheck() {
 
         <div className="mt-8 space-y-6">
           <div className="space-y-2">
+            <Label htmlFor="businessName" className="font-['DM_Sans'] text-sm text-[#0D1833]">
+              Business name
+            </Label>
+            <Input
+              id="businessName"
+              type="text"
+              value={formData.businessName}
+              onChange={(e) => {
+                const value = e.target.value;
+                setBusinessNameTouched(true);
+                setFormData((prev) => ({ ...prev, businessName: value }));
+                updateGuestContext({ business: { businessName: value.trim() || undefined } });
+              }}
+              placeholder="Your business name"
+              className="border border-black rounded-design bg-white px-4 py-6 text-foreground placeholder:text-foreground/40"
+            />
+          </div>
+
+          <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label htmlFor="websiteUrl" className="font-['DM_Sans'] text-sm text-[#0D1833]">
                 Website URL
@@ -305,7 +379,11 @@ export default function HealthCheck() {
                 id="websiteUrl"
                 type="url"
                 value={formData.websiteUrl}
-                onChange={(e) => setFormData((prev) => ({ ...prev, websiteUrl: e.target.value }))}
+                onChange={(e) => {
+                  const websiteUrl = e.target.value;
+                  setFormData((prev) => ({ ...prev, websiteUrl }));
+                  updateGuestContext({ business: { websiteUrl: websiteUrl.trim() || undefined } });
+                }}
                 placeholder="https://yourbusiness.com"
                 className="border border-black rounded-design bg-white px-4 py-6 text-foreground placeholder:text-foreground/40"
               />
@@ -346,6 +424,7 @@ export default function HealthCheck() {
                     ...prev,
                     instagramHandle: val,
                   }));
+                  updateGuestContext({ business: { instagramHandle: val.trim() || undefined } });
                 }}
                 placeholder="marktr.io (or @marktr.io)"
                 className="border border-black rounded-design bg-white px-4 py-6 text-foreground placeholder:text-foreground/40"
@@ -380,10 +459,12 @@ export default function HealthCheck() {
                 type="text"
                 value={formData.facebookUrl}
                 onChange={(e) => {
+                  const facebookUrl = formatFacebookInput(e.target.value);
                   setFormData((prev) => ({
                     ...prev,
-                    facebookUrl: formatFacebookInput(e.target.value),
+                    facebookUrl,
                   }));
+                  updateGuestContext({ business: { facebookUrl: facebookUrl.trim() || undefined } });
                 }}
                 placeholder="yourbusiness (or full URL)"
                 className="border border-black rounded-design bg-white px-4 py-6 text-foreground placeholder:text-foreground/40"
@@ -404,23 +485,27 @@ export default function HealthCheck() {
             </div>
           </div>
 
-          {!isLoggedIn && (
-            <div className="space-y-2">
-              <Label htmlFor="email" className="font-['DM_Sans'] text-sm text-[#0D1833]">
-                Email address (required)
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
-                placeholder="you@yourbusiness.com"
-                className="border border-black rounded-design bg-white px-4 py-6 text-foreground placeholder:text-foreground/40"
-              />
-              <p className="font-['DM_Sans'] text-xs text-muted-foreground">
-                Your report will be sent here
-              </p>
-            </div>
+          {!isLoggedIn && (showIdentityName || showIdentityEmail) && (
+            <IdentityCapture
+              name={identityName}
+              email={formData.email}
+              showName={showIdentityName}
+              showEmail={showIdentityEmail}
+              onNameChange={(value) => {
+                setIdentityName(value);
+                updateGuestContext({ identity: { name: value.trim() || undefined } });
+              }}
+              onEmailChange={(value) => {
+                setFormData((prev) => ({ ...prev, email: value }));
+                updateGuestContext({ identity: { email: value.trim() || undefined } });
+              }}
+            />
+          )}
+
+          {!isLoggedIn && hasGuestIdentity() && (
+            <p className="font-['DM_Sans'] text-sm text-muted-foreground">
+              Results for {resolvedGuestName} at {resolvedGuestEmail}
+            </p>
           )}
         </div>
 

@@ -9,7 +9,7 @@ import useSubscription from "../hooks/useSubscription";
 import useProfile from "../hooks/useProfile";
 import { usePaywall } from "../contexts/PaywallContext";
 import { parseBrandStoryFromApi, type BrandStoryOutput } from "../lib/brandStory";
-import { getGuestBusinessName } from "../lib/guestBrandSeed";
+import { getGuestBusinessName, getGuestIdentityEmail } from "../lib/guestContext";
 import { BrandStoryFindingsSection } from "../components/story/BrandStoryFindingsSection";
 import { GuestPreviewShell } from "../layouts/GuestPreviewShell";
 
@@ -43,12 +43,12 @@ export default function StoryResults() {
 
   const hasRouterPayload =
     Boolean(state?.answers && Array.isArray(state.answers) && state.answers.length === 7) &&
-    Boolean(state?.email?.trim());
+    Boolean(state?.email?.trim() || getGuestIdentityEmail());
   const hasStoredStory = Boolean(
     guestStored?.output &&
       Array.isArray(guestStored.answers) &&
       guestStored.answers.length === 7 &&
-      guestStored.email?.trim()
+      (guestStored.email?.trim() || getGuestIdentityEmail())
   );
 
   const [story, setStory] = useState<BrandStoryOutput | null>(null);
@@ -70,10 +70,11 @@ export default function StoryResults() {
     }
 
     if (state?.story) {
+      const storyEmail = state.email.trim() || getGuestIdentityEmail() || "";
       setStory(state.story);
       setGuestStory({
         answers: state.answers,
-        email: state.email.trim(),
+        email: storyEmail,
         output: state.story,
         created_at: new Date().toISOString(),
       });
@@ -83,7 +84,7 @@ export default function StoryResults() {
 
     if (hasRouterPayload && !state?.story) {
       const answersPayload = state!.answers;
-      const emailPayload = state!.email.trim();
+      const emailPayload = state!.email.trim() || getGuestIdentityEmail() || "";
 
       let cancelled = false;
 

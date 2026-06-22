@@ -3,6 +3,11 @@ import {
   getGuestHealthCheck,
   clearGuestHealthCheck,
 } from "./guestHealthCheck";
+import {
+  getGuestContext,
+  getGuestIdentityEmail,
+  updateGuestContext,
+} from "./guestContext";
 import { getGuestStory, clearGuestStory } from "./guestStory";
 
 function extractDomain(url: string): string {
@@ -20,6 +25,8 @@ function extractDomain(url: string): string {
  */
 export async function transferGuestMarktrData(userId: string) {
   if (!userId) return;
+
+  const contextEmail = getGuestIdentityEmail();
 
   const guestHealth = getGuestHealthCheck();
   if (guestHealth) {
@@ -50,14 +57,26 @@ export async function transferGuestMarktrData(userId: string) {
 
   const guestStory = getGuestStory();
   if (guestStory) {
+    const storyEmail = guestStory.email?.trim() || contextEmail || "";
     const { error } = await supabase.from("brand_story_results").insert({
       user_id: userId,
-      story_data: guestStory,
+      story_data: {
+        ...guestStory,
+        email: storyEmail,
+      },
     });
     if (error) {
       console.warn("[transferGuestMarktrData] brand story transfer failed", error);
     } else {
       clearGuestStory();
+    }
+  }
+
+  // Ensure lead conversion can resolve guest email even after per-flow payloads are cleared.
+  if (contextEmail) {
+    const ctx = getGuestContext();
+    if (!ctx.identity.email?.trim()) {
+      updateGuestContext({ identity: { email: contextEmail } });
     }
   }
 }

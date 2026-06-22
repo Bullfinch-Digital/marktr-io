@@ -8,7 +8,8 @@ import { WhisperButton } from "../components/ui/WhisperButton";
 import { AlreadyCompletedPrompt } from "../components/AlreadyCompletedPrompt";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../config/supabase";
-import type { BrandStoryOutput } from "./StoryResults";
+import type { BrandStoryOutput } from "../lib/brandStory";
+import { parseBrandStoryFromApi } from "../lib/brandStory";
 
 type StoryStep =
   | "intro"
@@ -209,22 +210,12 @@ export default function StoryBuild() {
           if (invokeError) throw invokeError;
 
           const raw = data as Record<string, unknown> | null;
-          if (
-            !raw ||
-            typeof raw.foundingStory !== "string" ||
-            typeof raw.pointOfView !== "string" ||
-            typeof raw.positioningStatement !== "string" ||
-            typeof raw.brandPurpose !== "string"
-          ) {
+          const parsed = parseBrandStoryFromApi(raw);
+          if (!parsed) {
             throw new Error("Invalid story response from server.");
           }
 
-          story = {
-            foundingStory: raw.foundingStory,
-            pointOfView: raw.pointOfView,
-            positioningStatement: raw.positioningStatement,
-            brandPurpose: raw.brandPurpose,
-          };
+          story = parsed;
         } catch (e) {
           storyError = e instanceof Error ? e.message : "Something went wrong.";
         }

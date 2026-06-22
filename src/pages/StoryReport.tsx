@@ -3,7 +3,8 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../config/supabase";
-import type { BrandStoryOutput } from "./StoryResults";
+import { parseBrandStoryFromStorage, type BrandStoryOutput } from "../lib/brandStory";
+import { BrandStoryFindingsSection } from "../components/story/BrandStoryFindingsSection";
 
 export default function StoryReport() {
   const navigate = useNavigate();
@@ -32,35 +33,7 @@ export default function StoryReport() {
         if (error || !data?.story_data) {
           setStory(null);
         } else {
-          const raw = data.story_data as Record<string, unknown>;
-          if (
-            typeof raw.foundingStory === "string" &&
-            typeof raw.pointOfView === "string" &&
-            typeof raw.positioningStatement === "string" &&
-            typeof raw.brandPurpose === "string"
-          ) {
-            setStory({
-              foundingStory: raw.foundingStory,
-              pointOfView: raw.pointOfView,
-              positioningStatement: raw.positioningStatement,
-              brandPurpose: raw.brandPurpose,
-            });
-          } else if (raw.output && typeof raw.output === "object") {
-            const output = raw.output as Record<string, unknown>;
-            if (
-              typeof output.foundingStory === "string" &&
-              typeof output.pointOfView === "string" &&
-              typeof output.positioningStatement === "string" &&
-              typeof output.brandPurpose === "string"
-            ) {
-              setStory({
-                foundingStory: output.foundingStory,
-                pointOfView: output.pointOfView,
-                positioningStatement: output.positioningStatement,
-                brandPurpose: output.brandPurpose,
-              });
-            }
-          }
+          setStory(parseBrandStoryFromStorage(data.story_data));
         }
         setLoading(false);
       });
@@ -117,6 +90,11 @@ export default function StoryReport() {
             </article>
           ))}
         </div>
+
+        <BrandStoryFindingsSection
+          findings={story.findings ?? []}
+          variant="authenticated"
+        />
 
         <div className="mt-10">
           <button

@@ -6,6 +6,7 @@ export type GuestStory = {
     pointOfView: string;
     positioningStatement: string;
     brandPurpose: string;
+    findings?: Array<{ title: string; recommendation: string }>;
   } | null;
   created_at: string;
 };

@@ -6,6 +6,11 @@ import { setGuestStory } from "../lib/guestStory";
 import { useAuth } from "../contexts/AuthContext";
 import useSubscription from "../hooks/useSubscription";
 import useProfile from "../hooks/useProfile";
+import { usePaywall } from "../contexts/PaywallContext";
+import { parseBrandStoryFromApi, type BrandStoryOutput } from "../lib/brandStory";
+import { BrandStoryFindingsSection } from "../components/story/BrandStoryFindingsSection";
+
+export type { BrandStoryOutput } from "../lib/brandStory";
 
 export type StoryResultsLocationState = {
   answers: string[];
@@ -14,18 +19,12 @@ export type StoryResultsLocationState = {
   error?: string | null;
 };
 
-export type BrandStoryOutput = {
-  foundingStory: string;
-  pointOfView: string;
-  positioningStatement: string;
-  brandPurpose: string;
-};
-
 export default function StoryResults() {
   const location = useLocation();
   const navigate = useNavigate();
   const state = (location.state ?? null) as StoryResultsLocationState | null;
   const { user } = useAuth();
+  const { openPaywall } = usePaywall();
   const { isPro: subscriptionIsPro, loading: subscriptionLoading } = useSubscription();
   const { profile } = useProfile(user?.id ?? null);
   const isLoggedInReal = Boolean(
@@ -89,23 +88,12 @@ export default function StoryResults() {
         if (invokeError) throw invokeError;
 
         const raw = data as Record<string, unknown> | null;
-        if (
-          !raw ||
-          typeof raw.foundingStory !== "string" ||
-          typeof raw.pointOfView !== "string" ||
-          typeof raw.positioningStatement !== "string" ||
-          typeof raw.brandPurpose !== "string"
-        ) {
+        const output = parseBrandStoryFromApi(raw);
+        if (!output) {
           throw new Error("Invalid story response from server.");
         }
 
         if (!cancelled) {
-          const output = {
-            foundingStory: raw.foundingStory,
-            pointOfView: raw.pointOfView,
-            positioningStatement: raw.positioningStatement,
-            brandPurpose: raw.brandPurpose,
-          };
           setStory(output);
           setGuestStory({
             answers: answersPayload,
@@ -225,6 +213,12 @@ export default function StoryResults() {
             </article>
           ))}
         </div>
+
+        <BrandStoryFindingsSection
+          findings={story.findings ?? []}
+          variant={showPaywallUpsell ? "guest" : "authenticated"}
+          onOpenPaywall={openPaywall}
+        />
 
         {showPaywallUpsell && (
           <div className="mt-10 rounded-2xl bg-[#0D1833] p-8">

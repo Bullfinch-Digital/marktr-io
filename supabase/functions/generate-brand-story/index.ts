@@ -9,11 +9,17 @@ type GenerateBrandStoryInput = {
   email: string;
 };
 
+type BrandStoryFinding = {
+  title: string;
+  recommendation: string;
+};
+
 type BrandStoryOutput = {
   foundingStory: string;
   pointOfView: string;
   positioningStatement: string;
   brandPurpose: string;
+  findings?: BrandStoryFinding[];
 };
 
 function json(resBody: unknown, status = 200) {
@@ -47,8 +53,16 @@ const SYSTEM_PROMPT = `You are a brand strategist helping a founder articulate t
   "foundingStory": "2-3 sentence narrative paragraph about why this business exists, written in third person, grounded in their specific answers.",
   "pointOfView": "A single sentence capturing their distinctive belief about their industry.",
   "positioningStatement": "2 sentences starting with: For [customer] who [pain], [business] is the [category] that [key differentiator].",
-  "brandPurpose": "A single sentence capturing why this business exists beyond profit."
-}`;
+  "brandPurpose": "A single sentence capturing why this business exists beyond profit.",
+  "findings": [
+    {
+      "title": "3-6 word punchy title",
+      "recommendation": "1-2 sentences naming the gap and what closing it would do for them, grounded in their answers."
+    }
+  ]
+}
+
+In addition to the brand story sections, analyse the information provided and identify 3–4 specific, honest opportunities to strengthen this brand's story and marketing. Each finding MUST be grounded in what the user actually told you — reference their specifics, never generic advice. For each finding return: a short punchy title (3–6 words) and a 1–2 sentence recommendation that names the gap and what closing it would do for them. Draw from opportunities such as: speaking to one precise ideal audience instead of a broad one; owning a sharper niche or differentiator that's currently buried; building proof and credibility (testimonials, named awards, founder/origin specifics); making the point of view braver and more distinctive; putting the human/founder visibly into the story. Do NOT invent facts. If proof is missing, frame it as something to build, never as something they already have. Tone: warm, specific, honest, peer-to-peer — an experienced founder giving a straight, encouraging read. No hype, no marketing clichés.`;
 
 function buildUserMessage(answers: string[]) {
   const a = answers.map((x) => String(x ?? "").trim());
@@ -59,6 +73,22 @@ Q4 (Best customer): ${a[3] ?? ""}
 Q5 (Customer feedback): ${a[4] ?? ""}
 Q6 (If gone): ${a[5] ?? ""}
 Q7 (5yr vision): ${a[6] ?? ""}`;
+}
+
+function parseFindings(raw: unknown): BrandStoryFinding[] {
+  if (!Array.isArray(raw)) return [];
+  const findings: BrandStoryFinding[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const row = item as Record<string, unknown>;
+    const title = typeof row.title === "string" ? row.title.trim() : "";
+    const recommendation =
+      typeof row.recommendation === "string" ? row.recommendation.trim() : "";
+    if (!title || !recommendation) continue;
+    findings.push({ title, recommendation });
+    if (findings.length >= 4) break;
+  }
+  return findings;
 }
 
 function parseStoryJson(raw: string): BrandStoryOutput {
@@ -85,6 +115,7 @@ function parseStoryJson(raw: string): BrandStoryOutput {
     pointOfView: o.pointOfView,
     positioningStatement: o.positioningStatement,
     brandPurpose: o.brandPurpose,
+    findings: parseFindings(o.findings),
   };
 }
 
@@ -127,7 +158,7 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         model: "gpt-4o",
-        max_tokens: 1000,
+        max_tokens: 1800,
         temperature: 0.7,
         messages: [
           { role: "system", content: SYSTEM_PROMPT },

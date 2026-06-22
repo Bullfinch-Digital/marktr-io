@@ -9,6 +9,7 @@ import useSubscription from "../hooks/useSubscription";
 import useProfile from "../hooks/useProfile";
 import { usePaywall } from "../contexts/PaywallContext";
 import { parseBrandStoryFromApi, type BrandStoryOutput } from "../lib/brandStory";
+import { getGuestBusinessName } from "../lib/guestBrandSeed";
 import { BrandStoryFindingsSection } from "../components/story/BrandStoryFindingsSection";
 import { GuestPreviewShell } from "../layouts/GuestPreviewShell";
 
@@ -86,6 +87,8 @@ export default function StoryResults() {
 
       let cancelled = false;
 
+      const businessName = getGuestBusinessName();
+
       async function run() {
         setLoading(true);
         setError(null);
@@ -94,6 +97,7 @@ export default function StoryResults() {
             body: {
               answers: answersPayload,
               email: emailPayload,
+              ...(businessName ? { businessName } : {}),
             },
           });
 

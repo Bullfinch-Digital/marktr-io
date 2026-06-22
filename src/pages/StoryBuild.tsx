@@ -10,6 +10,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../config/supabase";
 import type { BrandStoryOutput } from "../lib/brandStory";
 import { parseBrandStoryFromApi } from "../lib/brandStory";
+import { getGuestBusinessName } from "../lib/guestBrandSeed";
 
 type StoryStep =
   | "intro"
@@ -195,6 +196,8 @@ export default function StoryBuild() {
       let storyError: string | null = null;
       const emailToUse = isLoggedIn ? user?.email?.trim() ?? "" : email.trim();
 
+      const businessName = getGuestBusinessName();
+
       const apiPromise = (async () => {
         try {
           const { data, error: invokeError } = await supabase.functions.invoke(
@@ -203,6 +206,7 @@ export default function StoryBuild() {
               body: {
                 answers,
                 email: emailToUse,
+                ...(businessName ? { businessName } : {}),
               },
             }
           );

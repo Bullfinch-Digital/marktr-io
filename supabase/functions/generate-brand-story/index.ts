@@ -7,6 +7,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 type GenerateBrandStoryInput = {
   answers: string[];
   email: string;
+  businessName?: string;
 };
 
 type BrandStoryFinding = {
@@ -48,12 +49,25 @@ function corsPreflight(req: Request) {
   return null;
 }
 
-const SYSTEM_PROMPT = `You are a brand strategist helping a founder articulate the story behind their business. Based on their answers, generate 4 distinct brand story outputs. Return ONLY valid JSON with no markdown, no backticks, no preamble. Use this exact structure:
+const SYSTEM_PROMPT = `You are a sharp, experienced brand strategist helping a founder articulate the story behind THEIR specific business. You are given the business name and their answers — use their real specifics (the actual name, the place, the product, the real reason they started) throughout.
+
+Hard rules:
+- Use the business's ACTUAL NAME (provided) in every section. Never write "the business", "our business", "the company", or a placeholder like "[business]". If no name is given, refer to it naturally from their answers — never a placeholder.
+- No clichés or filler. Banned: "passionate about quality", "flooded with mediocrity", "game-changing", "elevate", "seamless", "exceptional service", "transformative power". If a sentence could belong to any business, rewrite it until it could only belong to this one.
+- Ground every sentence in what they actually told you. If a detail is missing, write around it honestly — never invent facts, awards, or claims.
+
+Sections:
+- foundingStory: A real, human founding moment in the brand's own first-person voice ("we"), anchored in the specific place, decision or frustration that started it. 2-3 sentences. True, not corporate.
+- pointOfView: One brave, specific sentence — an opinion about their industry a lazy competitor would hesitate to say aloud. No safe generalities.
+- positioningStatement: Two sentences: "For [their specific audience] who [their specific need], [ACTUAL BUSINESS NAME] is the [category] that [their real differentiator]." Fill every bracket — leave no placeholder in the output.
+- brandPurpose: One sentence — the deeper why, plain and concrete, not aspirational fluff.
+
+Return ONLY valid JSON with no markdown, no backticks, no preamble. Use this exact structure:
 {
-  "foundingStory": "2-3 sentence narrative paragraph about why this business exists, written in third person, grounded in their specific answers.",
-  "pointOfView": "A single sentence capturing their distinctive belief about their industry.",
-  "positioningStatement": "2 sentences starting with: For [customer] who [pain], [business] is the [category] that [key differentiator].",
-  "brandPurpose": "A single sentence capturing why this business exists beyond profit.",
+  "foundingStory": "string",
+  "pointOfView": "string",
+  "positioningStatement": "string",
+  "brandPurpose": "string",
   "findings": [
     {
       "title": "3-6 word punchy title",
@@ -64,9 +78,11 @@ const SYSTEM_PROMPT = `You are a brand strategist helping a founder articulate t
 
 In addition to the brand story sections, analyse the information provided and identify 3–4 specific, honest opportunities to strengthen this brand's story and marketing. Each finding MUST be grounded in what the user actually told you — reference their specifics, never generic advice. For each finding return: a short punchy title (3–6 words) and a 1–2 sentence recommendation that names the gap and what closing it would do for them. Draw from opportunities such as: speaking to one precise ideal audience instead of a broad one; owning a sharper niche or differentiator that's currently buried; building proof and credibility (testimonials, named awards, founder/origin specifics); making the point of view braver and more distinctive; putting the human/founder visibly into the story. Do NOT invent facts. If proof is missing, frame it as something to build, never as something they already have. Tone: warm, specific, honest, peer-to-peer — an experienced founder giving a straight, encouraging read. No hype, no marketing clichés.`;
 
-function buildUserMessage(answers: string[]) {
+function buildUserMessage(answers: string[], businessName?: string) {
   const a = answers.map((x) => String(x ?? "").trim());
-  return `Q1 (What they do): ${a[0] ?? ""}
+  const name = businessName?.trim();
+  const nameBlock = name ? `Business name: ${name}\n\n` : "";
+  return `${nameBlock}Q1 (What they do): ${a[0] ?? ""}
 Q2 (Why they started): ${a[1] ?? ""}
 Q3 (Industry POV): ${a[2] ?? ""}
 Q4 (Best customer): ${a[3] ?? ""}
@@ -148,7 +164,12 @@ Deno.serve(async (req) => {
       return json({ error: "Invalid input: email is required." }, 400);
     }
 
-    const userMessage = buildUserMessage(body.answers);
+    const businessName =
+      typeof body.businessName === "string" ? body.businessName.trim() : "";
+    const userMessage = buildUserMessage(
+      body.answers,
+      businessName || undefined
+    );
 
     const resp = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -159,7 +180,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         model: "gpt-4o",
         max_tokens: 1800,
-        temperature: 0.7,
+        temperature: 0.6,
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
           { role: "user", content: userMessage },

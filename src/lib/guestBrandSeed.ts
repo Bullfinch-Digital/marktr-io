@@ -30,6 +30,12 @@ export function setGuestBrandSeed(seed: GuestBrandSeed | null) {
   }
 }
 
+/** Brand name from localStorage — only set after ICP onboarding completes, not during /story. */
+export function getGuestBusinessName(): string | undefined {
+  const name = getGuestBrandSeed()?.brandName?.trim();
+  return name || undefined;
+}
+
 export function getGuestBrandSeed(): GuestBrandSeed | null {
   try {
     const raw = localStorage.getItem(SEED_KEY);

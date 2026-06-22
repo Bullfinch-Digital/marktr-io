@@ -1,6 +1,7 @@
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useMemo, useRef } from "react";
 import { calculateScores, type HealthCheckInput } from "../lib/healthCheckScoring";
+import { mergeHealthFindings } from "../lib/healthCheckFindings";
 import { setGuestHealthCheck } from "../lib/guestHealthCheck";
 import { usePaywall } from "../contexts/PaywallContext";
 import { useAuth } from "../contexts/AuthContext";
@@ -37,6 +38,7 @@ export default function HealthCheckResults() {
 
   useEffect(() => {
     if (!state?.email?.trim() || !scores) return;
+    const findings = mergeHealthFindings(scores, state.websiteScore?.findings);
     setGuestHealthCheck({
       input: {
         websiteUrl: state.websiteUrl,
@@ -53,6 +55,8 @@ export default function HealthCheckResults() {
         lowestDimension: scores.lowestDimension,
         lowestScore: scores.lowestScore,
       },
+      websiteScore: state.websiteScore ?? undefined,
+      findings,
       created_at: new Date().toISOString(),
     });
   }, [state, scores]);

@@ -32,6 +32,7 @@ export interface HealthCheckInput {
     gaps?: string[];
     storyAssessment?: StoryAssessment | null;
     socialScores?: SocialScores | null;
+    findings?: Array<{ dimension: string; score: number; finding: string }>;
   } | null;
 }
 

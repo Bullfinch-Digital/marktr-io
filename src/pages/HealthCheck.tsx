@@ -9,6 +9,7 @@ import { AlreadyCompletedPrompt } from "../components/AlreadyCompletedPrompt";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../config/supabase";
 import type { SocialScores, StoryAssessment } from "../lib/healthCheckScoring";
+import { parseApiFindings } from "../lib/healthCheckFindings";
 import { formatFacebookInput, normaliseFacebookUrl } from "../lib/normaliseFacebookUrl";
 
 type Step = "welcome" | "inputs" | "loading";
@@ -144,6 +145,7 @@ export default function HealthCheck() {
         gaps?: string[];
         storyAssessment?: StoryAssessment | null;
         socialScores?: SocialScores | null;
+        findings?: ReturnType<typeof parseApiFindings>;
       } | null = null;
 
       const facebookUrl = normaliseFacebookUrl(formData.facebookUrl);
@@ -190,6 +192,7 @@ export default function HealthCheck() {
                     }
                   : null,
               socialScores: (data.socialScores as SocialScores | null) ?? null,
+              findings: parseApiFindings(data.findings),
             };
           }
         } catch {

@@ -161,6 +161,11 @@ export default function GuestDashboardPreview() {
                     Run your digital health check →
                   </Link>
                 )}
+                {hasHealth && (
+                  <Link to="/health-preview" className="mt-3 inline-block font-['DM_Sans'] text-xs text-primary underline">
+                    View your findings →
+                  </Link>
+                )}
               </div>
             </div>
           </div>
@@ -181,6 +186,11 @@ export default function GuestDashboardPreview() {
                 {!hasStory && (
                   <Link to="/story" className="mt-3 inline-block font-['DM_Sans'] text-xs text-primary underline">
                     Find your story →
+                  </Link>
+                )}
+                {hasStory && (
+                  <Link to="/story/results" className="mt-3 inline-block font-['DM_Sans'] text-xs text-primary underline">
+                    View full story →
                   </Link>
                 )}
               </div>
@@ -214,7 +224,15 @@ export default function GuestDashboardPreview() {
 
         {hasStory && guestStory?.output && (
           <div className="space-y-4 rounded-2xl border border-border bg-white p-6">
-            <h2 className="font-['Fraunces'] text-2xl font-bold text-[#0D1833]">Your brand story</h2>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <h2 className="font-['Fraunces'] text-2xl font-bold text-[#0D1833]">Your brand story</h2>
+              <Link
+                to="/story/results"
+                className="font-['DM_Sans'] text-sm font-medium text-primary hover:underline"
+              >
+                View full story →
+              </Link>
+            </div>
             <div className="space-y-3">
               {(
                 [
@@ -237,7 +255,15 @@ export default function GuestDashboardPreview() {
 
         {hasHealth && guestHealth?.scores && (
           <div className="space-y-4 rounded-2xl border border-border bg-white p-6">
-            <h2 className="font-['Fraunces'] text-2xl font-bold text-[#0D1833]">Your digital health scores</h2>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <h2 className="font-['Fraunces'] text-2xl font-bold text-[#0D1833]">Your digital health scores</h2>
+              <Link
+                to="/health-preview"
+                className="font-['DM_Sans'] text-sm font-medium text-primary hover:underline"
+              >
+                View your findings →
+              </Link>
+            </div>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               {(
                 [

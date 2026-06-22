@@ -1,14 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { supabase } from "../config/supabase";
-import { setGuestStory } from "../lib/guestStory";
+import { getGuestStory, setGuestStory } from "../lib/guestStory";
 import { useAuth } from "../contexts/AuthContext";
+import { isRealUser } from "../utils/isRealUser";
 import useSubscription from "../hooks/useSubscription";
 import useProfile from "../hooks/useProfile";
 import { usePaywall } from "../contexts/PaywallContext";
 import { parseBrandStoryFromApi, type BrandStoryOutput } from "../lib/brandStory";
 import { BrandStoryFindingsSection } from "../components/story/BrandStoryFindingsSection";
+import { GuestPreviewShell } from "../layouts/GuestPreviewShell";
 
 export type { BrandStoryOutput } from "../lib/brandStory";
 
@@ -36,88 +38,111 @@ export default function StoryResults() {
     hasPaidAccess || (isLoggedInReal && subscriptionLoading);
   const showPaywallUpsell = !showDashboardCta;
 
+  const guestStored = useMemo(() => getGuestStory(), []);
+
+  const hasRouterPayload =
+    Boolean(state?.answers && Array.isArray(state.answers) && state.answers.length === 7) &&
+    Boolean(state?.email?.trim());
+  const hasStoredStory = Boolean(
+    guestStored?.output &&
+      Array.isArray(guestStored.answers) &&
+      guestStored.answers.length === 7 &&
+      guestStored.email?.trim()
+  );
+
   const [story, setStory] = useState<BrandStoryOutput | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const snapshot = state;
-    if (!snapshot?.answers || !Array.isArray(snapshot.answers) || snapshot.answers.length !== 7) {
-      setLoading(false);
-      return;
-    }
-    if (!snapshot.email?.trim()) {
+    if (isRealUser(user)) return;
+
+    if (!hasRouterPayload && !hasStoredStory) {
       setLoading(false);
       return;
     }
 
-    if (snapshot.error) {
-      setError(snapshot.error);
+    if (state?.error) {
+      setError(state.error);
       setLoading(false);
       return;
     }
 
-    if (snapshot.story) {
-      setStory(snapshot.story);
+    if (state?.story) {
+      setStory(state.story);
       setGuestStory({
-        answers: snapshot.answers,
-        email: snapshot.email.trim(),
-        output: snapshot.story,
+        answers: state.answers,
+        email: state.email.trim(),
+        output: state.story,
         created_at: new Date().toISOString(),
       });
       setLoading(false);
       return;
     }
 
-    const answersPayload = snapshot.answers;
-    const emailPayload = snapshot.email.trim();
+    if (hasRouterPayload && !state?.story) {
+      const answersPayload = state!.answers;
+      const emailPayload = state!.email.trim();
 
-    let cancelled = false;
+      let cancelled = false;
 
-    async function run() {
-      setLoading(true);
-      setError(null);
-      try {
-        const { data, error: invokeError } = await supabase.functions.invoke("generate-brand-story", {
-          body: {
-            answers: answersPayload,
-            email: emailPayload,
-          },
-        });
-
-        if (invokeError) throw invokeError;
-
-        const raw = data as Record<string, unknown> | null;
-        const output = parseBrandStoryFromApi(raw);
-        if (!output) {
-          throw new Error("Invalid story response from server.");
-        }
-
-        if (!cancelled) {
-          setStory(output);
-          setGuestStory({
-            answers: answersPayload,
-            email: emailPayload,
-            output,
-            created_at: new Date().toISOString(),
+      async function run() {
+        setLoading(true);
+        setError(null);
+        try {
+          const { data, error: invokeError } = await supabase.functions.invoke("generate-brand-story", {
+            body: {
+              answers: answersPayload,
+              email: emailPayload,
+            },
           });
+
+          if (invokeError) throw invokeError;
+
+          const raw = data as Record<string, unknown> | null;
+          const output = parseBrandStoryFromApi(raw);
+          if (!output) {
+            throw new Error("Invalid story response from server.");
+          }
+
+          if (!cancelled) {
+            setStory(output);
+            setGuestStory({
+              answers: answersPayload,
+              email: emailPayload,
+              output,
+              created_at: new Date().toISOString(),
+            });
+          }
+        } catch (e) {
+          if (!cancelled) {
+            setError(e instanceof Error ? e.message : "Something went wrong.");
+          }
+        } finally {
+          if (!cancelled) setLoading(false);
         }
-      } catch (e) {
-        if (!cancelled) {
-          setError(e instanceof Error ? e.message : "Something went wrong.");
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
       }
+
+      void run();
+      return () => {
+        cancelled = true;
+      };
     }
 
-    void run();
-    return () => {
-      cancelled = true;
-    };
-  }, [state]);
+    if (guestStored?.output) {
+      setStory(guestStored.output);
+      setLoading(false);
+      return;
+    }
 
-  if (!state?.answers || !Array.isArray(state.answers) || state.answers.length !== 7 || !state.email?.trim()) {
+    setLoading(false);
+  }, [state, hasRouterPayload, guestStored, user]);
+
+  if (isRealUser(user)) {
+    return <Navigate to="/story-report" replace />;
+  }
+
+  if (!hasRouterPayload && !hasStoredStory) {
     return <Navigate to="/story" replace />;
   }
 
@@ -134,12 +159,14 @@ export default function StoryResults() {
 
   if (error || !story) {
     return (
-      <main className="mx-auto max-w-2xl px-6 py-12">
-        <p className="font-['DM_Sans'] text-sm text-destructive">{error || "Could not load your story."}</p>
-        <Link to="/story" className="mt-4 inline-block font-['DM_Sans'] text-sm text-primary underline">
-          Start over
-        </Link>
-      </main>
+      <GuestPreviewShell>
+        <div className="mx-auto max-w-2xl">
+          <p className="font-['DM_Sans'] text-sm text-destructive">{error || "Could not load your story."}</p>
+          <Link to="/story" className="mt-4 inline-block font-['DM_Sans'] text-sm text-primary underline">
+            Start over
+          </Link>
+        </div>
+      </GuestPreviewShell>
     );
   }
 
@@ -151,8 +178,8 @@ export default function StoryResults() {
   ];
 
   return (
-    <main className="min-h-screen bg-background">
-      <section className="mx-auto max-w-2xl px-6 py-12">
+    <GuestPreviewShell>
+      <section className="mx-auto max-w-2xl">
         <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 font-['DM_Sans'] text-xs font-medium text-primary">
           Your Brand Story
         </span>
@@ -262,6 +289,6 @@ export default function StoryResults() {
           </div>
         )}
       </section>
-    </main>
+    </GuestPreviewShell>
   );
 }

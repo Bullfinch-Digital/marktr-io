@@ -38,6 +38,7 @@ import BetaSignup from "./pages/BetaSignup";
 import MyBrands from "./pages/MyBrands";
 import BrandEditor from "./pages/BrandEditor";
 import GuestIcpPreview from "./pages/GuestIcpPreview";
+import GuestHealthPreview from "./pages/GuestHealthPreview";
 import Resources from "./pages/Resources";
 import ResourcePost from "./pages/ResourcePost";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
@@ -155,6 +156,7 @@ export default function App() {
               <Route path="/story/results" element={<StoryResults />} />
               <Route path="/guest-dashboard" element={<GuestDashboardPreview />} />
               <Route path="/icp-preview/:index" element={<GuestIcpPreview />} />
+              <Route path="/health-preview" element={<GuestHealthPreview />} />
             </Route>
 
             {/* Other public routes without Header/Footer */}

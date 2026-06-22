@@ -54,6 +54,7 @@ type WebsiteScoreResult = {
   gaps?: string[];
   storyAssessment?: StoryAssessment | null;
   socialScores?: SocialScores | null;
+  findings?: Array<{ dimension: string; score: number; finding: string }>;
 };
 
 const ABOUT_PATHS = [
@@ -617,7 +618,14 @@ Assess the website and return ONLY valid JSON with no markdown or backticks:
     "audienceObservation": string (max 15 words — based on the bio's specificity to a target customer. e.g. "Bio doesn't name who this campsite is for"),
     "engagementProxyScore": number (0-100 — NOT real engagement, a REACH PROXY based on follower count relative to post count and account activity),
     "engagementObservation": string (max 15 words, framed honestly as reach/visibility based on follower count — e.g. "562 followers suggests a small but engaged local audience" or "Limited following may restrict organic reach")
-  }
+  },
+  "findings": [
+    {
+      "dimension": "Website Clarity" | "Brand Story" | "Content Consistency" | "Social Presence",
+      "score": number (0-100),
+      "finding": string (1-2 sentences, specific and grounded in the actual website and Instagram/Facebook data provided)
+    }
+  ]
 }
 
 ASSESSMENT CRITERIA:
@@ -700,7 +708,36 @@ socialScores:
   - Posts < 50: 20-40 (limited)
   - Adjust down if follower count seems very low relative to post count
 - socialObservation: max 15 words, one specific observation about their social presence — or empty string if no social data was provided
-- If Instagram is not found (instagramFound: false), omit or set to null: instagramBioScore, audienceObservation, engagementProxyScore, and engagementObservation`;
+- If Instagram is not found (instagramFound: false), omit or set to null: instagramBioScore, audienceObservation, engagementProxyScore, and engagementObservation
+
+FINDINGS (required — exactly 4 items, one per dimension):
+For each dimension — especially the lower-scoring ones — write a short, specific, honest finding grounded in the ACTUAL data provided (website content, Instagram post frequency/recency/gaps, Facebook signals). Name what is pulling the score down and what fixing it would do for this business. Draw from: homepage clarity and audience specificity; founder story depth and emotional hook; content consistency and posting gaps visible from Instagram; social bio alignment, reach, and presence. Do NOT invent facts. If proof is missing, frame it as something to build, never as something they already have. Tone: warm, specific, honest, peer-to-peer — an experienced founder giving a straight, encouraging read. No hype, no marketing clichés.
+Score each finding 0-100 for its dimension using the same criteria as your assessments above.`;
+
+function parseFindings(raw: unknown) {
+  if (!Array.isArray(raw)) return [];
+  const allowed = new Set([
+    "Website Clarity",
+    "Brand Story",
+    "Content Consistency",
+    "Social Presence",
+  ]);
+  return raw
+    .map((item) => {
+      if (!item || typeof item !== "object") return null;
+      const row = item as Record<string, unknown>;
+      const dimension = typeof row.dimension === "string" ? row.dimension.trim() : "";
+      const score = Number(row.score);
+      const finding = typeof row.finding === "string" ? row.finding.trim() : "";
+      if (!allowed.has(dimension) || !finding || Number.isNaN(score)) return null;
+      return {
+        dimension,
+        score: Math.min(100, Math.max(0, Math.round(score))),
+        finding,
+      };
+    })
+    .filter((item): item is { dimension: string; score: number; finding: string } => item !== null);
+}
 
 Deno.serve(async (req) => {
   const preflight = corsPreflight(req);
@@ -826,7 +863,7 @@ Deno.serve(async (req) => {
         },
         body: JSON.stringify({
           model: "gpt-4o-mini",
-          max_tokens: 750,
+          max_tokens: 1200,
           temperature: 0,
           messages: [
             { role: "system", content: SYSTEM_PROMPT },
@@ -877,6 +914,7 @@ Deno.serve(async (req) => {
           instagramFetch,
           facebookFetch
         ),
+        findings: parseFindings(result.findings),
         breakdown: {
           hasValueProposition: Boolean(result.hasValueProposition),
           hasClearAudience: Boolean(result.hasClearAudience),

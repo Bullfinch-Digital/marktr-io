@@ -1,3 +1,6 @@
+import type { HealthCheckInput } from "./healthCheckScoring";
+import type { HealthDimensionFinding } from "./healthCheckFindings";
+
 export type GuestHealthCheck = {
   input: {
     websiteUrl?: string;
@@ -14,6 +17,8 @@ export type GuestHealthCheck = {
     lowestDimension: string;
     lowestScore: number;
   };
+  websiteScore?: HealthCheckInput["websiteScore"];
+  findings?: HealthDimensionFinding[];
   created_at: string;
 };
 

@@ -17,9 +17,11 @@ import {
   getGuestIdentityEmail,
   getGuestIdentityName,
   hasGuestIdentity,
+  isGuestLeadCaptured,
   suggestBusinessNameFromUrl,
   updateGuestContext,
 } from "../lib/guestContext";
+import { captureGuestLeadOnce, isTurnstileConfigured } from "../lib/leadCapture";
 
 type Step = "welcome" | "inputs" | "loading";
 
@@ -92,6 +94,8 @@ export default function HealthCheck() {
   });
   const [identityName, setIdentityName] = useState("");
   const [businessNameTouched, setBusinessNameTouched] = useState(false);
+  const [leadToken, setLeadToken] = useState<string | null>(null);
+  const turnstileConfigured = isTurnstileConfigured();
 
   useEffect(() => {
     const ctx = getGuestContext();
@@ -120,13 +124,25 @@ export default function HealthCheck() {
   const resolvedGuestEmail = formData.email.trim() || getGuestIdentityEmail() || "";
   const resolvedGuestName = identityName.trim() || getGuestIdentityName() || "";
 
-  const canAnalyse = useMemo(() => {
-    if (isLoggedIn) return Boolean(user?.email?.trim());
-    return resolvedGuestEmail.length > 0 && resolvedGuestName.length > 0;
-  }, [isLoggedIn, user?.email, resolvedGuestEmail, resolvedGuestName]);
-
   const showIdentityName = !isLoggedIn && !getGuestIdentityName();
   const showIdentityEmail = !isLoggedIn && !getGuestIdentityEmail();
+
+  const canAnalyse = useMemo(() => {
+    if (isLoggedIn) return Boolean(user?.email?.trim());
+    if (!resolvedGuestEmail.length || !resolvedGuestName.length) return false;
+    const needsTurnstile =
+      showIdentityEmail && turnstileConfigured && !isGuestLeadCaptured();
+    if (needsTurnstile && !leadToken) return false;
+    return true;
+  }, [
+    isLoggedIn,
+    user?.email,
+    resolvedGuestEmail,
+    resolvedGuestName,
+    showIdentityEmail,
+    turnstileConfigured,
+    leadToken,
+  ]);
 
   useEffect(() => {
     if (!isLoggedIn || !user?.id) {
@@ -487,10 +503,12 @@ export default function HealthCheck() {
 
           {!isLoggedIn && (showIdentityName || showIdentityEmail) && (
             <IdentityCapture
+              captureSource="health-check"
               name={identityName}
               email={formData.email}
               showName={showIdentityName}
               showEmail={showIdentityEmail}
+              onTokenChange={setLeadToken}
               onNameChange={(value) => {
                 setIdentityName(value);
                 updateGuestContext({ identity: { name: value.trim() || undefined } });
@@ -523,6 +541,12 @@ export default function HealthCheck() {
           <Button
             onClick={() => {
               if (!canAnalyse) return;
+              void captureGuestLeadOnce({
+                email: resolvedGuestEmail,
+                name: resolvedGuestName,
+                token: leadToken,
+                source: "health-check",
+              });
               setCompletedCount(0);
               setChecklistDone(false);
               setStep("loading");

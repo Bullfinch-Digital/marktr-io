@@ -18,12 +18,14 @@ export type GuestBusinessContext = {
 export type GuestContext = {
   identity: GuestIdentity;
   business: GuestBusinessContext;
+  leadCapturedAt?: string;
   updatedAt: string;
 };
 
 export type GuestContextUpdate = {
   identity?: Partial<GuestIdentity>;
   business?: Partial<GuestBusinessContext>;
+  leadCapturedAt?: string;
 };
 
 const CONTEXT_KEY = "marktr_guest_context_v1";
@@ -52,6 +54,8 @@ export function getGuestContext(): GuestContext {
     return {
       identity: parsed.identity && typeof parsed.identity === "object" ? parsed.identity : {},
       business: parsed.business && typeof parsed.business === "object" ? parsed.business : {},
+      leadCapturedAt:
+        typeof parsed.leadCapturedAt === "string" ? parsed.leadCapturedAt : undefined,
       updatedAt: typeof parsed.updatedAt === "string" ? parsed.updatedAt : new Date().toISOString(),
     };
   } catch {
@@ -64,6 +68,7 @@ export function updateGuestContext(partial: GuestContextUpdate): GuestContext {
   const next: GuestContext = {
     identity: mergeRecords({ ...current.identity }, partial.identity),
     business: mergeRecords({ ...current.business }, partial.business),
+    leadCapturedAt: partial.leadCapturedAt ?? current.leadCapturedAt,
     updatedAt: new Date().toISOString(),
   };
   try {
@@ -95,6 +100,15 @@ export function getGuestIdentityName(): string | undefined {
 
 export function hasGuestIdentity(): boolean {
   return Boolean(getGuestIdentityName() && getGuestIdentityEmail());
+}
+
+export function isGuestLeadCaptured(): boolean {
+  return Boolean(getGuestContext().leadCapturedAt);
+}
+
+export function markGuestLeadCaptured(): void {
+  if (isGuestLeadCaptured()) return;
+  updateGuestContext({ leadCapturedAt: new Date().toISOString() });
 }
 
 export function getGuestBusinessName(): string | undefined {

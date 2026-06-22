@@ -12,12 +12,13 @@ import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../config/supabase";
 import { setLastGenerated } from "../lib/ai/generatedStore";
 import { setGuestICPs } from "../lib/guestICP";
-import { upsertOnboardingLead } from "../lib/leadCapture";
+import { captureGuestLeadOnce, isTurnstileConfigured } from "../lib/leadCapture";
 import { clearGuestBrandSeed, getGuestBrandSeed, setGuestBrandSeed } from "../lib/guestBrandSeed";
 import {
   getGuestContext,
   getGuestIdentityEmail,
   getGuestIdentityName,
+  isGuestLeadCaptured,
   updateGuestContext,
 } from "../lib/guestContext";
 import {
@@ -81,7 +82,7 @@ export default function OnboardingBuild() {
   const isLoggedIn = Boolean(user && !(user as { is_anonymous?: boolean }).is_anonymous);
   const anonInitRef = useRef(false);
   const [leadToken, setLeadToken] = useState<string | null>(null);
-  const turnstileConfigured = Boolean((import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined)?.trim());
+  const turnstileConfigured = isTurnstileConfigured();
   const [currentStep, setCurrentStep] = useState<Step>("1_Welcome");
   const [existingIcpRun, setExistingIcpRun] = useState<{ id: string; created_at: string } | null>(
     null
@@ -199,19 +200,20 @@ export default function OnboardingBuild() {
     async (email: string, token: string | null) => {
       const trimmed = email?.trim() || getGuestIdentityEmail();
       if (!trimmed) return;
-      try {
-        await upsertOnboardingLead(trimmed, {
-          source: "onboarding",
-          userId: user?.id ?? null,
-          token,
-          name: formData.name.trim() || getGuestIdentityName() || null,
-          metadata: {},
-        });
-      } catch {
-        // best-effort; silently ignore
+
+      if (!isLoggedIn && !token && !isGuestLeadCaptured()) {
+        return;
       }
+
+      await captureGuestLeadOnce({
+        email: trimmed,
+        source: "onboarding",
+        userId: user?.id ?? null,
+        token: isLoggedIn ? null : token,
+        name: formData.name.trim() || getGuestIdentityName() || null,
+      });
     },
-    [user?.id, formData.name]
+    [user?.id, formData.name, isLoggedIn]
   );
 
   const currentStepIndex = STEPS.indexOf(currentStep);
@@ -230,7 +232,9 @@ export default function OnboardingBuild() {
         currentStep === "8_GeographyCurrency" &&
         nextStep === "10_Loading"
       ) {
-        void captureLead(emailToUse, isLoggedIn ? null : leadToken);
+        if (isLoggedIn || isGuestLeadCaptured() || leadToken) {
+          void captureLead(emailToUse, isLoggedIn ? null : leadToken);
+        }
       }
       setCurrentStep(nextStep);
     }

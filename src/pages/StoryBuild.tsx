@@ -16,8 +16,10 @@ import {
   getGuestIdentityEmail,
   getGuestIdentityName,
   hasGuestIdentity,
+  isGuestLeadCaptured,
   updateGuestContext,
 } from "../lib/guestContext";
+import { captureGuestLeadOnce, isTurnstileConfigured } from "../lib/leadCapture";
 
 type StoryStep =
   | "intro"
@@ -132,6 +134,7 @@ export default function StoryBuild() {
   const [draft, setDraft] = useState("");
   const [email, setEmail] = useState("");
   const [identityName, setIdentityName] = useState("");
+  const [leadToken, setLeadToken] = useState<string | null>(null);
   const [completedCount, setCompletedCount] = useState(0);
   const [checklistDone, setChecklistDone] = useState(false);
 
@@ -213,6 +216,13 @@ export default function StoryBuild() {
         : email.trim() || getGuestIdentityEmail() || "";
       const nameToUse = identityName.trim() || getGuestIdentityName() || "";
 
+      void captureGuestLeadOnce({
+        email: emailToUse,
+        name: nameToUse,
+        token: leadToken,
+        source: "story",
+      });
+
       updateGuestContext({
         identity: {
           name: nameToUse || undefined,
@@ -268,7 +278,7 @@ export default function StoryBuild() {
       cancelled = true;
       timers.forEach((t) => window.clearTimeout(t));
     };
-  }, [step, answers, email, identityName, navigate, isLoggedIn, user?.email]);
+  }, [step, answers, email, identityName, leadToken, navigate, isLoggedIn, user?.email]);
 
   const canContinueQuestion = useMemo(() => draft.trim().length > 0, [draft]);
 
@@ -276,8 +286,12 @@ export default function StoryBuild() {
     if (isLoggedIn || hasGuestIdentity()) return true;
     const e = email.trim() || getGuestIdentityEmail() || "";
     const n = identityName.trim() || getGuestIdentityName() || "";
-    return e.length > 0 && e.includes("@") && n.length > 0;
-  }, [email, identityName, isLoggedIn]);
+    if (!e.length || !e.includes("@") || !n.length) return false;
+    const needsTurnstile =
+      !getGuestIdentityEmail() && isTurnstileConfigured() && !isGuestLeadCaptured();
+    if (needsTurnstile && !leadToken) return false;
+    return true;
+  }, [email, identityName, isLoggedIn, leadToken]);
 
   const goBack = () => {
     if (step === "q4" && (isLoggedIn || hasGuestIdentity())) {
@@ -462,11 +476,13 @@ export default function StoryBuild() {
 
         {!isLoggedIn && (
           <IdentityCapture
+            captureSource="story"
             className="mt-8 max-w-lg"
             name={identityName}
             email={email}
             showName={showName}
             showEmail={showEmail}
+            onTokenChange={setLeadToken}
             onNameChange={(value) => {
               setIdentityName(value);
               updateGuestContext({ identity: { name: value.trim() || undefined } });
@@ -487,6 +503,12 @@ export default function StoryBuild() {
                 name: identityName.trim() || getGuestIdentityName() || undefined,
                 email: email.trim() || getGuestIdentityEmail() || undefined,
               },
+            });
+            void captureGuestLeadOnce({
+              email: email.trim() || getGuestIdentityEmail() || "",
+              name: identityName.trim() || getGuestIdentityName() || null,
+              token: leadToken,
+              source: "story",
             });
             setStep("q4");
           }}

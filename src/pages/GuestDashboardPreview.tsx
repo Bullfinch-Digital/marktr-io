@@ -1,6 +1,6 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Activity, BookOpen, Users } from "lucide-react";
+import { Activity, BookOpen, Check, Users } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { GuestICPCard } from "../components/cards/GuestICPCard";
 import { usePaywall } from "../contexts/PaywallContext";
@@ -11,10 +11,60 @@ import { getGuestBrandSeed } from "../lib/guestBrandSeed";
 import { getGuestStory } from "../lib/guestStory";
 import { getGuestHealthCheck } from "../lib/guestHealthCheck";
 
+type StepCardProps = {
+  step: number;
+  title: string;
+  complete: boolean;
+  summary?: ReactNode;
+  onClick: () => void;
+};
+
+function StepCard({ step, title, complete, summary, onClick }: StepCardProps) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`w-full rounded-2xl border p-6 text-left transition-colors hover:border-primary/40 ${
+        complete
+          ? "border-[#2D7A5F]/40 bg-[#D4EDE8]/50 hover:bg-[#D4EDE8]"
+          : "border-border bg-white hover:bg-muted/20"
+      }`}
+    >
+      <div className="flex items-start gap-4">
+        {complete ? (
+          <div
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#2D7A5F] text-white"
+            aria-hidden
+          >
+            <Check className="h-5 w-5 stroke-[3]" />
+          </div>
+        ) : (
+          <div
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-muted-foreground/20 bg-muted/30 font-['DM_Sans'] text-sm font-semibold text-muted-foreground"
+            aria-hidden
+          >
+            {step}
+          </div>
+        )}
+        <div className="min-w-0 flex-1">
+          <h3 className="font-['Fraunces'] text-lg font-bold text-[#0D1833]">
+            Step {step} — {title}
+          </h3>
+          {summary}
+          <p className="mt-3 font-['DM_Sans'] text-sm font-semibold text-primary">
+            {complete ? "View results →" : "Start →"}
+          </p>
+        </div>
+      </div>
+    </button>
+  );
+}
+
 export default function GuestDashboardPreview() {
   const navigate = useNavigate();
   const { openPaywall } = usePaywall();
   const { user } = useAuth();
+  const icpProfilesRef = useRef<HTMLElement>(null);
 
   const guestStory = getGuestStory();
   const guestHealth = getGuestHealthCheck();
@@ -53,36 +103,41 @@ export default function GuestDashboardPreview() {
     }));
   }, [guestBrand.id, guestBrand.name]);
 
-  const hasICPs = guestICPs.length > 0;
-  const hasStory = Boolean(guestStory?.output);
   const hasHealth = Boolean(guestHealth?.scores);
+  const hasStory = Boolean(guestStory?.output);
+  const hasICPs = guestICPs.length > 0;
+  const allComplete = hasHealth && hasStory && hasICPs;
 
-  const completedCount = [hasICPs, hasStory, hasHealth].filter(Boolean).length;
+  const completedCount = [hasHealth, hasStory, hasICPs].filter(Boolean).length;
 
   const headerTitle = (() => {
     if (completedCount === 3) return "Your full marketing picture is ready.";
-    if (hasStory && !hasICPs && !hasHealth) return "Your brand story is ready.";
+    if (hasHealth && !hasStory && !hasICPs) return "Your digital health scores are in.";
+    if (hasStory && !hasHealth && !hasICPs) return "Your brand story is ready.";
     if (hasICPs && !hasStory && !hasHealth) return "Your ideal customers, defined.";
-    if (hasHealth && !hasICPs && !hasStory) return "Your digital health scores are in.";
     if (completedCount === 0) return "Welcome to marktr.";
     return "Your marktr results are ready.";
   })();
 
   const headerSubtitle = (() => {
     if (completedCount === 0) {
-      return "Start with one of our free tools below — no account needed.";
+      return "Work through the three steps below — no account needed.";
     }
     if (completedCount === 3) {
       return "You've completed all three steps. Start your free trial to save your work and put it all to work.";
     }
     const remaining = [
-      !hasICPs && "customer profiles",
-      !hasStory && "brand story",
       !hasHealth && "digital health check",
+      !hasStory && "brand story",
+      !hasICPs && "customer profiles",
     ].filter(Boolean) as string[];
     const remainingText = remaining.join(" and ");
     return `Complete your ${remainingText} to get the full picture — then start your free trial to put it all to work.`;
   })();
+
+  const scrollToIcpProfiles = () => {
+    icpProfilesRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   return (
     <main className="min-h-screen bg-background">
@@ -104,154 +159,83 @@ export default function GuestDashboardPreview() {
             <h1 className="mb-2 font-['Fraunces'] text-3xl text-[#0D1833] lg:text-4xl">{headerTitle}</h1>
             <p className="font-['DM_Sans'] text-foreground/70">{headerSubtitle}</p>
           </div>
-          <div className="flex shrink-0 items-center gap-3">
-            <Button
-              className="rounded-full bg-primary px-6 py-2 font-['DM_Sans'] text-sm font-medium text-primary-foreground hover:opacity-90"
-              onClick={() => openPaywall()}
-            >
-              Start your free trial →
-            </Button>
-          </div>
+          {allComplete && (
+            <div className="flex shrink-0 items-center gap-3">
+              <Button
+                className="rounded-full bg-primary px-6 py-2 font-['DM_Sans'] text-sm font-medium text-primary-foreground hover:opacity-90"
+                onClick={() => openPaywall()}
+              >
+                Start your free trial →
+              </Button>
+            </div>
+          )}
         </header>
 
         <section className="grid gap-6 lg:grid-cols-3">
-          {/* Card 1 — Know your customer */}
-          <div
-            className={`rounded-2xl border p-6 ${
-              hasICPs ? "border-[#D4871A] bg-[#FDF0CC]" : "border-border bg-white"
-            }`}
-          >
-            <div className="flex items-start gap-3">
-              <Users className={`h-8 w-8 shrink-0 ${hasICPs ? "text-[#E8650A]" : "text-muted-foreground"}`} />
-              <div className="min-w-0 flex-1">
-                <h3 className="font-['Fraunces'] text-lg font-bold text-[#0D1833]">Know your customer</h3>
-                <p className={`mt-2 font-['DM_Sans'] text-sm ${hasICPs ? "text-[#D4871A]" : "text-muted-foreground"}`}>
-                  {hasICPs ? `✓ ${guestICPs.length} profiles generated` : "Not started yet"}
-                </p>
-                {!hasICPs && (
-                  <Link to="/onboarding-build" className="mt-3 inline-block font-['DM_Sans'] text-xs text-primary underline">
-                    Generate your ICPs →
-                  </Link>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Card 2 — Digital health check */}
-          <div
-            className={`rounded-2xl border p-6 ${
-              hasHealth ? "border-[#2D7A5F] bg-[#D4EDE8]" : "border-border bg-white"
-            }`}
-          >
-            <div className="flex items-start gap-3">
-              <Activity className={`h-8 w-8 shrink-0 ${hasHealth ? "text-[#2D7A5F]" : "text-muted-foreground"}`} />
-              <div className="min-w-0 flex-1">
-                <h3 className="font-['Fraunces'] text-lg font-bold text-[#0D1833]">Digital health check</h3>
-                {hasHealth && guestHealth && (
-                  <p className="mt-1 font-['Fraunces'] text-4xl font-bold leading-none text-[#2D7A5F]">
-                    {guestHealth.scores.overall}
-                    <span className="font-['DM_Sans'] text-lg font-normal text-muted-foreground">/100</span>
-                  </p>
-                )}
-                <p className={`mt-2 font-['DM_Sans'] text-sm ${hasHealth ? "text-[#2D7A5F]" : "text-muted-foreground"}`}>
-                  {hasHealth ? "✓ Digital health check complete" : "Not started yet"}
-                </p>
-                {!hasHealth && (
-                  <Link to="/health-check" className="mt-3 inline-block font-['DM_Sans'] text-xs text-primary underline">
-                    Run your digital health check →
-                  </Link>
-                )}
-                {hasHealth && (
-                  <Link to="/health-preview" className="mt-3 inline-block font-['DM_Sans'] text-xs text-primary underline">
-                    View your findings →
-                  </Link>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Card 3 — Brand story */}
-          <div
-            className={`rounded-2xl border p-6 ${
-              hasStory ? "border-[#E8650A] bg-[#FAE8E0]" : "border-border bg-white"
-            }`}
-          >
-            <div className="flex items-start gap-3">
-              <BookOpen className={`h-8 w-8 shrink-0 ${hasStory ? "text-[#E8650A]" : "text-muted-foreground"}`} />
-              <div className="min-w-0 flex-1">
-                <h3 className="font-['Fraunces'] text-lg font-bold text-[#0D1833]">Brand story</h3>
-                <p className={`mt-2 font-['DM_Sans'] text-sm ${hasStory ? "text-[#E8650A]" : "text-muted-foreground"}`}>
-                  {hasStory ? "✓ Brand story ready" : "Not started yet"}
-                </p>
-                {!hasStory && (
-                  <Link to="/story" className="mt-3 inline-block font-['DM_Sans'] text-xs text-primary underline">
-                    Find your story →
-                  </Link>
-                )}
-                {hasStory && (
-                  <Link to="/story/results" className="mt-3 inline-block font-['DM_Sans'] text-xs text-primary underline">
-                    View full story →
-                  </Link>
-                )}
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {hasICPs && (
-          <section className="mb-8">
-            <div className="mb-4 flex items-center justify-between">
-              <div>
-                <h2 className="font-['Fraunces'] text-2xl text-[#0D1833]">Your customer profiles</h2>
-                <p className="font-['DM_Sans'] text-sm text-muted-foreground">
-                  marktr has identified three distinct customers for your business. Start your free trial to build content
-                  strategies for each one.
-                </p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {guestICPs.map((icp: any) => (
-                <GuestICPCard
-                  key={icp.id}
-                  icp={icp}
-                  brandName={guestBrand.name}
+          <StepCard
+            step={1}
+            title="Digital health check"
+            complete={hasHealth}
+            onClick={() => navigate(hasHealth ? "/health-preview" : "/health-check")}
+            summary={
+              <div className="mt-2 flex items-center gap-2">
+                <Activity
+                  className={`h-5 w-5 shrink-0 ${hasHealth ? "text-[#2D7A5F]" : "text-muted-foreground"}`}
+                  aria-hidden
                 />
-              ))}
-            </div>
-          </section>
-        )}
-
-        {hasStory && guestStory?.output && (
-          <div className="space-y-4 rounded-2xl border border-border bg-white p-6">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <h2 className="font-['Fraunces'] text-2xl font-bold text-[#0D1833]">Your brand story</h2>
-              <Link
-                to="/story/results"
-                className="font-['DM_Sans'] text-sm font-medium text-primary hover:underline"
-              >
-                View full story →
-              </Link>
-            </div>
-            <div className="space-y-3">
-              {(
-                [
-                  { label: "FOUNDING STORY", body: guestStory.output.foundingStory },
-                  { label: "YOUR POINT OF VIEW", body: guestStory.output.pointOfView },
-                  { label: "POSITIONING", body: guestStory.output.positioningStatement },
-                  { label: "YOUR PURPOSE", body: guestStory.output.brandPurpose },
-                ] as const
-              ).map(({ label, body }) => (
-                <div key={label} className="rounded-xl border border-border p-4">
-                  <p className="mb-2 font-['DM_Sans'] text-[10px] uppercase tracking-widest text-muted-foreground">
-                    {label}
+                {hasHealth && guestHealth ? (
+                  <p className="font-['DM_Sans'] text-sm text-[#2D7A5F]">
+                    Overall score{" "}
+                    <span className="font-['Fraunces'] text-xl font-bold">{guestHealth.scores.overall}</span>
+                    /100
                   </p>
-                  <p className="font-['Fraunces'] text-base leading-relaxed text-[#0D1833]">{body}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+                ) : (
+                  <p className="font-['DM_Sans'] text-sm text-muted-foreground">Not started yet</p>
+                )}
+              </div>
+            }
+          />
+
+          <StepCard
+            step={2}
+            title="Brand story"
+            complete={hasStory}
+            onClick={() => navigate(hasStory ? "/story/results" : "/story")}
+            summary={
+              <div className="mt-2 flex items-center gap-2">
+                <BookOpen
+                  className={`h-5 w-5 shrink-0 ${hasStory ? "text-[#E8650A]" : "text-muted-foreground"}`}
+                  aria-hidden
+                />
+                <p
+                  className={`font-['DM_Sans'] text-sm ${hasStory ? "text-[#E8650A]" : "text-muted-foreground"}`}
+                >
+                  {hasStory ? "Brand story ready" : "Not started yet"}
+                </p>
+              </div>
+            }
+          />
+
+          <StepCard
+            step={3}
+            title="Know your customer"
+            complete={hasICPs}
+            onClick={() => (hasICPs ? scrollToIcpProfiles() : navigate("/onboarding-build"))}
+            summary={
+              <div className="mt-2 flex items-center gap-2">
+                <Users
+                  className={`h-5 w-5 shrink-0 ${hasICPs ? "text-[#E8650A]" : "text-muted-foreground"}`}
+                  aria-hidden
+                />
+                <p
+                  className={`font-['DM_Sans'] text-sm ${hasICPs ? "text-[#D4871A]" : "text-muted-foreground"}`}
+                >
+                  {hasICPs ? `${guestICPs.length} profiles generated` : "Not started yet"}
+                </p>
+              </div>
+            }
+          />
+        </section>
 
         {hasHealth && guestHealth?.scores && (
           <div className="space-y-4 rounded-2xl border border-border bg-white p-6">
@@ -295,27 +279,82 @@ export default function GuestDashboardPreview() {
           </div>
         )}
 
-        <div className="mt-4 rounded-2xl bg-[#0D1833] p-8">
-          <h2 className="font-['Fraunces'] text-2xl font-bold text-white sm:text-3xl">
-            Now put it all to work.
-          </h2>
-          <p className="mt-3 max-w-xl font-['DM_Sans'] text-base leading-relaxed text-white/70">
-            You&apos;ve scored your digital presence, defined your ideal customer, and found your brand story. marktr uses
-            all three to plan your content, write your posts, schedule across every channel, and track what&apos;s working
-            — all built around your business, not a generic template.
-          </p>
-          <div className="mt-6 flex flex-col items-start gap-4 sm:flex-row">
-            <Button
-              className="rounded-full bg-primary px-8 py-3 font-['DM_Sans'] text-base font-medium text-primary-foreground hover:opacity-90"
-              onClick={() => openPaywall()}
-            >
-              Start your 14-day free trial →
-            </Button>
-            <div className="flex flex-col gap-1">
-              <p className="font-['DM_Sans'] text-xs text-white/50">14-day free trial · Card details required to start</p>
+        {hasStory && guestStory?.output && (
+          <div className="space-y-4 rounded-2xl border border-border bg-white p-6">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <h2 className="font-['Fraunces'] text-2xl font-bold text-[#0D1833]">Your brand story</h2>
+              <Link
+                to="/story/results"
+                className="font-['DM_Sans'] text-sm font-medium text-primary hover:underline"
+              >
+                View full story →
+              </Link>
+            </div>
+            <div className="space-y-3">
+              {(
+                [
+                  { label: "FOUNDING STORY", body: guestStory.output.foundingStory },
+                  { label: "YOUR POINT OF VIEW", body: guestStory.output.pointOfView },
+                  { label: "POSITIONING", body: guestStory.output.positioningStatement },
+                  { label: "YOUR PURPOSE", body: guestStory.output.brandPurpose },
+                ] as const
+              ).map(({ label, body }) => (
+                <div key={label} className="rounded-xl border border-border p-4">
+                  <p className="mb-2 font-['DM_Sans'] text-[10px] uppercase tracking-widest text-muted-foreground">
+                    {label}
+                  </p>
+                  <p className="font-['Fraunces'] text-base leading-relaxed text-[#0D1833]">{body}</p>
+                </div>
+              ))}
             </div>
           </div>
-        </div>
+        )}
+
+        {hasICPs && (
+          <section ref={icpProfilesRef} id="guest-icp-profiles" className="scroll-mt-8">
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <h2 className="font-['Fraunces'] text-2xl text-[#0D1833]">Your customer profiles</h2>
+                <p className="font-['DM_Sans'] text-sm text-muted-foreground">
+                  marktr has identified three distinct customers for your business. Start your free trial to build content
+                  strategies for each one.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {guestICPs.map((icp: any) => (
+                <GuestICPCard key={icp.id} icp={icp} brandName={guestBrand.name} />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {allComplete && (
+          <div className="mt-4 rounded-2xl bg-[#0D1833] p-8">
+            <h2 className="font-['Fraunces'] text-2xl font-bold text-white sm:text-3xl">
+              Now put it all to work.
+            </h2>
+            <p className="mt-3 max-w-xl font-['DM_Sans'] text-base leading-relaxed text-white/70">
+              You&apos;ve scored your digital presence, found your brand story, and defined your ideal customers. marktr
+              uses all three to plan your content, write your posts, schedule across every channel, and track what&apos;s
+              working — all built around your business, not a generic template.
+            </p>
+            <div className="mt-6 flex flex-col items-start gap-4 sm:flex-row">
+              <Button
+                className="rounded-full bg-primary px-8 py-3 font-['DM_Sans'] text-base font-medium text-primary-foreground hover:opacity-90"
+                onClick={() => openPaywall()}
+              >
+                Start your 14-day free trial →
+              </Button>
+              <div className="flex flex-col gap-1">
+                <p className="font-['DM_Sans'] text-xs text-white/50">
+                  14-day free trial · Card details required to start
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </main>
   );

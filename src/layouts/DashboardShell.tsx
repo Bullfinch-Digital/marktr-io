@@ -7,6 +7,7 @@ import { Button } from "../components/ui/button";
 import useSubscription from "../hooks/useSubscription";
 import { usePaywall } from "../contexts/PaywallContext";
 import { useAuth } from "../contexts/AuthContext";
+import { BrandProvider } from "../contexts/BrandContext";
 
 type DashboardShellProps = {
   children: React.ReactNode;
@@ -48,8 +49,8 @@ export default function DashboardShell({
     openPaywall();
   };
 
-  return (
-    <div className="min-h-screen bg-background flex relative" key={user?.id ?? "guest"}>
+  const shellBody = (
+    <>
       <div className={`flex w-full ${showTrialOverlay ? "pointer-events-none opacity-40" : ""}`}>
         <DashboardSidebar
           userTier={userTier === "free" && !trialActive ? "free" : "paid"}
@@ -74,6 +75,12 @@ export default function DashboardShell({
           </div>
         </div>
       </div>
+    </>
+  );
+
+  return (
+    <div className="min-h-screen bg-background flex relative" key={user?.id ?? "guest"}>
+      {guestMode ? shellBody : <BrandProvider>{shellBody}</BrandProvider>}
 
       {showTrialOverlay && (
         <div className="absolute inset-0 z-50 flex items-center justify-center p-6">

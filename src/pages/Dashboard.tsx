@@ -11,6 +11,7 @@ import useSubscription from "../hooks/useSubscription";
 import useProfile from "../hooks/useProfile";
 import { useOutboxSync } from "../hooks/useOutboxSync";
 import { useAuth } from "../contexts/AuthContext";
+import { useBrand } from "../contexts/BrandContext";
 import { usePaywall } from "../contexts/PaywallContext";
 import { useAuthModal } from "../contexts/AuthModalContext";
 import { WifiOff, AlertCircle, ChevronRight, Plus } from "lucide-react";
@@ -58,6 +59,7 @@ export default function Dashboard() {
 
   // Fetch data from Supabase
   const { user, loading: authLoading } = useAuth();
+  const { activeBrand } = useBrand();
   const { profile } = useProfile(user?.id ?? null);
   const [healthCheck, setHealthCheck] = useState<HealthCheckRow | null>(null);
   const [brandStory, setBrandStory] = useState<BrandStoryRow | null>(null);
@@ -369,17 +371,16 @@ export default function Dashboard() {
 
   const setupProgress = useMemo(() => {
     let score = 0;
-    const brand = brands?.[0];
-    if (brand) {
+    if (activeBrand) {
       score += 20; // brand exists
-      if (brand.founding_story?.trim()) score += 15;
-      if (brand.voice_adjectives?.length) score += 10;
-      if (brand.primary_goal?.trim()) score += 5;
+      if (activeBrand.founding_story?.trim()) score += 15;
+      if (activeBrand.voice_adjectives?.length) score += 10;
+      if (activeBrand.primary_goal?.trim()) score += 5;
     }
     if (icps && icps.length > 0) score += 30;
     if (icps && icps.length >= 2) score += 20;
     return Math.min(score, 100);
-  }, [brands, icps]);
+  }, [activeBrand, icps]);
 
   const nextActions = useMemo(() => {
     const actions: {

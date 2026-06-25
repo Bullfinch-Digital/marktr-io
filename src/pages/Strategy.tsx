@@ -8,6 +8,7 @@ import { useICPs } from "../hooks/useICPs";
 import { useBrands } from "../hooks/useBrands";
 import useSubscription from "../hooks/useSubscription";
 import { useAuth } from "../contexts/AuthContext";
+import { useBrand } from "../contexts/BrandContext";
 import { supabase } from "../config/supabase";
 
 const PLATFORMS = [
@@ -159,6 +160,7 @@ export default function Strategy() {
   const { openPaywall } = usePaywall();
   const { icps, isLoading: icpsLoading } = useICPs();
   const { brands } = useBrands();
+  const { activeBrand } = useBrand();
   const { tier: userTier, trialActive } = useSubscription();
 
   const [selectedIcpId, setSelectedIcpId] = useState("");
@@ -186,13 +188,15 @@ export default function Strategy() {
   );
 
   const selectedBrand = useMemo(() => {
-    if (!selectedIcp?.brand_id) return brands?.[0] ?? null;
-    return (
-      (brands || []).find((b) => b.id === selectedIcp.brand_id) ||
-      brands?.[0] ||
-      null
-    );
-  }, [brands, selectedIcp]);
+    if (selectedIcp?.brand_id) {
+      return (
+        (brands || []).find((b) => b.id === selectedIcp.brand_id) ||
+        activeBrand ||
+        null
+      );
+    }
+    return activeBrand;
+  }, [brands, selectedIcp, activeBrand]);
 
   const canGenerate = Boolean(selectedIcp && selectedPlatform);
 

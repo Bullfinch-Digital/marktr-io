@@ -3,6 +3,7 @@ import { Button } from "../ui/button";
 import { Moon, Sun, Menu, X, LogOut, Plus } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuth } from "../../contexts/AuthContext";
+import { BrandSwitcher } from "./BrandSwitcher";
 
 interface DashboardHeaderProps {
   onCreateNew?: () => void;
@@ -54,13 +55,16 @@ export function DashboardHeader({
   return (
     <header className="sticky top-0 z-50 w-full border-b border-warm-grey bg-background/80 backdrop-blur-md transition-all">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex h-16 items-center justify-between">
-          <Link
-            to="/"
-            className="font-['Fraunces'] text-xl font-bold text-[#0D1833] hover:opacity-70 transition-opacity"
-          >
-            marktr
-          </Link>
+        <div className="flex h-16 items-center justify-between gap-4">
+          <div className="flex min-w-0 items-center gap-3 sm:gap-4">
+            <Link
+              to="/"
+              className="shrink-0 font-['Fraunces'] text-xl font-bold text-[#0D1833] hover:opacity-70 transition-opacity"
+            >
+              marktr
+            </Link>
+            {!guestMode && <BrandSwitcher />}
+          </div>
 
           {/* Right Side Actions */}
           <div className="flex items-center gap-3">

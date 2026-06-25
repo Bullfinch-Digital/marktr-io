@@ -111,6 +111,19 @@ export function markGuestLeadCaptured(): void {
   updateGuestContext({ leadCapturedAt: new Date().toISOString() });
 }
 
+/** Persist brand-story answers into shared guest context (Phase 2). */
+export function commitStoryAnswerToGuestContext(questionIndex: number, answer: string): void {
+  const trimmed = answer.trim();
+  if (!trimmed) return;
+  if (questionIndex === 0) {
+    updateGuestContext({ business: { whatYouDo: trimmed } });
+  } else if (questionIndex === 1) {
+    updateGuestContext({ business: { whyStarted: trimmed } });
+  } else if (questionIndex === 3) {
+    updateGuestContext({ business: { bestCustomer: trimmed } });
+  }
+}
+
 export function getGuestBusinessName(): string | undefined {
   const fromContext = getGuestContext().business.businessName?.trim();
   if (fromContext) return fromContext;

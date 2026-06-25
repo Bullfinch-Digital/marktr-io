@@ -105,15 +105,45 @@ export default function OnboardingBuild() {
     currency: "GBP",
     email: "",
   });
+  const [storyPrefilled, setStoryPrefilled] = useState({
+    businessDescription: false,
+    customAudience: false,
+  });
 
   useEffect(() => {
     const ctx = getGuestContext();
-    setFormData((prev) => ({
-      ...prev,
-      name: ctx.identity.name || prev.name,
-      email: ctx.identity.email || prev.email,
-      brandName: ctx.business.businessName || prev.brandName,
-    }));
+    const { business } = ctx;
+    const prefilled = { businessDescription: false, customAudience: false };
+
+    setFormData((prev) => {
+      const next = { ...prev };
+
+      if (!prev.name.trim() && ctx.identity.name?.trim()) {
+        next.name = ctx.identity.name.trim();
+      }
+      if (!prev.email.trim() && ctx.identity.email?.trim()) {
+        next.email = ctx.identity.email.trim();
+      }
+      if (!prev.brandName.trim() && business.businessName?.trim()) {
+        next.brandName = business.businessName.trim();
+      }
+      if (!prev.businessDescription.trim() && business.whatYouDo?.trim()) {
+        next.businessDescription = business.whatYouDo.trim();
+        prefilled.businessDescription = true;
+      }
+      if (
+        !prev.customAudience.trim() &&
+        prev.assumedAudience.length === 0 &&
+        business.bestCustomer?.trim()
+      ) {
+        next.customAudience = business.bestCustomer.trim();
+        prefilled.customAudience = true;
+      }
+
+      return next;
+    });
+
+    setStoryPrefilled(prefilled);
   }, []);
 
   const shouldSkipStep = useCallback(
@@ -702,6 +732,7 @@ export default function OnboardingBuild() {
           <BusinessDescriptionScreen
             value={formData.businessDescription}
             onChange={(value) => setFormData({ ...formData, businessDescription: value })}
+            pulledFromStory={storyPrefilled.businessDescription}
             onContinue={handleNext}
             onBack={handleBack}
           />
@@ -726,6 +757,7 @@ export default function OnboardingBuild() {
             onChange={(value) => setFormData({ ...formData, assumedAudience: value })}
             onCustomAudienceChange={(value) => setFormData({ ...formData, customAudience: value })}
             onBusinessTypeChange={(value) => setFormData({ ...formData, businessType: value })}
+            pulledFromStory={storyPrefilled.customAudience}
             onContinue={handleNext}
             onBack={handleBack}
           />

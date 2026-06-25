@@ -12,6 +12,7 @@ interface AssumedAudienceScreenProps {
   onBusinessTypeChange: (value: "B2B" | "B2C" | "Both") => void;
   onContinue: () => void;
   onBack: () => void;
+  pulledFromStory?: boolean;
 }
 
 const audienceOptionsByType: Record<AssumedAudienceScreenProps["businessType"], string[]> = {
@@ -55,7 +56,8 @@ export function AssumedAudienceScreen({
   onChange, 
   onCustomAudienceChange,
   onBusinessTypeChange,
-  onContinue
+  onContinue,
+  pulledFromStory = false,
 }: AssumedAudienceScreenProps) {
   const options = audienceOptionsByType[businessType];
 
@@ -122,6 +124,11 @@ export function AssumedAudienceScreen({
           <label className="text-sm text-foreground/70">
             Or specify your own:
           </label>
+          {pulledFromStory ? (
+            <p className="text-xs text-muted-foreground font-['DM_Sans']">
+              Pulled from your brand story — edit anything.
+            </p>
+          ) : null}
           <div className="flex items-start gap-2">
             <Input
               type="text"

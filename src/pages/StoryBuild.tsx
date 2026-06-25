@@ -18,6 +18,7 @@ import {
   hasGuestIdentity,
   isGuestLeadCaptured,
   updateGuestContext,
+  commitStoryAnswerToGuestContext,
 } from "../lib/guestContext";
 import { captureGuestLeadOnce, isTurnstileConfigured } from "../lib/leadCapture";
 
@@ -322,9 +323,11 @@ export default function StoryBuild() {
 
   const advanceFromQuestion = () => {
     if (questionIndex === null) return;
+    const trimmed = draft.trim();
     const nextAnswers = [...answers];
-    nextAnswers[questionIndex] = draft.trim();
+    nextAnswers[questionIndex] = trimmed;
     setAnswers(nextAnswers);
+    commitStoryAnswerToGuestContext(questionIndex, trimmed);
 
     if (step === "q3") {
       if (isLoggedIn || hasGuestIdentity()) setStep("q4");
@@ -387,6 +390,7 @@ export default function StoryBuild() {
     if (questionIndex === null) return null;
     const q = QUESTIONS[questionIndex]!;
     const showSkip = questionIndex >= 1;
+    const commitsToGuestContext = questionIndex === 0 || questionIndex === 1 || questionIndex === 3;
 
     return (
       <section className="relative mx-auto flex min-h-screen w-full max-w-3xl flex-col px-6 py-12">
@@ -424,6 +428,11 @@ export default function StoryBuild() {
             <Textarea
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
+              onBlur={() => {
+                if (commitsToGuestContext) {
+                  commitStoryAnswerToGuestContext(questionIndex, draft);
+                }
+              }}
               placeholder="Type your answer…"
               className="min-h-[140px] resize-none border border-black rounded-design bg-white px-4 py-4 font-['DM_Sans'] text-foreground placeholder:text-foreground/40"
             />

@@ -158,8 +158,8 @@ export default function GuestDashboardPreview() {
                 Your full marketing picture is ready.
               </h2>
               <p className="mt-3 font-['DM_Sans'] text-base leading-relaxed text-[#0D1833]/80">
-                You&apos;ve completed all three steps. Start your free trial to save your work and put
-                it all to work.
+                You&apos;ve built the foundation. Start your free trial and marktr turns it into your
+                content strategy, posts, and schedule — all built around your business.
               </p>
             </div>
             <Button

@@ -7,7 +7,6 @@ import { useAuth } from "../contexts/AuthContext";
 import { isRealUser } from "../utils/isRealUser";
 import useSubscription from "../hooks/useSubscription";
 import useProfile from "../hooks/useProfile";
-import { usePaywall } from "../contexts/PaywallContext";
 import { parseBrandStoryFromApi, type BrandStoryOutput } from "../lib/brandStory";
 import { getGuestBusinessName, getGuestIdentityEmail } from "../lib/guestContext";
 import { BrandStoryFindingsSection } from "../components/story/BrandStoryFindingsSection";
@@ -27,7 +26,6 @@ export default function StoryResults() {
   const navigate = useNavigate();
   const state = (location.state ?? null) as StoryResultsLocationState | null;
   const { user } = useAuth();
-  const { openPaywall } = usePaywall();
   const { isPro: subscriptionIsPro, loading: subscriptionLoading } = useSubscription();
   const { profile } = useProfile(user?.id ?? null);
   const isLoggedInReal = Boolean(
@@ -203,8 +201,8 @@ export default function StoryResults() {
               </p>
               <p className="mt-1 font-['DM_Sans'] text-sm text-muted-foreground">
                 Your brand story is one piece of the picture. Complete your ideal customer profile and
-                digital health check to get the full picture — then start your 14-day free trial to put
-                it all to work.
+                digital health check to get the full picture — marktr builds your entire content strategy
+                around it.
               </p>
             </div>
             <Link
@@ -249,7 +247,6 @@ export default function StoryResults() {
         <BrandStoryFindingsSection
           findings={story.findings ?? []}
           variant={showPaywallUpsell ? "guest" : "authenticated"}
-          onOpenPaywall={openPaywall}
         />
 
         {showPaywallUpsell && (
@@ -260,8 +257,7 @@ export default function StoryResults() {
             <p className="mt-4 max-w-2xl font-['DM_Sans'] text-base leading-relaxed text-white/70">
               You&apos;ve found your brand voice. Now complete your ideal customer profile and digital
               health check — marktr uses all three to build a content strategy that&apos;s specific to
-              your business. Start your 14-day free trial to save everything and unlock the full
-              platform.
+              your business.
             </p>
 
             <Link

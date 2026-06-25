@@ -124,7 +124,7 @@ export default function GuestDashboardPreview() {
       return "Work through the three steps below — no account needed.";
     }
     if (completedCount === 3) {
-      return "You've completed all three steps. Start your free trial to save your work and put it all to work.";
+      return "Health, story, and customer profiles — all in one place.";
     }
     const remaining = [
       !hasHealth && "digital health check",
@@ -132,7 +132,7 @@ export default function GuestDashboardPreview() {
       !hasICPs && "customer profiles",
     ].filter(Boolean) as string[];
     const remainingText = remaining.join(" and ");
-    return `Complete your ${remainingText} to get the full picture — then start your free trial to put it all to work.`;
+    return `Complete your ${remainingText} to get the full picture.`;
   })();
 
   const scrollToIcpProfiles = () => {
@@ -141,17 +141,36 @@ export default function GuestDashboardPreview() {
 
   return (
     <main className="min-h-screen bg-background">
-      <div className="mb-8 flex flex-col gap-3 bg-primary px-6 py-3 sm:flex-row sm:items-center sm:justify-between lg:px-12">
+      <div className="mb-0 flex flex-col gap-3 bg-primary px-6 py-3 sm:flex-row sm:items-center sm:justify-between lg:px-12">
         <p className="font-['DM_Sans'] text-sm font-medium text-white">
           Your results are stored temporarily in your browser. Sign up free to save them permanently.
         </p>
-        <Button
-          onClick={() => openPaywall()}
-          className="shrink-0 self-start whitespace-nowrap rounded-full bg-white px-4 py-1.5 font-['DM_Sans'] text-sm font-medium text-primary hover:bg-white/90 sm:ml-4 sm:self-auto"
-        >
-          Save my progress →
-        </Button>
       </div>
+
+      {allComplete && (
+        <section className="border-b-2 border-[#2D7A5F] bg-gradient-to-br from-[#D4EDE8] via-[#E8F5F2] to-[#B8E0D4] px-6 py-10 lg:px-12">
+          <div className="container mx-auto flex max-w-7xl flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+            <div className="max-w-2xl">
+              <p className="font-['DM_Sans'] text-xs font-semibold uppercase tracking-widest text-[#2D7A5F]">
+                All three complete
+              </p>
+              <h2 className="mt-2 font-['Fraunces'] text-3xl font-bold text-[#0D1833] sm:text-4xl">
+                Your full marketing picture is ready.
+              </h2>
+              <p className="mt-3 font-['DM_Sans'] text-base leading-relaxed text-[#0D1833]/80">
+                You&apos;ve completed all three steps. Start your free trial to save your work and put
+                it all to work.
+              </p>
+            </div>
+            <Button
+              className="shrink-0 rounded-full bg-[#2D7A5F] px-8 py-6 font-['DM_Sans'] text-base font-semibold text-white shadow-md hover:bg-[#256B52]"
+              onClick={() => openPaywall()}
+            >
+              Start your free trial →
+            </Button>
+          </div>
+        </section>
+      )}
 
       <div className="container mx-auto max-w-7xl space-y-10 px-6 pb-12 pt-8 lg:px-12">
         <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -159,16 +178,6 @@ export default function GuestDashboardPreview() {
             <h1 className="mb-2 font-['Fraunces'] text-3xl text-[#0D1833] lg:text-4xl">{headerTitle}</h1>
             <p className="font-['DM_Sans'] text-foreground/70">{headerSubtitle}</p>
           </div>
-          {allComplete && (
-            <div className="flex shrink-0 items-center gap-3">
-              <Button
-                className="rounded-full bg-primary px-6 py-2 font-['DM_Sans'] text-sm font-medium text-primary-foreground hover:opacity-90"
-                onClick={() => openPaywall()}
-              >
-                Start your free trial →
-              </Button>
-            </div>
-          )}
         </header>
 
         <section className="grid gap-6 lg:grid-cols-3">
@@ -316,8 +325,7 @@ export default function GuestDashboardPreview() {
               <div>
                 <h2 className="font-['Fraunces'] text-2xl text-[#0D1833]">Your customer profiles</h2>
                 <p className="font-['DM_Sans'] text-sm text-muted-foreground">
-                  marktr has identified three distinct customers for your business. Start your free trial to build content
-                  strategies for each one.
+                  marktr has identified three distinct customers for your business.
                 </p>
               </div>
             </div>
@@ -328,32 +336,6 @@ export default function GuestDashboardPreview() {
               ))}
             </div>
           </section>
-        )}
-
-        {allComplete && (
-          <div className="mt-4 rounded-2xl bg-[#0D1833] p-8">
-            <h2 className="font-['Fraunces'] text-2xl font-bold text-white sm:text-3xl">
-              Now put it all to work.
-            </h2>
-            <p className="mt-3 max-w-xl font-['DM_Sans'] text-base leading-relaxed text-white/70">
-              You&apos;ve scored your digital presence, found your brand story, and defined your ideal customers. marktr
-              uses all three to plan your content, write your posts, schedule across every channel, and track what&apos;s
-              working — all built around your business, not a generic template.
-            </p>
-            <div className="mt-6 flex flex-col items-start gap-4 sm:flex-row">
-              <Button
-                className="rounded-full bg-primary px-8 py-3 font-['DM_Sans'] text-base font-medium text-primary-foreground hover:opacity-90"
-                onClick={() => openPaywall()}
-              >
-                Start your 14-day free trial →
-              </Button>
-              <div className="flex flex-col gap-1">
-                <p className="font-['DM_Sans'] text-xs text-white/50">
-                  14-day free trial · Card details required to start
-                </p>
-              </div>
-            </div>
-          </div>
         )}
       </div>
     </main>

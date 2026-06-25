@@ -1,17 +1,14 @@
 import { Link } from "react-router-dom";
-import { Button } from "../ui/button";
 import type { BrandStoryFinding } from "../../lib/brandStory";
 
 type BrandStoryFindingsSectionProps = {
   findings: BrandStoryFinding[];
   variant: "guest" | "authenticated";
-  onOpenPaywall?: () => void;
 };
 
 export function BrandStoryFindingsSection({
   findings,
   variant,
-  onOpenPaywall,
 }: BrandStoryFindingsSectionProps) {
   if (!findings.length) return null;
 
@@ -40,16 +37,15 @@ export function BrandStoryFindingsSection({
         {variant === "guest" ? (
           <>
             <p className="font-['DM_Sans'] text-sm leading-relaxed text-foreground/80">
-              Your free trial takes you the rest of the way — defining exactly who you&apos;re for,
-              sharpening this message, and building the system to tell it consistently.
+              Complete your ideal customer profile and digital health check — marktr uses all three to
+              build a content strategy that&apos;s specific to your business.
             </p>
-            <Button
-              type="button"
-              onClick={() => onOpenPaywall?.()}
-              className="mt-4 rounded-full bg-primary px-6 py-3 font-['DM_Sans'] text-sm font-medium text-primary-foreground hover:opacity-90"
+            <Link
+              to="/guest-dashboard"
+              className="mt-4 inline-flex items-center justify-center rounded-full bg-primary px-6 py-3 font-['DM_Sans'] text-sm font-medium text-primary-foreground hover:opacity-90"
             >
-              Start your 14-day free trial →
-            </Button>
+              Complete your profile →
+            </Link>
           </>
         ) : (
           <>

@@ -90,7 +90,6 @@ export default function HealthReport() {
         }}
         showPaywallUpsell={false}
         showDashboardCta={false}
-        onOpenPaywall={() => navigate("/health-check")}
         onGoToDashboard={() => navigate("/dashboard")}
       />
     </DashboardShell>

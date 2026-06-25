@@ -4,7 +4,6 @@ import { calculateScores, type HealthCheckInput } from "../lib/healthCheckScorin
 import { mergeHealthFindings } from "../lib/healthCheckFindings";
 import { setGuestHealthCheck } from "../lib/guestHealthCheck";
 import { getGuestIdentityEmail } from "../lib/guestContext";
-import { usePaywall } from "../contexts/PaywallContext";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../config/supabase";
 import useSubscription from "../hooks/useSubscription";
@@ -18,7 +17,6 @@ export default function HealthCheckResults() {
   const location = useLocation();
   const navigate = useNavigate();
   const state = (location.state ?? null) as LocationState;
-  const { openPaywall } = usePaywall();
   const { user } = useAuth();
   const { isPro: subscriptionIsPro, loading: subscriptionLoading } = useSubscription();
   const { profile } = useProfile(user?.id ?? null);
@@ -112,7 +110,6 @@ export default function HealthCheckResults() {
       }}
       showPaywallUpsell={showPaywallUpsell}
       showDashboardCta={showDashboardCta}
-      onOpenPaywall={openPaywall}
       onGoToDashboard={() => navigate("/dashboard")}
     />
   );

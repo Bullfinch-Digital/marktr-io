@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { GuestResultsNextStepsCta } from "../guest/GuestResultsNextStepsCta";
 import type {
   DimensionScore,
   HealthCheckInput,
@@ -375,7 +376,6 @@ export type HealthCheckReportViewProps = {
   >;
   showPaywallUpsell: boolean;
   showDashboardCta: boolean;
-  onOpenPaywall?: () => void;
   onGoToDashboard?: () => void;
   /** When true, omits standalone page chrome (used inside DashboardShell). */
   embedded?: boolean;
@@ -430,27 +430,6 @@ export function HealthCheckReportView({
         ))}
       </div>
 
-      {showPaywallUpsell && (
-        <div className="mt-6 flex flex-col gap-4 rounded-2xl border border-primary/20 bg-primary/5 px-6 py-5 sm:flex-row sm:items-center">
-          <div className="flex-1">
-            <p className="font-['DM_Sans'] text-sm font-semibold text-foreground">
-              This is just the start.
-            </p>
-            <p className="mt-1 font-['DM_Sans'] text-sm text-muted-foreground">
-              Your digital health scores are based on what&apos;s publicly visible. Complete your brand
-              story and ideal customer profile to get the full picture — then marktr builds your entire
-              content strategy around it.
-            </p>
-          </div>
-          <Link
-            to="/guest-dashboard"
-            className="shrink-0 whitespace-nowrap rounded-full bg-primary px-5 py-2.5 font-['DM_Sans'] text-sm font-semibold text-white transition-colors hover:bg-primary/90"
-          >
-            Complete your profile →
-          </Link>
-        </div>
-      )}
-
       {showDashboardCta && (
         <div className="mt-6 flex flex-col gap-4 rounded-2xl border border-primary/20 bg-primary/5 px-6 py-5 sm:flex-row sm:items-center">
           <div className="flex-1">
@@ -484,28 +463,7 @@ export function HealthCheckReportView({
         ))}
       </div>
 
-      {showPaywallUpsell && (
-        <div className="mt-8 rounded-2xl bg-[#0D1833] p-8">
-          <h2 className="font-['Fraunces'] text-3xl font-bold leading-tight text-white">
-            Ready to turn these scores into a plan?
-          </h2>
-          <p className="mt-4 max-w-2xl font-['DM_Sans'] text-base leading-relaxed text-white/70">
-            You&apos;ve seen where you stand. Now complete your ideal customer profile and brand story
-            — marktr uses all three to build a content strategy that&apos;s specific to your business.
-          </p>
-
-          <Link
-            to="/guest-dashboard"
-            className="mt-8 inline-flex items-center justify-center rounded-full bg-primary px-7 py-3 font-['DM_Sans'] text-sm font-medium text-primary-foreground hover:opacity-90"
-          >
-            Build the full picture →
-          </Link>
-
-          <p className="mt-3 font-['DM_Sans'] text-xs text-white/50">
-            Free to start · No account needed
-          </p>
-        </div>
-      )}
+      {showPaywallUpsell && <GuestResultsNextStepsCta currentTool="health" className="mt-8" />}
 
       {showDashboardCta && (
         <div className="mt-8 rounded-2xl bg-[#0D1833] px-8 py-8 text-white">

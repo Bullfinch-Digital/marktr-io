@@ -11,6 +11,7 @@ import { parseBrandStoryFromApi, type BrandStoryOutput } from "../lib/brandStory
 import { getGuestBusinessName, getGuestIdentityEmail } from "../lib/guestContext";
 import { BrandStoryFindingsSection } from "../components/story/BrandStoryFindingsSection";
 import { GuestPreviewShell } from "../layouts/GuestPreviewShell";
+import { GuestResultsNextStepsCta } from "../components/guest/GuestResultsNextStepsCta";
 
 export type { BrandStoryOutput } from "../lib/brandStory";
 
@@ -193,27 +194,6 @@ export default function StoryResults() {
           Based on everything you&apos;ve shared, here&apos;s the foundation marktr will use to create everything for you.
         </p>
 
-        {showPaywallUpsell && (
-          <div className="mt-8 flex flex-col gap-4 rounded-2xl border border-primary/20 bg-primary/5 px-6 py-5 sm:flex-row sm:items-center">
-            <div className="flex-1">
-              <p className="font-['DM_Sans'] text-sm font-semibold text-foreground">
-                This is just the start.
-              </p>
-              <p className="mt-1 font-['DM_Sans'] text-sm text-muted-foreground">
-                Your brand story is one piece of the picture. Complete your ideal customer profile and
-                digital health check to get the full picture — marktr builds your entire content strategy
-                around it.
-              </p>
-            </div>
-            <Link
-              to="/guest-dashboard"
-              className="shrink-0 whitespace-nowrap rounded-full bg-primary px-5 py-2.5 font-['DM_Sans'] text-sm font-semibold text-white transition-colors hover:bg-primary/90"
-            >
-              Complete your profile →
-            </Link>
-          </div>
-        )}
-
         {showDashboardCta && (
           <div className="mt-8 flex flex-col gap-4 rounded-2xl border border-primary/20 bg-primary/5 px-6 py-5 sm:flex-row sm:items-center">
             <div className="flex-1">
@@ -249,29 +229,7 @@ export default function StoryResults() {
           variant={showPaywallUpsell ? "guest" : "authenticated"}
         />
 
-        {showPaywallUpsell && (
-          <div className="mt-10 rounded-2xl bg-[#0D1833] p-8">
-            <h2 className="font-['Fraunces'] text-3xl font-bold leading-tight text-white">
-              Ready to put your story to work?
-            </h2>
-            <p className="mt-4 max-w-2xl font-['DM_Sans'] text-base leading-relaxed text-white/70">
-              You&apos;ve found your brand voice. Now complete your ideal customer profile and digital
-              health check — marktr uses all three to build a content strategy that&apos;s specific to
-              your business.
-            </p>
-
-            <Link
-              to="/guest-dashboard"
-              className="mt-8 inline-flex items-center justify-center rounded-full bg-primary px-7 py-3 font-['DM_Sans'] text-sm font-medium text-primary-foreground hover:opacity-90"
-            >
-              Build the full picture →
-            </Link>
-
-            <p className="mt-3 font-['DM_Sans'] text-xs text-white/50">
-              Free to start · Your story is saved in your browser
-            </p>
-          </div>
-        )}
+        {showPaywallUpsell && <GuestResultsNextStepsCta currentTool="story" className="mt-10" />}
 
         {showDashboardCta && (
           <div className="mt-10 rounded-2xl bg-[#0D1833] px-8 py-8 text-white">

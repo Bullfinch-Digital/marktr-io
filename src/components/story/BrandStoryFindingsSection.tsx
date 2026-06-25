@@ -33,35 +33,20 @@ export function BrandStoryFindingsSection({
         ))}
       </ul>
 
-      <div className="mt-8 rounded-2xl bg-[#0D1833]/5 px-5 py-5">
-        {variant === "guest" ? (
-          <>
-            <p className="font-['DM_Sans'] text-sm leading-relaxed text-foreground/80">
-              Complete your ideal customer profile and digital health check — marktr uses all three to
-              build a content strategy that&apos;s specific to your business.
-            </p>
-            <Link
-              to="/guest-dashboard"
-              className="mt-4 inline-flex items-center justify-center rounded-full bg-primary px-6 py-3 font-['DM_Sans'] text-sm font-medium text-primary-foreground hover:opacity-90"
-            >
-              Complete your profile →
-            </Link>
-          </>
-        ) : (
-          <>
-            <p className="font-['DM_Sans'] text-sm leading-relaxed text-foreground/80">
-              Use Strategy to turn this story into content plans, campaigns, and posts that sound
-              like you — built around who you&apos;re actually for.
-            </p>
-            <Link
-              to="/strategy"
-              className="mt-4 inline-flex items-center justify-center rounded-full bg-primary px-6 py-3 font-['DM_Sans'] text-sm font-medium text-primary-foreground hover:opacity-90"
-            >
-              Go to Strategy →
-            </Link>
-          </>
-        )}
-      </div>
+      {variant === "authenticated" ? (
+        <div className="mt-8 rounded-2xl bg-[#0D1833]/5 px-5 py-5">
+          <p className="font-['DM_Sans'] text-sm leading-relaxed text-foreground/80">
+            Use Strategy to turn this story into content plans, campaigns, and posts that sound
+            like you — built around who you&apos;re actually for.
+          </p>
+          <Link
+            to="/strategy"
+            className="mt-4 inline-flex items-center justify-center rounded-full bg-primary px-6 py-3 font-['DM_Sans'] text-sm font-medium text-primary-foreground hover:opacity-90"
+          >
+            Go to Strategy →
+          </Link>
+        </div>
+      ) : null}
     </section>
   );
 }

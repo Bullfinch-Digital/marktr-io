@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, CheckCircle2, Loader2 } from "lucide-react";
 import { Button } from "../components/ui/button";
@@ -11,7 +11,7 @@ import { supabase } from "../config/supabase";
 import type { SocialScores, StoryAssessment } from "../lib/healthCheckScoring";
 import { parseApiFindings } from "../lib/healthCheckFindings";
 import { formatFacebookInput, normaliseFacebookUrl } from "../lib/normaliseFacebookUrl";
-import { IdentityCapture } from "../components/guest/IdentityCapture";
+import { IdentityCapture, type IdentityCaptureHandle } from "../components/guest/IdentityCapture";
 import {
   getGuestContext,
   getGuestIdentityEmail,
@@ -95,6 +95,7 @@ export default function HealthCheck() {
   const [identityName, setIdentityName] = useState("");
   const [businessNameTouched, setBusinessNameTouched] = useState(false);
   const [leadToken, setLeadToken] = useState<string | null>(null);
+  const identityCaptureRef = useRef<IdentityCaptureHandle>(null);
   const turnstileConfigured = isTurnstileConfigured();
 
   useEffect(() => {
@@ -124,8 +125,12 @@ export default function HealthCheck() {
   const resolvedGuestEmail = formData.email.trim() || getGuestIdentityEmail() || "";
   const resolvedGuestName = identityName.trim() || getGuestIdentityName() || "";
 
-  const showIdentityName = !isLoggedIn && !getGuestIdentityName();
-  const showIdentityEmail = !isLoggedIn && !getGuestIdentityEmail();
+  const [identityFieldsSnapshot] = useState(() => ({
+    showName: !getGuestIdentityName(),
+    showEmail: !getGuestIdentityEmail(),
+  }));
+  const showIdentityName = !isLoggedIn && identityFieldsSnapshot.showName;
+  const showIdentityEmail = !isLoggedIn && identityFieldsSnapshot.showEmail;
 
   const canAnalyse = useMemo(() => {
     if (isLoggedIn) return Boolean(user?.email?.trim());
@@ -503,19 +508,24 @@ export default function HealthCheck() {
 
           {!isLoggedIn && (showIdentityName || showIdentityEmail) && (
             <IdentityCapture
+              ref={identityCaptureRef}
               captureSource="health-check"
-              name={identityName}
-              email={formData.email}
+              initialName={identityName}
+              initialEmail={formData.email}
               showName={showIdentityName}
               showEmail={showIdentityEmail}
               onTokenChange={setLeadToken}
-              onNameChange={(value) => {
-                setIdentityName(value);
-                updateGuestContext({ identity: { name: value.trim() || undefined } });
+              onDraftChange={({ name, email }) => {
+                setIdentityName(name);
+                setFormData((prev) => ({ ...prev, email }));
               }}
-              onEmailChange={(value) => {
+              onNameCommit={(value) => {
+                setIdentityName(value);
+                updateGuestContext({ identity: { name: value || undefined } });
+              }}
+              onEmailCommit={(value) => {
                 setFormData((prev) => ({ ...prev, email: value }));
-                updateGuestContext({ identity: { email: value.trim() || undefined } });
+                updateGuestContext({ identity: { email: value || undefined } });
               }}
             />
           )}
@@ -541,9 +551,12 @@ export default function HealthCheck() {
           <Button
             onClick={() => {
               if (!canAnalyse) return;
+              const committed = identityCaptureRef.current?.commitAll();
+              const emailForCapture = committed?.email || resolvedGuestEmail;
+              const nameForCapture = committed?.name || resolvedGuestName;
               void captureGuestLeadOnce({
-                email: resolvedGuestEmail,
-                name: resolvedGuestName,
+                email: emailForCapture,
+                name: nameForCapture,
                 token: leadToken,
                 source: "health-check",
               });

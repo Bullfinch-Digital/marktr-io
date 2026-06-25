@@ -5,6 +5,7 @@ import { Input } from "../../ui/input";
 interface EmailCaptureScreenProps {
   email: string;
   onEmailChange: (value: string) => void;
+  onEmailCommit?: (value: string) => void;
   onContinue: () => void;
   onBack: () => void;
   onTokenChange?: (token: string | null) => void;
@@ -16,7 +17,8 @@ interface EmailCaptureScreenProps {
 
 export function EmailCaptureScreen({ 
   email, 
-  onEmailChange, 
+  onEmailChange,
+  onEmailCommit,
   onContinue,
   onTokenChange,
   turnstileRequired = false,
@@ -150,6 +152,7 @@ export function EmailCaptureScreen({
             type="email"
             value={email}
             onChange={(e) => onEmailChange(e.target.value)}
+            onBlur={() => onEmailCommit?.(email.trim())}
             onKeyDown={handleKeyDown}
             placeholder="your@email.com"
             className="border border-black rounded-design px-4 py-6 bg-white text-foreground placeholder:text-foreground/40"

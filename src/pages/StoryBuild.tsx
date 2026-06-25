@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, CheckCircle2, Loader2 } from "lucide-react";
 import { Button } from "../components/ui/button";
@@ -9,7 +9,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../config/supabase";
 import type { BrandStoryOutput } from "../lib/brandStory";
 import { parseBrandStoryFromApi } from "../lib/brandStory";
-import { IdentityCapture } from "../components/guest/IdentityCapture";
+import { IdentityCapture, type IdentityCaptureHandle } from "../components/guest/IdentityCapture";
 import {
   getGuestContext,
   getGuestBusinessName,
@@ -135,6 +135,16 @@ export default function StoryBuild() {
   const [email, setEmail] = useState("");
   const [identityName, setIdentityName] = useState("");
   const [leadToken, setLeadToken] = useState<string | null>(null);
+  const identityCaptureRef = useRef<IdentityCaptureHandle>(null);
+  /** Snapshot when the email step mounts — stable through blur/commit. */
+  const emailStepFieldsRef = useRef<{ showName: boolean; showEmail: boolean } | null>(null);
+  if (step === "email" && !emailStepFieldsRef.current) {
+    emailStepFieldsRef.current = {
+      showName: !getGuestIdentityName(),
+      showEmail: !getGuestIdentityEmail(),
+    };
+  }
+  const emailStepFields = emailStepFieldsRef.current;
   const [completedCount, setCompletedCount] = useState(0);
   const [checklistDone, setChecklistDone] = useState(false);
 
@@ -288,10 +298,12 @@ export default function StoryBuild() {
     const n = identityName.trim() || getGuestIdentityName() || "";
     if (!e.length || !e.includes("@") || !n.length) return false;
     const needsTurnstile =
-      !getGuestIdentityEmail() && isTurnstileConfigured() && !isGuestLeadCaptured();
+      Boolean(emailStepFields?.showEmail) &&
+      isTurnstileConfigured() &&
+      !isGuestLeadCaptured();
     if (needsTurnstile && !leadToken) return false;
     return true;
-  }, [email, identityName, isLoggedIn, leadToken]);
+  }, [email, identityName, isLoggedIn, leadToken, emailStepFields?.showEmail]);
 
   const goBack = () => {
     if (step === "q4" && (isLoggedIn || hasGuestIdentity())) {
@@ -449,8 +461,8 @@ export default function StoryBuild() {
   };
 
   const renderEmail = () => {
-    const showName = !getGuestIdentityName();
-    const showEmail = !getGuestIdentityEmail();
+    const showName = emailStepFields?.showName ?? !getGuestIdentityName();
+    const showEmail = emailStepFields?.showEmail ?? !getGuestIdentityEmail();
 
     return (
     <section className="relative mx-auto flex min-h-screen w-full max-w-3xl flex-col px-6 py-12">
@@ -476,20 +488,25 @@ export default function StoryBuild() {
 
         {!isLoggedIn && (
           <IdentityCapture
+            ref={identityCaptureRef}
             captureSource="story"
             className="mt-8 max-w-lg"
-            name={identityName}
-            email={email}
+            initialName={identityName}
+            initialEmail={email}
             showName={showName}
             showEmail={showEmail}
             onTokenChange={setLeadToken}
-            onNameChange={(value) => {
-              setIdentityName(value);
-              updateGuestContext({ identity: { name: value.trim() || undefined } });
+            onDraftChange={({ name, email: draftEmail }) => {
+              setIdentityName(name);
+              setEmail(draftEmail);
             }}
-            onEmailChange={(value) => {
+            onNameCommit={(value) => {
+              setIdentityName(value);
+              updateGuestContext({ identity: { name: value || undefined } });
+            }}
+            onEmailCommit={(value) => {
               setEmail(value);
-              updateGuestContext({ identity: { email: value.trim() || undefined } });
+              updateGuestContext({ identity: { email: value || undefined } });
             }}
           />
         )}
@@ -498,15 +515,18 @@ export default function StoryBuild() {
           type="button"
           disabled={!canContinueEmail}
           onClick={() => {
+            const committed = identityCaptureRef.current?.commitAll();
+            const nameToSave = committed?.name || identityName.trim() || getGuestIdentityName() || undefined;
+            const emailToSave = committed?.email || email.trim() || getGuestIdentityEmail() || undefined;
             updateGuestContext({
               identity: {
-                name: identityName.trim() || getGuestIdentityName() || undefined,
-                email: email.trim() || getGuestIdentityEmail() || undefined,
+                name: nameToSave,
+                email: emailToSave,
               },
             });
             void captureGuestLeadOnce({
-              email: email.trim() || getGuestIdentityEmail() || "",
-              name: identityName.trim() || getGuestIdentityName() || null,
+              email: emailToSave || "",
+              name: nameToSave || null,
               token: leadToken,
               source: "story",
             });

@@ -1,15 +1,29 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from "react";
 import { Link } from "react-router-dom";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { captureGuestLeadOnce, isTurnstileConfigured } from "../../lib/leadCapture";
 import { isGuestLeadCaptured } from "../../lib/guestContext";
 
+export type IdentityCaptureHandle = {
+  /** Flush local edits to parent/context and attempt lead capture. */
+  commitAll: () => { name: string; email: string };
+};
+
 type IdentityCaptureProps = {
-  name: string;
-  email: string;
-  onNameChange: (value: string) => void;
-  onEmailChange: (value: string) => void;
+  initialName?: string;
+  initialEmail?: string;
+  onNameCommit: (value: string) => void;
+  onEmailCommit: (value: string) => void;
+  /** Draft values for parent validation (no guestContext write). */
+  onDraftChange?: (draft: { name: string; email: string }) => void;
   /** Lead source tag written to onboarding_leads.source */
   captureSource: string;
   showName?: boolean;
@@ -22,224 +36,308 @@ function isValidEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 }
 
-export function IdentityCapture({
-  name,
-  email,
-  onNameChange,
-  onEmailChange,
-  captureSource,
-  showName = true,
-  showEmail = true,
-  onTokenChange,
-  className = "",
-}: IdentityCaptureProps) {
-  const widgetIdRef = useRef<string | null>(null);
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const onTokenChangeRef = useRef(onTokenChange);
-  onTokenChangeRef.current = onTokenChange;
-  const captureInFlightRef = useRef(false);
+export const IdentityCapture = forwardRef<IdentityCaptureHandle, IdentityCaptureProps>(
+  function IdentityCapture(
+    {
+      initialName = "",
+      initialEmail = "",
+      onNameCommit,
+      onEmailCommit,
+      onDraftChange,
+      captureSource,
+      showName = true,
+      showEmail = true,
+      onTokenChange,
+      className = "",
+    },
+    ref
+  ) {
+    /** Snapshot visibility at mount — blur/commit must not hide fields mid-form. */
+    const [fieldVisibility] = useState(() => ({
+      showName: showName ?? true,
+      showEmail: showEmail ?? true,
+    }));
 
-  const [leadToken, setLeadToken] = useState<string | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const [captureError, setCaptureError] = useState<string | null>(null);
+    const widgetIdRef = useRef<string | null>(null);
+    const containerRef = useRef<HTMLDivElement | null>(null);
+    const onTokenChangeRef = useRef(onTokenChange);
+    onTokenChangeRef.current = onTokenChange;
+    const captureInFlightRef = useRef(false);
+    const leadTokenRef = useRef<string | null>(null);
 
-  const turnstileConfigured = isTurnstileConfigured();
-  const showTurnstile = showEmail && turnstileConfigured && !isGuestLeadCaptured();
+    const [localName, setLocalName] = useState(initialName);
+    const [localEmail, setLocalEmail] = useState(initialEmail);
+    const [leadToken, setLeadToken] = useState<string | null>(null);
+    const [loadError, setLoadError] = useState<string | null>(null);
+    const [captureError, setCaptureError] = useState<string | null>(null);
 
-  const attemptLeadCapture = useCallback(async () => {
-    if (!showEmail || isGuestLeadCaptured() || captureInFlightRef.current) return;
+    const localNameRef = useRef(localName);
+    const localEmailRef = useRef(localEmail);
+    localNameRef.current = localName;
+    localEmailRef.current = localEmail;
+    leadTokenRef.current = leadToken;
 
-    const trimmedEmail = email.trim();
-    if (!isValidEmail(trimmedEmail)) return;
-    if (turnstileConfigured && !leadToken) return;
+    const turnstileConfigured = isTurnstileConfigured();
+    const showTurnstile =
+      fieldVisibility.showEmail && turnstileConfigured && !isGuestLeadCaptured();
 
-    captureInFlightRef.current = true;
-    setCaptureError(null);
+    useEffect(() => {
+      setLocalName(initialName);
+      setLocalEmail(initialEmail);
+    }, [initialName, initialEmail]);
 
-    const ok = await captureGuestLeadOnce({
-      email: trimmedEmail,
-      name: name.trim() || null,
-      token: leadToken,
-      source: captureSource,
-    });
+    const notifyDraft = useCallback(
+      (name: string, email: string) => {
+        onDraftChange?.({ name, email });
+      },
+      [onDraftChange]
+    );
 
-    captureInFlightRef.current = false;
+    const attemptLeadCapture = useCallback(
+      async (email: string, name: string, token: string | null) => {
+        if (!fieldVisibility.showEmail || isGuestLeadCaptured() || captureInFlightRef.current) return;
 
-    if (!ok && !isGuestLeadCaptured()) {
-      setCaptureError("We couldn't save your email just now. You can continue — we'll try again.");
-    }
-  }, [captureSource, email, leadToken, name, showEmail, turnstileConfigured]);
+        const trimmedEmail = email.trim();
+        if (!isValidEmail(trimmedEmail)) return;
+        if (turnstileConfigured && !token) return;
 
-  useEffect(() => {
-    void attemptLeadCapture();
-  }, [attemptLeadCapture]);
+        captureInFlightRef.current = true;
+        setCaptureError(null);
 
-  useEffect(() => {
-    if (!showTurnstile) return;
+        const ok = await captureGuestLeadOnce({
+          email: trimmedEmail,
+          name: name.trim() || null,
+          token,
+          source: captureSource,
+        });
 
-    const sitekey = (import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined)?.trim();
-    if (!sitekey) return;
+        captureInFlightRef.current = false;
 
-    const renderWidget = () => {
-      if (!(window as unknown as { turnstile?: { render: Function; remove: Function } }).turnstile) {
-        return;
-      }
-      const el = containerRef.current;
-      if (!el || widgetIdRef.current) return;
-      try {
-        widgetIdRef.current = (window as unknown as { turnstile: { render: Function } }).turnstile.render(
-          el,
-          {
-            sitekey,
-            callback: (token: string) => {
-              setLoadError(null);
-              setLeadToken(token);
-              onTokenChangeRef.current?.(token);
-            },
-            "expired-callback": () => {
-              setLeadToken(null);
-              onTokenChangeRef.current?.(null);
-            },
-            "error-callback": () => {
-              setLoadError("Verification could not load. Try refreshing, or pause ad blockers for this site.");
-              setLeadToken(null);
-              onTokenChangeRef.current?.(null);
-            },
-          }
-        );
-      } catch (err) {
-        console.warn("[IdentityCapture] Turnstile render error", err);
-        setLoadError("Verification could not load. Please refresh the page.");
-        onTokenChangeRef.current?.(null);
-      }
-    };
+        if (!ok && !isGuestLeadCaptured()) {
+          setCaptureError("We couldn't save your email just now. You can continue — we'll try again.");
+        }
+      },
+      [captureSource, fieldVisibility.showEmail, turnstileConfigured]
+    );
 
-    const ensureScript = (): Promise<void> => {
-      const win = window as unknown as { turnstile?: unknown };
-      if (win.turnstile) return Promise.resolve();
-      return new Promise((resolve, reject) => {
-        const existing = document.querySelector<HTMLScriptElement>(
-          'script[src*="challenges.cloudflare.com/turnstile/v0/api.js"]'
-        );
-        if (existing) {
-          if (win.turnstile) {
-            resolve();
-            return;
-          }
-          existing.addEventListener("load", () => resolve(), { once: true });
-          existing.addEventListener("error", () => reject(new Error("Turnstile script load error")), {
-            once: true,
-          });
+    const commitName = useCallback(() => {
+      const value = localName.trim();
+      onNameCommit(value);
+      return value;
+    }, [localName, onNameCommit]);
+
+    const commitEmail = useCallback(() => {
+      const value = localEmail.trim();
+      onEmailCommit(value);
+      return value;
+    }, [localEmail, onEmailCommit]);
+
+    const tryLeadCapture = useCallback(() => {
+      void attemptLeadCapture(localEmail, localName, leadTokenRef.current);
+    }, [localEmail, localName, attemptLeadCapture]);
+
+    useImperativeHandle(
+      ref,
+      () => ({
+        commitAll: () => {
+          const name = commitName();
+          const email = commitEmail();
+          void attemptLeadCapture(email, name, leadTokenRef.current);
+          return { name, email };
+        },
+      }),
+      [commitName, commitEmail, attemptLeadCapture]
+    );
+
+    useEffect(() => {
+      if (!showTurnstile) return;
+
+      const sitekey = (import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined)?.trim();
+      if (!sitekey) return;
+
+      const renderWidget = () => {
+        if (!(window as unknown as { turnstile?: { render: Function; remove: Function } }).turnstile) {
           return;
         }
-        const script = document.createElement("script");
-        script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
-        script.async = true;
-        script.defer = true;
-        script.onload = () => resolve();
-        script.onerror = () => reject(new Error("Turnstile script load error"));
-        document.body.appendChild(script);
-      });
-    };
-
-    let cancelled = false;
-    void ensureScript()
-      .then(() => {
-        if (cancelled) return;
-        queueMicrotask(renderWidget);
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setLoadError("Could not load verification. Check your connection and try again.");
-        }
-      });
-
-    return () => {
-      cancelled = true;
-      const turnstile = (window as unknown as { turnstile?: { remove: (id: string) => void } })
-        .turnstile;
-      if (turnstile && widgetIdRef.current) {
+        const el = containerRef.current;
+        if (!el || widgetIdRef.current) return;
         try {
-          turnstile.remove(widgetIdRef.current);
-        } catch {
-          /* ignore */
+          widgetIdRef.current = (window as unknown as { turnstile: { render: Function } }).turnstile.render(
+            el,
+            {
+              sitekey,
+              callback: (token: string) => {
+                setLoadError(null);
+                setLeadToken(token);
+                leadTokenRef.current = token;
+                onTokenChangeRef.current?.(token);
+                void attemptLeadCapture(
+                  localEmailRef.current,
+                  localNameRef.current,
+                  token
+                );
+              },
+              "expired-callback": () => {
+                setLeadToken(null);
+                leadTokenRef.current = null;
+                onTokenChangeRef.current?.(null);
+              },
+              "error-callback": () => {
+                setLoadError("Verification could not load. Try refreshing, or pause ad blockers for this site.");
+                setLeadToken(null);
+                leadTokenRef.current = null;
+                onTokenChangeRef.current?.(null);
+              },
+            }
+          );
+        } catch (err) {
+          console.warn("[IdentityCapture] Turnstile render error", err);
+          setLoadError("Verification could not load. Please refresh the page.");
+          onTokenChangeRef.current?.(null);
         }
-        widgetIdRef.current = null;
-      }
-      setLeadToken(null);
-      onTokenChangeRef.current?.(null);
-    };
-  }, [showTurnstile]);
+      };
 
-  if (!showName && !showEmail) return null;
+      const ensureScript = (): Promise<void> => {
+        const win = window as unknown as { turnstile?: unknown };
+        if (win.turnstile) return Promise.resolve();
+        return new Promise((resolve, reject) => {
+          const existing = document.querySelector<HTMLScriptElement>(
+            'script[src*="challenges.cloudflare.com/turnstile/v0/api.js"]'
+          );
+          if (existing) {
+            if (win.turnstile) {
+              resolve();
+              return;
+            }
+            existing.addEventListener("load", () => resolve(), { once: true });
+            existing.addEventListener("error", () => reject(new Error("Turnstile script load error")), {
+              once: true,
+            });
+            return;
+          }
+          const script = document.createElement("script");
+          script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+          script.async = true;
+          script.defer = true;
+          script.onload = () => resolve();
+          script.onerror = () => reject(new Error("Turnstile script load error"));
+          document.body.appendChild(script);
+        });
+      };
 
-  return (
-    <div className={`space-y-6 ${className}`}>
-      {showName && (
-        <div className="space-y-2">
-          <Label htmlFor="guest-identity-name" className="font-['DM_Sans'] text-sm text-[#0D1833]">
-            What should we call you?
-          </Label>
-          <Input
-            id="guest-identity-name"
-            type="text"
-            value={name}
-            onChange={(e) => onNameChange(e.target.value)}
-            placeholder="Your first name"
-            className="border border-black rounded-design bg-white px-4 py-6 text-foreground placeholder:text-foreground/40"
+      let cancelled = false;
+      void ensureScript()
+        .then(() => {
+          if (cancelled) return;
+          queueMicrotask(renderWidget);
+        })
+        .catch(() => {
+          if (!cancelled) {
+            setLoadError("Could not load verification. Check your connection and try again.");
+          }
+        });
+
+      return () => {
+        cancelled = true;
+        const turnstile = (window as unknown as { turnstile?: { remove: (id: string) => void } })
+          .turnstile;
+        if (turnstile && widgetIdRef.current) {
+          try {
+            turnstile.remove(widgetIdRef.current);
+          } catch {
+            /* ignore */
+          }
+          widgetIdRef.current = null;
+        }
+        setLeadToken(null);
+        leadTokenRef.current = null;
+        onTokenChangeRef.current?.(null);
+      };
+    }, [showTurnstile, attemptLeadCapture]);
+
+    if (!fieldVisibility.showName && !fieldVisibility.showEmail) return null;
+
+    return (
+      <div className={`space-y-6 ${className}`}>
+        {fieldVisibility.showName && (
+          <div className="space-y-2">
+            <Label htmlFor="guest-identity-name" className="font-['DM_Sans'] text-sm text-[#0D1833]">
+              What should we call you?
+            </Label>
+            <Input
+              id="guest-identity-name"
+              type="text"
+              value={localName}
+              onChange={(e) => {
+                const next = e.target.value;
+                setLocalName(next);
+                notifyDraft(next, localEmail);
+              }}
+              onBlur={commitName}
+              placeholder="Your first name"
+              className="border border-black rounded-design bg-white px-4 py-6 text-foreground placeholder:text-foreground/40"
+            />
+          </div>
+        )}
+
+        {fieldVisibility.showEmail && (
+          <div className="space-y-2">
+            <Label htmlFor="guest-identity-email" className="font-['DM_Sans'] text-sm text-[#0D1833]">
+              Where should we send your results?
+            </Label>
+            <Input
+              id="guest-identity-email"
+              type="email"
+              value={localEmail}
+              onChange={(e) => {
+                const next = e.target.value;
+                setLocalEmail(next);
+                notifyDraft(localName, next);
+              }}
+              onBlur={() => {
+                commitEmail();
+                tryLeadCapture();
+              }}
+              placeholder="you@yourbusiness.com"
+              className="border border-black rounded-design bg-white px-4 py-6 text-foreground placeholder:text-foreground/40"
+            />
+          </div>
+        )}
+
+        {showTurnstile && (
+          <div
+            ref={containerRef}
+            className="min-h-[72px] flex items-start"
+            aria-label="Security verification"
           />
-        </div>
-      )}
+        )}
 
-      {showEmail && (
-        <div className="space-y-2">
-          <Label htmlFor="guest-identity-email" className="font-['DM_Sans'] text-sm text-[#0D1833]">
-            Where should we send your results?
-          </Label>
-          <Input
-            id="guest-identity-email"
-            type="email"
-            value={email}
-            onChange={(e) => onEmailChange(e.target.value)}
-            placeholder="you@yourbusiness.com"
-            className="border border-black rounded-design bg-white px-4 py-6 text-foreground placeholder:text-foreground/40"
-          />
-        </div>
-      )}
+        {loadError ? (
+          <p className="text-xs text-red-600 font-['DM_Sans']" role="alert">
+            {loadError}
+          </p>
+        ) : null}
 
-      {showTurnstile && (
-        <div
-          ref={containerRef}
-          className="min-h-[72px] flex items-start"
-          aria-label="Security verification"
-        />
-      )}
+        {captureError ? (
+          <p className="text-xs text-amber-700 font-['DM_Sans']" role="status">
+            {captureError}
+          </p>
+        ) : null}
 
-      {loadError ? (
-        <p className="text-xs text-red-600 font-['DM_Sans']" role="alert">
-          {loadError}
-        </p>
-      ) : null}
-
-      {captureError ? (
-        <p className="text-xs text-amber-700 font-['DM_Sans']" role="status">
-          {captureError}
-        </p>
-      ) : null}
-
-      {showEmail && (
-        <p className="text-xs text-muted-foreground max-w-md font-['DM_Sans']">
-          By continuing, you agree to our{" "}
-          <Link to="/privacy-policy" className="underline text-foreground">
-            Privacy Policy
-          </Link>{" "}
-          and{" "}
-          <Link to="/terms-of-service" className="underline text-foreground">
-            Terms &amp; Conditions
-          </Link>
-          .
-        </p>
-      )}
-    </div>
-  );
-}
+        {fieldVisibility.showEmail && (
+          <p className="text-xs text-muted-foreground max-w-md font-['DM_Sans']">
+            By continuing, you agree to our{" "}
+            <Link to="/privacy-policy" className="underline text-foreground">
+              Privacy Policy
+            </Link>{" "}
+            and{" "}
+            <Link to="/terms-of-service" className="underline text-foreground">
+              Terms &amp; Conditions
+            </Link>
+            .
+          </p>
+        )}
+      </div>
+    );
+  }
+);

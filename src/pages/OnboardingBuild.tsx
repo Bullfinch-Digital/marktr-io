@@ -225,6 +225,9 @@ export default function OnboardingBuild() {
     : formData.email.trim() || getGuestIdentityEmail() || "";
 
   const handleNext = () => {
+    if (currentStep === "2_Name" && formData.name.trim()) {
+      updateGuestContext({ identity: { name: formData.name.trim() } });
+    }
     let nextIndex = resolveStepIndex(currentStepIndex, 1);
     if (nextIndex < STEPS.length) {
       const nextStep = STEPS[nextIndex]!;
@@ -672,9 +675,9 @@ export default function OnboardingBuild() {
         return (
           <NameScreen
             value={formData.name}
-            onChange={(value) => {
-              setFormData({ ...formData, name: value });
-              updateGuestContext({ identity: { name: value.trim() || undefined } });
+            onChange={(value) => setFormData({ ...formData, name: value })}
+            onCommit={(value) => {
+              updateGuestContext({ identity: { name: value || undefined } });
             }}
             onContinue={handleNext}
             onBack={handleBack}
@@ -756,9 +759,9 @@ export default function OnboardingBuild() {
         return (
           <EmailCaptureScreen
             email={formData.email}
-            onEmailChange={(value) => {
-              setFormData({ ...formData, email: value });
-              updateGuestContext({ identity: { email: value.trim() || undefined } });
+            onEmailChange={(value) => setFormData({ ...formData, email: value })}
+            onEmailCommit={(value) => {
+              updateGuestContext({ identity: { email: value || undefined } });
             }}
             onTokenChange={(token) => setLeadToken(token)}
             turnstileRequired={turnstileConfigured && !isLoggedIn}
@@ -768,6 +771,10 @@ export default function OnboardingBuild() {
               if (turnstileConfigured && !isLoggedIn && !leadToken) {
                 console.warn("[LeadCapture] blocked: Turnstile token not ready yet");
                 return;
+              }
+              const trimmedEmail = formData.email.trim();
+              if (trimmedEmail) {
+                updateGuestContext({ identity: { email: trimmedEmail } });
               }
               // reset guard each time we enter loading step
               hasRunRef.current = false;
@@ -838,6 +845,10 @@ export default function OnboardingBuild() {
       if (turnstileConfigured && !isLoggedIn && !leadToken) {
         console.warn("[LeadCapture] blocked CTA: Turnstile token not ready yet");
         return;
+      }
+      const trimmedEmail = formData.email.trim();
+      if (trimmedEmail) {
+        updateGuestContext({ identity: { email: trimmedEmail } });
       }
       hasRunRef.current = false;
       console.debug("[LeadCapture] CTA", { email: emailToUse, leadToken });

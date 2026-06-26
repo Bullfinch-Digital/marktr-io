@@ -15,6 +15,8 @@ import { isGuestLeadCaptured } from "../../lib/guestContext";
 export type IdentityCaptureHandle = {
   /** Flush local edits to parent/context and attempt lead capture. */
   commitAll: () => { name: string; email: string };
+  /** Current in-field values (may be ahead of parent/context). */
+  getDraft: () => { name: string; email: string };
 };
 
 type IdentityCaptureProps = {
@@ -145,6 +147,10 @@ export const IdentityCapture = forwardRef<IdentityCaptureHandle, IdentityCapture
           void attemptLeadCapture(email, name, leadTokenRef.current);
           return { name, email };
         },
+        getDraft: () => ({
+          name: localNameRef.current.trim(),
+          email: localEmailRef.current.trim(),
+        }),
       }),
       [commitName, commitEmail, attemptLeadCapture]
     );

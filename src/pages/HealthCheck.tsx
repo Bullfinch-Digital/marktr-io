@@ -125,6 +125,54 @@ export default function HealthCheck() {
   const resolvedGuestEmail = formData.email.trim() || getGuestIdentityEmail() || "";
   const resolvedGuestName = identityName.trim() || getGuestIdentityName() || "";
 
+  const flushGuestIdentityAndProceed = () => {
+    const draft = identityCaptureRef.current?.getDraft();
+    const committed = identityCaptureRef.current?.commitAll();
+    const nameForRun =
+      committed?.name ||
+      draft?.name ||
+      identityName.trim() ||
+      getGuestIdentityName() ||
+      "";
+    const emailForRun =
+      committed?.email ||
+      draft?.email ||
+      formData.email.trim() ||
+      getGuestIdentityEmail() ||
+      "";
+
+    if (!isLoggedIn) {
+      if (!nameForRun.length || !emailForRun.length) return;
+      const needsTurnstile =
+        showIdentityEmail && turnstileConfigured && !isGuestLeadCaptured();
+      if (needsTurnstile && !leadToken) return;
+
+      updateGuestContext({
+        identity: {
+          name: nameForRun,
+          email: emailForRun,
+        },
+      });
+      setIdentityName(nameForRun);
+      setFormData((prev) => ({ ...prev, email: emailForRun }));
+    } else if (!user?.email?.trim()) {
+      return;
+    }
+
+    const emailForCapture = isLoggedIn ? user?.email ?? "" : emailForRun;
+    const nameForCapture = isLoggedIn ? nameForRun || resolvedGuestName : nameForRun;
+
+    void captureGuestLeadOnce({
+      email: emailForCapture,
+      name: nameForCapture,
+      token: leadToken,
+      source: "health-check",
+    });
+    setCompletedCount(0);
+    setChecklistDone(false);
+    setStep("loading");
+  };
+
   const [identityFieldsSnapshot] = useState(() => ({
     showName: !getGuestIdentityName(),
     showEmail: !getGuestIdentityEmail(),
@@ -134,7 +182,18 @@ export default function HealthCheck() {
 
   const canAnalyse = useMemo(() => {
     if (isLoggedIn) return Boolean(user?.email?.trim());
-    if (!resolvedGuestEmail.length || !resolvedGuestName.length) return false;
+    const draft = identityCaptureRef.current?.getDraft();
+    const guestName =
+      draft?.name ||
+      identityName.trim() ||
+      getGuestIdentityName() ||
+      "";
+    const guestEmail =
+      draft?.email ||
+      formData.email.trim() ||
+      getGuestIdentityEmail() ||
+      "";
+    if (!guestEmail.length || !guestName.length) return false;
     const needsTurnstile =
       showIdentityEmail && turnstileConfigured && !isGuestLeadCaptured();
     if (needsTurnstile && !leadToken) return false;
@@ -142,8 +201,8 @@ export default function HealthCheck() {
   }, [
     isLoggedIn,
     user?.email,
-    resolvedGuestEmail,
-    resolvedGuestName,
+    identityName,
+    formData.email,
     showIdentityEmail,
     turnstileConfigured,
     leadToken,
@@ -549,21 +608,7 @@ export default function HealthCheck() {
           </Button>
 
           <Button
-            onClick={() => {
-              if (!canAnalyse) return;
-              const committed = identityCaptureRef.current?.commitAll();
-              const emailForCapture = committed?.email || resolvedGuestEmail;
-              const nameForCapture = committed?.name || resolvedGuestName;
-              void captureGuestLeadOnce({
-                email: emailForCapture,
-                name: nameForCapture,
-                token: leadToken,
-                source: "health-check",
-              });
-              setCompletedCount(0);
-              setChecklistDone(false);
-              setStep("loading");
-            }}
+            onClick={flushGuestIdentityAndProceed}
             disabled={!canAnalyse}
             className="rounded-full bg-primary px-8 py-6 font-['DM_Sans'] text-base font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
           >

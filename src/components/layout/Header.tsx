@@ -32,12 +32,6 @@ export function Header() {
 
   const navItems: NavItem[] = [
     {
-      label: "Know your customer",
-      type: "link" as const,
-      target: "/onboarding-build",
-      color: "#FFD336", // Yellow
-    },
-    {
       label: "Check your digital health",
       type: "link" as const,
       target: "/health-check",
@@ -48,6 +42,12 @@ export function Header() {
       type: "link" as const,
       target: "/story",
       color: "#BBA0E5", // Purple
+    },
+    {
+      label: "Know your customer",
+      type: "link" as const,
+      target: "/onboarding-build",
+      color: "#FFD336", // Yellow
     },
     {
       label: "Pricing",

@@ -88,9 +88,11 @@ export default function OnboardingBuild() {
     null
   );
   const [icpPromptDismissed, setIcpPromptDismissed] = useState(false);
-  const hasRunRef = useRef(false);
   const hasPersistedRef = useRef(false);
   const unsavedPreviewRef = useRef(false);
+  /** Input fingerprint for the last successful generate-icps run (not cleared on loading re-entry). */
+  const completedGenerationKeyRef = useRef<string | null>(null);
+  const generationInFlightKeyRef = useRef<string | null>(null);
   const [formData, setFormData] = useState<FormData>({
     name: "",
     brandName: "",
@@ -247,7 +249,8 @@ export default function OnboardingBuild() {
   );
 
   const currentStepIndex = STEPS.indexOf(currentStep);
-  const showBackButton = currentStepIndex > 1 && currentStep !== "10_Loading"; // Show back button after step 2, hide on ICP carousel
+  // Layout-only Back (screens do not render onBack). From 2_Name → welcome; loading has no Back.
+  const showBackButton = currentStepIndex > 0 && currentStep !== "10_Loading";
   const showProgressBar = currentStep !== "10_Loading";
 
   const emailToUse = isLoggedIn
@@ -272,16 +275,6 @@ export default function OnboardingBuild() {
       setCurrentStep(nextStep);
     }
   };
-
-  // Reset guard whenever we enter the loading step to ensure pipeline runs
-  useEffect(() => {
-    if (currentStep === "10_Loading") {
-      hasRunRef.current = false;
-      hasPersistedRef.current = false;
-      unsavedPreviewRef.current = false;
-      console.debug("[Onboarding] reset hasRunRef for Loading step");
-    }
-  }, [currentStep]);
 
   const handleBack = () => {
     const prevIndex = resolveStepIndex(currentStepIndex, -1);
@@ -426,14 +419,42 @@ export default function OnboardingBuild() {
     }
   }, [user?.id, formData]);
 
+  const buildGenerationInputKey = useCallback(() => {
+    return JSON.stringify({
+      name: formData.name.trim(),
+      brandName: formData.brandName.trim(),
+      businessDescription: formData.businessDescription.trim(),
+      productOrService: formData.productOrService.trim(),
+      businessType: formData.businessType,
+      assumedAudience: [...formData.assumedAudience].sort(),
+      customAudience: formData.customAudience.trim(),
+      marketingChannels: [...formData.marketingChannels].sort(),
+      country: formData.country.trim(),
+      regionOrCity: formData.regionOrCity.trim(),
+      currency: formData.currency.trim(),
+      email: emailToUse.trim(),
+    });
+  }, [formData, emailToUse]);
+
   // Option B: run pipeline on Loading screen mount
   const runIcpGeneration = useCallback(async () => {
-    // Guard against double-run (React StrictMode can mount/unmount in dev)
-    if (hasRunRef.current) {
-      console.warn("[Onboarding] runIcpGeneration blocked by hasRunRef guard");
+    const inputKey = buildGenerationInputKey();
+
+    if (completedGenerationKeyRef.current === inputKey) {
+      console.debug("[Onboarding] skip generate-icps — already completed for this input");
       return;
     }
-    hasRunRef.current = true;
+    if (generationInFlightKeyRef.current === inputKey) {
+      console.debug("[Onboarding] skip generate-icps — already in flight for this input");
+      return;
+    }
+
+    generationInFlightKeyRef.current = inputKey;
+    if (completedGenerationKeyRef.current !== inputKey) {
+      hasPersistedRef.current = false;
+    }
+
+    try {
     console.log("[Onboarding] runIcpGeneration start");
     console.debug("[Onboarding] importing pipeline…");
 
@@ -674,16 +695,24 @@ export default function OnboardingBuild() {
       setLastGenerated(result.icps || []);
     }
 
+    completedGenerationKeyRef.current = inputKey;
     navigate("/guest-dashboard", { state: { unsavedPreview: unsavedPreviewRef.current } });
     console.log("[Onboarding] runIcpGeneration complete");
+    } finally {
+      if (generationInFlightKeyRef.current === inputKey) {
+        generationInFlightKeyRef.current = null;
+      }
+    }
   }, [
     formData,
+    emailToUse,
+    buildGenerationInputKey,
     atCreateLimit,
     icpsLoading,
     subscriptionLoading,
     user?.id,
     ensureBrandForAuthenticatedOnboarding,
-    navigate
+    navigate,
   ]);
 
   const renderScreen = () => {
@@ -808,9 +837,6 @@ export default function OnboardingBuild() {
               if (trimmedEmail) {
                 updateGuestContext({ identity: { email: trimmedEmail } });
               }
-              // reset guard each time we enter loading step
-              hasRunRef.current = false;
-              console.debug("[LeadCapture] continue", { email: emailToUse, leadToken });
               // Fire-and-forget (time-boxed) lead capture so UI is never blocked
               await Promise.race([
                 captureLead(emailToUse, isLoggedIn ? null : leadToken),
@@ -823,9 +849,6 @@ export default function OnboardingBuild() {
         );
       
       case "10_Loading":
-        // Loading screen owns the async generation now (Option B)
-        // Reset guard right before mounting the loader to guarantee a fresh run
-        hasRunRef.current = false;
         return <LoadingScreen run={runIcpGeneration} onComplete={handleLoadingComplete} />;
       
       default:
@@ -882,7 +905,6 @@ export default function OnboardingBuild() {
       if (trimmedEmail) {
         updateGuestContext({ identity: { email: trimmedEmail } });
       }
-      hasRunRef.current = false;
       console.debug("[LeadCapture] CTA", { email: emailToUse, leadToken });
       // Fire-and-forget (time-boxed) lead capture so UI is never blocked
       await Promise.race([

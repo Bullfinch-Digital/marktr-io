@@ -137,6 +137,13 @@ export default function StoryBuild() {
   const [identityName, setIdentityName] = useState("");
   const [leadToken, setLeadToken] = useState<string | null>(null);
   const identityCaptureRef = useRef<IdentityCaptureHandle>(null);
+  /** Input fingerprint for the last successful generate-brand-story run (not cleared on loading re-entry). */
+  const completedStoryKeyRef = useRef<string | null>(null);
+  const storyInFlightKeyRef = useRef<string | null>(null);
+  const lastStoryResultRef = useRef<{
+    story: BrandStoryOutput | null;
+    storyError: string | null;
+  } | null>(null);
   /** Snapshot when the email step mounts — stable through blur/commit. */
   const emailStepFieldsRef = useRef<{ showName: boolean; showEmail: boolean } | null>(null);
   if (step === "email" && !emailStepFieldsRef.current) {
@@ -242,8 +249,24 @@ export default function StoryBuild() {
       });
 
       const businessName = getGuestBusinessName();
+      const storyInputKey = JSON.stringify({
+        answers,
+        email: emailToUse,
+        name: nameToUse,
+        businessName: businessName ?? "",
+      });
 
       const apiPromise = (async () => {
+        if (completedStoryKeyRef.current === storyInputKey && lastStoryResultRef.current) {
+          story = lastStoryResultRef.current.story;
+          storyError = lastStoryResultRef.current.storyError;
+          return;
+        }
+        if (storyInFlightKeyRef.current === storyInputKey) {
+          return;
+        }
+
+        storyInFlightKeyRef.current = storyInputKey;
         try {
           const { data, error: invokeError } = await supabase.functions.invoke(
             "generate-brand-story",
@@ -265,8 +288,16 @@ export default function StoryBuild() {
           }
 
           story = parsed;
+          completedStoryKeyRef.current = storyInputKey;
+          lastStoryResultRef.current = { story, storyError: null };
         } catch (e) {
           storyError = e instanceof Error ? e.message : "Something went wrong.";
+          completedStoryKeyRef.current = storyInputKey;
+          lastStoryResultRef.current = { story: null, storyError };
+        } finally {
+          if (storyInFlightKeyRef.current === storyInputKey) {
+            storyInFlightKeyRef.current = null;
+          }
         }
       })();
 

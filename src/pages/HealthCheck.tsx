@@ -96,6 +96,23 @@ export default function HealthCheck() {
   const [businessNameTouched, setBusinessNameTouched] = useState(false);
   const [leadToken, setLeadToken] = useState<string | null>(null);
   const identityCaptureRef = useRef<IdentityCaptureHandle>(null);
+  /** Input fingerprint for the last successful score-website run (not cleared on loading re-entry). */
+  const completedScoreKeyRef = useRef<string | null>(null);
+  const scoreInFlightKeyRef = useRef<string | null>(null);
+  const lastResultsNavigateStateRef = useRef<{
+    formData: HealthCheckFormData;
+    facebookUrl: string;
+    email: string;
+    websiteScore: {
+      score: number;
+      observation: string;
+      strengths?: string[];
+      gaps?: string[];
+      storyAssessment?: StoryAssessment | null;
+      socialScores?: SocialScores | null;
+      findings?: ReturnType<typeof parseApiFindings>;
+    } | null;
+  } | null>(null);
   const turnstileConfigured = isTurnstileConfigured();
 
   useEffect(() => {
@@ -272,10 +289,28 @@ export default function HealthCheck() {
       } | null = null;
 
       const facebookUrl = normaliseFacebookUrl(formData.facebookUrl);
+      const emailToUse = isLoggedIn ? user?.email ?? "" : resolvedGuestEmail;
+      const scoreInputKey = JSON.stringify({
+        businessName: formData.businessName.trim(),
+        websiteUrl: formData.websiteUrl.trim(),
+        instagramHandle: formData.instagramHandle.trim(),
+        facebookUrl: facebookUrl || "",
+        email: emailToUse,
+        name: resolvedGuestName,
+      });
 
       const apiPromise = (async () => {
         if (!formData.websiteUrl?.trim()) return;
 
+        if (completedScoreKeyRef.current === scoreInputKey && lastResultsNavigateStateRef.current) {
+          websiteScore = lastResultsNavigateStateRef.current.websiteScore;
+          return;
+        }
+        if (scoreInFlightKeyRef.current === scoreInputKey) {
+          return;
+        }
+
+        scoreInFlightKeyRef.current = scoreInputKey;
         try {
           const { data } = await supabase.functions.invoke("score-website", {
             body: {
@@ -317,9 +352,20 @@ export default function HealthCheck() {
               socialScores: (data.socialScores as SocialScores | null) ?? null,
               findings: parseApiFindings(data.findings),
             };
+            completedScoreKeyRef.current = scoreInputKey;
+            lastResultsNavigateStateRef.current = {
+              formData,
+              facebookUrl,
+              email: emailToUse,
+              websiteScore,
+            };
           }
         } catch {
           // Silent fail — use default scoring
+        } finally {
+          if (scoreInFlightKeyRef.current === scoreInputKey) {
+            scoreInFlightKeyRef.current = null;
+          }
         }
       })();
 
@@ -332,7 +378,6 @@ export default function HealthCheck() {
       await Promise.all([apiPromise, checklistMinPromise]);
 
       if (!cancelled) {
-        const emailToUse = isLoggedIn ? user?.email ?? "" : resolvedGuestEmail;
         updateGuestContext({
           identity: {
             name: resolvedGuestName,

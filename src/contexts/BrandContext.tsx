@@ -20,6 +20,16 @@ type BrandContextType = {
   loading: boolean;
 };
 
+const noopSetActiveBrand = () => {};
+
+const defaultBrandContext: BrandContextType = {
+  brands: [],
+  activeBrandId: null,
+  activeBrand: null,
+  setActiveBrand: noopSetActiveBrand,
+  loading: false,
+};
+
 const BrandContext = createContext<BrandContextType | undefined>(undefined);
 
 function resolveActiveBrandId(brands: Brand[], storedId: string | null): string | null {
@@ -85,10 +95,7 @@ export function BrandProvider({ children }: { children: ReactNode }) {
   return <BrandContext.Provider value={value}>{children}</BrandContext.Provider>;
 }
 
-export function useBrand() {
+export function useBrand(): BrandContextType {
   const context = useContext(BrandContext);
-  if (context === undefined) {
-    throw new Error("useBrand must be used within a BrandProvider");
-  }
-  return context;
+  return context ?? defaultBrandContext;
 }

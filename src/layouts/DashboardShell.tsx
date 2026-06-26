@@ -7,7 +7,6 @@ import { Button } from "../components/ui/button";
 import useSubscription from "../hooks/useSubscription";
 import { usePaywall } from "../contexts/PaywallContext";
 import { useAuth } from "../contexts/AuthContext";
-import { BrandProvider } from "../contexts/BrandContext";
 
 type DashboardShellProps = {
   children: React.ReactNode;
@@ -80,7 +79,7 @@ export default function DashboardShell({
 
   return (
     <div className="min-h-screen bg-background flex relative" key={user?.id ?? "guest"}>
-      {guestMode ? shellBody : <BrandProvider>{shellBody}</BrandProvider>}
+      {shellBody}
 
       {showTrialOverlay && (
         <div className="absolute inset-0 z-50 flex items-center justify-center p-6">

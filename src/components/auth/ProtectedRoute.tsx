@@ -1,5 +1,6 @@
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
+import { BrandProvider } from "../../contexts/BrandContext";
 import { isRealUser } from "../../utils/isRealUser";
 
 interface ProtectedRouteProps {
@@ -24,5 +25,5 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     return <Navigate to="/" replace />;
   }
 
-  return <>{children}</>;
+  return <BrandProvider>{children}</BrandProvider>;
 }

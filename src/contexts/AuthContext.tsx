@@ -3,19 +3,9 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useRef } from "react";
 import type { User, Session, AuthError } from "@supabase/supabase-js";
 import { supabase } from "../config/supabase";
-import { flushGuestICPsToSupabase } from "../lib/guestICP";
-import { transferGuestMarktrData } from "../lib/transferGuestMarktrData";
-import { runOncePerKey } from "../lib/asyncUserLock";
-import {
-  claimStorageLock,
-  markStorageLockDone,
-  readStorageFlag,
-  releaseStorageLock,
-} from "../lib/persistentUserLock";
+import { runPostAuthPipeline } from "../lib/postAuthPipeline";
 import { isRealUser } from "../utils/isRealUser";
 import { syncOutbox } from "../lib/syncOutbox";
-import { markLeadConverted } from "../lib/leadCapture";
-import { getGuestBrandSeed, clearGuestBrandSeed } from "../lib/guestBrandSeed";
 import { setOAuthNext } from "../utils/oauthRedirect";
 import {
   buildLinkBody,
@@ -125,120 +115,7 @@ async function ensureProfileInsertOnly(user: User) {
   }
 }
 
-// ------------------------------------------------------------------
-  // Helper: create first Brand from guest onboarding seed (idempotent)
-  // ------------------------------------------------------------------
-  async function ensureFirstBrandFromGuestSeed(userId: string) {
-    if (!userId) return null;
-
-  // 1) If user already has a brand, do nothing
-  try {
-    const { data, error } = await supabase
-      .from("brands")
-      .select("id")
-      .eq("user_id", userId)
-      .limit(1);
-
-    if (error) {
-      if (import.meta.env.DEV) console.warn("AuthContext: brand check error", error);
-      return null;
-    }
-    if (data && data.length > 0) {
-      return null;
-    }
-  } catch (err) {
-    if (import.meta.env.DEV) console.warn("AuthContext: brand check unexpected", err);
-    return null;
-  }
-
-  // 2) Try to read seed
-  const seed = getGuestBrandSeed();
-  if (!seed) return null;
-  if (!seed.brandName?.trim()) return null;
-
-  const now = new Date().toISOString();
-  const row = {
-    user_id: userId,
-    name: seed.brandName.trim(),
-    color: null,
-    website: null,
-    business_description:
-      (() => {
-        const desc = seed.businessDescription ?? "";
-        // Strip any trailing "Business type: ..." that may have been stored from older seeds
-        return desc.replace(/Business type:\s*(B2B|B2C|Both)\s*$/i, "").trim() || null;
-      })(),
-    product_or_service: seed.productOrService ?? null,
-    business_type: seed.businessType ?? null,
-    assumed_audience: seed.assumedAudience ?? [],
-    marketing_channels: seed.marketingChannels ?? [],
-    country: seed.country ?? null,
-    region_or_city: seed.regionOrCity ?? null,
-    currency: seed.currency ?? null,
-    created_at: now,
-    updated_at: now,
-  };
-
-  try {
-    const { data, error } = await supabase
-      .from("brands")
-      .insert([row])
-      .select("id")
-      .single();
-
-    if (error) {
-      // Handle conflict (brand already exists) gracefully by fetching the first brand
-      const isConflict =
-        (error as any)?.code === "23505" ||
-        (error as any)?.code === "409" ||
-        (error as any)?.details?.includes?.("already exists") ||
-        (error as any)?.message?.toLowerCase?.().includes?.("duplicate key") ||
-        (error as any)?.message?.toLowerCase?.().includes?.("already exists");
-      if (isConflict) {
-        const { data: existing, error: fetchErr } = await supabase
-          .from("brands")
-          .select("id")
-          .eq("user_id", userId)
-          .order("created_at", { ascending: true })
-          .limit(1);
-        if (fetchErr) {
-          if (import.meta.env.DEV) console.warn("AuthContext: conflict fetch brand error", fetchErr);
-          return null;
-        }
-        const existingId = existing && existing.length ? existing[0].id : null;
-        if (existingId) {
-          clearGuestBrandSeed();
-          try {
-            window.dispatchEvent(new Event("brands:changed"));
-          } catch {}
-        }
-        return existingId;
-      }
-
-      if (import.meta.env.DEV) console.warn("AuthContext: brand insert error", error);
-      return null;
-    }
-
-    clearGuestBrandSeed();
-    try {
-      window.dispatchEvent(new Event("brands:changed"));
-    } catch {
-      // ignore
-    }
-
-    return (data as any)?.id ?? null;
-  } catch (err) {
-    if (import.meta.env.DEV) console.warn("AuthContext: brand insert unexpected", err);
-    return null;
-  }
-}
-
-/** Post-auth pipeline completed for this browser session (per user id). */
-const postAuthCompletedUserIds = new Set<string>();
-
-function postAuthFlagKey(userId: string) {
-  return `marktr_post_auth_pipeline_${userId}`;
-}
+export { runPostAuthPipeline } from "../lib/postAuthPipeline";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -251,111 +128,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     console.log("AuthContext: Initializing…");
 
-    // --------------------------------------------------------------
-    // Post-auth pipeline: MUST NEVER block auth hydration / routing.
-    // Fire-and-forget with its own internal guard + timeouts.
-    // --------------------------------------------------------------
-    const runPostAuthPipeline = async (userId: string, email?: string | null) => {
-      const flagKey = postAuthFlagKey(userId);
-      const flagState = readStorageFlag(flagKey);
-
-      if (flagState === "1" || postAuthCompletedUserIds.has(userId)) {
-        console.log("AuthContext: post-auth step 0 — skipped (already completed for user)", userId);
-        try {
-          window.dispatchEvent(new Event("brands:changed"));
-          window.dispatchEvent(new Event("icps:changed"));
-        } catch {}
-        return;
-      }
-
-      if (flagState === "in_progress") {
-        console.log("AuthContext: post-auth step 0 — skipped (in progress, persistent flag)", userId);
-        return;
-      }
-
-      if (!claimStorageLock(flagKey)) {
-        console.log("AuthContext: post-auth step 0 — skipped (lost claim race)", userId);
-        return;
-      }
-
-      return runOncePerKey(`post-auth-pipeline:${userId}`, async () => {
-        if (postAuthCompletedUserIds.has(userId) || readStorageFlag(flagKey) === "1") {
-          console.log("AuthContext: post-auth step 0 — skipped (already ran for user)", userId);
-          return;
-        }
-
-        console.log("AuthContext: post-auth step 0 — pipeline start", { userId, email });
-
-        try {
-
-      // Mark onboarding lead as converted (best-effort)
-      if (email) {
-        console.log("AuthContext: post-auth step 1 — markLeadConverted", email);
-        try {
-          await markLeadConverted(email, userId);
-          console.log("AuthContext: post-auth step 1 — markLeadConverted done");
-        } catch (err) {
-          console.warn("AuthContext: markLeadConverted error", err);
-        }
-      } else {
-        console.log("AuthContext: post-auth step 1 — markLeadConverted skipped (no email)");
-      }
-
-      let brandId: string | null = null;
-
-      // Time-box brand creation so it can’t deadlock the UI on refresh.
-      console.log("AuthContext: post-auth step 2 — brand seed start");
-      try {
-        brandId = await Promise.race([
-          ensureFirstBrandFromGuestSeed(userId),
-          new Promise<string | null>((resolve) => setTimeout(() => resolve(null), 2000)),
-        ]);
-        console.log("AuthContext: post-auth step 2 — brand seed done", { brandId });
-      } catch (err) {
-        console.warn("AuthContext: ensureFirstBrandFromGuestSeed error", err);
-      }
-
-      try {
-        window.dispatchEvent(new Event("brands:changed"));
-      } catch {}
-
-      // Time-box health/story transfer (Google OAuth + email sign-in paths)
-      console.log("AuthContext: post-auth step 3 — guest health/story transfer start");
-      try {
-        await Promise.race([
-          transferGuestMarktrData(userId),
-          new Promise((resolve) => setTimeout(resolve, 2000)),
-        ]);
-        console.log("AuthContext: post-auth step 3 — guest health/story transfer done");
-      } catch (err) {
-        console.warn("AuthContext: transferGuestMarktrData error", err);
-      }
-
-      // Time-box ICP flush too (already was, but keep it here in the pipeline)
-      console.log("AuthContext: post-auth step 4 — ICP flush start");
-      try {
-        await Promise.race([
-          flushGuestICPsToSupabase(userId, { brandId }),
-          new Promise((resolve) => setTimeout(resolve, 2000)),
-        ]);
-        console.log("AuthContext: post-auth step 4 — ICP flush done");
-      } catch (err) {
-        console.warn("AuthContext: flushGuestICPsToSupabase error", err);
-      }
-
-      try {
-        window.dispatchEvent(new Event("icps:changed"));
-      } catch {}
-      markStorageLockDone(flagKey);
-      postAuthCompletedUserIds.add(userId);
-      console.log("AuthContext: post-auth step 5 — pipeline complete");
-        } catch (pipelineError) {
-          releaseStorageLock(flagKey);
-          throw pipelineError;
-        }
-      });
-    };
-
+    // Post-auth pipeline: fire-and-forget for returning sessions.
+    // OAuth signup awaits the same pipeline in AuthCallback before redirect.
     const tryAutoLinkPending = async (activeSession: Session | null) => {
       console.log("AuthContext: tryAutoLinkPending start", {
         hasSession: Boolean(activeSession?.access_token),
@@ -512,7 +286,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
             if (
               (event === "SIGNED_IN" || event === "INITIAL_SESSION") &&
-              isRealUser(nextUser)
+              isRealUser(nextUser) &&
+              window.location.pathname !== "/auth/callback"
             ) {
               void runPostAuthPipeline(nextUser!.id, nextUser!.email ?? null);
             }

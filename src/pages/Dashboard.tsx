@@ -321,8 +321,14 @@ export default function Dashboard() {
 
     void loadMarktrResults();
 
+    const onGuestDataReady = () => {
+      void loadMarktrResults();
+    };
+    window.addEventListener("marktr:guest-data-ready", onGuestDataReady);
+
     return () => {
       cancelled = true;
+      window.removeEventListener("marktr:guest-data-ready", onGuestDataReady);
     };
   }, [user?.id]);
 

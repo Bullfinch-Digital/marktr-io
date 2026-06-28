@@ -30,7 +30,7 @@ function transferFlagKey(userId: string, kind: "health" | "story") {
   return `marktr_guest_${kind}_transferred_${userId}`;
 }
 
-async function transferHealthOnce(userId: string) {
+async function transferHealthOnce(userId: string, brandId: string | null) {
   const guestHealth = getGuestHealthCheck();
   if (!guestHealth) return;
 
@@ -65,9 +65,10 @@ async function transferHealthOnce(userId: string) {
     }
 
     if ((count ?? 0) === 0) {
-      console.log("[transferGuestMarktrData] health insert attempt", { userId });
+      console.log("[transferGuestMarktrData] health insert attempt", { userId, brandId });
       const { error } = await supabase.from("health_check_results").insert({
         user_id: userId,
+        brand_id: brandId,
         domain: guestHealth.input.websiteUrl
           ? extractDomain(guestHealth.input.websiteUrl)
           : "",
@@ -89,7 +90,7 @@ async function transferHealthOnce(userId: string) {
         releaseStorageLock(healthFlag);
         return;
       }
-      console.log("[transferGuestMarktrData] health insert complete", { userId });
+      console.log("[transferGuestMarktrData] health insert complete", { userId, brandId });
     } else {
       console.log("[transferGuestMarktrData] health insert skipped — row exists", { userId });
     }
@@ -102,7 +103,11 @@ async function transferHealthOnce(userId: string) {
   }
 }
 
-async function transferStoryOnce(userId: string, contextEmail: string) {
+async function transferStoryOnce(
+  userId: string,
+  contextEmail: string,
+  brandId: string | null
+) {
   const guestStory = getGuestStory();
   if (!guestStory) return;
 
@@ -137,13 +142,15 @@ async function transferStoryOnce(userId: string, contextEmail: string) {
     }
 
     if ((count ?? 0) === 0) {
-      console.log("[transferGuestMarktrData] story insert attempt", { userId });
+      console.log("[transferGuestMarktrData] story insert attempt", { userId, brandId });
       const storyEmail = guestStory.email?.trim() || contextEmail || "";
       const { error } = await supabase.from("brand_story_results").insert({
         user_id: userId,
+        brand_id: brandId,
         story_data: {
           ...guestStory,
           email: storyEmail,
+          brand_id: brandId,
         },
       });
       if (error) {
@@ -151,7 +158,7 @@ async function transferStoryOnce(userId: string, contextEmail: string) {
         releaseStorageLock(storyFlag);
         return;
       }
-      console.log("[transferGuestMarktrData] story insert complete", { userId });
+      console.log("[transferGuestMarktrData] story insert complete", { userId, brandId });
     } else {
       console.log("[transferGuestMarktrData] story insert skipped — row exists", { userId });
     }
@@ -164,11 +171,11 @@ async function transferStoryOnce(userId: string, contextEmail: string) {
   }
 }
 
-async function transferGuestMarktrDataInner(userId: string) {
+async function transferGuestMarktrDataInner(userId: string, brandId: string | null) {
   const contextEmail = getGuestIdentityEmail() || "";
 
-  await transferHealthOnce(userId);
-  await transferStoryOnce(userId, contextEmail);
+  await transferHealthOnce(userId, brandId);
+  await transferStoryOnce(userId, contextEmail, brandId);
 
   if (contextEmail) {
     const ctx = getGuestContext();
@@ -182,9 +189,12 @@ async function transferGuestMarktrDataInner(userId: string) {
  * Persist guest health-check + brand-story localStorage payloads to Supabase.
  * Reload-safe: module lock + persistent transfer flags + existing-row checks.
  */
-export async function transferGuestMarktrData(userId: string) {
+export async function transferGuestMarktrData(
+  userId: string,
+  opts?: { brandId?: string | null }
+) {
   if (!userId) return;
   return runOncePerKey(`transfer-guest-marktr:${userId}`, () =>
-    transferGuestMarktrDataInner(userId)
+    transferGuestMarktrDataInner(userId, opts?.brandId ?? null)
   );
 }

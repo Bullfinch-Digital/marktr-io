@@ -1,10 +1,10 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { PaywallModal } from "../components/modals/PaywallModal";
+import { createStripeCheckoutSession } from "../lib/stripeCheckout";
 import { supabase } from "../config/supabase";
 import { useAuth } from "./AuthContext";
 import { useAuthModal } from "./AuthModalContext";
 import {
-  clearPendingCheckoutPlan,
   getPendingCheckoutPlan,
   setPendingCheckoutPlan,
 } from "../utils/pendingCheckout";
@@ -77,136 +77,38 @@ export function PaywallProvider({ children }: { children: React.ReactNode }) {
 
       try {
         setIsStartingCheckout(true);
+        console.log("[paywall] proceedToStripe", { plan: nextPlan });
 
-        const { data: userData } = await supabase.auth.getUser();
-        const authedUser = userData?.user ?? null;
-        const accessToken = (await supabase.auth.getSession()).data.session?.access_token ?? "";
+        const result = await createStripeCheckoutSession(nextPlan, { force });
 
-        if (!accessToken || !authedUser || (authedUser as any).is_anonymous) {
-          throw new Error("Please sign in before starting checkout.");
-        }
-
-        const monthlyPriceId = import.meta.env.VITE_STRIPE_PRICE_MONTHLY as
-          | string
-          | undefined;
-        const annualPriceId = import.meta.env.VITE_STRIPE_PRICE_ANNUAL as
-          | string
-          | undefined;
-
-        const priceId = nextPlan === "monthly" ? monthlyPriceId : annualPriceId;
-        const origin = window.location.origin;
-
-        console.log("[paywall] proceedToStripe", { plan: nextPlan, priceId, origin });
-
-        if (!priceId) {
-          console.error("[paywall] Missing Stripe priceId", {
-            plan: nextPlan,
-            monthlyPriceIdPresent: Boolean(monthlyPriceId),
-            annualPriceIdPresent: Boolean(annualPriceId),
-          });
-          throw new Error(
-            "Stripe price ID missing. Check VITE_STRIPE_PRICE_MONTHLY / VITE_STRIPE_PRICE_ANNUAL in your frontend env and restart dev server."
-          );
-        }
-
-        const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL || "").trim();
-        const supabaseAnonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY || "").trim();
-        const checkoutUrl = `${supabaseUrl}/functions/v1/create-checkout-session`;
-
-        const payload = {
-          priceId,
-          successUrl: `${origin}/dashboard?checkout=success`,
-          cancelUrl: `${origin}/dashboard?checkout=cancel`,
-          force: Boolean(force),
-          customerEmail: authedUser.email ?? undefined,
-        };
-
-        console.log("[paywall] create-checkout-session payload", payload);
-
-        const headers: Record<string, string> = {
-          "Content-Type": "application/json",
-          apikey: supabaseAnonKey,
-          Authorization: `Bearer ${accessToken}`,
-        };
-
-        const res = await fetch(checkoutUrl, {
-          method: "POST",
-          headers,
-          body: JSON.stringify(payload),
-        });
-
-        const raw = await res.text();
-        console.log("checkout raw response", res.status, raw);
-        if (!res.ok) {
-          console.log("[paywall] checkout non-2xx response", res.status, raw);
-        }
-
-        let data: any = null;
-        try {
-          data = raw ? JSON.parse(raw) : null;
-        } catch (parseError) {
-          console.error("[paywall] checkout response parse error", parseError);
-        }
-
-        if (!res.ok) {
-          console.error("[paywall] create-checkout-session response not ok", {
-            status: res.status,
-            data,
-            plan: nextPlan,
-            priceId,
-          });
-          const msg =
-            (data as any)?.message ||
-            (data as any)?.error ||
-            raw ||
-            `Request failed with status ${res.status}` ||
-            "Unexpected error";
-          throw new Error(msg);
-        }
-
-        if (data?.code === "ALREADY_SUBSCRIBED") {
-          console.log("[paywall] branch: already subscribed (code)");
-          clearPendingCheckoutPlan();
+        if (result.status === "already_subscribed") {
           setAlreadySubscribed({
             open: true,
-            portalUrl: (data as any)?.portalUrl ?? null,
+            portalUrl: result.portalUrl ?? null,
           });
           setShowPaywall(false);
           setIsStartingCheckout(false);
           return;
         }
 
-        if (data?.code === "EMAIL_ALREADY_SUBSCRIBED") {
-          console.log("[paywall] branch: email already subscribed (code)");
-          clearPendingCheckoutPlan();
+        if (result.status === "email_already_subscribed") {
           setEmailAlreadySubscribed({
             open: true,
-            email: (data as any)?.email ?? null,
-            portalUrl: (data as any)?.portalUrl ?? null,
-            plan: nextPlan,
+            email: result.email ?? null,
+            portalUrl: result.portalUrl ?? null,
+            plan: result.plan,
           });
           setShowPaywall(false);
           setIsStartingCheckout(false);
           return;
         }
 
-        if (data?.alreadySubscribed === true) {
-          console.log("[paywall] branch: already subscribed (flag)");
-          clearPendingCheckoutPlan();
-          setAlreadySubscribed({
-            open: true,
-            portalUrl: (data as any)?.billingPortalUrl ?? (data as any)?.portalUrl ?? null,
-          });
-          setShowPaywall(false);
-          setIsStartingCheckout(false);
-          return;
+        if (result.status === "error") {
+          throw new Error(result.message);
         }
 
-        const redirectUrl = (data as any)?.checkoutUrl;
-        if (!redirectUrl) throw new Error("Checkout URL missing");
-        console.log("[paywall] branch: redirecting to checkout", redirectUrl);
-        clearPendingCheckoutPlan();
-        window.location.assign(redirectUrl);
+        console.log("[paywall] branch: redirecting to checkout", result.url);
+        window.location.assign(result.url);
       } catch (err) {
         console.error("[paywall] proceedToStripe failed", err);
         alert(

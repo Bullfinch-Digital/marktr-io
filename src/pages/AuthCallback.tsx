@@ -2,6 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "../config/supabase";
 import { useAuth } from "../contexts/AuthContext";
+import { runPostAuthPipelineWithTimeout } from "../lib/postAuthPipeline";
+import { redirectToStripeCheckout } from "../lib/stripeCheckout";
+import { getPendingCheckoutPlan } from "../utils/pendingCheckout";
 import {
   clearOAuthNext,
   hasOAuthCallbackParams,
@@ -11,9 +14,25 @@ import {
 function navigateAfterAuth(next: string) {
   const safeNext = next.startsWith("/") ? next : "/dashboard";
   clearOAuthNext();
-  // Hard navigation avoids race with auth listener re-renders on the wrong route.
   if (window.location.pathname + window.location.search === safeNext) return;
   window.location.replace(safeNext);
+}
+
+async function completeOAuthHandoff(userId: string, email: string | null, next: string) {
+  await runPostAuthPipelineWithTimeout(userId, email);
+
+  const pendingPlan = getPendingCheckoutPlan();
+  if (pendingPlan) {
+    const checkout = await redirectToStripeCheckout(pendingPlan);
+    if (checkout.status === "redirect") {
+      return;
+    }
+    if (checkout.status === "error") {
+      console.warn("[AuthCallback] checkout resume failed", checkout.message);
+    }
+  }
+
+  navigateAfterAuth(next);
 }
 
 export default function AuthCallback() {
@@ -21,6 +40,7 @@ export default function AuthCallback() {
   const location = useLocation();
   const { user, loading: authLoading } = useAuth();
   const [error, setError] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState("Signing you in…");
   const handledRef = useRef(false);
 
   useEffect(() => {
@@ -30,12 +50,11 @@ export default function AuthCallback() {
       const next = resolveOAuthNext(location.search);
       const url = new URL(window.location.href);
       const hasOAuth = hasOAuthCallbackParams(url);
-      const isAnonymous = Boolean((user as any)?.is_anonymous);
+      const isAnonymous = Boolean((user as { is_anonymous?: boolean })?.is_anonymous);
 
-      // Skip only when already signed in with a real account and no OAuth params to exchange.
       if (!authLoading && user && !isAnonymous && !hasOAuth) {
         handledRef.current = true;
-        navigateAfterAuth(next);
+        await completeOAuthHandoff(user.id, user.email ?? null, next);
         return;
       }
 
@@ -45,45 +64,62 @@ export default function AuthCallback() {
         const accessToken = hash.get("access_token");
         const refreshToken = hash.get("refresh_token");
 
-        // Case 1: PKCE / OAuth code in search params
         if (code) {
-          const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+          const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
           if (exchangeError) throw exchangeError;
 
           handledRef.current = true;
-          navigateAfterAuth(next);
+          setStatusMessage("Saving your results…");
+          const sessionUser = data.session?.user;
+          if (sessionUser?.id) {
+            await completeOAuthHandoff(
+              sessionUser.id,
+              sessionUser.email ?? null,
+              next
+            );
+          } else {
+            navigateAfterAuth(next);
+          }
           return;
         }
 
-        // Case 2: Access/refresh tokens in hash (email confirmation / recovery links)
         if (accessToken && refreshToken) {
-          const { error: sessionError } = await supabase.auth.setSession({
+          const { data, error: sessionError } = await supabase.auth.setSession({
             access_token: accessToken,
             refresh_token: refreshToken,
           });
           if (sessionError) throw sessionError;
 
           handledRef.current = true;
-          navigateAfterAuth(next);
+          setStatusMessage("Saving your results…");
+          const sessionUser = data.session?.user;
+          if (sessionUser?.id) {
+            await completeOAuthHandoff(
+              sessionUser.id,
+              sessionUser.email ?? null,
+              next
+            );
+          } else {
+            navigateAfterAuth(next);
+          }
           return;
         }
 
-        // Case 3: No tokens found; check existing session
         if (!authLoading) {
           const { data: sessionData } = await supabase.auth.getSession();
-          if (sessionData?.session && !(sessionData.session.user as any)?.is_anonymous) {
+          const sessionUser = sessionData?.session?.user ?? null;
+          if (sessionUser && !(sessionUser as { is_anonymous?: boolean }).is_anonymous) {
             handledRef.current = true;
-            navigateAfterAuth(next);
+            setStatusMessage("Saving your results…");
+            await completeOAuthHandoff(sessionUser.id, sessionUser.email ?? null, next);
           } else if (!hasOAuth) {
             handledRef.current = true;
             navigate("/login", { replace: true });
           }
         }
-      } catch (e: any) {
+      } catch (e: unknown) {
         console.error("AuthCallback error:", e);
-        setError(
-          e?.message || "Something went wrong signing you in."
-        );
+        setError(e instanceof Error ? e.message : "Something went wrong signing you in.");
       }
     };
 
@@ -93,8 +129,18 @@ export default function AuthCallback() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md text-center">
-        <div className="text-4xl font-['Fraunces'] mb-3">Signing you in…</div>
-        <p className="text-foreground/70 mb-8">Just finishing up your account.</p>
+        <div className="text-4xl font-['Fraunces'] mb-3">{statusMessage}</div>
+        {statusMessage === "Saving your results…" && (
+          <div
+            className="w-10 h-10 mx-auto mb-4 border-4 border-button-green border-t-transparent rounded-full animate-spin"
+            aria-hidden
+          />
+        )}
+        <p className="text-foreground/70 mb-8">
+          {statusMessage === "Saving your results…"
+            ? "Creating your brand and saving health, story, and customer profiles."
+            : "Just finishing up your account."}
+        </p>
 
         {error && (
           <div className="border border-black rounded-design bg-white p-4 text-left">

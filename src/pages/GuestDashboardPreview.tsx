@@ -62,7 +62,7 @@ function StepCard({ step, title, complete, summary, onClick }: StepCardProps) {
 
 export default function GuestDashboardPreview() {
   const navigate = useNavigate();
-  const { openPaywall } = usePaywall();
+  const { startCheckout } = usePaywall();
   const { user } = useAuth();
   const icpProfilesRef = useRef<HTMLElement>(null);
 
@@ -148,7 +148,7 @@ export default function GuestDashboardPreview() {
       </div>
 
       {allComplete && (
-        <GuestAllCompleteTrialBanner onStartTrial={() => openPaywall()} />
+        <GuestAllCompleteTrialBanner onStartTrial={() => void startCheckout("annual")} />
       )}
 
       <div className="container mx-auto max-w-7xl space-y-10 px-6 pb-12 pt-8 lg:px-12">
@@ -320,7 +320,7 @@ export default function GuestDashboardPreview() {
         {allComplete && (
           <GuestAllCompleteTrialBanner
             variant="contained"
-            onStartTrial={() => openPaywall()}
+            onStartTrial={() => void startCheckout("annual")}
           />
         )}
       </div>

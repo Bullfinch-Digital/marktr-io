@@ -525,7 +525,7 @@ export default function OnboardingBuild() {
       let insertedRows: Array<{ id: string; created_at: string; user_id: string; name: string }> = [];
 
       const canInsert =
-        user?.id && Array.isArray(result.icps) && result.icps.length > 0;
+        isLoggedIn && user?.id && Array.isArray(result.icps) && result.icps.length > 0;
 
       if (canInsert) {
         if (hasPersistedRef.current) {

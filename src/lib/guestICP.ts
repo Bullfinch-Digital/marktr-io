@@ -1,5 +1,11 @@
 import { supabase } from "../config/supabase";
 import { runOncePerKey } from "./asyncUserLock";
+import {
+  claimStorageLock,
+  markStorageLockDone,
+  readStorageFlag,
+  releaseStorageLock,
+} from "./persistentUserLock";
 
 /**
  * Guest ICP local storage (for "Guest generate → sign up to save")
@@ -39,27 +45,24 @@ function flushFlagKey(userId: string) {
   return `icp_generator_guest_icps_flushed_${userId}`;
 }
 
+function isDuplicateKeyError(error: unknown): boolean {
+  const code = (error as { code?: string })?.code;
+  return code === "23505";
+}
+
 async function flushGuestICPsToSupabaseInner(
   userId: string,
   opts?: { brandId?: string | null }
 ) {
   const FLUSH_FLAG = flushFlagKey(userId);
 
-  try {
-    const alreadyFlushed = localStorage.getItem(FLUSH_FLAG);
-    if (alreadyFlushed === "1") return;
-  } catch {
-    // ignore
-  }
-
   const guestICPs = getGuestICPs();
-  if (!guestICPs.length) return;
-
-  // Optimistic lock before any await so concurrent tab/event callers bail out.
-  try {
-    localStorage.setItem(FLUSH_FLAG, "in_progress");
-  } catch {
-    // ignore
+  if (!guestICPs.length) {
+    const flagState = readStorageFlag(FLUSH_FLAG);
+    if (flagState === "in_progress") {
+      markStorageLockDone(FLUSH_FLAG);
+    }
+    return;
   }
 
   const now = new Date().toISOString();
@@ -67,7 +70,7 @@ async function flushGuestICPsToSupabaseInner(
   const fetchExistingKeys = async () => {
     const { data: existingRows, error: existingError } = await supabase
       .from("icps")
-      .select("name,description")
+      .select("name,description,brand_id")
       .eq("user_id", userId);
 
     if (existingError) {
@@ -76,8 +79,14 @@ async function flushGuestICPsToSupabaseInner(
 
     return new Set(
       (existingRows || []).map(
-        (row: { name?: string | null; description?: string | null }) =>
-          `${(row.name || "").trim()}||${(row.description || "").trim()}`
+        (row: {
+          name?: string | null;
+          description?: string | null;
+          brand_id?: string | null;
+        }) => {
+          const brandKey = row.brand_id ?? opts?.brandId ?? "";
+          return `${brandKey}||${(row.name || "").trim().toLowerCase()}||${(row.description || "").trim()}`;
+        }
       )
     );
   };
@@ -87,17 +96,15 @@ async function flushGuestICPsToSupabaseInner(
     existingKeys = await fetchExistingKeys();
   } catch (existingError) {
     console.error("❌ flushGuestICPsToSupabase existing fetch failed:", existingError);
-    try {
-      localStorage.removeItem(FLUSH_FLAG);
-    } catch {
-      // ignore
-    }
+    releaseStorageLock(FLUSH_FLAG);
     return;
   }
 
+  const brandIdForRows = opts?.brandId ?? null;
   const rows = guestICPs.map((icp: GuestICP) => {
     const name = icp.name || "";
     const description = icp.description || "";
+    const rowBrandId = icp.brand_id ?? brandIdForRows ?? null;
     return {
       user_id: userId,
       name,
@@ -112,51 +119,59 @@ async function flushGuestICPsToSupabaseInner(
       tech_stack: icp.tech_stack || icp.techStack || [],
       challenges: icp.challenges || [],
       opportunities: icp.opportunities || [],
-      brand_id: icp.brand_id ?? opts?.brandId ?? null,
+      brand_id: rowBrandId,
       created_at: now,
       updated_at: now,
-      _dedupKey: `${name.trim()}||${description.trim()}`,
+      _dedupKey: `${rowBrandId ?? ""}||${name.trim().toLowerCase()}||${description.trim()}`,
     };
   });
 
   let rowsToInsert = rows.filter((row) => !existingKeys.has(row._dedupKey));
 
   if (rowsToInsert.length > 0) {
-    // Re-check immediately before insert in case a parallel run slipped through pre-lock era.
     try {
       existingKeys = await fetchExistingKeys();
       rowsToInsert = rows.filter((row) => !existingKeys.has(row._dedupKey));
     } catch (existingError) {
       console.error("❌ flushGuestICPsToSupabase pre-insert fetch failed:", existingError);
-      try {
-        localStorage.removeItem(FLUSH_FLAG);
-      } catch {
-        // ignore
-      }
+      releaseStorageLock(FLUSH_FLAG);
       return;
     }
   }
 
   if (rowsToInsert.length > 0) {
+    console.log("[flushGuestICPs] insert attempt", {
+      userId,
+      count: rowsToInsert.length,
+      names: rowsToInsert.map((row) => row.name),
+    });
+
     const { error } = await supabase
       .from("icps")
       .insert(rowsToInsert.map(({ _dedupKey, ...rest }) => rest));
-    if (error) {
+
+    if (error && !isDuplicateKeyError(error)) {
       console.error("❌ flushGuestICPsToSupabase insert failed:", error);
-      try {
-        localStorage.removeItem(FLUSH_FLAG);
-      } catch {
-        // ignore
-      }
+      releaseStorageLock(FLUSH_FLAG);
       return;
     }
+
+    if (error && isDuplicateKeyError(error)) {
+      console.log("[flushGuestICPs] insert skipped — unique constraint (duplicate)", {
+        userId,
+        count: rowsToInsert.length,
+      });
+    } else {
+      console.log("[flushGuestICPs] insert complete", {
+        userId,
+        count: rowsToInsert.length,
+      });
+    }
+  } else {
+    console.log("[flushGuestICPs] insert skipped — all rows already present", { userId });
   }
 
-  try {
-    localStorage.setItem(FLUSH_FLAG, "1");
-  } catch {
-    // ignore
-  }
+  markStorageLockDone(FLUSH_FLAG);
   clearGuestICPs();
 
   if (import.meta.env.DEV) {
@@ -174,14 +189,42 @@ async function flushGuestICPsToSupabaseInner(
 
 /**
  * Flush guest ICPs into Supabase for the logged-in user.
- * Idempotent per user: module lock + local flush flag + name/description dedupe.
+ * Reload-safe: localStorage lock + module lock + DB unique index.
  */
 export async function flushGuestICPsToSupabase(
   userId: string,
   opts?: { brandId?: string | null }
 ) {
   if (!userId) return;
-  return runOncePerKey(`flush-guest-icps:${userId}`, () =>
-    flushGuestICPsToSupabaseInner(userId, opts)
-  );
+
+  const FLUSH_FLAG = flushFlagKey(userId);
+  const flagState = readStorageFlag(FLUSH_FLAG);
+
+  if (flagState === "1") {
+    console.debug("[flushGuestICPs] skip — already flushed (persistent flag)", userId);
+    return;
+  }
+
+  if (flagState === "in_progress") {
+    console.debug("[flushGuestICPs] skip — flush in progress (persistent flag)", userId);
+    return;
+  }
+
+  if (!getGuestICPs().length) {
+    return;
+  }
+
+  if (!claimStorageLock(FLUSH_FLAG)) {
+    console.debug("[flushGuestICPs] skip — lost claim race", userId);
+    return;
+  }
+
+  try {
+    return await runOncePerKey(`flush-guest-icps:${userId}`, () =>
+      flushGuestICPsToSupabaseInner(userId, opts)
+    );
+  } catch (error) {
+    releaseStorageLock(FLUSH_FLAG);
+    throw error;
+  }
 }

@@ -166,6 +166,7 @@ export function PaywallProvider({ children }: { children: React.ReactNode }) {
 
         if (data?.code === "ALREADY_SUBSCRIBED") {
           console.log("[paywall] branch: already subscribed (code)");
+          clearPendingCheckoutPlan();
           setAlreadySubscribed({
             open: true,
             portalUrl: (data as any)?.portalUrl ?? null,
@@ -177,6 +178,7 @@ export function PaywallProvider({ children }: { children: React.ReactNode }) {
 
         if (data?.code === "EMAIL_ALREADY_SUBSCRIBED") {
           console.log("[paywall] branch: email already subscribed (code)");
+          clearPendingCheckoutPlan();
           setEmailAlreadySubscribed({
             open: true,
             email: (data as any)?.email ?? null,
@@ -190,6 +192,7 @@ export function PaywallProvider({ children }: { children: React.ReactNode }) {
 
         if (data?.alreadySubscribed === true) {
           console.log("[paywall] branch: already subscribed (flag)");
+          clearPendingCheckoutPlan();
           setAlreadySubscribed({
             open: true,
             portalUrl: (data as any)?.billingPortalUrl ?? (data as any)?.portalUrl ?? null,
@@ -202,6 +205,7 @@ export function PaywallProvider({ children }: { children: React.ReactNode }) {
         const redirectUrl = (data as any)?.checkoutUrl;
         if (!redirectUrl) throw new Error("Checkout URL missing");
         console.log("[paywall] branch: redirecting to checkout", redirectUrl);
+        clearPendingCheckoutPlan();
         window.location.assign(redirectUrl);
       } catch (err) {
         console.error("[paywall] proceedToStripe failed", err);
@@ -242,14 +246,34 @@ export function PaywallProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!user || (user as any).is_anonymous) return;
-    if (resumeCheckoutRef.current) return;
 
     const pendingPlan = getPendingCheckoutPlan();
     if (!pendingPlan) return;
+    if (resumeCheckoutRef.current) return;
 
     resumeCheckoutRef.current = true;
-    clearPendingCheckoutPlan();
-    void proceedToStripe(pendingPlan);
+    console.log("[paywall] resuming pending checkout after auth", { plan: pendingPlan });
+
+    void (async () => {
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const sessionUser = sessionData?.session?.user ?? null;
+        if (
+          !sessionData?.session?.access_token ||
+          !sessionUser ||
+          (sessionUser as { is_anonymous?: boolean }).is_anonymous
+        ) {
+          console.warn("[paywall] pending checkout resume deferred — session not ready");
+          resumeCheckoutRef.current = false;
+          return;
+        }
+
+        await proceedToStripe(pendingPlan);
+      } catch (err) {
+        console.error("[paywall] pending checkout resume failed", err);
+        resumeCheckoutRef.current = false;
+      }
+    })();
   }, [user, proceedToStripe]);
 
   const value = useMemo(

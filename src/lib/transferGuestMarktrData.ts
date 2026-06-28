@@ -1,6 +1,12 @@
 import { supabase } from "../config/supabase";
 import { runOncePerKey } from "./asyncUserLock";
 import {
+  claimStorageLock,
+  markStorageLockDone,
+  readStorageFlag,
+  releaseStorageLock,
+} from "./persistentUserLock";
+import {
   getGuestHealthCheck,
   clearGuestHealthCheck,
 } from "./guestHealthCheck";
@@ -24,150 +30,145 @@ function transferFlagKey(userId: string, kind: "health" | "story") {
   return `marktr_guest_${kind}_transferred_${userId}`;
 }
 
-async function transferGuestMarktrDataInner(userId: string) {
-  const contextEmail = getGuestIdentityEmail();
-
+async function transferHealthOnce(userId: string) {
   const guestHealth = getGuestHealthCheck();
-  if (guestHealth) {
-    const healthFlag = transferFlagKey(userId, "health");
-    let alreadyTransferred = false;
-    try {
-      alreadyTransferred = localStorage.getItem(healthFlag) === "1";
-    } catch {
-      // ignore
-    }
+  if (!guestHealth) return;
 
-    if (!alreadyTransferred) {
-      try {
-        localStorage.setItem(healthFlag, "in_progress");
-      } catch {
-        // ignore
-      }
+  const healthFlag = transferFlagKey(userId, "health");
+  const flagState = readStorageFlag(healthFlag);
 
-      const { count, error: countError } = await supabase
-        .from("health_check_results")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", userId);
-
-      if (countError) {
-        console.warn("[transferGuestMarktrData] health check count failed", countError);
-        try {
-          localStorage.removeItem(healthFlag);
-        } catch {
-          // ignore
-        }
-      } else if ((count ?? 0) === 0) {
-        const { error } = await supabase.from("health_check_results").insert({
-          user_id: userId,
-          domain: guestHealth.input.websiteUrl
-            ? extractDomain(guestHealth.input.websiteUrl)
-            : "",
-          instagram_handle: guestHealth.input.instagramHandle || "",
-          facebook_url: guestHealth.input.facebookUrl || "",
-          overall_score: guestHealth.scores.overall || 0,
-          scores: {
-            websiteClarity: { score: guestHealth.scores.websiteClarity },
-            brandStory: { score: guestHealth.scores.brandStory },
-            contentConsistency: { score: guestHealth.scores.contentConsistency },
-            socialPresence: { score: guestHealth.scores.socialPresence },
-            overall: guestHealth.scores.overall,
-            lowestDimension: guestHealth.scores.lowestDimension,
-            lowestScore: guestHealth.scores.lowestScore,
-          },
-        });
-        if (error) {
-          console.warn("[transferGuestMarktrData] health check transfer failed", error);
-          try {
-            localStorage.removeItem(healthFlag);
-          } catch {
-            // ignore
-          }
-        } else {
-          try {
-            localStorage.setItem(healthFlag, "1");
-          } catch {
-            // ignore
-          }
-          clearGuestHealthCheck();
-        }
-      } else {
-        try {
-          localStorage.setItem(healthFlag, "1");
-        } catch {
-          // ignore
-        }
-        clearGuestHealthCheck();
-      }
-    } else {
-      clearGuestHealthCheck();
-    }
+  if (flagState === "1") {
+    clearGuestHealthCheck();
+    return;
   }
 
+  if (flagState === "in_progress") {
+    console.debug("[transferGuestMarktrData] skip health — in progress", userId);
+    return;
+  }
+
+  if (!claimStorageLock(healthFlag)) {
+    console.debug("[transferGuestMarktrData] skip health — lost claim race", userId);
+    return;
+  }
+
+  try {
+    const { count, error: countError } = await supabase
+      .from("health_check_results")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId);
+
+    if (countError) {
+      console.warn("[transferGuestMarktrData] health check count failed", countError);
+      releaseStorageLock(healthFlag);
+      return;
+    }
+
+    if ((count ?? 0) === 0) {
+      console.log("[transferGuestMarktrData] health insert attempt", { userId });
+      const { error } = await supabase.from("health_check_results").insert({
+        user_id: userId,
+        domain: guestHealth.input.websiteUrl
+          ? extractDomain(guestHealth.input.websiteUrl)
+          : "",
+        instagram_handle: guestHealth.input.instagramHandle || "",
+        facebook_url: guestHealth.input.facebookUrl || "",
+        overall_score: guestHealth.scores.overall || 0,
+        scores: {
+          websiteClarity: { score: guestHealth.scores.websiteClarity },
+          brandStory: { score: guestHealth.scores.brandStory },
+          contentConsistency: { score: guestHealth.scores.contentConsistency },
+          socialPresence: { score: guestHealth.scores.socialPresence },
+          overall: guestHealth.scores.overall,
+          lowestDimension: guestHealth.scores.lowestDimension,
+          lowestScore: guestHealth.scores.lowestScore,
+        },
+      });
+      if (error) {
+        console.warn("[transferGuestMarktrData] health check transfer failed", error);
+        releaseStorageLock(healthFlag);
+        return;
+      }
+      console.log("[transferGuestMarktrData] health insert complete", { userId });
+    } else {
+      console.log("[transferGuestMarktrData] health insert skipped — row exists", { userId });
+    }
+
+    markStorageLockDone(healthFlag);
+    clearGuestHealthCheck();
+  } catch (error) {
+    releaseStorageLock(healthFlag);
+    throw error;
+  }
+}
+
+async function transferStoryOnce(userId: string, contextEmail: string) {
   const guestStory = getGuestStory();
-  if (guestStory) {
-    const storyFlag = transferFlagKey(userId, "story");
-    let alreadyTransferred = false;
-    try {
-      alreadyTransferred = localStorage.getItem(storyFlag) === "1";
-    } catch {
-      // ignore
-    }
+  if (!guestStory) return;
 
-    if (!alreadyTransferred) {
-      try {
-        localStorage.setItem(storyFlag, "in_progress");
-      } catch {
-        // ignore
-      }
+  const storyFlag = transferFlagKey(userId, "story");
+  const flagState = readStorageFlag(storyFlag);
 
-      const { count, error: countError } = await supabase
-        .from("brand_story_results")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", userId);
-
-      if (countError) {
-        console.warn("[transferGuestMarktrData] brand story count failed", countError);
-        try {
-          localStorage.removeItem(storyFlag);
-        } catch {
-          // ignore
-        }
-      } else if ((count ?? 0) === 0) {
-        const storyEmail = guestStory.email?.trim() || contextEmail || "";
-        const { error } = await supabase.from("brand_story_results").insert({
-          user_id: userId,
-          story_data: {
-            ...guestStory,
-            email: storyEmail,
-          },
-        });
-        if (error) {
-          console.warn("[transferGuestMarktrData] brand story transfer failed", error);
-          try {
-            localStorage.removeItem(storyFlag);
-          } catch {
-            // ignore
-          }
-        } else {
-          try {
-            localStorage.setItem(storyFlag, "1");
-          } catch {
-            // ignore
-          }
-          clearGuestStory();
-        }
-      } else {
-        try {
-          localStorage.setItem(storyFlag, "1");
-        } catch {
-          // ignore
-        }
-        clearGuestStory();
-      }
-    } else {
-      clearGuestStory();
-    }
+  if (flagState === "1") {
+    clearGuestStory();
+    return;
   }
+
+  if (flagState === "in_progress") {
+    console.debug("[transferGuestMarktrData] skip story — in progress", userId);
+    return;
+  }
+
+  if (!claimStorageLock(storyFlag)) {
+    console.debug("[transferGuestMarktrData] skip story — lost claim race", userId);
+    return;
+  }
+
+  try {
+    const { count, error: countError } = await supabase
+      .from("brand_story_results")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId);
+
+    if (countError) {
+      console.warn("[transferGuestMarktrData] brand story count failed", countError);
+      releaseStorageLock(storyFlag);
+      return;
+    }
+
+    if ((count ?? 0) === 0) {
+      console.log("[transferGuestMarktrData] story insert attempt", { userId });
+      const storyEmail = guestStory.email?.trim() || contextEmail || "";
+      const { error } = await supabase.from("brand_story_results").insert({
+        user_id: userId,
+        story_data: {
+          ...guestStory,
+          email: storyEmail,
+        },
+      });
+      if (error) {
+        console.warn("[transferGuestMarktrData] brand story transfer failed", error);
+        releaseStorageLock(storyFlag);
+        return;
+      }
+      console.log("[transferGuestMarktrData] story insert complete", { userId });
+    } else {
+      console.log("[transferGuestMarktrData] story insert skipped — row exists", { userId });
+    }
+
+    markStorageLockDone(storyFlag);
+    clearGuestStory();
+  } catch (error) {
+    releaseStorageLock(storyFlag);
+    throw error;
+  }
+}
+
+async function transferGuestMarktrDataInner(userId: string) {
+  const contextEmail = getGuestIdentityEmail() || "";
+
+  await transferHealthOnce(userId);
+  await transferStoryOnce(userId, contextEmail);
 
   if (contextEmail) {
     const ctx = getGuestContext();
@@ -179,7 +180,7 @@ async function transferGuestMarktrDataInner(userId: string) {
 
 /**
  * Persist guest health-check + brand-story localStorage payloads to Supabase.
- * Idempotent: module lock, transfer flags, and skip when user already has rows.
+ * Reload-safe: module lock + persistent transfer flags + existing-row checks.
  */
 export async function transferGuestMarktrData(userId: string) {
   if (!userId) return;

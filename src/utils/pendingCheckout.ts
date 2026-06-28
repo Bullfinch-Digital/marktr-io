@@ -5,6 +5,7 @@ export type PendingCheckoutPlan = "monthly" | "annual";
 export function setPendingCheckoutPlan(plan: PendingCheckoutPlan) {
   try {
     sessionStorage.setItem(STORAGE_KEY, plan);
+    console.log("[pendingCheckout] stored", { plan });
   } catch {
     // ignore
   }
@@ -20,9 +21,14 @@ export function getPendingCheckoutPlan(): PendingCheckoutPlan | null {
   }
 }
 
+export function hasPendingCheckoutPlan(): boolean {
+  return getPendingCheckoutPlan() !== null;
+}
+
 export function clearPendingCheckoutPlan() {
   try {
     sessionStorage.removeItem(STORAGE_KEY);
+    console.log("[pendingCheckout] cleared");
   } catch {
     // ignore
   }

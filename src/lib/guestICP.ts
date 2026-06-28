@@ -1,4 +1,5 @@
 import { supabase } from "../config/supabase";
+import { runOncePerKey } from "./asyncUserLock";
 
 /**
  * Guest ICP local storage (for "Guest generate → sign up to save")
@@ -34,21 +35,19 @@ export function clearGuestICPs() {
   }
 }
 
-/**
- * Flush guest ICPs into Supabase for the logged-in user.
- * Runs safely (idempotent per-user) using a local flag.
- */
-export async function flushGuestICPsToSupabase(
+function flushFlagKey(userId: string) {
+  return `icp_generator_guest_icps_flushed_${userId}`;
+}
+
+async function flushGuestICPsToSupabaseInner(
   userId: string,
   opts?: { brandId?: string | null }
 ) {
-  if (!userId) return;
+  const FLUSH_FLAG = flushFlagKey(userId);
 
-  // Prevent double-flush (StrictMode + auth events)
-  const FLUSH_FLAG = `icp_generator_guest_icps_flushed_${userId}`;
   try {
     const alreadyFlushed = localStorage.getItem(FLUSH_FLAG);
-    if (alreadyFlushed === "1" || alreadyFlushed === "in_progress") return;
+    if (alreadyFlushed === "1") return;
   } catch {
     // ignore
   }
@@ -56,7 +55,7 @@ export async function flushGuestICPsToSupabase(
   const guestICPs = getGuestICPs();
   if (!guestICPs.length) return;
 
-  // Mark in-progress BEFORE network call to avoid race conditions
+  // Optimistic lock before any await so concurrent tab/event callers bail out.
   try {
     localStorage.setItem(FLUSH_FLAG, "in_progress");
   } catch {
@@ -65,13 +64,28 @@ export async function flushGuestICPsToSupabase(
 
   const now = new Date().toISOString();
 
-  // Fetch existing ICPs to avoid duplicates (name||description key)
-  const { data: existingRows, error: existingError } = await supabase
-    .from("icps")
-    .select("name,description")
-    .eq("user_id", userId);
+  const fetchExistingKeys = async () => {
+    const { data: existingRows, error: existingError } = await supabase
+      .from("icps")
+      .select("name,description")
+      .eq("user_id", userId);
 
-  if (existingError) {
+    if (existingError) {
+      throw existingError;
+    }
+
+    return new Set(
+      (existingRows || []).map(
+        (row: { name?: string | null; description?: string | null }) =>
+          `${(row.name || "").trim()}||${(row.description || "").trim()}`
+      )
+    );
+  };
+
+  let existingKeys: Set<string>;
+  try {
+    existingKeys = await fetchExistingKeys();
+  } catch (existingError) {
     console.error("❌ flushGuestICPsToSupabase existing fetch failed:", existingError);
     try {
       localStorage.removeItem(FLUSH_FLAG);
@@ -81,12 +95,7 @@ export async function flushGuestICPsToSupabase(
     return;
   }
 
-  const existingKeys = new Set(
-    (existingRows || []).map((row: any) => `${(row.name || "").trim()}||${(row.description || "").trim()}`)
-  );
-
-  // Map guest ICP objects into DB columns (best-effort)
-  const rows = guestICPs.map((icp: any) => {
+  const rows = guestICPs.map((icp: GuestICP) => {
     const name = icp.name || "";
     const description = icp.description || "";
     return {
@@ -110,16 +119,15 @@ export async function flushGuestICPsToSupabase(
     };
   });
 
-  const rowsToInsert = rows.filter((row) => !existingKeys.has(row._dedupKey));
+  let rowsToInsert = rows.filter((row) => !existingKeys.has(row._dedupKey));
 
-  // Insert into Supabase (only new rows)
   if (rowsToInsert.length > 0) {
-    const { error } = await supabase
-      .from("icps")
-      .insert(rowsToInsert.map(({ _dedupKey, ...rest }) => rest));
-    if (error) {
-      console.error("❌ flushGuestICPsToSupabase insert failed:", error);
-      // allow retry
+    // Re-check immediately before insert in case a parallel run slipped through pre-lock era.
+    try {
+      existingKeys = await fetchExistingKeys();
+      rowsToInsert = rows.filter((row) => !existingKeys.has(row._dedupKey));
+    } catch (existingError) {
+      console.error("❌ flushGuestICPsToSupabase pre-insert fetch failed:", existingError);
       try {
         localStorage.removeItem(FLUSH_FLAG);
       } catch {
@@ -129,7 +137,21 @@ export async function flushGuestICPsToSupabase(
     }
   }
 
-  // Mark flushed + clear local guest payload
+  if (rowsToInsert.length > 0) {
+    const { error } = await supabase
+      .from("icps")
+      .insert(rowsToInsert.map(({ _dedupKey, ...rest }) => rest));
+    if (error) {
+      console.error("❌ flushGuestICPsToSupabase insert failed:", error);
+      try {
+        localStorage.removeItem(FLUSH_FLAG);
+      } catch {
+        // ignore
+      }
+      return;
+    }
+  }
+
   try {
     localStorage.setItem(FLUSH_FLAG, "1");
   } catch {
@@ -138,13 +160,28 @@ export async function flushGuestICPsToSupabase(
   clearGuestICPs();
 
   if (import.meta.env.DEV) {
-    console.log(`✅ Guest ICPs flushed to Supabase for user ${userId} (${rowsToInsert.length} inserted, ${rows.length - rowsToInsert.length} skipped)`);
+    console.log(
+      `✅ Guest ICPs flushed to Supabase for user ${userId} (${rowsToInsert.length} inserted, ${rows.length - rowsToInsert.length} skipped)`
+    );
   }
 
-  // Notify listeners (Dashboard/MyICPs/etc.) to refetch ICPs
   try {
     window.dispatchEvent(new Event("icps:changed"));
   } catch {
     // ignore
   }
+}
+
+/**
+ * Flush guest ICPs into Supabase for the logged-in user.
+ * Idempotent per user: module lock + local flush flag + name/description dedupe.
+ */
+export async function flushGuestICPsToSupabase(
+  userId: string,
+  opts?: { brandId?: string | null }
+) {
+  if (!userId) return;
+  return runOncePerKey(`flush-guest-icps:${userId}`, () =>
+    flushGuestICPsToSupabaseInner(userId, opts)
+  );
 }

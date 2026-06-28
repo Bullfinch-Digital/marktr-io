@@ -5,6 +5,7 @@ import type { User, Session, AuthError } from "@supabase/supabase-js";
 import { supabase } from "../config/supabase";
 import { flushGuestICPsToSupabase } from "../lib/guestICP";
 import { transferGuestMarktrData } from "../lib/transferGuestMarktrData";
+import { runOncePerKey } from "../lib/asyncUserLock";
 import { isRealUser } from "../utils/isRealUser";
 import { syncOutbox } from "../lib/syncOutbox";
 import { markLeadConverted } from "../lib/leadCapture";
@@ -226,11 +227,13 @@ async function ensureProfileInsertOnly(user: User) {
   }
 }
 
+/** Post-auth pipeline completed for this browser session (per user id). */
+const postAuthCompletedUserIds = new Set<string>();
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const postAuthRanRef = useRef<string | null>(null);
   const pendingLinkAttemptRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -243,18 +246,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Fire-and-forget with its own internal guard + timeouts.
     // --------------------------------------------------------------
     const runPostAuthPipeline = async (userId: string, email?: string | null) => {
-      console.log("AuthContext: post-auth step 0 — pipeline start", { userId, email });
-      // Guard: run once per user id
-      if (postAuthRanRef.current === userId) {
-        console.log("AuthContext: post-auth step 0 — skipped (already ran for user)", userId);
-        // Still nudge UI refresh in case listeners attached late
+      if (postAuthCompletedUserIds.has(userId)) {
+        console.log("AuthContext: post-auth step 0 — skipped (already completed for user)", userId);
         try {
           window.dispatchEvent(new Event("brands:changed"));
           window.dispatchEvent(new Event("icps:changed"));
         } catch {}
         return;
       }
-      postAuthRanRef.current = userId;
+
+      return runOncePerKey(`post-auth-pipeline:${userId}`, async () => {
+        if (postAuthCompletedUserIds.has(userId)) {
+          console.log("AuthContext: post-auth step 0 — skipped (already ran for user)", userId);
+          return;
+        }
+
+        console.log("AuthContext: post-auth step 0 — pipeline start", { userId, email });
 
       // Mark onboarding lead as converted (best-effort)
       if (email) {
@@ -314,7 +321,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         window.dispatchEvent(new Event("icps:changed"));
       } catch {}
+      postAuthCompletedUserIds.add(userId);
       console.log("AuthContext: post-auth step 5 — pipeline complete");
+      });
     };
 
     const tryAutoLinkPending = async (activeSession: Session | null) => {
@@ -430,9 +439,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(nextSession ?? null);
       setUser(nextUser);
 
-      if (nextUser?.id && postAuthRanRef.current && postAuthRanRef.current !== nextUser.id) {
-        postAuthRanRef.current = null;
-      }
       if (!nextUser?.id) {
         pendingLinkAttemptRef.current = null;
       } else if (

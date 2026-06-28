@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Activity, BookOpen, Check, Users } from "lucide-react";
-import { Button } from "../components/ui/button";
+import { GuestAllCompleteTrialBanner } from "../components/guest/GuestAllCompleteTrialBanner";
 import { GuestICPCard } from "../components/cards/GuestICPCard";
 import { usePaywall } from "../contexts/PaywallContext";
 import { useAuth } from "../contexts/AuthContext";
@@ -148,28 +148,7 @@ export default function GuestDashboardPreview() {
       </div>
 
       {allComplete && (
-        <section className="border-b-2 border-[#2D7A5F] bg-gradient-to-br from-[#D4EDE8] via-[#E8F5F2] to-[#B8E0D4] px-6 py-10 lg:px-12">
-          <div className="container mx-auto flex max-w-7xl flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-            <div className="max-w-2xl">
-              <p className="font-['DM_Sans'] text-xs font-semibold uppercase tracking-widest text-[#2D7A5F]">
-                All three complete
-              </p>
-              <h2 className="mt-2 font-['Fraunces'] text-3xl font-bold text-[#0D1833] sm:text-4xl">
-                Your full marketing picture is ready.
-              </h2>
-              <p className="mt-3 font-['DM_Sans'] text-base leading-relaxed text-[#0D1833]/80">
-                You&apos;ve built the foundation. Start your free trial and marktr turns it into your
-                content strategy, posts, and schedule — all built around your business.
-              </p>
-            </div>
-            <Button
-              className="shrink-0 rounded-full bg-[#2D7A5F] px-8 py-6 font-['DM_Sans'] text-base font-semibold text-white shadow-md hover:bg-[#256B52]"
-              onClick={() => openPaywall()}
-            >
-              Start your free trial →
-            </Button>
-          </div>
-        </section>
+        <GuestAllCompleteTrialBanner onStartTrial={() => openPaywall()} />
       )}
 
       <div className="container mx-auto max-w-7xl space-y-10 px-6 pb-12 pt-8 lg:px-12">
@@ -336,6 +315,13 @@ export default function GuestDashboardPreview() {
               ))}
             </div>
           </section>
+        )}
+
+        {allComplete && (
+          <GuestAllCompleteTrialBanner
+            variant="contained"
+            onStartTrial={() => openPaywall()}
+          />
         )}
       </div>
     </main>

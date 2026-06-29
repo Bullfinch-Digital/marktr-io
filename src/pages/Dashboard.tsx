@@ -23,6 +23,7 @@ import CollectionRenameModal from "../components/CollectionRenameModal";
 import CollectionDeleteModal from "../components/CollectionDeleteModal";
 import { canCreateICP, canCreateCollection, canViewICP, canCreateBrand, canExportBrand } from "../config/accessRules";
 import { supabase } from "../config/supabase";
+import { retryGuestICPFlushIfNeeded } from "../lib/guestICP";
 import DashboardShell from "../layouts/DashboardShell";
 
 type HealthCheckRow = {
@@ -270,6 +271,21 @@ export default function Dashboard() {
       window.dispatchEvent(new Event("icps:changed"));
     } catch {}
   };
+
+  // Retry guest ICP flush if OAuth handoff left data in localStorage (silent failure recovery).
+  useEffect(() => {
+    if (!user?.id || authLoading) return;
+
+    const brandId =
+      activeBrand?.id ?? (brands?.length ? brands[0]!.id : null) ?? null;
+
+    void (async () => {
+      const ok = await retryGuestICPFlushIfNeeded(user.id, { brandId });
+      if (ok) {
+        await fetchICPs(true);
+      }
+    })();
+  }, [user?.id, authLoading, activeBrand?.id, brands, fetchICPs]);
 
   // Refetch on global change events
   useEffect(() => {

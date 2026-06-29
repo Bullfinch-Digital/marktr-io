@@ -1,5 +1,5 @@
 import { markLeadConverted } from "./leadCapture";
-import { flushGuestICPsToSupabase } from "./guestICP";
+import { flushGuestICPsToSupabase, getGuestICPs } from "./guestICP";
 import { transferGuestMarktrData } from "./transferGuestMarktrData";
 import { ensureBrandForPostAuth } from "./ensureGuestBrand";
 import { runOncePerKey } from "./asyncUserLock";
@@ -50,8 +50,17 @@ async function executePostAuthPipelineInner(
   console.log("[postAuth] step — transfer health/story");
   await transferGuestMarktrData(userId, { brandId });
 
-  console.log("[postAuth] step — flush ICPs");
-  await flushGuestICPsToSupabase(userId, { brandId });
+  console.log("[postAuth] step — flush ICPs", { brandId });
+  const icpFlushOk = await flushGuestICPsToSupabase(userId, { brandId });
+
+  if (!icpFlushOk && getGuestICPs().length > 0) {
+    console.error("[postAuth] ICP flush incomplete — pipeline will not mark done", {
+      userId,
+      brandId,
+      remainingGuestIcps: getGuestICPs().length,
+    });
+    throw new Error("Guest ICP flush incomplete");
+  }
 
   dispatchGuestDataReady();
   console.log("[postAuth] pipeline complete", { userId, brandId });

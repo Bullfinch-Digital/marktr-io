@@ -6,9 +6,17 @@ import { Textarea } from "../components/ui/textarea";
 import { WhisperButton } from "../components/ui/WhisperButton";
 import { AlreadyCompletedPrompt } from "../components/AlreadyCompletedPrompt";
 import { useAuth } from "../contexts/AuthContext";
+import { useBrand } from "../contexts/BrandContext";
 import { supabase } from "../config/supabase";
 import type { BrandStoryOutput } from "../lib/brandStory";
 import { parseBrandStoryFromApi } from "../lib/brandStory";
+import {
+  buildStoryStoredPayload,
+  fetchLatestBrandStory,
+  insertBrandStoryResult,
+} from "../lib/brandStoryPersistence";
+import { resolveBrandIdForIcpOps } from "../lib/icpBrandAttach";
+import { resolveScopedBrandId } from "../lib/brandScopedReads";
 import { IdentityCapture, type IdentityCaptureHandle } from "../components/guest/IdentityCapture";
 import {
   getGuestContext,
@@ -126,6 +134,7 @@ function isQuestionStep(step: StoryStep): step is QuestionOnlyStep {
 export default function StoryBuild() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { activeBrandId, brands, loading: brandLoading } = useBrand();
   const isLoggedIn = Boolean(user && !(user as { is_anonymous?: boolean }).is_anonymous);
   const [step, setStep] = useState<StoryStep>("q1");
   const [existingRun, setExistingRun] = useState<{ id: string; created_at: string } | null>(
@@ -165,32 +174,32 @@ export default function StoryBuild() {
   const questionIndex = isQuestionStep(step) ? STEP_TO_Q_INDEX[step] : null;
 
   useEffect(() => {
-    if (!isLoggedIn || !user?.id) {
+    if (!isLoggedIn || !user?.id || brandLoading) {
       setExistingRun(null);
       return;
     }
 
     let cancelled = false;
 
-    void supabase
-      .from("brand_story_results")
-      .select("id, created_at")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (cancelled) return;
-        if (data?.id && data?.created_at) {
-          setExistingRun({ id: data.id, created_at: data.created_at });
-          setStep("intro");
-        }
-      });
+    void (async () => {
+      const brandId =
+        resolveScopedBrandId(activeBrandId, brands) ??
+        (await resolveBrandIdForIcpOps(user.id, activeBrandId));
+      if (!brandId || cancelled) return;
+
+      const latest = await fetchLatestBrandStory(user.id, brandId);
+      if (cancelled) return;
+
+      if (latest?.id && latest.created_at) {
+        setExistingRun({ id: latest.id, created_at: latest.created_at });
+        setStep("intro");
+      }
+    })();
 
     return () => {
       cancelled = true;
     };
-  }, [isLoggedIn, user?.id]);
+  }, [isLoggedIn, user?.id, activeBrandId, brands, brandLoading]);
 
   useEffect(() => {
     if (questionIndex === null) return;
@@ -308,6 +317,29 @@ export default function StoryBuild() {
       await Promise.all([apiPromise, checklistMinPromise]);
 
       if (!cancelled) {
+        if (isLoggedIn && user?.id && story) {
+          const brandId =
+            resolveScopedBrandId(activeBrandId, brands) ??
+            (await resolveBrandIdForIcpOps(user.id, activeBrandId));
+
+          if (brandId) {
+            const payload = buildStoryStoredPayload(story, {
+              answers: [...answers],
+              email: emailToUse,
+              brandId,
+            });
+            await insertBrandStoryResult(user.id, brandId, payload);
+          }
+
+          navigate("/story-report", { replace: true });
+          return;
+        }
+
+        if (isLoggedIn && user?.id && storyError) {
+          navigate("/story", { replace: true });
+          return;
+        }
+
         navigate("/story/results", {
           state: { answers, email: emailToUse, story, error: storyError },
         });
@@ -320,7 +352,7 @@ export default function StoryBuild() {
       cancelled = true;
       timers.forEach((t) => window.clearTimeout(t));
     };
-  }, [step, answers, email, identityName, leadToken, navigate, isLoggedIn, user?.email]);
+  }, [step, answers, email, identityName, leadToken, navigate, isLoggedIn, user?.id, user?.email, activeBrandId, brands]);
 
   const canContinueQuestion = useMemo(() => draft.trim().length > 0, [draft]);
 

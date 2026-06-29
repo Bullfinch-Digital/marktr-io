@@ -383,7 +383,7 @@ export default function Dashboard() {
     {
       label: "Brand Story",
       value: readDimensionScore(healthScores, "brandStory"),
-      href: "/story",
+      href: brandStory ? "/story-report" : "/story",
     },
     {
       label: "Content",

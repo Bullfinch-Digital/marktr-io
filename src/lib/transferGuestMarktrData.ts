@@ -130,10 +130,16 @@ async function transferStoryOnce(
   }
 
   try {
-    const { count, error: countError } = await supabase
+    let countQuery = supabase
       .from("brand_story_results")
       .select("id", { count: "exact", head: true })
       .eq("user_id", userId);
+
+    if (brandId) {
+      countQuery = countQuery.eq("brand_id", brandId);
+    }
+
+    const { count, error: countError } = await countQuery;
 
     if (countError) {
       console.warn("[transferGuestMarktrData] brand story count failed", countError);

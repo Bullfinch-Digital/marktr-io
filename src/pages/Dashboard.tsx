@@ -24,6 +24,7 @@ import CollectionDeleteModal from "../components/CollectionDeleteModal";
 import { canCreateICP, canCreateCollection, canViewICP, canCreateBrand, canExportBrand } from "../config/accessRules";
 import { supabase } from "../config/supabase";
 import { retryGuestICPFlushIfNeeded } from "../lib/guestICP";
+import { isBrandScopeReady, scopeQueryToActiveBrand } from "../lib/brandScopedReads";
 import DashboardShell from "../layouts/DashboardShell";
 
 type HealthCheckRow = {
@@ -60,7 +61,7 @@ export default function Dashboard() {
 
   // Fetch data from Supabase
   const { user, loading: authLoading } = useAuth();
-  const { activeBrand } = useBrand();
+  const { activeBrand, activeBrandId, loading: brandLoading, brands } = useBrand();
   const { profile } = useProfile(user?.id ?? null);
   const [healthCheck, setHealthCheck] = useState<HealthCheckRow | null>(null);
   const [brandStory, setBrandStory] = useState<BrandStoryRow | null>(null);
@@ -73,7 +74,6 @@ export default function Dashboard() {
     hasLoadedOnce,
   } = useICPs();
   const {
-    brands,
     isLoading: brandsLoading,
     createBrand,
     deleteBrand,
@@ -310,24 +310,28 @@ export default function Dashboard() {
       return;
     }
 
+    if (!isBrandScopeReady(brandLoading, brands.length, activeBrandId)) {
+      return;
+    }
+
     let cancelled = false;
 
     const loadMarktrResults = async () => {
+      let healthQuery = supabase
+        .from("health_check_results")
+        .select("id, overall_score, scores")
+        .eq("user_id", user.id);
+      healthQuery = scopeQueryToActiveBrand(healthQuery, activeBrandId);
+
+      let storyQuery = supabase
+        .from("brand_story_results")
+        .select("id, story_data")
+        .eq("user_id", user.id);
+      storyQuery = scopeQueryToActiveBrand(storyQuery, activeBrandId);
+
       const [{ data: healthData }, { data: storyData }] = await Promise.all([
-        supabase
-          .from("health_check_results")
-          .select("id, overall_score, scores")
-          .eq("user_id", user.id)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle(),
-        supabase
-          .from("brand_story_results")
-          .select("id, story_data")
-          .eq("user_id", user.id)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle(),
+        healthQuery.order("created_at", { ascending: false }).limit(1).maybeSingle(),
+        storyQuery.order("created_at", { ascending: false }).limit(1).maybeSingle(),
       ]);
 
       if (cancelled) return;
@@ -346,9 +350,9 @@ export default function Dashboard() {
       cancelled = true;
       window.removeEventListener("marktr:guest-data-ready", onGuestDataReady);
     };
-  }, [user?.id]);
+  }, [user?.id, activeBrandId, brandLoading, brands.length]);
 
-  const isLoading = authLoading || icpsLoading || collectionsLoading;
+  const isLoading = authLoading || brandLoading || icpsLoading || collectionsLoading;
   const showEmptyIcps = hasLoadedOnce && !icpsLoading && rawICPs.length === 0;
   const showIcpPlaceholder = !hasLoadedOnce || icpsLoading;
 

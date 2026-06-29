@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "../config/supabase";
 import { useAuth } from "../contexts/AuthContext";
+import { useBrand } from "../contexts/BrandContext";
 import { getCachedICPs, setCachedICPs, addPendingOp, getPendingOps, type PendingOp } from "../lib/localCache";
+import { isBrandScopeReady } from "../lib/brandScopedReads";
 
 export interface ICP {
   id: string;
@@ -77,6 +79,7 @@ export function toDbIcpPayload(input: Partial<ICP>): any {
  */
 export function useICPs() {
   const { user, session, loading: authLoading } = useAuth();
+  const { activeBrandId, loading: brandLoading, brands } = useBrand();
   const [icps, setICPs] = useState<ICP[]>([]);
   const [isLoading, setIsLoading] = useState(true); // Start as true to wait for auth
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
@@ -102,17 +105,30 @@ export function useICPs() {
     console.log("useICPs session:", session);
     if (!user?.id) return;
 
+    const scopeReady = isBrandScopeReady(
+      brandLoading,
+      brands.length,
+      activeBrandId
+    );
+    if (!scopeReady) {
+      return;
+    }
+
     isFetchingRef.current = true;
 
     setIsLoading(true);
     setError(null);
 
-    // First, try to load from cache for instant display
+    const cacheBrandKey = activeBrandId ?? null;
+
+    // First, try to load from cache for instant display (brand-scoped when active).
     let cachedICPs: ICP[] = [];
     try {
-      cachedICPs = await getCachedICPs(user.id);
+      cachedICPs = await getCachedICPs(user.id, cacheBrandKey);
       if (cachedICPs.length > 0) {
-        console.log("useICPs: loaded from cache", cachedICPs.length);
+        console.log("useICPs: loaded from cache", cachedICPs.length, {
+          activeBrandId,
+        });
         setICPs(cachedICPs);
         setIsLoading(false); // Show cached data immediately
       }
@@ -140,7 +156,10 @@ export function useICPs() {
       
       // Apply filters
       query = query.eq("user_id", user.id);
-      
+      if (activeBrandId) {
+        query = query.eq("brand_id", activeBrandId);
+      }
+
       // Apply ordering
       query = query.order("created_at", { ascending: false });
       
@@ -169,7 +188,7 @@ export function useICPs() {
         }
         setICPs([]);
         setIsOffline(false);
-        await setCachedICPs(user.id, []);
+        await setCachedICPs(user.id, [], cacheBrandKey);
         return;
       }
 
@@ -188,7 +207,7 @@ export function useICPs() {
       setIsOffline(false);
       
       // Update cache in background
-      await setCachedICPs(user.id, icpsWithIndex);
+      await setCachedICPs(user.id, icpsWithIndex, cacheBrandKey);
     } catch (err) {
       console.error("Error fetching ICPs from Supabase:", err);
       const error = err as any;
@@ -230,24 +249,21 @@ export function useICPs() {
         });
       }
     }
-    // IMPORTANT: fetchICPs must *only* depend on user.id
-  }, [user?.id]);
+  }, [user?.id, activeBrandId, brandLoading, brands.length]);
 
   // ---- Corrected initial load effect ----
   useEffect(() => {
     try {
-      // Do nothing until auth has finished attempting to load the session
       if (authLoading) return;
-
-      // Wait until the user object is fully populated
       if (!user?.id) return;
+      if (!isBrandScopeReady(brandLoading, brands.length, activeBrandId)) return;
 
       fetchICPs();
     } catch (err) {
       console.error("useICPs fatal error", err);
       setIsLoading(false);
     }
-  }, [authLoading, user?.id, fetchICPs]);
+  }, [authLoading, brandLoading, brands.length, activeBrandId, user?.id, fetchICPs]);
 
   // Listen for global ICP changes (e.g., guest flush completion) and refetch
   useEffect(() => {

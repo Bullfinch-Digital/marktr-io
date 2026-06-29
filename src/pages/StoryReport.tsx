@@ -2,13 +2,16 @@ import { useEffect, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
+import { useBrand } from "../contexts/BrandContext";
 import { supabase } from "../config/supabase";
+import { isBrandScopeReady, scopeQueryToActiveBrand } from "../lib/brandScopedReads";
 import { parseBrandStoryFromStorage, type BrandStoryOutput } from "../lib/brandStory";
 import { BrandStoryFindingsSection } from "../components/story/BrandStoryFindingsSection";
 
 export default function StoryReport() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
+  const { activeBrandId, loading: brandLoading, brands } = useBrand();
   const [story, setStory] = useState<BrandStoryOutput | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -18,13 +21,20 @@ export default function StoryReport() {
       setLoading(false);
       return;
     }
+    if (!isBrandScopeReady(brandLoading, brands.length, activeBrandId)) {
+      return;
+    }
 
     let cancelled = false;
+    setLoading(true);
 
-    void supabase
+    let query = supabase
       .from("brand_story_results")
       .select("story_data")
-      .eq("user_id", user.id)
+      .eq("user_id", user.id);
+    query = scopeQueryToActiveBrand(query, activeBrandId);
+
+    void query
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle()
@@ -41,9 +51,9 @@ export default function StoryReport() {
     return () => {
       cancelled = true;
     };
-  }, [authLoading, user?.id]);
+  }, [authLoading, user?.id, activeBrandId, brandLoading, brands.length]);
 
-  if (authLoading || loading) {
+  if (authLoading || brandLoading || loading) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />

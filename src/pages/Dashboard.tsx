@@ -24,6 +24,7 @@ import CollectionDeleteModal from "../components/CollectionDeleteModal";
 import { canCreateICP, canCreateCollection, canViewICP, canCreateBrand, canExportBrand } from "../config/accessRules";
 import { supabase } from "../config/supabase";
 import { retryGuestICPFlushIfNeeded } from "../lib/guestICP";
+import { attachOrphanIcpsToBrand } from "../lib/icpBrandAttach";
 import { isBrandScopeReady, resolveScopedBrandId, scopeQueryToActiveBrand } from "../lib/brandScopedReads";
 import DashboardShell from "../layouts/DashboardShell";
 
@@ -272,19 +273,20 @@ export default function Dashboard() {
     } catch {}
   };
 
-  // Retry guest ICP flush if OAuth handoff left data in localStorage (silent failure recovery).
+  // Retry guest ICP flush / attach orphan ICPs when brand resolves.
   useEffect(() => {
-    if (!user?.id || authLoading) return;
-
-    const brandId = activeBrandId ?? null;
+    if (!user?.id || authLoading || brandLoading || !activeBrandId) return;
 
     void (async () => {
-      const ok = await retryGuestICPFlushIfNeeded(user.id, { brandId });
-      if (ok) {
+      const attached = await attachOrphanIcpsToBrand(user.id, activeBrandId, {
+        onlyWhenSingleBrand: true,
+      });
+      const flushed = await retryGuestICPFlushIfNeeded(user.id, { brandId: activeBrandId });
+      if (attached > 0 || flushed) {
         await fetchICPs(true);
       }
     })();
-  }, [user?.id, authLoading, activeBrandId, fetchICPs]);
+  }, [user?.id, authLoading, brandLoading, activeBrandId, fetchICPs]);
 
   // Refetch on global change events
   useEffect(() => {

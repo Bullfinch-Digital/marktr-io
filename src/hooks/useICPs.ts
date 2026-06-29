@@ -4,6 +4,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { useBrand } from "../contexts/BrandContext";
 import { getCachedICPs, setCachedICPs, addPendingOp, getPendingOps, type PendingOp } from "../lib/localCache";
 import { isBrandScopeReady, resolveScopedBrandId } from "../lib/brandScopedReads";
+import { attachOrphanIcpsToBrand } from "../lib/icpBrandAttach";
 
 export interface ICP {
   id: string;
@@ -136,6 +137,10 @@ export function useICPs() {
     // Then attempt to fetch from Supabase
     try {
       console.log('Fetching ICPs...');
+
+      if (scopedBrandId && brands.length === 1) {
+        await attachOrphanIcpsToBrand(user.id, scopedBrandId);
+      }
       
       // Ensure we have a valid session before querying
       const { data: { session } } = await supabase.auth.getSession();

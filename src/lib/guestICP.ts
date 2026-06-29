@@ -1,6 +1,10 @@
 import { supabase } from "../config/supabase";
 import { runOncePerKey } from "./asyncUserLock";
 import {
+  attachOrphanIcpsToBrand,
+  resolveBrandIdForIcpOps,
+} from "./icpBrandAttach";
+import {
   claimStorageLock,
   markStorageLockDone,
   readStorageFlag,
@@ -275,7 +279,7 @@ async function flushGuestICPsToSupabaseInner(
   }
 
   const now = new Date().toISOString();
-  const brandIdForRows = opts?.brandId ?? null;
+  const brandIdForRows = await resolveBrandIdForIcpOps(userId, opts?.brandId ?? null);
 
   console.log("[flushGuestICPs] start", {
     userId,
@@ -334,12 +338,20 @@ async function flushGuestICPsToSupabaseInner(
       releaseStorageLock(FLUSH_FLAG);
       return false;
     }
+
+    if (brandIdForRows) {
+      await attachOrphanIcpsToBrand(userId, brandIdForRows);
+    }
   } else {
     console.log("[flushGuestICPs] insert skipped — all rows already present", { userId });
   }
 
   const dbCount = await countUserIcps(userId);
   const guestCount = guestICPs.length;
+
+  if (brandIdForRows) {
+    await attachOrphanIcpsToBrand(userId, brandIdForRows);
+  }
 
   if (dbCount < guestCount) {
     console.warn("[flushGuestICPs] incomplete — DB count below guest count", {
@@ -425,6 +437,21 @@ export async function retryGuestICPFlushIfNeeded(
 ): Promise<boolean> {
   if (!userId) return false;
 
+  const brandId = await resolveBrandIdForIcpOps(userId, opts?.brandId ?? null);
+  if (brandId) {
+    const attached = await attachOrphanIcpsToBrand(userId, brandId, {
+      onlyWhenSingleBrand: true,
+    });
+    if (attached > 0) {
+      try {
+        window.dispatchEvent(new Event("icps:changed"));
+      } catch {
+        // ignore
+      }
+      return true;
+    }
+  }
+
   const guestICPs = getGuestICPs();
   if (!guestICPs.length) return false;
 
@@ -435,6 +462,9 @@ export async function retryGuestICPFlushIfNeeded(
   if (dbCount < 0) return false;
 
   if (dbCount >= guestICPs.length) {
+    if (brandId) {
+      await attachOrphanIcpsToBrand(userId, brandId);
+    }
     markStorageLockDone(FLUSH_FLAG);
     clearGuestICPs();
     try {
@@ -449,8 +479,8 @@ export async function retryGuestICPFlushIfNeeded(
     userId,
     guestCount: guestICPs.length,
     dbCount,
-    brandId: opts?.brandId ?? null,
+    brandId,
   });
 
-  return flushGuestICPsToSupabase(userId, opts);
+  return flushGuestICPsToSupabase(userId, { brandId });
 }

@@ -3,7 +3,7 @@ import { supabase } from "../config/supabase";
 import { useAuth } from "../contexts/AuthContext";
 import { useBrand } from "../contexts/BrandContext";
 import { getCachedICPs, setCachedICPs, addPendingOp, getPendingOps, type PendingOp } from "../lib/localCache";
-import { isBrandScopeReady } from "../lib/brandScopedReads";
+import { isBrandScopeReady, resolveScopedBrandId } from "../lib/brandScopedReads";
 
 export interface ICP {
   id: string;
@@ -105,11 +105,8 @@ export function useICPs() {
     console.log("useICPs session:", session);
     if (!user?.id) return;
 
-    const scopeReady = isBrandScopeReady(
-      brandLoading,
-      brands.length,
-      activeBrandId
-    );
+    const scopedBrandId = resolveScopedBrandId(activeBrandId, brands);
+    const scopeReady = isBrandScopeReady(brandLoading, brands, scopedBrandId);
     if (!scopeReady) {
       return;
     }
@@ -119,7 +116,7 @@ export function useICPs() {
     setIsLoading(true);
     setError(null);
 
-    const cacheBrandKey = activeBrandId ?? null;
+    const cacheBrandKey = scopedBrandId;
 
     // First, try to load from cache for instant display (brand-scoped when active).
     let cachedICPs: ICP[] = [];
@@ -127,7 +124,7 @@ export function useICPs() {
       cachedICPs = await getCachedICPs(user.id, cacheBrandKey);
       if (cachedICPs.length > 0) {
         console.log("useICPs: loaded from cache", cachedICPs.length, {
-          activeBrandId,
+          scopedBrandId,
         });
         setICPs(cachedICPs);
         setIsLoading(false); // Show cached data immediately
@@ -156,8 +153,8 @@ export function useICPs() {
       
       // Apply filters
       query = query.eq("user_id", user.id);
-      if (activeBrandId) {
-        query = query.eq("brand_id", activeBrandId);
+      if (scopedBrandId) {
+        query = query.eq("brand_id", scopedBrandId);
       }
 
       // Apply ordering
@@ -249,21 +246,22 @@ export function useICPs() {
         });
       }
     }
-  }, [user?.id, activeBrandId, brandLoading, brands.length]);
+  }, [user?.id, activeBrandId, brandLoading, brands]);
 
   // ---- Corrected initial load effect ----
   useEffect(() => {
     try {
       if (authLoading) return;
       if (!user?.id) return;
-      if (!isBrandScopeReady(brandLoading, brands.length, activeBrandId)) return;
+      const scopedBrandId = resolveScopedBrandId(activeBrandId, brands);
+      if (!isBrandScopeReady(brandLoading, brands, scopedBrandId)) return;
 
       fetchICPs();
     } catch (err) {
       console.error("useICPs fatal error", err);
       setIsLoading(false);
     }
-  }, [authLoading, brandLoading, brands.length, activeBrandId, user?.id, fetchICPs]);
+  }, [authLoading, brandLoading, brands, activeBrandId, user?.id, fetchICPs]);
 
   // Listen for global ICP changes (e.g., guest flush completion) and refetch
   useEffect(() => {

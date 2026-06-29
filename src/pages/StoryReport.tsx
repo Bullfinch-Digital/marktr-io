@@ -4,7 +4,7 @@ import { Loader2 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useBrand } from "../contexts/BrandContext";
 import { supabase } from "../config/supabase";
-import { isBrandScopeReady, scopeQueryToActiveBrand } from "../lib/brandScopedReads";
+import { isBrandScopeReady, resolveScopedBrandId, scopeQueryToActiveBrand } from "../lib/brandScopedReads";
 import { parseBrandStoryFromStorage, type BrandStoryOutput } from "../lib/brandStory";
 import { BrandStoryFindingsSection } from "../components/story/BrandStoryFindingsSection";
 
@@ -21,10 +21,11 @@ export default function StoryReport() {
       setLoading(false);
       return;
     }
-    if (!isBrandScopeReady(brandLoading, brands.length, activeBrandId)) {
+    if (!isBrandScopeReady(brandLoading, brands, resolveScopedBrandId(activeBrandId, brands))) {
       return;
     }
 
+    const scopedBrandId = resolveScopedBrandId(activeBrandId, brands);
     let cancelled = false;
     setLoading(true);
 
@@ -32,7 +33,7 @@ export default function StoryReport() {
       .from("brand_story_results")
       .select("story_data")
       .eq("user_id", user.id);
-    query = scopeQueryToActiveBrand(query, activeBrandId);
+    query = scopeQueryToActiveBrand(query, scopedBrandId);
 
     void query
       .order("created_at", { ascending: false })
@@ -51,7 +52,7 @@ export default function StoryReport() {
     return () => {
       cancelled = true;
     };
-  }, [authLoading, user?.id, activeBrandId, brandLoading, brands.length]);
+  }, [authLoading, user?.id, activeBrandId, brandLoading, brands]);
 
   if (authLoading || brandLoading || loading) {
     return (

@@ -2,22 +2,36 @@
  * Helpers for reads scoped to the active brand in BrandContext.
  */
 
+export type BrandRowRef = { id: string };
+
+/**
+ * Resolved brand id for scoped reads: explicit active id, else first brand when loaded.
+ * Never returns a value that should be sent as .eq("brand_id", null).
+ */
+export function resolveScopedBrandId(
+  activeBrandId: string | null | undefined,
+  brands: BrandRowRef[]
+): string | null {
+  if (activeBrandId) return activeBrandId;
+  return brands[0]?.id ?? null;
+}
+
 export function isBrandScopeReady(
   brandLoading: boolean,
-  brandsCount: number,
-  activeBrandId: string | null
+  brands: BrandRowRef[],
+  scopedBrandId: string | null
 ): boolean {
   if (brandLoading) return false;
-  if (brandsCount > 0 && !activeBrandId) return false;
+  if (brands.length > 0 && !scopedBrandId) return false;
   return true;
 }
 
 export function scopeQueryToActiveBrand<T extends { eq: (column: string, value: string) => T }>(
   query: T,
-  activeBrandId: string | null
+  scopedBrandId: string | null
 ): T {
-  if (activeBrandId) {
-    return query.eq("brand_id", activeBrandId);
+  if (scopedBrandId) {
+    return query.eq("brand_id", scopedBrandId);
   }
   return query;
 }

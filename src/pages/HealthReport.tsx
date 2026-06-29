@@ -4,7 +4,7 @@ import { Loader2 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useBrand } from "../contexts/BrandContext";
 import { supabase } from "../config/supabase";
-import { isBrandScopeReady, scopeQueryToActiveBrand } from "../lib/brandScopedReads";
+import { isBrandScopeReady, resolveScopedBrandId, scopeQueryToActiveBrand } from "../lib/brandScopedReads";
 import DashboardShell from "../layouts/DashboardShell";
 import { HealthCheckReportView } from "../components/healthCheck/HealthCheckReportView";
 import { parseStoredScores } from "../lib/healthCheckReportStorage";
@@ -29,10 +29,11 @@ export default function HealthReport() {
       setLoading(false);
       return;
     }
-    if (!isBrandScopeReady(brandLoading, brands.length, activeBrandId)) {
+    if (!isBrandScopeReady(brandLoading, brands, resolveScopedBrandId(activeBrandId, brands))) {
       return;
     }
 
+    const scopedBrandId = resolveScopedBrandId(activeBrandId, brands);
     let cancelled = false;
     setLoading(true);
 
@@ -40,7 +41,7 @@ export default function HealthReport() {
       .from("health_check_results")
       .select("domain, instagram_handle, facebook_url, scores")
       .eq("user_id", user.id);
-    query = scopeQueryToActiveBrand(query, activeBrandId);
+    query = scopeQueryToActiveBrand(query, scopedBrandId);
 
     void query
       .order("created_at", { ascending: false })
@@ -60,7 +61,7 @@ export default function HealthReport() {
     return () => {
       cancelled = true;
     };
-  }, [authLoading, user?.id, activeBrandId, brandLoading, brands.length]);
+  }, [authLoading, user?.id, activeBrandId, brandLoading, brands]);
 
   if (!authLoading && !user?.id) {
     return <Navigate to="/" replace />;

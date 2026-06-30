@@ -16,6 +16,8 @@ import {
   updateGuestContext,
 } from "./guestContext";
 import { getGuestStory, clearGuestStory } from "./guestStory";
+import { calculateScores } from "./healthCheckScoring";
+import { serializeScoresForDb } from "./healthCheckReportStorage";
 
 function extractDomain(url: string): string {
   try {
@@ -66,6 +68,13 @@ async function transferHealthOnce(userId: string, brandId: string | null) {
 
     if ((count ?? 0) === 0) {
       console.log("[transferGuestMarktrData] health insert attempt", { userId, brandId });
+      const fullScores = calculateScores({
+        websiteUrl: guestHealth.input.websiteUrl,
+        instagramHandle: guestHealth.input.instagramHandle,
+        facebookUrl: guestHealth.input.facebookUrl,
+        email: guestHealth.input.email,
+        websiteScore: guestHealth.websiteScore ?? null,
+      });
       const { error } = await supabase.from("health_check_results").insert({
         user_id: userId,
         brand_id: brandId,
@@ -74,16 +83,8 @@ async function transferHealthOnce(userId: string, brandId: string | null) {
           : "",
         instagram_handle: guestHealth.input.instagramHandle || "",
         facebook_url: guestHealth.input.facebookUrl || "",
-        overall_score: guestHealth.scores.overall || 0,
-        scores: {
-          websiteClarity: { score: guestHealth.scores.websiteClarity },
-          brandStory: { score: guestHealth.scores.brandStory },
-          contentConsistency: { score: guestHealth.scores.contentConsistency },
-          socialPresence: { score: guestHealth.scores.socialPresence },
-          overall: guestHealth.scores.overall,
-          lowestDimension: guestHealth.scores.lowestDimension,
-          lowestScore: guestHealth.scores.lowestScore,
-        },
+        overall_score: fullScores.overall || 0,
+        scores: serializeScoresForDb(fullScores, guestHealth.websiteScore),
       });
       if (error) {
         console.warn("[transferGuestMarktrData] health check transfer failed", error);

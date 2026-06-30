@@ -6,26 +6,37 @@ type Input = {
   facebookUrl?: string;
 };
 
-type StoryAssessment = {
-  hasFounderStory: boolean;
-  founderStoryQuality: "none" | "basic" | "good" | "compelling";
-  speaksToSpecificCustomer: boolean;
-  hasDistinctivePositioning: boolean;
-  hasEmotionalHook: boolean;
-  missingElements: string[];
+/** Pinned model version — same string recorded client-side (§6). */
+const HEALTH_CHECK_MODEL_VERSION = "gpt-4o-mini-2024-07-18";
+
+type HealthCheckFacts = {
+  valueProp: "clear" | "vague" | "absent";
+  namesCustomer: "clear" | "hinted" | "absent";
+  usesSecondPerson: boolean;
+  primaryCTA: "single" | "competing" | "absent";
+  proofOnPage: "real" | "claimed" | "absent";
+  pathToBuyContact: "clear" | "buried" | "absent";
+  founderStory: "present" | "partial" | "absent";
+  storySpecific: "specific" | "mixed" | "boilerplate";
+  storyNamesConcrete: boolean;
+  pointOfView: "distinct" | "implied" | "absent";
+  valuesMission: "concrete" | "generic" | "absent";
+  socialReflectsStory: "expresses" | "loose" | "disconnected";
+  igProfileComplete: "complete" | "thin" | "absent";
+  bioOnMessage: "complete" | "thin" | "absent";
 };
 
-type SocialScores = {
+type ApifySocialMetrics = {
   instagramFound: boolean;
   facebookFound: boolean;
-  instagramFollowers: string;
-  instagramPostCount: string;
-  instagramBioScore?: number | null;
-  contentConsistencyScore: number;
-  socialObservation: string;
-  audienceObservation?: string | null;
-  engagementProxyScore?: number | null;
-  engagementObservation?: string | null;
+  followers: number;
+  avgLikes: number;
+  avgComments: number;
+  latestPostDaysAgo: number | null;
+  postsPerWeek: number | null;
+  bioLength: number;
+  hasExternalUrl: boolean;
+  hasFullName: boolean;
 };
 
 type InstagramFetchResult = {
@@ -33,28 +44,18 @@ type InstagramFetchResult = {
   found: boolean;
   followers: string;
   postCount: string;
-  avgLikes?: number;
-  avgComments?: number;
+  avgLikes: number;
+  avgComments: number;
+  latestPostDaysAgo: number | null;
+  postsPerWeek: number | null;
+  bio: string;
+  hasExternalUrl: boolean;
+  hasFullName: boolean;
 };
 
 type FacebookFetchResult = {
   signals: string;
   found: boolean;
-};
-
-type WebsiteScoreResult = {
-  hasValueProposition: boolean;
-  hasClearAudience: boolean;
-  hasCallToAction: boolean;
-  hasSocialProof: boolean;
-  hasContactOrCapture: boolean;
-  clarityScore: number;
-  observation: string;
-  strengths?: string[];
-  gaps?: string[];
-  storyAssessment?: StoryAssessment | null;
-  socialScores?: SocialScores | null;
-  findings?: Array<{ dimension: string; score: number; finding: string }>;
 };
 
 const ABOUT_PATHS = [
@@ -94,14 +95,116 @@ function corsPreflight(req: Request) {
   return null;
 }
 
-function parseMaybeJson(raw: string): WebsiteScoreResult {
+function absentFacts(): HealthCheckFacts {
+  return {
+    valueProp: "absent",
+    namesCustomer: "absent",
+    usesSecondPerson: false,
+    primaryCTA: "absent",
+    proofOnPage: "absent",
+    pathToBuyContact: "absent",
+    founderStory: "absent",
+    storySpecific: "boilerplate",
+    storyNamesConcrete: false,
+    pointOfView: "absent",
+    valuesMission: "absent",
+    socialReflectsStory: "disconnected",
+    igProfileComplete: "absent",
+    bioOnMessage: "absent",
+  };
+}
+
+function parsePostTimestamp(post: Record<string, unknown>): number | null {
+  const candidates = [
+    post.timestamp,
+    post.takenAt,
+    post.taken_at_timestamp,
+    post.createdAt,
+  ];
+  for (const c of candidates) {
+    if (typeof c === "number" && c > 0) return c > 1e12 ? c : c * 1000;
+    if (typeof c === "string" && c.trim()) {
+      const ms = Date.parse(c);
+      if (!Number.isNaN(ms)) return ms;
+    }
+  }
+  return null;
+}
+
+function computeLatestPostDaysAgo(timestamps: number[]): number | null {
+  const valid = timestamps.filter((t) => Number.isFinite(t) && t > 0);
+  if (valid.length === 0) return null;
+  const newest = Math.max(...valid);
+  return Math.max(0, Math.round((Date.now() - newest) / (24 * 60 * 60 * 1000)));
+}
+
+function computePostsPerWeek(timestamps: number[]): number | null {
+  const valid = timestamps.filter((t) => Number.isFinite(t) && t > 0);
+  if (valid.length < 2) return valid.length === 1 ? 0 : null;
+  const sorted = [...valid].sort((a, b) => b - a);
+  const spanWeeks =
+    (sorted[0] - sorted[sorted.length - 1]) / (7 * 24 * 60 * 60 * 1000);
+  if (spanWeeks < 0.5) return sorted.length;
+  return sorted.length / spanWeeks;
+}
+
+function normalizeFacts(raw: unknown): HealthCheckFacts {
+  if (!raw || typeof raw !== "object") return absentFacts();
+  const f = raw as Record<string, unknown>;
+  const pick = <T extends string>(v: unknown, allowed: T[], fb: T) =>
+    typeof v === "string" && (allowed as string[]).includes(v) ? (v as T) : fb;
+  return {
+    valueProp: pick(f.valueProp, ["clear", "vague", "absent"], "absent"),
+    namesCustomer: pick(f.namesCustomer, ["clear", "hinted", "absent"], "absent"),
+    usesSecondPerson: Boolean(f.usesSecondPerson),
+    primaryCTA: pick(f.primaryCTA, ["single", "competing", "absent"], "absent"),
+    proofOnPage: pick(f.proofOnPage, ["real", "claimed", "absent"], "absent"),
+    pathToBuyContact: pick(f.pathToBuyContact, ["clear", "buried", "absent"], "absent"),
+    founderStory: pick(f.founderStory, ["present", "partial", "absent"], "absent"),
+    storySpecific: pick(
+      f.storySpecific,
+      ["specific", "mixed", "boilerplate"],
+      "boilerplate"
+    ),
+    storyNamesConcrete: Boolean(f.storyNamesConcrete),
+    pointOfView: pick(f.pointOfView, ["distinct", "implied", "absent"], "absent"),
+    valuesMission: pick(f.valuesMission, ["concrete", "generic", "absent"], "absent"),
+    socialReflectsStory: pick(
+      f.socialReflectsStory,
+      ["expresses", "loose", "disconnected"],
+      "disconnected"
+    ),
+    igProfileComplete: pick(f.igProfileComplete, ["complete", "thin", "absent"], "absent"),
+    bioOnMessage: pick(f.bioOnMessage, ["complete", "thin", "absent"], "absent"),
+  };
+}
+
+function parseFactsJson(raw: string): HealthCheckFacts {
   try {
-    return JSON.parse(raw) as WebsiteScoreResult;
+    return normalizeFacts(JSON.parse(raw));
   } catch {
     const match = raw.match(/\{[\s\S]*\}/);
     if (!match) throw new Error("Model did not return JSON.");
-    return JSON.parse(match[0]) as WebsiteScoreResult;
+    return normalizeFacts(JSON.parse(match[0]));
   }
+}
+
+function toApifyMetrics(
+  instagram: InstagramFetchResult,
+  facebook: FacebookFetchResult
+): ApifySocialMetrics {
+  return {
+    instagramFound: instagram.found,
+    facebookFound: facebook.found,
+    followers: instagram.found ? Number(instagram.followers) || 0 : 0,
+    avgLikes: instagram.avgLikes,
+    avgComments: instagram.avgComments,
+    latestPostDaysAgo: instagram.latestPostDaysAgo,
+    postsPerWeek: instagram.postsPerWeek,
+    bioLength: instagram.bio.length,
+    hasExternalUrl: instagram.hasExternalUrl,
+    hasFullName: instagram.hasFullName,
+  };
 }
 
 function normaliseUrl(url: string) {
@@ -149,6 +252,13 @@ async function fetchInstagramPublic(handle: string): Promise<InstagramFetchResul
     found: false,
     followers: "",
     postCount: "",
+    avgLikes: 0,
+    avgComments: 0,
+    latestPostDaysAgo: null,
+    postsPerWeek: null,
+    bio: "",
+    hasExternalUrl: false,
+    hasFullName: false,
   };
 
   const username = handle.replace("@", "").trim().toLowerCase();
@@ -215,6 +325,12 @@ async function fetchInstagramPublic(handle: string): Promise<InstagramFetchResul
       );
     }
 
+    const postTimestamps = (latestPosts as Record<string, unknown>[])
+      .map((p) => parsePostTimestamp(p))
+      .filter((t): t is number => t !== null);
+    const latestPostDaysAgo = computeLatestPostDaysAgo(postTimestamps);
+    const postsPerWeek = computePostsPerWeek(postTimestamps);
+
     const signals = [
       `Instagram handle: @${username}`,
       fullName && `Account name: ${fullName}`,
@@ -249,8 +365,13 @@ async function fetchInstagramPublic(handle: string): Promise<InstagramFetchResul
       found: true,
       followers,
       postCount: posts,
-      avgLikes: avgLikes > 0 ? avgLikes : undefined,
-      avgComments: avgComments > 0 ? avgComments : undefined,
+      avgLikes,
+      avgComments,
+      latestPostDaysAgo,
+      postsPerWeek,
+      bio: String(bio),
+      hasExternalUrl: Boolean(website),
+      hasFullName: Boolean(fullName),
     };
   } catch (err) {
     console.error("Apify fetch error:", err);
@@ -482,262 +603,48 @@ function extractStorySignals(html: string): string {
   return parts;
 }
 
-function normalizeStoryAssessment(
-  raw: StoryAssessment | null | undefined
-): StoryAssessment | null {
-  if (!raw || typeof raw !== "object") return null;
-
-  const quality = raw.founderStoryQuality;
-  const founderStoryQuality =
-    quality === "basic" ||
-    quality === "good" ||
-    quality === "compelling" ||
-    quality === "none"
-      ? quality
-      : "none";
-
-  return {
-    hasFounderStory: Boolean(raw.hasFounderStory),
-    founderStoryQuality,
-    speaksToSpecificCustomer: Boolean(raw.speaksToSpecificCustomer),
-    hasDistinctivePositioning: Boolean(raw.hasDistinctivePositioning),
-    hasEmotionalHook: Boolean(raw.hasEmotionalHook),
-    missingElements: Array.isArray(raw.missingElements)
-      ? raw.missingElements.map((el) => String(el).trim()).filter(Boolean)
-      : [],
-  };
-}
-
-function scoreFromPostCount(posts: number): number {
-  if (isNaN(posts)) return 45;
-  if (posts > 500) return 80;
-  if (posts > 200) return 68;
-  if (posts > 50) return 52;
-  if (posts > 10) return 38;
-  return 25;
-}
-
-function normalizeSocialScores(
-  raw: SocialScores | null | undefined,
-  instagram: InstagramFetchResult,
-  facebook: FacebookFetchResult
-): SocialScores | null {
-  const hasSocialInput = instagram.signals || facebook.signals;
-  if (!hasSocialInput && !raw) return null;
-
-  const instagramFound = instagram.found;
-  const facebookFound = facebook.found;
-  const instagramPostCount = instagram.postCount;
-
-  const contentConsistencyScore = !instagramFound
-    ? 0
-    : instagramPostCount
-      ? Math.min(
-          100,
-          Math.max(
-            0,
-            raw?.contentConsistencyScore ??
-              scoreFromPostCount(parseInt(instagramPostCount, 10))
-          )
-        )
-      : 45;
-
-  let socialObservation =
-    instagramFound || facebookFound
-      ? String(raw?.socialObservation ?? "").trim().slice(0, 180)
-      : "";
-
-  if (
-    instagramFound &&
-    (instagram.avgLikes ?? 0) > 0 &&
-    !socialObservation.toLowerCase().includes("like")
-  ) {
-    const engagementNote =
-      (instagram.avgComments ?? 0) > 0
-        ? `Recent posts average ${instagram.avgLikes} likes and ${instagram.avgComments} comments`
-        : `Recent posts average ${instagram.avgLikes} likes per post`;
-    socialObservation = socialObservation
-      ? `${socialObservation} — ${engagementNote}`.slice(0, 180)
-      : engagementNote.slice(0, 180);
-  }
-
-  return {
-    instagramFound,
-    facebookFound,
-    instagramFollowers: instagram.followers,
-    instagramPostCount,
-    instagramBioScore: instagramFound
-      ? Math.min(100, Math.max(0, Number(raw?.instagramBioScore ?? 0)))
-      : null,
-    contentConsistencyScore,
-    socialObservation,
-    audienceObservation: instagramFound
-      ? String(raw?.audienceObservation ?? "").trim().slice(0, 180) || null
-      : null,
-    engagementProxyScore: instagramFound
-      ? Math.min(100, Math.max(0, Number(raw?.engagementProxyScore ?? 0)))
-      : null,
-    engagementObservation: instagramFound
-      ? String(raw?.engagementObservation ?? "").trim().slice(0, 180) || null
-      : null,
-  };
-}
-
-const SYSTEM_PROMPT = `You are a brand strategist and marketing consultant specialising in founder-led small businesses. You have been given content extracted from a business website and, when available, their public Instagram and Facebook profiles.
-
-Your job is NOT to do a generic SEO or UX audit. Your job is to assess how well this founder business communicates its story, speaks to a specific customer, and positions itself distinctively — and to identify the specific gaps that are costing them customers.
-
-Assess the website and return ONLY valid JSON with no markdown or backticks:
+const FACTS_SYSTEM_PROMPT = `You extract observable marketing FACTS from website and social content. Return ONLY valid JSON — no markdown, no backticks, NO scores, NO points, NO dimension ratings.
 
 {
-  "hasValueProposition": boolean,
-  "hasClearAudience": boolean,
-  "hasCallToAction": boolean,
-  "hasSocialProof": boolean,
-  "hasContactOrCapture": boolean,
-  "clarityScore": number (0-100),
-  "observation": string (max 15 words, most important specific finding about their brand communication),
-  "strengths": [string, string],
-  "gaps": [string, string],
-  "storyAssessment": {
-    "hasFounderStory": boolean,
-    "founderStoryQuality": "none" | "basic" | "good" | "compelling",
-    "speaksToSpecificCustomer": boolean,
-    "hasDistinctivePositioning": boolean,
-    "hasEmotionalHook": boolean,
-    "missingElements": [string]
-  },
-  "socialScores": {
-    "instagramFound": boolean,
-    "facebookFound": boolean,
-    "instagramFollowers": string,
-    "instagramPostCount": string,
-    "instagramBioScore": number (0-100),
-    "contentConsistencyScore": number,
-    "socialObservation": string,
-    "audienceObservation": string (max 15 words — based on the bio's specificity to a target customer. e.g. "Bio doesn't name who this campsite is for"),
-    "engagementProxyScore": number (0-100 — NOT real engagement, a REACH PROXY based on follower count relative to post count and account activity),
-    "engagementObservation": string (max 15 words, framed honestly as reach/visibility based on follower count — e.g. "562 followers suggests a small but engaged local audience" or "Limited following may restrict organic reach")
-  },
-  "findings": [
-    {
-      "dimension": "Website Clarity" | "Brand Story" | "Content Consistency" | "Social Presence",
-      "score": number (0-100),
-      "finding": string (1-2 sentences, specific and grounded in the actual website and Instagram/Facebook data provided)
-    }
-  ]
+  "valueProp": "clear" | "vague" | "absent",
+  "namesCustomer": "clear" | "hinted" | "absent",
+  "usesSecondPerson": boolean,
+  "primaryCTA": "single" | "competing" | "absent",
+  "proofOnPage": "real" | "claimed" | "absent",
+  "pathToBuyContact": "clear" | "buried" | "absent",
+  "founderStory": "present" | "partial" | "absent",
+  "storySpecific": "specific" | "mixed" | "boilerplate",
+  "storyNamesConcrete": boolean,
+  "pointOfView": "distinct" | "implied" | "absent",
+  "valuesMission": "concrete" | "generic" | "absent",
+  "socialReflectsStory": "expresses" | "loose" | "disconnected",
+  "igProfileComplete": "complete" | "thin" | "absent",
+  "bioOnMessage": "complete" | "thin" | "absent"
 }
 
-ASSESSMENT CRITERIA:
+WEBSITE CLARITY:
+- valueProp: clear = states what they do plainly; vague = present but jargon/generic; absent = can't tell what they do
+- namesCustomer: clear = names/implies who it's for; hinted = weak audience signal; absent = speaks to no one
+- usesSecondPerson: true if hero/body uses "you"/"your" addressing the reader
+- primaryCTA: single = one clear next step; competing = multiple competing CTAs; absent = no clear action
+- proofOnPage: real = testimonials/logos/press/reviews; claimed = claims without proof; absent = none
+- pathToBuyContact: clear = obvious shop/contact/book path; buried = hard to find; absent = none found
 
-hasValueProposition: true if it is immediately clear what the business does and who it helps.
+BRAND STORY (from about/story pages + homepage):
+- founderStory: present = real origin narrative; partial = a line or two; absent = none
+- storySpecific: "specific" only if TWO+ concrete anchors from: named year/date, named person, named place/origin, specific turning point/problem, concrete achievement/award, heritage marker (e.g. "150 years"). "mixed" = exactly one anchor. "boilerplate" = none — pure abstract claims like "passionate about quality" without anchors
+- storyNamesConcrete: true if ANY concrete anchor above is present
+- pointOfView: distinct = clear belief/stance; implied = weak stance; absent = none
+- valuesMission: concrete = specific values/mission; generic = present but generic; absent = none
 
-hasClearAudience: true if the content speaks to a specific type of person rather than everyone. Look for language that addresses a particular customer's values, frustrations or aspirations.
+STORY ↔ SOCIAL (compare story to Instagram bio/recent post themes in the input):
+- socialReflectsStory: expresses = socials reflect brand story/POV; loose = loosely connected; disconnected = unrelated generic socials
 
-hasCallToAction: true if there are clear invitations to take action — links, buttons, or text using words like subscribe, buy, shop, start, book, get, discover, explore, contact, join, try, order.
+SOCIAL PROFILE (qualitative only — follower counts are handled separately):
+- igProfileComplete: complete = bio, name, link feel complete; thin = sparse; absent = empty/default or no IG data
+- bioOnMessage: complete = bio on-brand and names audience; thin = generic bio; absent = empty or no IG
 
-hasSocialProof: true if there are reviews, ratings, awards, testimonials, press mentions, customer counts, or trust badges.
-
-hasContactOrCapture: true if there is a contact page, email address, phone number, or email capture form.
-
-clarityScore: 0-100 score for how clearly and compellingly the business communicates its value to a first-time visitor.
-Scoring guide:
-- 80-98: Exceptional clarity — strong story, clear audience, distinctive positioning
-- 65-79: Good — communicates the basics well with some gaps
-- 45-64: Average — some good elements but missing key pieces
-- 20-44: Weak — unclear, generic, or poorly targeted
-- 0-19: Very poor — visitor would struggle to understand the offer
-
-Be honest but fair. A site with a compelling founder story, clear social proof and obvious CTAs should score 75+.
-
-observation: ONE specific, honest observation — not generic advice. Name something specific you can see or something specific that is missing. Example: "Founder story is compelling but doesn't name the customer it's for" or "Strong social proof but no clear email capture".
-
-strengths: TWO specific things this business does well from a brand storytelling perspective. Be specific — reference what you actually found. Not generic praise.
-
-gaps: TWO specific gaps that are costing this business customers. Focus on:
-- Story gaps: is the founder narrative present, specific, and emotionally resonant?
-- Audience gaps: does the content speak to a defined customer, or does it feel like it's trying to speak to everyone?
-- Positioning gaps: what makes this business different from competitors — and is that difference clearly stated?
-- Conversion gaps: email capture, lead magnets, or ways to stay in touch with interested visitors who aren't ready to buy
-
-Do NOT flag: missing button elements, navigation structure, page speed, technical SEO, meta tag optimisation, or any UX/technical issues. Only brand, story and marketing gaps.
-
-storyAssessment:
-- hasFounderStory: true if there is any narrative about who started the business and why
-- founderStoryQuality:
-  "none" = no story found
-  "basic" = mentions founder but no narrative or emotion
-  "good" = has a clear founding narrative with some purpose
-  "compelling" = emotionally resonant story with clear mission, specific details, and a reason to care
-- speaksToSpecificCustomer: true if the language addresses a specific type of person rather than everyone
-- hasDistinctivePositioning: true if it is clear what makes this business different from competitors
-- hasEmotionalHook: true if there is language designed to create an emotional connection — shared values, a cause, a community, or a belief
-- missingElements: list the specific story elements that are absent or weak — from: "founding moment", "clear why/purpose", "specific customer named", "what makes us different", "customer community language", "proof of impact", "vision for the future"
-
-SOCIAL MEDIA ASSESSMENT:
-When Instagram data is provided, assess:
-- Does the bio speak to a specific customer or is it generic?
-- Does the follower count suggest an established or growing presence?
-- Does the account appear active based on post count?
-- Is the Instagram bio consistent with the website positioning?
-
-When Facebook data is provided, assess:
-- Is the page description compelling?
-- Does it align with website messaging?
-
-Add social media observations to your gaps and strengths where relevant. For example:
-- "Instagram bio doesn't mention who the product is for"
-- "Strong Instagram following but bio doesn't reflect website story"
-- "Facebook and Instagram messaging inconsistent with website positioning"
-- "Instagram bio well-aligned with website value proposition"
-
-socialScores:
-- instagramFound: true if Instagram profile data was provided in the input
-- facebookFound: true if Facebook page data was provided in the input
-- instagramFollowers: follower count string from Instagram data (or empty string)
-- instagramPostCount: post count string from Instagram data (or empty string)
-- instagramBioScore: 0-100, how clearly the Instagram bio speaks to a specific target customer (separate from the website audience assessment).
-- audienceObservation: max 15 words — one specific observation about whether the Instagram bio names or speaks to a defined target customer.
-- engagementProxyScore: 0-100 reach proxy based on follower count and posting activity — NOT a real engagement rate, which requires account connection. Score generously for active accounts with reasonable followings relative to their niche size.
-- engagementObservation: max 15 words — honest reach/visibility observation based on follower count and activity, not actual engagement rate.
-- contentConsistencyScore: 0-100 based on Instagram post count and apparent activity level. Scoring guide:
-  - If Instagram not found or no post count: return 0
-  - Posts > 500: 75-90 (very active)
-  - Posts 200-500: 60-75 (active)
-  - Posts 50-200: 40-60 (moderate)
-  - Posts < 50: 20-40 (limited)
-  - Adjust down if follower count seems very low relative to post count
-- socialObservation: max 15 words, one specific observation about their social presence — or empty string if no social data was provided
-- If Instagram is not found (instagramFound: false), omit or set to null: instagramBioScore, audienceObservation, engagementProxyScore, and engagementObservation
-
-FINDINGS (required — exactly 4 items, one per dimension):
-For each dimension — especially the lower-scoring ones — write a short, specific, honest finding grounded in the ACTUAL data provided (website content, Instagram post frequency/recency/gaps, Facebook signals). Name what is pulling the score down and what fixing it would do for this business. Draw from: homepage clarity and audience specificity; founder story depth and emotional hook; content consistency and posting gaps visible from Instagram; social bio alignment, reach, and presence. Do NOT invent facts. If proof is missing, frame it as something to build, never as something they already have. Tone: warm, specific, honest, peer-to-peer — an experienced founder giving a straight, encouraging read. No hype, no marketing clichés.
-Score each finding 0-100 for its dimension using the same criteria as your assessments above.`;
-
-function parseFindings(raw: unknown) {
-  if (!Array.isArray(raw)) return [];
-  const allowed = new Set([
-    "Website Clarity",
-    "Brand Story",
-    "Content Consistency",
-    "Social Presence",
-  ]);
-  return raw
-    .map((item) => {
-      if (!item || typeof item !== "object") return null;
-      const row = item as Record<string, unknown>;
-      const dimension = typeof row.dimension === "string" ? row.dimension.trim() : "";
-      const score = Number(row.score);
-      const finding = typeof row.finding === "string" ? row.finding.trim() : "";
-      if (!allowed.has(dimension) || !finding || Number.isNaN(score)) return null;
-      return {
-        dimension,
-        score: Math.min(100, Math.max(0, Math.round(score))),
-        finding,
-      };
-    })
-    .filter((item): item is { dimension: string; score: number; finding: string } => item !== null);
-}
+Do NOT output scores, points, or findings. Facts only.`;
 
 Deno.serve(async (req) => {
   const preflight = corsPreflight(req);
@@ -770,6 +677,13 @@ Deno.serve(async (req) => {
       found: false,
       followers: "",
       postCount: "",
+      avgLikes: 0,
+      avgComments: 0,
+      latestPostDaysAgo: null,
+      postsPerWeek: null,
+      bio: "",
+      hasExternalUrl: false,
+      hasFullName: false,
     };
     let facebookFetch: FacebookFetchResult = { signals: "", found: false };
 
@@ -779,6 +693,13 @@ Deno.serve(async (req) => {
         found: false,
         followers: "",
         postCount: "",
+        avgLikes: 0,
+        avgComments: 0,
+        latestPostDaysAgo: null,
+        postsPerWeek: null,
+        bio: "",
+        hasExternalUrl: false,
+        hasFullName: false,
       };
 
       const fetchHomepageSignals = async () => {
@@ -844,15 +765,15 @@ Deno.serve(async (req) => {
       }
     } catch {
       return json({
-        score: 35,
+        facts: absentFacts(),
+        apifyMetrics: toApifyMetrics(instagramFetch, facebookFetch),
+        modelVersion: HEALTH_CHECK_MODEL_VERSION,
+        scrapeOk: false,
         observation: "Could not access your website — check the URL",
-        strengths: [],
-        gaps: [],
-        storyAssessment: null,
-        socialScores: null,
-        breakdown: null,
       });
     }
+
+    const apifyMetrics = toApifyMetrics(instagramFetch, facebookFetch);
 
     try {
       const aiResp = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -862,14 +783,15 @@ Deno.serve(async (req) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "gpt-4o-mini",
-          max_tokens: 1200,
+          model: HEALTH_CHECK_MODEL_VERSION,
+          max_tokens: 600,
           temperature: 0,
+          response_format: { type: "json_object" },
           messages: [
-            { role: "system", content: SYSTEM_PROMPT },
+            { role: "system", content: FACTS_SYSTEM_PROMPT },
             {
               role: "user",
-              content: `Website content:\n\n${combinedText}`,
+              content: `Extract facts from this content:\n\n${combinedText}`,
             },
           ],
         }),
@@ -884,54 +806,22 @@ Deno.serve(async (req) => {
           : "";
       if (!content) throw new Error("Empty model response");
 
-      const result = parseMaybeJson(content);
-
-      const criteriaScore = [
-        Boolean(result.hasValueProposition),
-        Boolean(result.hasClearAudience),
-        Boolean(result.hasCallToAction),
-        Boolean(result.hasSocialProof),
-        Boolean(result.hasContactOrCapture),
-      ].filter(Boolean).length * 14;
-
-      const finalScore = Math.min(
-        98,
-        Math.round(criteriaScore + Number(result.clarityScore || 0) * 0.3)
-      );
+      const facts = parseFactsJson(content);
 
       return json({
-        score: finalScore,
-        observation: String(result.observation || "").trim().slice(0, 180),
-        strengths: Array.isArray(result.strengths)
-          ? result.strengths.map((s) => String(s).trim()).filter(Boolean)
-          : [],
-        gaps: Array.isArray(result.gaps)
-          ? result.gaps.map((g) => String(g).trim()).filter(Boolean)
-          : [],
-        storyAssessment: normalizeStoryAssessment(result.storyAssessment),
-        socialScores: normalizeSocialScores(
-          result.socialScores,
-          instagramFetch,
-          facebookFetch
-        ),
-        findings: parseFindings(result.findings),
-        breakdown: {
-          hasValueProposition: Boolean(result.hasValueProposition),
-          hasClearAudience: Boolean(result.hasClearAudience),
-          hasCallToAction: Boolean(result.hasCallToAction),
-          hasSocialProof: Boolean(result.hasSocialProof),
-          hasContactOrCapture: Boolean(result.hasContactOrCapture),
-        },
+        facts,
+        apifyMetrics,
+        modelVersion: HEALTH_CHECK_MODEL_VERSION,
+        scrapeOk: true,
+        observation: "Analysis complete",
       });
     } catch {
       return json({
-        score: 40,
-        observation: "Website found but could not be fully analysed",
-        strengths: [],
-        gaps: [],
-        storyAssessment: null,
-        socialScores: null,
-        breakdown: null,
+        facts: absentFacts(),
+        apifyMetrics,
+        modelVersion: HEALTH_CHECK_MODEL_VERSION,
+        scrapeOk: true,
+        observation: "Website found but qualitative extraction was incomplete",
       });
     }
   } catch (err) {

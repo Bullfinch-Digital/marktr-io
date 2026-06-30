@@ -10,6 +10,8 @@ import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../config/supabase";
 import type { SocialScores, StoryAssessment } from "../lib/healthCheckScoring";
 import { parseApiFindings } from "../lib/healthCheckFindings";
+import { parseScoreWebsiteResponse, type DeterministicHealthCheckRun } from "../lib/healthCheck";
+import { extractDomain } from "../components/healthCheck/HealthCheckReportView";
 import { formatFacebookInput, normaliseFacebookUrl } from "../lib/normaliseFacebookUrl";
 import { IdentityCapture, type IdentityCaptureHandle } from "../components/guest/IdentityCapture";
 import {
@@ -111,6 +113,7 @@ export default function HealthCheck() {
       storyAssessment?: StoryAssessment | null;
       socialScores?: SocialScores | null;
       findings?: ReturnType<typeof parseApiFindings>;
+      deterministic?: DeterministicHealthCheckRun;
     } | null;
   } | null>(null);
   const turnstileConfigured = isTurnstileConfigured();
@@ -286,6 +289,7 @@ export default function HealthCheck() {
         storyAssessment?: StoryAssessment | null;
         socialScores?: SocialScores | null;
         findings?: ReturnType<typeof parseApiFindings>;
+        deterministic?: DeterministicHealthCheckRun;
       } | null = null;
 
       const facebookUrl = normaliseFacebookUrl(formData.facebookUrl);
@@ -319,38 +323,22 @@ export default function HealthCheck() {
               facebookUrl: facebookUrl || undefined,
             },
           });
-          if (data?.score !== undefined) {
-            const rawStory = data.storyAssessment as StoryAssessment | null | undefined;
+          if (data && (data.facts !== undefined || data.apifyMetrics !== undefined)) {
+            const parsed = parseScoreWebsiteResponse(data, {
+              websiteUrl: formData.websiteUrl.trim(),
+              instagramHandle: formData.instagramHandle?.trim() || "",
+              facebookUrl: facebookUrl || "",
+              domain: extractDomain(formData.websiteUrl.trim()),
+            });
             websiteScore = {
-              score: Number(data.score),
-              observation: String(data.observation ?? ""),
-              strengths: Array.isArray(data.strengths)
-                ? data.strengths.map((s: unknown) => String(s))
-                : undefined,
-              gaps: Array.isArray(data.gaps)
-                ? data.gaps.map((g: unknown) => String(g))
-                : undefined,
-              storyAssessment:
-                rawStory && typeof rawStory === "object"
-                  ? {
-                      hasFounderStory: Boolean(rawStory.hasFounderStory),
-                      founderStoryQuality:
-                        rawStory.founderStoryQuality === "basic" ||
-                        rawStory.founderStoryQuality === "good" ||
-                        rawStory.founderStoryQuality === "compelling" ||
-                        rawStory.founderStoryQuality === "none"
-                          ? rawStory.founderStoryQuality
-                          : "none",
-                      speaksToSpecificCustomer: Boolean(rawStory.speaksToSpecificCustomer),
-                      hasDistinctivePositioning: Boolean(rawStory.hasDistinctivePositioning),
-                      hasEmotionalHook: Boolean(rawStory.hasEmotionalHook),
-                      missingElements: Array.isArray(rawStory.missingElements)
-                        ? rawStory.missingElements.map((el: unknown) => String(el))
-                        : [],
-                    }
-                  : null,
-              socialScores: (data.socialScores as SocialScores | null) ?? null,
+              score: parsed.deterministic.scores.websiteClarity,
+              observation: parsed.observation,
+              strengths: parsed.strengths,
+              gaps: parsed.gaps,
+              storyAssessment: null,
+              socialScores: null,
               findings: parseApiFindings(data.findings),
+              deterministic: parsed.deterministic,
             };
             completedScoreKeyRef.current = scoreInputKey;
             lastResultsNavigateStateRef.current = {

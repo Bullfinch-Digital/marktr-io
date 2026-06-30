@@ -1,3 +1,6 @@
+import type { DeterministicHealthCheckRun } from "./healthCheck";
+import { buildAbsentHealthCheckRun } from "./healthCheck";
+
 export interface StoryAssessment {
   hasFounderStory: boolean;
   founderStoryQuality: "none" | "basic" | "good" | "compelling";
@@ -33,6 +36,7 @@ export interface HealthCheckInput {
     storyAssessment?: StoryAssessment | null;
     socialScores?: SocialScores | null;
     findings?: Array<{ dimension: string; score: number; finding: string }>;
+    deterministic?: DeterministicHealthCheckRun | null;
   } | null;
 }
 
@@ -53,6 +57,7 @@ export interface HealthCheckScores {
   overall: number;
   lowestDimension: string;
   lowestScore: number;
+  deterministic?: DeterministicHealthCheckRun;
 }
 
 function obs(score: number, high: string, mid: string, low: string) {
@@ -61,147 +66,120 @@ function obs(score: number, high: string, mid: string, low: string) {
   return low;
 }
 
-function countPlatforms(input: HealthCheckInput) {
-  return [
-    input.websiteUrl,
-    input.instagramHandle,
-    input.facebookUrl,
-  ].filter((v) => Boolean(v && String(v).trim())).length;
+function storyAssessmentFromFacts(
+  run: DeterministicHealthCheckRun
+): StoryAssessment {
+  const { facts } = run;
+  const hasFounderStory = facts.founderStory !== "absent";
+  let founderStoryQuality: StoryAssessment["founderStoryQuality"] = "none";
+  if (facts.founderStory === "present") {
+    founderStoryQuality =
+      facts.storySpecific === "specific" ? "compelling" : "good";
+  } else if (facts.founderStory === "partial") {
+    founderStoryQuality = "basic";
+  }
+
+  const missingElements: string[] = [];
+  if (!hasFounderStory) missingElements.push("founding moment");
+  if (facts.pointOfView === "absent") missingElements.push("clear why/purpose");
+  if (facts.namesCustomer === "absent")
+    missingElements.push("specific customer named");
+  if (facts.pointOfView !== "distinct")
+    missingElements.push("what makes us different");
+
+  return {
+    hasFounderStory,
+    founderStoryQuality,
+    speaksToSpecificCustomer: facts.namesCustomer !== "absent",
+    hasDistinctivePositioning: facts.pointOfView === "distinct",
+    hasEmotionalHook: facts.storyNamesConcrete || facts.storySpecific === "specific",
+    missingElements,
+  };
 }
 
-export function calculateScores(input: HealthCheckInput): HealthCheckScores {
-  const websiteScore =
-    input.websiteScore?.score ??
-    Math.min(
-      100,
-      (input.websiteUrl?.trim() ? 40 : 15) + Math.floor(Math.random() * 35)
-    );
-
-  const websiteObservation =
-    input.websiteScore?.observation ??
-    obs(
-      websiteScore,
-      "Your homepage communicates clearly",
-      "Your value proposition could be sharper",
-      "Visitors may struggle to understand what you do"
-    );
-
+function scoresFromDeterministicRun(
+  run: DeterministicHealthCheckRun,
+  input: HealthCheckInput
+): HealthCheckScores {
+  const { scores } = run;
   const instagramNotFound =
-    input.websiteScore?.socialScores?.instagramFound === false &&
-    !!input.instagramHandle?.trim();
+    Boolean(input.instagramHandle?.trim()) && !run.apifyMetrics.instagramFound;
 
-  const platformCount = countPlatforms(input);
+  const websiteObservation = obs(
+    scores.websiteClarity,
+    "Your homepage communicates clearly",
+    "Your value proposition could be sharper",
+    "Visitors may struggle to understand what you do"
+  );
 
-  const consistencyScore = instagramNotFound
-    ? 35
-    : (input.websiteScore?.socialScores?.contentConsistencyScore ??
-      Math.min(80, platformCount * 20));
+  const storyObservation = obs(
+    scores.brandStory,
+    "Strong brand story with clear positioning",
+    "Basic story present but missing key elements",
+    "Brand story needs significant development"
+  );
 
   const consistencyObservation = instagramNotFound
-    ? "Connect your Instagram account to see your content activity score"
+    ? "We could not verify your Instagram profile — social activity scored as absent"
     : obs(
-        consistencyScore,
+        scores.contentConsistency,
         "You're maintaining a consistent presence",
         "Some gaps in your content schedule",
         "Irregular posting is limiting your reach"
       );
 
-  const storyAssessment = input.websiteScore?.storyAssessment;
+  const socialObservation = instagramNotFound
+    ? "Instagram handle provided but profile not found — social checks scored as absent"
+    : obs(
+        scores.socialPresence,
+        "Strong social presence reaching the right audience",
+        "Social presence is building but has room to grow",
+        "Limited social presence restricting your reach"
+      );
 
-  const storyScore = storyAssessment
-    ? (() => {
-        let s = 0;
-        if (storyAssessment.hasFounderStory) s += 25;
-        if (storyAssessment.hasEmotionalHook) s += 20;
-        if (storyAssessment.speaksToSpecificCustomer) s += 20;
-        if (storyAssessment.hasDistinctivePositioning) s += 20;
-        if (storyAssessment.founderStoryQuality === "compelling") s += 15;
-        else if (storyAssessment.founderStoryQuality === "good") s += 10;
-        else if (storyAssessment.founderStoryQuality === "basic") s += 5;
-        return Math.min(s, 100);
-      })()
-    : 40;
-
-  const storyObservation =
-    storyScore >= 70
-      ? "Strong brand story with clear positioning"
-      : storyScore >= 40
-        ? "Basic story present but missing key elements"
-        : "Brand story needs significant development";
-
-  const socialPresenceScore = (() => {
-    if (instagramNotFound) return 30;
-
-    const social = input.websiteScore?.socialScores;
-
-    if (!social?.instagramFound) {
-      return Math.min(platformCount * 15, 45);
-    }
-
-    const bioScore = social.instagramBioScore ?? 40;
-    const reachScore = social.engagementProxyScore ?? 40;
-    const platformScore = Math.min(platformCount * 10, 30);
-    return Math.round(bioScore * 0.4 + reachScore * 0.4 + platformScore);
-  })();
-
-  const socialObservation =
-    instagramNotFound && input.instagramHandle?.trim()
-      ? "Connect your Instagram to get your full social presence score"
-      : input.websiteScore?.socialScores?.socialObservation ||
-        obs(
-          socialPresenceScore,
-          "Strong social presence reaching the right audience",
-          "Social presence is building but has room to grow",
-          "Limited social presence restricting your reach"
-        );
-
-  const scores = {
-    websiteClarity: websiteScore,
-    brandStory: storyScore,
-    contentConsistency: consistencyScore,
-    socialPresence: socialPresenceScore,
-  };
-
-  const overall = Math.round(
-    Object.values(scores).reduce((a, b) => a + b, 0) / 4
-  );
-
-  const entries = Object.entries(scores) as [keyof typeof scores, number][];
-  const [lowestKey, lowestVal] = entries.reduce((a, b) => (b[1] < a[1] ? b : a));
-
-  const dimensionNames: Record<keyof typeof scores, string> = {
-    websiteClarity: "Website Clarity",
-    brandStory: "Brand Story",
-    contentConsistency: "Content Consistency",
-    socialPresence: "Social Presence",
-  };
+  const storyAssessment = storyAssessmentFromFacts(run);
 
   return {
     websiteClarity: {
       name: "Website Clarity",
-      score: websiteScore,
-      observation: websiteObservation,
+      score: scores.websiteClarity,
+      observation: input.websiteScore?.observation || websiteObservation,
       strengths: input.websiteScore?.strengths,
       gaps: input.websiteScore?.gaps,
     },
     brandStory: {
       name: "Brand Story",
-      score: storyScore,
+      score: scores.brandStory,
       observation: storyObservation,
-      storyAssessment: storyAssessment ?? null,
+      storyAssessment,
     },
     contentConsistency: {
       name: "Content Consistency",
-      score: consistencyScore,
+      score: scores.contentConsistency,
       observation: consistencyObservation,
     },
     socialPresence: {
       name: "Social Presence",
-      score: socialPresenceScore,
+      score: scores.socialPresence,
       observation: socialObservation,
     },
-    overall,
-    lowestDimension: dimensionNames[lowestKey],
-    lowestScore: lowestVal,
+    overall: scores.overall,
+    lowestDimension: run.lowestDimension,
+    lowestScore: run.lowestScore,
+    deterministic: run,
   };
+}
+
+export function calculateScores(input: HealthCheckInput): HealthCheckScores {
+  const deterministic = input.websiteScore?.deterministic;
+  if (deterministic) {
+    return scoresFromDeterministicRun(deterministic, input);
+  }
+
+  const absentRun = buildAbsentHealthCheckRun({
+    websiteUrl: input.websiteUrl,
+    instagramHandle: input.instagramHandle,
+    facebookUrl: input.facebookUrl,
+  });
+  return scoresFromDeterministicRun(absentRun, input);
 }

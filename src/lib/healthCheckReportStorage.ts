@@ -1,3 +1,4 @@
+import type { DeterministicHealthCheckRun } from "./healthCheck";
 import type {
   DimensionScore,
   HealthCheckInput,
@@ -10,6 +11,8 @@ export const HEALTH_CHECK_DETAIL_FALLBACK =
 
 export type StoredHealthCheckScores = HealthCheckScores & {
   websiteScore?: HealthCheckInput["websiteScore"] | null;
+  deterministic?: DeterministicHealthCheckRun | null;
+  inputs?: DeterministicHealthCheckRun["inputs"] | null;
 };
 
 function normalizeDimension(
@@ -47,6 +50,8 @@ export function serializeScoresForDb(
   scores: HealthCheckScores,
   websiteScore?: HealthCheckInput["websiteScore"] | null
 ): StoredHealthCheckScores {
+  const deterministic =
+    scores.deterministic ?? websiteScore?.deterministic ?? null;
   return {
     websiteClarity: scores.websiteClarity,
     brandStory: scores.brandStory,
@@ -56,6 +61,8 @@ export function serializeScoresForDb(
     lowestDimension: scores.lowestDimension,
     lowestScore: scores.lowestScore,
     websiteScore: websiteScore ?? null,
+    deterministic: deterministic ?? undefined,
+    inputs: deterministic?.inputs ?? undefined,
   };
 }
 
@@ -118,6 +125,9 @@ export function parseStoredScores(raw: unknown): {
       overall,
       lowestDimension,
       lowestScore,
+      deterministic:
+        (data.deterministic as DeterministicHealthCheckRun | null | undefined) ??
+        undefined,
     },
     websiteScore: (data.websiteScore as HealthCheckInput["websiteScore"]) ?? null,
   };

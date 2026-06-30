@@ -10,8 +10,14 @@ import { useAuth } from "../contexts/AuthContext";
 import { useBrand } from "../contexts/BrandContext";
 import { supabase } from "../config/supabase";
 import type { SocialScores, StoryAssessment } from "../lib/healthCheckScoring";
-import { parseApiFindings } from "../lib/healthCheckFindings";
-import { parseScoreWebsiteResponse, type DeterministicHealthCheckRun } from "../lib/healthCheck";
+import {
+  parseApiFindings,
+  augmentFindingsWithPriorRun,
+  applyFindingsToWebsiteScore,
+  type HealthCheckWebsiteScore,
+} from "../lib/healthCheckFindings";
+import { calculateScores } from "../lib/healthCheckScoring";
+import { parseScoreWebsiteResponse } from "../lib/healthCheck";
 import { extractDomain } from "../components/healthCheck/HealthCheckReportView";
 import { formatFacebookInput, normaliseFacebookUrl } from "../lib/normaliseFacebookUrl";
 import { IdentityCapture, type IdentityCaptureHandle } from "../components/guest/IdentityCapture";
@@ -110,16 +116,10 @@ export default function HealthCheck() {
     formData: HealthCheckFormData;
     facebookUrl: string;
     email: string;
-    websiteScore: {
-      score: number;
-      observation: string;
-      strengths?: string[];
-      gaps?: string[];
+    websiteScore: (HealthCheckWebsiteScore & {
       storyAssessment?: StoryAssessment | null;
       socialScores?: SocialScores | null;
-      findings?: ReturnType<typeof parseApiFindings>;
-      deterministic?: DeterministicHealthCheckRun;
-    } | null;
+    }) | null;
   } | null>(null);
   const turnstileConfigured = isTurnstileConfigured();
 
@@ -294,15 +294,9 @@ export default function HealthCheck() {
         }, CHECKLIST_ITEMS.length * 300 + 200)
       );
 
-      let websiteScore: {
-        score: number;
-        observation: string;
-        strengths?: string[];
-        gaps?: string[];
+      let websiteScore: HealthCheckWebsiteScore & {
         storyAssessment?: StoryAssessment | null;
         socialScores?: SocialScores | null;
-        findings?: ReturnType<typeof parseApiFindings>;
-        deterministic?: DeterministicHealthCheckRun;
       } | null = null;
 
       const facebookUrl = normaliseFacebookUrl(formData.facebookUrl);
@@ -358,7 +352,7 @@ export default function HealthCheck() {
               facebookUrl: facebookUrl || "",
               domain: extractDomain(formData.websiteUrl.trim()),
             });
-            websiteScore = {
+            const baseWebsiteScore = {
               score: parsed.deterministic.scores.websiteClarity,
               observation: parsed.observation,
               strengths: parsed.strengths,
@@ -367,6 +361,24 @@ export default function HealthCheck() {
               socialScores: null,
               findings: parseApiFindings(data.findings),
               deterministic: parsed.deterministic,
+            };
+
+            const scoresPreview = calculateScores({
+              websiteUrl: formData.websiteUrl.trim(),
+              instagramHandle: formData.instagramHandle?.trim(),
+              facebookUrl: facebookUrl || "",
+              businessName: formData.businessName.trim(),
+              email: emailToUse,
+              websiteScore: baseWebsiteScore,
+            });
+
+            websiteScore = {
+              ...applyFindingsToWebsiteScore(
+                baseWebsiteScore as HealthCheckWebsiteScore,
+                augmentFindingsWithPriorRun(baseWebsiteScore.findings, priorRun, scoresPreview)
+              ),
+              storyAssessment: null,
+              socialScores: null,
             };
             completedScoreKeyRef.current = scoreInputKey;
             lastResultsNavigateStateRef.current = {

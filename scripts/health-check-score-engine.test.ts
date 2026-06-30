@@ -11,6 +11,9 @@ import {
   weightedOverallScore,
   type HealthCheckFacts,
 } from "../src/lib/healthCheck/index.ts";
+import { augmentFindingsWithPriorRun } from "../src/lib/healthCheckFindings.ts";
+import type { HealthCheckPriorRunPayload } from "../src/lib/healthCheckPriorRun.ts";
+import { calculateScores } from "../src/lib/healthCheckScoring.ts";
 
 function testIdenticalRuns() {
   const facts: HealthCheckFacts = {
@@ -190,9 +193,63 @@ function testSingleDimensionChange() {
   console.log("✓ changing one website fact moves only websiteClarity");
 }
 
+function testAugmentFindingsBrandStoryDelta() {
+  const apify = {
+    instagramFound: false,
+    facebookFound: false,
+    followers: 0,
+    avgLikes: 0,
+    avgComments: 0,
+    latestPostDaysAgo: null,
+    postsPerWeek: null,
+    bioLength: 0,
+    hasExternalUrl: false,
+    hasFullName: false,
+  };
+  const facts: HealthCheckFacts = {
+    ...absentHealthCheckFacts(),
+    founderStory: "present",
+    storySpecific: "specific",
+    pointOfView: "distinct",
+    valuesMission: "concrete",
+  };
+  const run = buildHealthCheckRun({
+    facts,
+    apifyMetrics: apify,
+    modelVersion: "test",
+    inputs: {
+      websiteUrl: "https://example.com",
+      instagramHandle: "",
+      facebookUrl: "",
+      domain: "example.com",
+    },
+  });
+
+  const scores = calculateScores({
+    websiteUrl: "https://example.com",
+    email: "test@example.com",
+    websiteScore: { score: 100, observation: "", deterministic: run },
+  });
+
+  const priorRun: HealthCheckPriorRunPayload = {
+    scores: { website: 100, brandStory: 0, content: 15, social: 10, overall: 35 },
+    findings: [{ dimension: "Brand Story", finding: "Brand story needs significant development" }],
+    missingElements: ["founding moment"],
+    created_at: "2025-01-01T00:00:00.000Z",
+  };
+
+  const augmented = augmentFindingsWithPriorRun(undefined, priorRun, scores);
+  const brandStory = augmented.find((f) => f.dimension === "Brand Story");
+  assert.ok(brandStory?.finding.includes("0"));
+  assert.ok(brandStory?.finding.includes(String(scores.brandStory.score)));
+  assert.ok(/rose|fell|since your last/i.test(brandStory?.finding ?? ""));
+  console.log("✓ augmentFindingsWithPriorRun references Brand Story delta");
+}
+
 testIdenticalRuns();
 testUsesSecondPersonBump();
 testWeightedOverall();
 testEngagementBands();
 testSingleDimensionChange();
+testAugmentFindingsBrandStoryDelta();
 console.log("\nAll score engine tests passed.");

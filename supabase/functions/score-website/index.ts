@@ -684,7 +684,8 @@ RULES:
 
 WHEN priorRun IS PROVIDED (follow-up check):
 - Acknowledge progress: if a prior gap or finding is now addressed on the live site, say so briefly and move to the next priority — do NOT re-list a resolved gap.
-- Explain movement: if a dimension score changed vs priorRun.scores, explain why using the EXACT prior and current numbers (e.g. "Brand Story rose from 65 to 78 because your founder story is now live").
+- Explain movement: if a dimension score changed vs priorRun.scores, explain why using the EXACT prior and current numbers (e.g. "Brand Story rose from 0 to 100 because your founder story is now live on the about page").
+- If ANY scoreDeltas value is non-zero, at least ONE finding MUST reference a specific prior→current score change in plain language.
 - If a score is unchanged, say honestly that nothing material changed on the live site since last time — do not invent movement.
 - Advance priorities: do not repeat the same advice verbatim; progress to the next most important gap.
 - Compare against priorRun.findings, priorRun.gaps, and priorRun.missingElements when judging what was fixed.
@@ -791,6 +792,15 @@ async function generateFindingsProse(
       "Social Presence": scores.social,
       overall: scores.overall,
     },
+    scoreDeltas: priorRun
+      ? {
+          website: scores.website - priorRun.scores.website,
+          brandStory: scores.brandStory - priorRun.scores.brandStory,
+          content: scores.content - priorRun.scores.content,
+          social: scores.social - priorRun.scores.social,
+          overall: scores.overall - priorRun.scores.overall,
+        }
+      : null,
     extractedFacts: facts,
     socialMetrics: {
       instagramFound: apifyMetrics.instagramFound,

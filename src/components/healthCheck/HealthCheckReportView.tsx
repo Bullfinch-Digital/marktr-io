@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { GuestResultsNextStepsCta } from "../guest/GuestResultsNextStepsCta";
+import { getLlmFindingForDimension } from "../../lib/healthCheckFindings";
 import type {
   DimensionScore,
   HealthCheckInput,
@@ -219,10 +220,13 @@ function ScoreCard({
   dimension,
   dataSourceLabel,
   instagramFound,
+  llmFinding,
 }: {
   dimension: DimensionScore;
   dataSourceLabel: string;
   instagramFound: boolean;
+  /** Prior-aware LLM finding — when set, replaces static tier copy. */
+  llmFinding?: string;
 }) {
   const detail = DIMENSION_DETAIL[dimension.name];
   const tier =
@@ -230,6 +234,8 @@ function ScoreCard({
   const detailTier = detail?.[tier];
   const sa =
     dimension.name === "Brand Story" ? dimension.storyAssessment : null;
+  const useLlmNarrative = Boolean(llmFinding?.trim());
+  const headline = llmFinding?.trim() || dimension.observation;
 
   const socialNote =
     dimension.name === "Social Presence"
@@ -260,9 +266,9 @@ function ScoreCard({
         />
       </div>
       <p className="mt-3 font-['DM_Sans'] text-sm font-medium leading-relaxed text-[#0D1833]">
-        {dimension.observation}
+        {headline}
       </p>
-      {detailTier && (
+      {detailTier && !useLlmNarrative && (
         <>
           <p className="mt-2 font-['DM_Sans'] text-xs leading-relaxed text-muted-foreground">
             {detailTier.meaning}
@@ -465,6 +471,7 @@ export function HealthCheckReportView({
               dimension={dimension}
               dataSourceLabel={getDataSourceLabel(dimension.name, input, displayDomain)}
               instagramFound={instagramFound}
+              llmFinding={getLlmFindingForDimension(dimension.name, input.websiteScore)}
             />
           </div>
         ))}

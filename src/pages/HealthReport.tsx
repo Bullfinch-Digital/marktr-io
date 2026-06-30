@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { ChevronDown, ChevronUp, History, Loader2, RotateCcw } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
@@ -22,7 +22,12 @@ import {
   type HealthCheckRow,
 } from "../lib/healthCheckPersistence";
 import { buildPriorRunPayload } from "../lib/healthCheckPriorRun";
-import { parseApiFindings } from "../lib/healthCheckFindings";
+import {
+  augmentFindingsWithPriorRun,
+  applyFindingsToWebsiteScore,
+  parseApiFindings,
+  type HealthCheckWebsiteScore,
+} from "../lib/healthCheckFindings";
 import { extractDomain, getScoreColor } from "../components/healthCheck/HealthCheckReportView";
 import { HealthCheckProgressGraph } from "../components/healthCheck/HealthCheckProgressGraph";
 import { HealthCheckReportView } from "../components/healthCheck/HealthCheckReportView";
@@ -121,6 +126,78 @@ export default function HealthReport() {
     }
   };
 
+  const parsedStored = useMemo(
+    () => (currentRow ? parseStoredScores(currentRow.scores) : null),
+    [currentRow]
+  );
+
+  const rowSnapshot = useMemo(
+    () => (currentRow ? inputSnapshotFromRow(currentRow) : null),
+    [currentRow]
+  );
+
+  const priorForDisplay = useMemo(
+    () => (historyRows.length >= 2 ? buildPriorRunPayload(historyRows[1]) : undefined),
+    [historyRows]
+  );
+
+  const displayContext = useMemo(() => {
+    if (!parsedStored || !rowSnapshot || !currentRow) {
+      return {
+        displayScores: null as ReturnType<typeof calculateScores> | null,
+        displayWebsiteScore: null as HealthCheckWebsiteScore | null,
+        websiteUrl: "",
+        displayDomain: null as string | null,
+        recentRun: false,
+      };
+    }
+
+    const websiteUrl = websiteUrlFromSnapshot(rowSnapshot);
+    const displayDomain = rowSnapshot.domain || (websiteUrl ? extractDomain(websiteUrl) : null);
+    const recentRun = isHealthCheckRunRecent(currentRow.created_at);
+    const baseWebsiteScore = parsedStored.websiteScore ?? null;
+
+    const preview = calculateScores({
+      websiteUrl,
+      instagramHandle: rowSnapshot.instagram_handle,
+      facebookUrl: rowSnapshot.facebook_url,
+      businessName: rowSnapshot.business_name,
+      email: user?.email ?? "",
+      websiteScore: baseWebsiteScore,
+    });
+
+    const findings = augmentFindingsWithPriorRun(
+      parseApiFindings(baseWebsiteScore?.findings),
+      priorForDisplay,
+      preview
+    );
+
+    const websiteScoreForDisplay = applyFindingsToWebsiteScore(
+      baseWebsiteScore ?? {
+        score: preview.websiteClarity.score,
+        observation: preview.websiteClarity.observation,
+      },
+      findings
+    );
+
+    const displayScores = calculateScores({
+      websiteUrl,
+      instagramHandle: rowSnapshot.instagram_handle,
+      facebookUrl: rowSnapshot.facebook_url,
+      businessName: rowSnapshot.business_name,
+      email: user?.email ?? "",
+      websiteScore: websiteScoreForDisplay,
+    });
+
+    return {
+      displayScores,
+      displayWebsiteScore: websiteScoreForDisplay,
+      websiteUrl,
+      displayDomain,
+      recentRun,
+    };
+  }, [parsedStored, rowSnapshot, currentRow, user?.email, priorForDisplay]);
+
   const handleReanalyse = async () => {
     if (!user?.id || !currentRow || reanalysing || saveInFlightRef.current) return;
 
@@ -174,7 +251,7 @@ export default function HealthReport() {
         domain: snapshot.domain || extractDomain(websiteUrl),
       });
 
-      const websiteScore = {
+      const baseWebsiteScore = {
         score: parsed.deterministic.scores.websiteClarity,
         observation: parsed.observation,
         strengths: parsed.strengths,
@@ -182,6 +259,23 @@ export default function HealthReport() {
         findings: parseApiFindings(data?.findings),
         deterministic: parsed.deterministic,
       };
+
+      const scoresPreview = calculateScores({
+        websiteUrl,
+        instagramHandle: snapshot.instagram_handle,
+        facebookUrl: snapshot.facebook_url,
+        businessName: snapshot.business_name,
+        email: user.email ?? "",
+        websiteScore: baseWebsiteScore,
+      });
+
+      const augmentedFindings = augmentFindingsWithPriorRun(
+        baseWebsiteScore.findings,
+        priorRun,
+        scoresPreview
+      );
+
+      const websiteScore = applyFindingsToWebsiteScore(baseWebsiteScore, augmentedFindings);
 
       const scores = calculateScores({
         websiteUrl,
@@ -278,8 +372,7 @@ export default function HealthReport() {
     );
   }
 
-  const parsed = parseStoredScores(currentRow.scores);
-  if (!parsed) {
+  if (!parsedStored) {
     return (
       <DashboardShell contentClassName="mx-auto max-w-2xl px-6 py-12">
         <p className="font-['DM_Sans'] text-muted-foreground">
@@ -296,10 +389,14 @@ export default function HealthReport() {
     );
   }
 
-  const snapshot = inputSnapshotFromRow(currentRow);
-  const websiteUrl = websiteUrlFromSnapshot(snapshot);
-  const recentRun = isHealthCheckRunRecent(currentRow.created_at);
-  const displayDomain = snapshot.domain || (websiteUrl ? extractDomain(websiteUrl) : null);
+  const {
+    displayScores,
+    displayWebsiteScore,
+    websiteUrl,
+    displayDomain,
+    recentRun,
+  } = displayContext;
+  const snapshot = rowSnapshot!;
 
   return (
     <DashboardShell contentClassName="mx-auto max-w-2xl px-6 py-10 lg:py-12">
@@ -363,12 +460,12 @@ export default function HealthReport() {
         <HealthCheckReportView
           embedded
           pillarMode
-          scores={parsed.scores}
+          scores={displayScores ?? parsedStored.scores}
           input={{
             websiteUrl,
             instagramHandle: snapshot.instagram_handle,
             facebookUrl: snapshot.facebook_url,
-            websiteScore: parsed.websiteScore,
+            websiteScore: displayWebsiteScore ?? parsedStored.websiteScore,
           }}
           showPaywallUpsell={false}
           showDashboardCta={false}

@@ -17,16 +17,11 @@ import {
 } from "./guestContext";
 import { getGuestStory, clearGuestStory } from "./guestStory";
 import { calculateScores } from "./healthCheckScoring";
-import { serializeScoresForDb } from "./healthCheckReportStorage";
-
-function extractDomain(url: string): string {
-  try {
-    const prefixed = /^https?:\/\//i.test(url) ? url : `https://${url}`;
-    return new URL(prefixed).hostname.replace(/^www\./, "");
-  } catch {
-    return url;
-  }
-}
+import {
+  buildHealthCheckInputSnapshot,
+  countHealthChecksForBrand,
+  insertHealthCheckResult,
+} from "./healthCheckPersistence";
 
 function transferFlagKey(userId: string, kind: "health" | "story") {
   return `marktr_guest_${kind}_transferred_${userId}`;
@@ -55,18 +50,15 @@ async function transferHealthOnce(userId: string, brandId: string | null) {
   }
 
   try {
-    const { count, error: countError } = await supabase
-      .from("health_check_results")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", userId);
-
-    if (countError) {
-      console.warn("[transferGuestMarktrData] health check count failed", countError);
+    if (!brandId) {
+      console.warn("[transferGuestMarktrData] skip health — brand_id unresolved", userId);
       releaseStorageLock(healthFlag);
       return;
     }
 
-    if ((count ?? 0) === 0) {
+    const existingCount = await countHealthChecksForBrand(userId, brandId);
+
+    if (existingCount === 0) {
       console.log("[transferGuestMarktrData] health insert attempt", { userId, brandId });
       const fullScores = calculateScores({
         websiteUrl: guestHealth.input.websiteUrl,
@@ -75,25 +67,29 @@ async function transferHealthOnce(userId: string, brandId: string | null) {
         email: guestHealth.input.email,
         websiteScore: guestHealth.websiteScore ?? null,
       });
-      const { error } = await supabase.from("health_check_results").insert({
-        user_id: userId,
-        brand_id: brandId,
-        domain: guestHealth.input.websiteUrl
-          ? extractDomain(guestHealth.input.websiteUrl)
-          : "",
-        instagram_handle: guestHealth.input.instagramHandle || "",
-        facebook_url: guestHealth.input.facebookUrl || "",
-        overall_score: fullScores.overall || 0,
-        scores: serializeScoresForDb(fullScores, guestHealth.websiteScore),
+      const guestBusinessName = getGuestContext().business.businessName;
+      const inputSnapshot = buildHealthCheckInputSnapshot({
+        websiteUrl: guestHealth.input.websiteUrl,
+        instagramHandle: guestHealth.input.instagramHandle,
+        facebookUrl: guestHealth.input.facebookUrl,
+        businessName: guestBusinessName,
       });
-      if (error) {
-        console.warn("[transferGuestMarktrData] health check transfer failed", error);
+      const inserted = await insertHealthCheckResult(userId, brandId, {
+        scores: fullScores,
+        websiteScore: guestHealth.websiteScore,
+        inputSnapshot,
+      });
+      if (!inserted) {
+        console.warn("[transferGuestMarktrData] health check transfer failed");
         releaseStorageLock(healthFlag);
         return;
       }
       console.log("[transferGuestMarktrData] health insert complete", { userId, brandId });
     } else {
-      console.log("[transferGuestMarktrData] health insert skipped — row exists", { userId });
+      console.log("[transferGuestMarktrData] health insert skipped — row exists for brand", {
+        userId,
+        brandId,
+      });
     }
 
     markStorageLockDone(healthFlag);

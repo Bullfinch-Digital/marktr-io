@@ -5,11 +5,15 @@ import { mergeHealthFindings } from "../lib/healthCheckFindings";
 import { setGuestHealthCheck } from "../lib/guestHealthCheck";
 import { getGuestIdentityEmail } from "../lib/guestContext";
 import { useAuth } from "../contexts/AuthContext";
-import { supabase } from "../config/supabase";
+import { useBrand } from "../contexts/BrandContext";
 import useSubscription from "../hooks/useSubscription";
 import useProfile from "../hooks/useProfile";
-import { HealthCheckReportView, extractDomain } from "../components/healthCheck/HealthCheckReportView";
-import { serializeScoresForDb } from "../lib/healthCheckReportStorage";
+import { HealthCheckReportView } from "../components/healthCheck/HealthCheckReportView";
+import {
+  buildHealthCheckInputSnapshot,
+  insertHealthCheckResult,
+} from "../lib/healthCheckPersistence";
+import { isBrandScopeReady, resolveScopedBrandId } from "../lib/brandScopedReads";
 
 type LocationState = HealthCheckInput | null;
 
@@ -18,6 +22,7 @@ export default function HealthCheckResults() {
   const navigate = useNavigate();
   const state = (location.state ?? null) as LocationState;
   const { user } = useAuth();
+  const { activeBrandId, loading: brandLoading, brands } = useBrand();
   const { isPro: subscriptionIsPro, loading: subscriptionLoading } = useSubscription();
   const { profile } = useProfile(user?.id ?? null);
   const isLoggedInReal = Boolean(
@@ -29,6 +34,9 @@ export default function HealthCheckResults() {
     hasPaidAccess || (isLoggedInReal && subscriptionLoading);
   const showPaywallUpsell = !showDashboardCta;
   const savedToDbRef = useRef(false);
+  const saveInFlightRef = useRef(false);
+
+  const scopedBrandId = resolveScopedBrandId(activeBrandId, brands);
 
   const effectiveEmail = state?.email?.trim() || getGuestIdentityEmail() || "";
 
@@ -69,31 +77,48 @@ export default function HealthCheckResults() {
 
   useEffect(() => {
     const isAnonymous = (user as { is_anonymous?: boolean } | null)?.is_anonymous === true;
-    if (!user?.id || isAnonymous || !scores || !state || savedToDbRef.current) return;
+    if (!user?.id || isAnonymous || !scores || !state) return;
+    if (!isBrandScopeReady(brandLoading, brands, scopedBrandId)) return;
+    if (!scopedBrandId) {
+      console.error("[HealthCheckResults] cannot save — brand_id unresolved", {
+        userId: user.id,
+        activeBrandId,
+        brandCount: brands.length,
+      });
+      return;
+    }
+    if (savedToDbRef.current || saveInFlightRef.current) return;
 
     savedToDbRef.current = true;
+    saveInFlightRef.current = true;
 
-    const domainValue = state.websiteUrl?.trim()
-      ? extractDomain(state.websiteUrl.trim())
-      : "";
+    const inputSnapshot = buildHealthCheckInputSnapshot({
+      websiteUrl: state.websiteUrl,
+      instagramHandle: state.instagramHandle,
+      facebookUrl: state.facebookUrl,
+      businessName: state.businessName,
+    });
 
-    void supabase
-      .from("health_check_results")
-      .insert({
-        user_id: user.id,
-        domain: domainValue,
-        instagram_handle: state.instagramHandle || "",
-        facebook_url: state.facebookUrl || "",
-        overall_score: scores.overall || 0,
-        scores: serializeScoresForDb(scores, state.websiteScore),
-      })
-      .then(({ error }) => {
-        if (error) {
-          console.warn("[HealthCheckResults] save health check failed", error);
-          savedToDbRef.current = false;
-        }
-      });
-  }, [user, scores, state]);
+    void insertHealthCheckResult(user.id, scopedBrandId, {
+      scores,
+      websiteScore: state.websiteScore,
+      inputSnapshot,
+    }).then((row) => {
+      saveInFlightRef.current = false;
+      if (!row) {
+        console.warn("[HealthCheckResults] save health check failed");
+        savedToDbRef.current = false;
+      }
+    });
+  }, [
+    user,
+    scores,
+    state,
+    brandLoading,
+    brands,
+    scopedBrandId,
+    activeBrandId,
+  ]);
 
   if (!state || !effectiveEmail || !scores) {
     return <Navigate to="/health-check" replace />;

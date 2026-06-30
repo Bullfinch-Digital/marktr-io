@@ -24,6 +24,7 @@ export interface SocialScores {
 }
 
 export interface HealthCheckInput {
+  businessName?: string;
   websiteUrl?: string;
   instagramHandle?: string;
   facebookUrl?: string;

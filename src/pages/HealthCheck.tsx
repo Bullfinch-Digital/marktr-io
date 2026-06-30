@@ -7,6 +7,7 @@ import { Label } from "../components/ui/label";
 import { WhisperButton } from "../components/ui/WhisperButton";
 import { AlreadyCompletedPrompt } from "../components/AlreadyCompletedPrompt";
 import { useAuth } from "../contexts/AuthContext";
+import { useBrand } from "../contexts/BrandContext";
 import { supabase } from "../config/supabase";
 import type { SocialScores, StoryAssessment } from "../lib/healthCheckScoring";
 import { parseApiFindings } from "../lib/healthCheckFindings";
@@ -24,6 +25,8 @@ import {
   updateGuestContext,
 } from "../lib/guestContext";
 import { captureGuestLeadOnce, isTurnstileConfigured } from "../lib/leadCapture";
+import { isBrandScopeReady, resolveScopedBrandId } from "../lib/brandScopedReads";
+import { fetchLatestHealthCheck } from "../lib/healthCheckPersistence";
 
 type Step = "welcome" | "inputs" | "loading";
 
@@ -78,6 +81,7 @@ function AnalysisMessage({ messages }: { messages: readonly string[] }) {
 export default function HealthCheck() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { activeBrandId, loading: brandLoading, brands } = useBrand();
   const isLoggedIn = Boolean(user && !(user as { is_anonymous?: boolean }).is_anonymous);
   const [step, setStep] = useState<Step>("welcome");
   const [existingRun, setExistingRun] = useState<{ id: string; created_at: string } | null>(
@@ -233,30 +237,27 @@ export default function HealthCheck() {
       setExistingRun(null);
       return;
     }
+    const scopedBrandId = resolveScopedBrandId(activeBrandId, brands);
+    if (!isBrandScopeReady(brandLoading, brands, scopedBrandId)) {
+      return;
+    }
 
     let cancelled = false;
 
-    void supabase
-      .from("health_check_results")
-      .select("id, created_at")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (!cancelled) {
-          setExistingRun(
-            data?.id && data?.created_at
-              ? { id: data.id, created_at: data.created_at }
-              : null
-          );
-        }
-      });
+    void fetchLatestHealthCheck(user.id, scopedBrandId).then((row) => {
+      if (!cancelled) {
+        setExistingRun(
+          row?.id && row.created_at
+            ? { id: row.id, created_at: row.created_at }
+            : null
+        );
+      }
+    });
 
     return () => {
       cancelled = true;
     };
-  }, [isLoggedIn, user?.id]);
+  }, [isLoggedIn, user?.id, activeBrandId, brandLoading, brands]);
 
   useEffect(() => {
     if (step !== "loading") {

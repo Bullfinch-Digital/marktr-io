@@ -3,24 +3,19 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useBrand } from "../contexts/BrandContext";
-import { supabase } from "../config/supabase";
-import { isBrandScopeReady, resolveScopedBrandId, scopeQueryToActiveBrand } from "../lib/brandScopedReads";
+import { isBrandScopeReady, resolveScopedBrandId } from "../lib/brandScopedReads";
+import { fetchLatestHealthCheck } from "../lib/healthCheckPersistence";
 import DashboardShell from "../layouts/DashboardShell";
 import { HealthCheckReportView } from "../components/healthCheck/HealthCheckReportView";
 import { parseStoredScores } from "../lib/healthCheckReportStorage";
-
-type HealthCheckRow = {
-  domain: string | null;
-  instagram_handle: string | null;
-  facebook_url: string | null;
-  scores: unknown;
-};
 
 export default function HealthReport() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const { activeBrandId, loading: brandLoading, brands } = useBrand();
-  const [report, setReport] = useState<HealthCheckRow | null>(null);
+  const [report, setReport] = useState<Awaited<
+    ReturnType<typeof fetchLatestHealthCheck>
+  > | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -37,26 +32,11 @@ export default function HealthReport() {
     let cancelled = false;
     setLoading(true);
 
-    let query = supabase
-      .from("health_check_results")
-      .select("domain, instagram_handle, facebook_url, scores")
-      .eq("user_id", user.id);
-    query = scopeQueryToActiveBrand(query, scopedBrandId);
-
-    void query
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle()
-      .then(({ data, error }) => {
-        if (cancelled) return;
-        if (error) {
-          console.warn("[HealthReport] load failed", error);
-          setReport(null);
-        } else {
-          setReport((data as HealthCheckRow | null) ?? null);
-        }
-        setLoading(false);
-      });
+    void fetchLatestHealthCheck(user.id, scopedBrandId).then((row) => {
+      if (cancelled) return;
+      setReport(row);
+      setLoading(false);
+    });
 
     return () => {
       cancelled = true;

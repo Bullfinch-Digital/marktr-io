@@ -379,6 +379,8 @@ export type HealthCheckReportViewProps = {
   onGoToDashboard?: () => void;
   /** When true, omits standalone page chrome (used inside DashboardShell). */
   embedded?: boolean;
+  /** Pillar mode: skip badge/title intro — parent supplies header chrome. */
+  pillarMode?: boolean;
 };
 
 export function HealthCheckReportView({
@@ -388,6 +390,7 @@ export function HealthCheckReportView({
   showDashboardCta,
   onGoToDashboard,
   embedded = false,
+  pillarMode = false,
 }: HealthCheckReportViewProps) {
   const displayDomain = input.websiteUrl?.trim()
     ? extractDomain(input.websiteUrl.trim())
@@ -404,21 +407,25 @@ export function HealthCheckReportView({
 
   const reportContent = (
     <>
-      <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 font-['DM_Sans'] text-xs font-medium text-primary">
-        Your Digital Health Report
-      </span>
+      {!pillarMode && (
+        <>
+          <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 font-['DM_Sans'] text-xs font-medium text-primary">
+            Your Digital Health Report
+          </span>
 
-      <h1 className="mt-4 font-['Fraunces'] text-4xl font-bold leading-tight text-[#0D1833] sm:text-5xl">
-        Here&apos;s how your marketing scores today.
-      </h1>
+          <h1 className="mt-4 font-['Fraunces'] text-4xl font-bold leading-tight text-[#0D1833] sm:text-5xl">
+            Here&apos;s how your marketing scores today.
+          </h1>
 
-      <p className="mt-4 font-['DM_Sans'] text-base text-muted-foreground">
-        {displayDomain
-          ? `Based on publicly visible data for ${displayDomain}`
-          : "Based on your answers"}
-      </p>
+          <p className="mt-4 font-['DM_Sans'] text-base text-muted-foreground">
+            {displayDomain
+              ? `Based on publicly visible data for ${displayDomain}`
+              : "Based on your answers"}
+          </p>
+        </>
+      )}
 
-      <div className="mt-8 flex flex-wrap gap-3">
+      <div className={`flex flex-wrap gap-3 ${pillarMode ? "mt-0" : "mt-8"}`}>
         <ScoreOverviewChip shortName="Overall" score={scores.overall} featured />
         {scoreCards.map(({ key, shortName, dimension }) => (
           <ScoreOverviewChip

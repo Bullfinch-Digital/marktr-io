@@ -22,7 +22,9 @@ import {
   type HealthCheckRow,
 } from "../lib/healthCheckPersistence";
 import { extractDomain, getScoreColor } from "../components/healthCheck/HealthCheckReportView";
+import { HealthCheckProgressGraph } from "../components/healthCheck/HealthCheckProgressGraph";
 import { HealthCheckReportView } from "../components/healthCheck/HealthCheckReportView";
+import { isComparableHealthCheckRow } from "../lib/healthCheckProgressGraph";
 import DashboardShell from "../layouts/DashboardShell";
 import { Button } from "../components/ui/button";
 import {
@@ -96,13 +98,18 @@ export default function HealthReport() {
   }, [authLoading, brandLoading, user?.id, scopedBrandId, brands, loadCurrent]);
 
   useEffect(() => {
+    if (!user?.id || !scopedBrandId || !currentRow) return;
+    void loadHistory();
+  }, [user?.id, scopedBrandId, currentRow?.id, loadHistory]);
+
+  useEffect(() => {
     const onRefresh = () => {
       void loadCurrent();
-      if (historyOpen) void loadHistory();
+      void loadHistory();
     };
     window.addEventListener("marktr:guest-data-ready", onRefresh);
     return () => window.removeEventListener("marktr:guest-data-ready", onRefresh);
-  }, [loadCurrent, loadHistory, historyOpen]);
+  }, [loadCurrent, loadHistory]);
 
   const toggleHistory = () => {
     const next = !historyOpen;
@@ -362,7 +369,9 @@ export default function HealthReport() {
         />
       </div>
 
-      <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-t border-border pt-6">
+      <HealthCheckProgressGraph rows={historyRows} loading={historyLoading} />
+
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-4 border-t border-border pt-6">
         <button
           type="button"
           onClick={toggleHistory}
@@ -407,6 +416,11 @@ export default function HealthReport() {
                         {formatHealthCheckDate(row.created_at)}
                         {index === 0 ? (
                           <span className="ml-2 text-muted-foreground">(latest)</span>
+                        ) : null}
+                        {!isComparableHealthCheckRow(row) ? (
+                          <span className="ml-2 text-muted-foreground/70">
+                            measured with a previous method
+                          </span>
                         ) : null}
                       </span>
                       <span

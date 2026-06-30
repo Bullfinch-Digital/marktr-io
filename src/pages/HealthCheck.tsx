@@ -25,8 +25,8 @@ import {
   updateGuestContext,
 } from "../lib/guestContext";
 import { captureGuestLeadOnce, isTurnstileConfigured } from "../lib/leadCapture";
-import { isBrandScopeReady, resolveScopedBrandId } from "../lib/brandScopedReads";
-import { fetchLatestHealthCheck } from "../lib/healthCheckPersistence";
+import { resolveScopedBrandId } from "../lib/brandScopedReads";
+import { fetchLatestHealthCheck, resolveBrandIdForHealthWrite } from "../lib/healthCheckPersistence";
 
 type Step = "welcome" | "inputs" | "loading";
 
@@ -237,14 +237,25 @@ export default function HealthCheck() {
       setExistingRun(null);
       return;
     }
-    const scopedBrandId = resolveScopedBrandId(activeBrandId, brands);
-    if (!isBrandScopeReady(brandLoading, brands, scopedBrandId)) {
-      return;
-    }
 
     let cancelled = false;
 
-    void fetchLatestHealthCheck(user.id, scopedBrandId).then((row) => {
+    void (async () => {
+      const contextBrandId = resolveScopedBrandId(activeBrandId, brands);
+      const { brandId } = await resolveBrandIdForHealthWrite(
+        user.id,
+        contextBrandId,
+        brands
+      );
+
+      if (cancelled || !brandId) {
+        if (!cancelled && !brandId) {
+          setExistingRun(null);
+        }
+        return;
+      }
+
+      const row = await fetchLatestHealthCheck(user.id, brandId);
       if (!cancelled) {
         setExistingRun(
           row?.id && row.created_at
@@ -252,7 +263,7 @@ export default function HealthCheck() {
             : null
         );
       }
-    });
+    })();
 
     return () => {
       cancelled = true;

@@ -1,5 +1,6 @@
 import { supabase } from "../config/supabase";
-import { scopeQueryToActiveBrand } from "./brandScopedReads";
+import { scopeQueryToActiveBrand, readStoredActiveBrandId } from "./brandScopedReads";
+import { resolveBrandIdForIcpOps } from "./icpBrandAttach";
 import type { DeterministicHealthCheckRun } from "./healthCheck";
 import {
   serializeScoresForDb,
@@ -200,4 +201,30 @@ export async function countHealthChecksForBrand(
     return 0;
   }
   return count ?? 0;
+}
+
+/**
+ * Resolve brand_id for health writes on routes outside BrandProvider (e.g. /health-check/results).
+ * Context → localStorage → primary brand in DB (same chain as StoryBuild).
+ */
+export async function resolveBrandIdForHealthWrite(
+  userId: string,
+  contextBrandId: string | null,
+  brands: { id: string }[]
+): Promise<{ brandId: string | null; source: "context" | "localStorage" | "db" | null }> {
+  const fromContext =
+    (contextBrandId && brands.some((b) => b.id === contextBrandId) ? contextBrandId : null) ??
+    (brands.length === 1 ? brands[0].id : null);
+
+  if (fromContext) {
+    return { brandId: fromContext, source: "context" };
+  }
+
+  const stored = readStoredActiveBrandId();
+  if (stored) {
+    return { brandId: stored, source: "localStorage" };
+  }
+
+  const fromDb = await resolveBrandIdForIcpOps(userId, null);
+  return fromDb ? { brandId: fromDb, source: "db" } : { brandId: null, source: null };
 }

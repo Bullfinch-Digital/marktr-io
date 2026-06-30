@@ -2,7 +2,17 @@
  * Helpers for reads scoped to the active brand in BrandContext.
  */
 
+export const ACTIVE_BRAND_STORAGE_KEY = "marktr_active_brand_id";
+
 export type BrandRowRef = { id: string };
+
+export function readStoredActiveBrandId(): string | null {
+  try {
+    return localStorage.getItem(ACTIVE_BRAND_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Resolved brand id for scoped reads: explicit active id, else first brand when loaded.

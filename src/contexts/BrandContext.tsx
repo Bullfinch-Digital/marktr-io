@@ -8,9 +8,11 @@ import {
   type ReactNode,
 } from "react";
 import { useBrands, type Brand } from "../hooks/useBrands";
+import {
+  ACTIVE_BRAND_STORAGE_KEY,
+  readStoredActiveBrandId,
+} from "../lib/brandScopedReads";
 import { useAuth } from "./AuthContext";
-
-const ACTIVE_BRAND_STORAGE_KEY = "marktr_active_brand_id";
 
 type BrandContextType = {
   brands: Brand[];
@@ -32,14 +34,6 @@ const defaultBrandContext: BrandContextType = {
 };
 
 const BrandContext = createContext<BrandContextType | undefined>(undefined);
-
-function readStoredActiveBrandId(): string | null {
-  try {
-    return localStorage.getItem(ACTIVE_BRAND_STORAGE_KEY);
-  } catch {
-    return null;
-  }
-}
 
 function pickActiveBrandId(brands: Brand[], preferredId: string | null): string | null {
   if (preferredId && brands.some((b) => b.id === preferredId)) {

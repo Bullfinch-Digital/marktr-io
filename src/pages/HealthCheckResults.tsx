@@ -12,8 +12,9 @@ import { HealthCheckReportView } from "../components/healthCheck/HealthCheckRepo
 import {
   buildHealthCheckInputSnapshot,
   insertHealthCheckResult,
+  resolveBrandIdForHealthWrite,
 } from "../lib/healthCheckPersistence";
-import { isBrandScopeReady, resolveScopedBrandId } from "../lib/brandScopedReads";
+import { resolveScopedBrandId } from "../lib/brandScopedReads";
 
 type LocationState = HealthCheckInput | null;
 
@@ -33,8 +34,8 @@ export default function HealthCheckResults() {
   const showDashboardCta =
     hasPaidAccess || (isLoggedInReal && subscriptionLoading);
   const showPaywallUpsell = !showDashboardCta;
-  const savedToDbRef = useRef(false);
   const saveInFlightRef = useRef(false);
+  const lastPersistedRunKeyRef = useRef<string | null>(null);
 
   const scopedBrandId = resolveScopedBrandId(activeBrandId, brands);
 
@@ -47,6 +48,17 @@ export default function HealthCheckResults() {
         : null,
     [state, effectiveEmail]
   );
+
+  const persistRunKey = useMemo(() => {
+    if (!state || !scores) return "";
+    return JSON.stringify({
+      websiteUrl: state.websiteUrl ?? "",
+      instagramHandle: state.instagramHandle ?? "",
+      facebookUrl: state.facebookUrl ?? "",
+      overall: scores.overall,
+      modelVersion: scores.deterministic?.modelVersion ?? "",
+    });
+  }, [state, scores]);
 
   useEffect(() => {
     if (!state || !scores) return;
@@ -77,47 +89,98 @@ export default function HealthCheckResults() {
 
   useEffect(() => {
     const isAnonymous = (user as { is_anonymous?: boolean } | null)?.is_anonymous === true;
-    if (!user?.id || isAnonymous || !scores || !state) return;
-    if (!isBrandScopeReady(brandLoading, brands, scopedBrandId)) return;
-    if (!scopedBrandId) {
-      console.error("[HealthCheckResults] cannot save — brand_id unresolved", {
-        userId: user.id,
-        activeBrandId,
-        brandCount: brands.length,
+    if (!user?.id || isAnonymous || !scores || !state || !persistRunKey) return;
+    if (saveInFlightRef.current) return;
+    if (lastPersistedRunKeyRef.current === persistRunKey) {
+      console.debug("[HealthCheckResults] save skipped — already persisted this run", {
+        persistRunKey,
       });
       return;
     }
-    if (savedToDbRef.current || saveInFlightRef.current) return;
 
-    savedToDbRef.current = true;
+    let cancelled = false;
     saveInFlightRef.current = true;
 
-    const inputSnapshot = buildHealthCheckInputSnapshot({
-      websiteUrl: state.websiteUrl,
-      instagramHandle: state.instagramHandle,
-      facebookUrl: state.facebookUrl,
-      businessName: state.businessName,
-    });
+    void (async () => {
+      const { brandId, source } = await resolveBrandIdForHealthWrite(
+        user.id,
+        scopedBrandId,
+        brands
+      );
 
-    void insertHealthCheckResult(user.id, scopedBrandId, {
-      scores,
-      websiteScore: state.websiteScore,
-      inputSnapshot,
-    }).then((row) => {
-      saveInFlightRef.current = false;
-      if (!row) {
-        console.warn("[HealthCheckResults] save health check failed");
-        savedToDbRef.current = false;
+      if (cancelled) {
+        saveInFlightRef.current = false;
+        return;
       }
-    });
+
+      if (!brandId) {
+        console.error("[HealthCheckResults] save skipped — brand_id unresolved after fallbacks", {
+          userId: user.id,
+          activeBrandId,
+          scopedBrandId,
+          brandCount: brands.length,
+          brandLoading,
+          hasBrandProvider: brands.length > 0 || Boolean(activeBrandId),
+        });
+        saveInFlightRef.current = false;
+        return;
+      }
+
+      const inputSnapshot = buildHealthCheckInputSnapshot({
+        websiteUrl: state.websiteUrl,
+        instagramHandle: state.instagramHandle,
+        facebookUrl: state.facebookUrl,
+        businessName: state.businessName,
+      });
+
+      console.log("[HealthCheckResults] save inserting", {
+        userId: user.id,
+        brandId,
+        brandSource: source,
+        overall: scores.overall,
+        hasDeterministic: Boolean(scores.deterministic ?? state.websiteScore?.deterministic),
+        persistRunKey,
+      });
+
+      const row = await insertHealthCheckResult(user.id, brandId, {
+        scores,
+        websiteScore: state.websiteScore,
+        inputSnapshot,
+      });
+
+      saveInFlightRef.current = false;
+
+      if (cancelled) return;
+
+      if (!row) {
+        console.warn("[HealthCheckResults] save failed — insert returned null", {
+          userId: user.id,
+          brandId,
+        });
+        return;
+      }
+
+      lastPersistedRunKeyRef.current = persistRunKey;
+      console.log("[HealthCheckResults] save inserted", {
+        rowId: row.id,
+        brandId: row.brand_id,
+        createdAt: row.created_at,
+        hasDeterministic: Boolean(row.scores?.deterministic),
+      });
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [
     user,
     scores,
     state,
-    brandLoading,
-    brands,
+    persistRunKey,
     scopedBrandId,
     activeBrandId,
+    brands,
+    brandLoading,
   ]);
 
   if (!state || !effectiveEmail || !scores) {

@@ -27,6 +27,7 @@ import {
 import { captureGuestLeadOnce, isTurnstileConfigured } from "../lib/leadCapture";
 import { resolveScopedBrandId } from "../lib/brandScopedReads";
 import { fetchLatestHealthCheck, resolveBrandIdForHealthWrite } from "../lib/healthCheckPersistence";
+import { buildPriorRunPayload } from "../lib/healthCheckPriorRun";
 
 type Step = "welcome" | "inputs" | "loading";
 
@@ -328,11 +329,26 @@ export default function HealthCheck() {
 
         scoreInFlightKeyRef.current = scoreInputKey;
         try {
+          let priorRun = undefined;
+          if (isLoggedIn && user?.id) {
+            const scopedBrandId = resolveScopedBrandId(activeBrandId, brands);
+            const { brandId } = await resolveBrandIdForHealthWrite(
+              user.id,
+              scopedBrandId,
+              brands
+            );
+            if (brandId) {
+              const priorRow = await fetchLatestHealthCheck(user.id, brandId);
+              priorRun = buildPriorRunPayload(priorRow);
+            }
+          }
+
           const { data } = await supabase.functions.invoke("score-website", {
             body: {
               websiteUrl: formData.websiteUrl.trim(),
               instagramHandle: formData.instagramHandle?.trim() || undefined,
               facebookUrl: facebookUrl || undefined,
+              ...(priorRun ? { priorRun } : {}),
             },
           });
           if (data && (data.facts !== undefined || data.apifyMetrics !== undefined)) {
@@ -407,7 +423,7 @@ export default function HealthCheck() {
       cancelled = true;
       timers.forEach((t) => window.clearTimeout(t));
     };
-  }, [step, formData, navigate, isLoggedIn, user?.email, resolvedGuestEmail, resolvedGuestName]);
+  }, [step, formData, navigate, isLoggedIn, user?.email, user?.id, resolvedGuestEmail, resolvedGuestName, activeBrandId, brands]);
 
   const renderWelcome = () => (
     <section className="mx-auto flex min-h-screen w-full max-w-3xl flex-col justify-center px-6 py-12">

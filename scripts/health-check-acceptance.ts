@@ -36,7 +36,7 @@ const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY;
 const WEBSITE = "https://motherroot.com";
 const INSTAGRAM = "motherroot";
 
-async function invokeScoreWebsite(): Promise<DeterministicHealthCheckRun> {
+async function invokeScoreWebsite(priorRun?: Record<string, unknown>): Promise<DeterministicHealthCheckRun> {
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
     throw new Error("Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY");
   }
@@ -51,6 +51,7 @@ async function invokeScoreWebsite(): Promise<DeterministicHealthCheckRun> {
     body: JSON.stringify({
       websiteUrl: WEBSITE,
       instagramHandle: INSTAGRAM,
+      ...(priorRun ? { priorRun } : {}),
     }),
   });
 
@@ -85,8 +86,35 @@ async function main() {
   const run1 = await invokeScoreWebsite();
   const run2 = await invokeScoreWebsite();
 
+  const mockPriorRun = {
+    scores: {
+      website: 50,
+      brandStory: 40,
+      content: 30,
+      social: 25,
+      overall: 37,
+    },
+    findings: [
+      {
+        dimension: "Website Clarity",
+        finding: "Your homepage lacks a clear call to action — visitors may not know what to do next.",
+      },
+      {
+        dimension: "Brand Story",
+        finding: "No founder story found on your about page.",
+      },
+    ],
+    gaps: ["no clear CTA", "missing proof on homepage"],
+    missingElements: ["founding moment", "clear why/purpose"],
+    created_at: "2025-01-01T12:00:00.000Z",
+  };
+
+  console.log("\nRun 3 — same site WITH priorRun (scores must match run 1)…");
+  const run3 = await invokeScoreWebsite(mockPriorRun);
+
   printRun("Run 1", run1);
   printRun("Run 2", run2);
+  printRun("Run 3 (with priorRun)", run3);
 
   const dims = [
     "websiteClarity",
@@ -98,19 +126,23 @@ async function main() {
 
   let allMatch = true;
   for (const dim of dims) {
-    const match = run1.scores[dim] === run2.scores[dim];
-    console.log(`${match ? "✓" : "✗"} ${dim}: ${run1.scores[dim]} vs ${run2.scores[dim]}`);
-    if (!match) allMatch = false;
+    const match12 = run1.scores[dim] === run2.scores[dim];
+    const match13 = run1.scores[dim] === run3.scores[dim];
+    console.log(
+      `${match12 && match13 ? "✓" : "✗"} ${dim}: ${run1.scores[dim]} vs ${run2.scores[dim]} vs priorRun ${run3.scores[dim]}`
+    );
+    if (!match12 || !match13) allMatch = false;
   }
 
   const factsMatch =
-    JSON.stringify(run1.facts) === JSON.stringify(run2.facts);
-  console.log(`${factsMatch ? "✓" : "✗"} facts identical: ${factsMatch}`);
+    JSON.stringify(run1.facts) === JSON.stringify(run2.facts) &&
+    JSON.stringify(run1.facts) === JSON.stringify(run3.facts);
+  console.log(`${factsMatch ? "✓" : "✗"} facts identical across all runs: ${factsMatch}`);
 
   if (!allMatch) {
     process.exit(1);
   }
-  console.log("\nAcceptance test PASSED — scores identical across both runs.");
+  console.log("\nAcceptance test PASSED — scores identical with and without priorRun.");
 }
 
 main().catch((err) => {

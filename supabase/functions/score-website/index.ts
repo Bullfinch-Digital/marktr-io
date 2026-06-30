@@ -1,9 +1,26 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { computeDeterministicScores } from "./deterministicScores.ts";
+
+type PriorRunInput = {
+  scores: {
+    website: number;
+    brandStory: number;
+    content: number;
+    social: number;
+    overall: number;
+  };
+  findings: Array<{ dimension: string; finding: string }>;
+  gaps?: string[];
+  missingElements?: string[];
+  created_at: string;
+};
 
 type Input = {
   websiteUrl: string;
   instagramHandle?: string;
   facebookUrl?: string;
+  /** Optional prior run — findings prose ONLY; never affects fact extraction or scores. */
+  priorRun?: PriorRunInput;
 };
 
 /** Pinned model version — same string recorded client-side (§6). */
@@ -646,6 +663,179 @@ SOCIAL PROFILE (qualitative only — follower counts are handled separately):
 
 Do NOT output scores, points, or findings. Facts only.`;
 
+const FINDINGS_SYSTEM_PROMPT = `You write advisory findings for a digital health check. Return ONLY valid JSON — no markdown.
+
+{
+  "findings": [
+    { "dimension": "Website Clarity", "score": number, "finding": "string" },
+    { "dimension": "Brand Story", "score": number, "finding": "string" },
+    { "dimension": "Content Consistency", "score": number, "finding": "string" },
+    { "dimension": "Social Presence", "score": number, "finding": "string" }
+  ],
+  "strengths": ["string"],
+  "gaps": ["string"]
+}
+
+RULES:
+- You receive CURRENT dimension scores (already computed from the live site). Each finding's "score" MUST exactly match the provided score for that dimension. Never invent or adjust scores.
+- Write 2–3 sentences per finding: direct, founder-friendly, specific to what you see in the scrape.
+- strengths: 1–3 items for Website Clarity only (what is working).
+- gaps: 1–3 priority gaps for Website Clarity only (what to fix next).
+
+WHEN priorRun IS PROVIDED (follow-up check):
+- Acknowledge progress: if a prior gap or finding is now addressed on the live site, say so briefly and move to the next priority — do NOT re-list a resolved gap.
+- Explain movement: if a dimension score changed vs priorRun.scores, explain why using the EXACT prior and current numbers (e.g. "Brand Story rose from 65 to 78 because your founder story is now live").
+- If a score is unchanged, say honestly that nothing material changed on the live site since last time — do not invent movement.
+- Advance priorities: do not repeat the same advice verbatim; progress to the next most important gap.
+- Compare against priorRun.findings, priorRun.gaps, and priorRun.missingElements when judging what was fixed.
+
+WHEN priorRun IS ABSENT (first check):
+- Fresh advice only — no "compared to last time" language.`;
+
+type FindingsResponse = {
+  findings: Array<{ dimension: string; score: number; finding: string }>;
+  strengths: string[];
+  gaps: string[];
+};
+
+function normalizePriorRun(raw: unknown): PriorRunInput | undefined {
+  if (!raw || typeof raw !== "object") return undefined;
+  const p = raw as Record<string, unknown>;
+  const scoresRaw = p.scores;
+  if (!scoresRaw || typeof scoresRaw !== "object") return undefined;
+  const s = scoresRaw as Record<string, unknown>;
+  const website = Number(s.website);
+  const brandStory = Number(s.brandStory);
+  const content = Number(s.content);
+  const social = Number(s.social);
+  const overall = Number(s.overall);
+  if ([website, brandStory, content, social, overall].some((n) => Number.isNaN(n))) {
+    return undefined;
+  }
+  const findings = Array.isArray(p.findings)
+    ? p.findings
+        .map((item) => {
+          if (!item || typeof item !== "object") return null;
+          const row = item as Record<string, unknown>;
+          const dimension = typeof row.dimension === "string" ? row.dimension.trim() : "";
+          const finding = typeof row.finding === "string" ? row.finding.trim() : "";
+          if (!dimension || !finding) return null;
+          return { dimension, finding };
+        })
+        .filter((item): item is { dimension: string; finding: string } => item !== null)
+    : [];
+  const gaps = Array.isArray(p.gaps)
+    ? p.gaps.map((g) => String(g).trim()).filter(Boolean)
+    : undefined;
+  const missingElements = Array.isArray(p.missingElements)
+    ? p.missingElements.map((g) => String(g).trim()).filter(Boolean)
+    : undefined;
+  const created_at = typeof p.created_at === "string" ? p.created_at : "";
+  if (!created_at) return undefined;
+  return {
+    scores: { website, brandStory, content, social, overall },
+    findings,
+    gaps: gaps?.length ? gaps : undefined,
+    missingElements: missingElements?.length ? missingElements : undefined,
+    created_at,
+  };
+}
+
+function parseFindingsJson(raw: string): FindingsResponse | null {
+  try {
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    const findings = Array.isArray(parsed.findings)
+      ? parsed.findings
+          .map((item) => {
+            if (!item || typeof item !== "object") return null;
+            const row = item as Record<string, unknown>;
+            const dimension = typeof row.dimension === "string" ? row.dimension.trim() : "";
+            const score = Number(row.score);
+            const finding = typeof row.finding === "string" ? row.finding.trim() : "";
+            if (!dimension || !finding || Number.isNaN(score)) return null;
+            return { dimension, score, finding };
+          })
+          .filter(
+            (item): item is { dimension: string; score: number; finding: string } =>
+              item !== null
+          )
+      : [];
+    const strengths = Array.isArray(parsed.strengths)
+      ? parsed.strengths.map((s) => String(s).trim()).filter(Boolean)
+      : [];
+    const gaps = Array.isArray(parsed.gaps)
+      ? parsed.gaps.map((g) => String(g).trim()).filter(Boolean)
+      : [];
+    if (findings.length === 0) return null;
+    return { findings, strengths, gaps };
+  } catch {
+    const match = raw.match(/\{[\s\S]*\}/);
+    if (!match) return null;
+    return parseFindingsJson(match[0]);
+  }
+}
+
+async function generateFindingsProse(
+  apiKey: string,
+  facts: HealthCheckFacts,
+  apifyMetrics: ApifySocialMetrics,
+  scores: ReturnType<typeof computeDeterministicScores>,
+  priorRun: PriorRunInput | undefined,
+  scrapeSummary: string
+): Promise<FindingsResponse | null> {
+  const userPayload = {
+    currentScores: {
+      "Website Clarity": scores.website,
+      "Brand Story": scores.brandStory,
+      "Content Consistency": scores.content,
+      "Social Presence": scores.social,
+      overall: scores.overall,
+    },
+    extractedFacts: facts,
+    socialMetrics: {
+      instagramFound: apifyMetrics.instagramFound,
+      facebookFound: apifyMetrics.facebookFound,
+      followers: apifyMetrics.followers,
+      latestPostDaysAgo: apifyMetrics.latestPostDaysAgo,
+      postsPerWeek: apifyMetrics.postsPerWeek,
+    },
+    priorRun: priorRun ?? null,
+    scrapeSummary: scrapeSummary.slice(0, 4000),
+  };
+
+  const aiResp = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: HEALTH_CHECK_MODEL_VERSION,
+      max_tokens: 1400,
+      temperature: 0.2,
+      response_format: { type: "json_object" },
+      messages: [
+        { role: "system", content: FINDINGS_SYSTEM_PROMPT },
+        {
+          role: "user",
+          content: `Write findings for this health check:\n\n${JSON.stringify(userPayload, null, 2)}`,
+        },
+      ],
+    }),
+  });
+
+  if (!aiResp.ok) return null;
+
+  const data = await aiResp.json();
+  const content =
+    data?.choices?.[0]?.message?.content != null
+      ? String(data.choices[0].message.content)
+      : "";
+  if (!content) return null;
+
+  return parseFindingsJson(content);
+}
+
 Deno.serve(async (req) => {
   const preflight = corsPreflight(req);
   if (preflight) return preflight;
@@ -668,6 +858,7 @@ Deno.serve(async (req) => {
   try {
     const body = (await req.json()) as Partial<Input>;
     console.log("Raw instagramHandle received:", body.instagramHandle);
+    const priorRun = normalizePriorRun(body.priorRun);
     const websiteUrl = normaliseUrl(body.websiteUrl ?? "");
     if (!websiteUrl) return json({ error: "websiteUrl is required" }, 400);
 
@@ -807,6 +998,21 @@ Deno.serve(async (req) => {
       if (!content) throw new Error("Empty model response");
 
       const facts = parseFactsJson(content);
+      const deterministicScores = computeDeterministicScores(facts, apifyMetrics);
+
+      let findingsPayload: FindingsResponse | null = null;
+      try {
+        findingsPayload = await generateFindingsProse(
+          apiKey,
+          facts,
+          apifyMetrics,
+          deterministicScores,
+          priorRun,
+          combinedText
+        );
+      } catch (findingsErr) {
+        console.warn("Findings generation failed:", findingsErr);
+      }
 
       return json({
         facts,
@@ -814,6 +1020,9 @@ Deno.serve(async (req) => {
         modelVersion: HEALTH_CHECK_MODEL_VERSION,
         scrapeOk: true,
         observation: "Analysis complete",
+        findings: findingsPayload?.findings,
+        strengths: findingsPayload?.strengths,
+        gaps: findingsPayload?.gaps,
       });
     } catch {
       return json({

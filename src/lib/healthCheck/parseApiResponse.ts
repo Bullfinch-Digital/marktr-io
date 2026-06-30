@@ -16,6 +16,7 @@ export type ScoreWebsiteApiResponse = {
   observation?: string;
   strengths?: string[];
   gaps?: string[];
+  findings?: unknown;
 };
 
 export function parseScoreWebsiteResponse(

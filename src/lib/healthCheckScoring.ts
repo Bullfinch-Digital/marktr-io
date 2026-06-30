@@ -67,6 +67,17 @@ function obs(score: number, high: string, mid: string, low: string) {
   return low;
 }
 
+function findingObservation(
+  dimensionName: string,
+  fallback: string,
+  websiteScore?: HealthCheckInput["websiteScore"]
+): string {
+  const finding = websiteScore?.findings
+    ?.find((f) => f.dimension === dimensionName)
+    ?.finding?.trim();
+  return finding || fallback;
+}
+
 function storyAssessmentFromFacts(
   run: DeterministicHealthCheckRun
 ): StoryAssessment {
@@ -144,25 +155,33 @@ function scoresFromDeterministicRun(
     websiteClarity: {
       name: "Website Clarity",
       score: scores.websiteClarity,
-      observation: input.websiteScore?.observation || websiteObservation,
+      observation: findingObservation(
+        "Website Clarity",
+        input.websiteScore?.observation || websiteObservation,
+        input.websiteScore
+      ),
       strengths: input.websiteScore?.strengths,
       gaps: input.websiteScore?.gaps,
     },
     brandStory: {
       name: "Brand Story",
       score: scores.brandStory,
-      observation: storyObservation,
+      observation: findingObservation("Brand Story", storyObservation, input.websiteScore),
       storyAssessment,
     },
     contentConsistency: {
       name: "Content Consistency",
       score: scores.contentConsistency,
-      observation: consistencyObservation,
+      observation: findingObservation(
+        "Content Consistency",
+        consistencyObservation,
+        input.websiteScore
+      ),
     },
     socialPresence: {
       name: "Social Presence",
       score: scores.socialPresence,
-      observation: socialObservation,
+      observation: findingObservation("Social Presence", socialObservation, input.websiteScore),
     },
     overall: scores.overall,
     lowestDimension: run.lowestDimension,

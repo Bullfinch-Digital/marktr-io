@@ -21,6 +21,8 @@ import {
   websiteUrlFromSnapshot,
   type HealthCheckRow,
 } from "../lib/healthCheckPersistence";
+import { buildPriorRunPayload } from "../lib/healthCheckPriorRun";
+import { parseApiFindings } from "../lib/healthCheckFindings";
 import { extractDomain, getScoreColor } from "../components/healthCheck/HealthCheckReportView";
 import { HealthCheckProgressGraph } from "../components/healthCheck/HealthCheckProgressGraph";
 import { HealthCheckReportView } from "../components/healthCheck/HealthCheckReportView";
@@ -152,11 +154,14 @@ export default function HealthReport() {
         websiteUrl,
       });
 
+      const priorRun = buildPriorRunPayload(currentRow);
+
       const { data, error: invokeError } = await supabase.functions.invoke("score-website", {
         body: {
           websiteUrl,
           instagramHandle: snapshot.instagram_handle || undefined,
           facebookUrl: snapshot.facebook_url || undefined,
+          ...(priorRun ? { priorRun } : {}),
         },
       });
 
@@ -174,6 +179,7 @@ export default function HealthReport() {
         observation: parsed.observation,
         strengths: parsed.strengths,
         gaps: parsed.gaps,
+        findings: parseApiFindings(data?.findings),
         deterministic: parsed.deterministic,
       };
 

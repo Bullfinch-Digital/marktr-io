@@ -17,6 +17,10 @@ export type ScoreWebsiteApiResponse = {
   strengths?: string[];
   gaps?: string[];
   findings?: unknown;
+  overall?: number;
+  overallRaw?: number;
+  capped?: boolean;
+  overallSummary?: string;
 };
 
 export function parseScoreWebsiteResponse(
@@ -32,6 +36,9 @@ export function parseScoreWebsiteResponse(
   observation: string;
   strengths?: string[];
   gaps?: string[];
+  capped: boolean;
+  overallRaw: number;
+  overallSummary?: string;
 } {
   const scrapeOk = data?.scrapeOk !== false;
   const facts = scrapeOk
@@ -64,5 +71,12 @@ export function parseScoreWebsiteResponse(
     gaps: Array.isArray(data?.gaps)
       ? data.gaps.map((g) => String(g))
       : undefined,
+    capped: data?.capped === true,
+    overallRaw:
+      typeof data?.overallRaw === "number" ? data.overallRaw : deterministic.scores.overallRaw,
+    overallSummary:
+      typeof data?.overallSummary === "string" && data.overallSummary.trim()
+        ? data.overallSummary.trim()
+        : deterministic.overallSummary,
   };
 }

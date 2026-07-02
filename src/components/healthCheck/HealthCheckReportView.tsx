@@ -443,6 +443,12 @@ export function HealthCheckReportView({
         ))}
       </div>
 
+      {scores.overallSummary ? (
+        <p className="mt-4 font-['DM_Sans'] text-sm leading-relaxed text-muted-foreground">
+          {scores.overallSummary}
+        </p>
+      ) : null}
+
       {showDashboardCta && (
         <div className="mt-6 flex flex-col gap-4 rounded-2xl border border-primary/20 bg-primary/5 px-6 py-5 sm:flex-row sm:items-center">
           <div className="flex-1">

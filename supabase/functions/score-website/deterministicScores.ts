@@ -47,6 +47,13 @@ const DIMENSION_WEIGHTS = {
   socialPresence: 0.15,
 } as const;
 
+/** Keep in sync with src/lib/healthCheck/constants.ts OVERALL_CAP */
+const OVERALL_CAP = 92;
+
+/** Keep in sync with src/lib/healthCheck/constants.ts OVERALL_CAP_FRAMING_COPY */
+const OVERALL_CAP_FRAMING_COPY =
+  "Your scores are genuinely strong across the board — we cap the automated overall at 92 because the last few points are the kind of thing that benefits from a human eye, not a scraper.";
+
 const VALUE_PROP_PTS = { clear: 25, vague: 12, absent: 0 } as const;
 const PRIMARY_CTA_PTS = { single: 20, competing: 10, absent: 0 } as const;
 const PROOF_PTS = { real: 20, claimed: 8, absent: 0 } as const;
@@ -196,6 +203,28 @@ function namesCustomerPoints(facts: HealthCheckFacts): number {
   return 0;
 }
 
+function weightedOverallScore(scores: {
+  websiteClarity: number;
+  brandStory: number;
+  contentConsistency: number;
+  socialPresence: number;
+}): { overall: number; overallRaw: number; capped: boolean } {
+  const overallRaw = Math.round(
+    scores.websiteClarity * DIMENSION_WEIGHTS.websiteClarity +
+      scores.brandStory * DIMENSION_WEIGHTS.brandStory +
+      scores.contentConsistency * DIMENSION_WEIGHTS.contentConsistency +
+      scores.socialPresence * DIMENSION_WEIGHTS.socialPresence
+  );
+  const capped = overallRaw > OVERALL_CAP;
+  return {
+    overallRaw,
+    overall: capped ? OVERALL_CAP : overallRaw,
+    capped,
+  };
+}
+
+export { OVERALL_CAP, OVERALL_CAP_FRAMING_COPY };
+
 export function computeDeterministicScores(
   facts: HealthCheckFacts,
   apifyMetrics: ApifySocialMetrics
@@ -205,6 +234,8 @@ export function computeDeterministicScores(
   content: number;
   social: number;
   overall: number;
+  overallRaw: number;
+  capped: boolean;
 } {
   const scoredFacts = sanitizeFactsForScoring(facts, apifyMetrics);
   const socialBands = bandSocialSignals(apifyMetrics);
@@ -236,12 +267,16 @@ export function computeDeterministicScores(
       CROSS_PLATFORM_PTS[socialBands.crossPlatform]
     : 0;
 
-  const overall = Math.round(
-    website * DIMENSION_WEIGHTS.websiteClarity +
-      brandStory * DIMENSION_WEIGHTS.brandStory +
-      content * DIMENSION_WEIGHTS.contentConsistency +
-      social * DIMENSION_WEIGHTS.socialPresence
-  );
-
-  return { website, brandStory, content, social, overall };
+  return {
+    website,
+    brandStory,
+    content,
+    social,
+    ...weightedOverallScore({
+      websiteClarity: website,
+      brandStory,
+      contentConsistency: content,
+      socialPresence: social,
+    }),
+  };
 }

@@ -58,6 +58,9 @@ export function serializeScoresForDb(
     contentConsistency: scores.contentConsistency,
     socialPresence: scores.socialPresence,
     overall: scores.overall,
+    overallRaw: scores.overallRaw,
+    capped: scores.capped,
+    overallSummary: scores.overallSummary,
     lowestDimension: scores.lowestDimension,
     lowestScore: scores.lowestScore,
     websiteScore: websiteScore ?? null,
@@ -123,6 +126,21 @@ export function parseStoredScores(raw: unknown): {
       contentConsistency,
       socialPresence,
       overall,
+      overallRaw:
+        typeof data.overallRaw === "number"
+          ? data.overallRaw
+          : (data.deterministic as DeterministicHealthCheckRun | null | undefined)?.scores
+              ?.overallRaw,
+      capped:
+        typeof data.capped === "boolean"
+          ? data.capped
+          : (data.deterministic as DeterministicHealthCheckRun | null | undefined)?.scores
+              ?.capped,
+      overallSummary:
+        typeof data.overallSummary === "string" && data.overallSummary.trim()
+          ? data.overallSummary
+          : (data.deterministic as DeterministicHealthCheckRun | null | undefined)
+              ?.overallSummary,
       lowestDimension,
       lowestScore,
       deterministic:

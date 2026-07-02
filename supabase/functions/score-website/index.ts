@@ -1,5 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { computeDeterministicScores } from "./deterministicScores.ts";
+import { computeDeterministicScores, OVERALL_CAP_FRAMING_COPY } from "./deterministicScores.ts";
 
 type PriorRunInput = {
   scores: {
@@ -1174,6 +1174,12 @@ Deno.serve(async (req) => {
         findings: findingsPayload?.findings,
         strengths: findingsPayload?.strengths,
         gaps: findingsPayload?.gaps,
+        overall: deterministicScores.overall,
+        overallRaw: deterministicScores.overallRaw,
+        capped: deterministicScores.capped,
+        overallSummary: deterministicScores.capped
+          ? OVERALL_CAP_FRAMING_COPY
+          : undefined,
       });
     } catch {
       return json({

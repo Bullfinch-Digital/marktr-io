@@ -10,8 +10,11 @@ import {
   buildHealthCheckRun,
   scoreFromFacts,
   weightedOverallScore,
+  OVERALL_CAP,
+  OVERALL_CAP_FRAMING_COPY,
   type HealthCheckFacts,
 } from "../src/lib/healthCheck/index.ts";
+import { computeDeterministicScores } from "../supabase/functions/score-website/deterministicScores.ts";
 import { augmentFindingsWithPriorRun } from "../src/lib/healthCheckFindings.ts";
 import type { HealthCheckPriorRunPayload } from "../src/lib/healthCheckPriorRun.ts";
 import { calculateScores } from "../src/lib/healthCheckScoring.ts";
@@ -117,14 +120,110 @@ function testUsesSecondPersonBump() {
 }
 
 function testWeightedOverall() {
-  const overall = weightedOverallScore({
+  const result = weightedOverallScore({
     websiteClarity: 80,
     brandStory: 70,
     contentConsistency: 60,
     socialPresence: 50,
   });
-  assert.equal(overall, Math.round(80 * 0.3 + 70 * 0.3 + 60 * 0.25 + 50 * 0.15));
+  assert.equal(result.overallRaw, Math.round(80 * 0.3 + 70 * 0.3 + 60 * 0.25 + 50 * 0.15));
+  assert.equal(result.capped, false);
+  assert.equal(result.overall, result.overallRaw);
   console.log("✓ weighted overall uses 30/30/25/15");
+}
+
+function testOverallCapHighScores() {
+  const dims = {
+    websiteClarity: 100,
+    brandStory: 100,
+    contentConsistency: 100,
+    socialPresence: 80,
+  };
+  const client = weightedOverallScore(dims);
+  assert.equal(client.overallRaw, 97);
+  assert.equal(client.overall, OVERALL_CAP);
+  assert.equal(client.capped, true);
+
+  const maxFacts: HealthCheckFacts = {
+    valueProp: "clear",
+    namesCustomer: "clear",
+    usesSecondPerson: true,
+    primaryCTA: "single",
+    proofOnPage: "real",
+    pathToBuyContact: "clear",
+    founderStory: "present",
+    storySpecific: "specific",
+    storyNamesConcrete: true,
+    pointOfView: "distinct",
+    valuesMission: "concrete",
+    socialReflectsStory: "expresses",
+    igProfileComplete: "complete",
+    bioOnMessage: "complete",
+  };
+  const apify = {
+    instagramFound: true,
+    facebookFound: true,
+    followers: 50_000,
+    avgLikes: 2000,
+    avgComments: 100,
+    latestPostDaysAgo: 5,
+    postsPerWeek: 3,
+    bioLength: 120,
+    hasExternalUrl: true,
+    hasFullName: true,
+  };
+
+  const run = buildHealthCheckRun({
+    facts: maxFacts,
+    apifyMetrics: apify,
+    modelVersion: "test",
+    inputs: {
+      websiteUrl: "https://example.com",
+      instagramHandle: "test",
+      facebookUrl: "",
+      domain: "example.com",
+    },
+  });
+  const server = computeDeterministicScores(maxFacts, apify);
+
+  assert.equal(run.scores.overall, server.overall);
+  assert.equal(run.scores.overallRaw, server.overallRaw);
+  assert.equal(run.scores.capped, server.capped);
+  assert.ok(run.scores.overallRaw > OVERALL_CAP);
+  assert.equal(run.scores.overall, OVERALL_CAP);
+  assert.equal(run.scores.capped, true);
+  assert.equal(run.overallSummary, OVERALL_CAP_FRAMING_COPY);
+
+  console.log("✓ overall cap case", {
+    website: run.scores.websiteClarity,
+    brandStory: run.scores.brandStory,
+    content: run.scores.contentConsistency,
+    social: run.scores.socialPresence,
+    overallRaw: run.scores.overallRaw,
+    overall: run.scores.overall,
+    capped: run.scores.capped,
+    overallSummary: run.overallSummary,
+  });
+}
+
+function testOverallCapMotherRootUncapped() {
+  const motherRootDims = {
+    websiteClarity: 100,
+    brandStory: 100,
+    contentConsistency: 75,
+    socialPresence: 50,
+  };
+  const result = weightedOverallScore(motherRootDims);
+  assert.equal(result.overallRaw, 86);
+  assert.equal(result.overall, 86);
+  assert.equal(result.capped, false);
+
+  console.log("✓ Mother Root uncapped case", {
+    overallRaw: result.overallRaw,
+    overall: result.overall,
+    capped: result.capped,
+    overallSummary: undefined,
+  });
 }
 
 function testEngagementBands() {
@@ -286,6 +385,8 @@ function testNoSocialHallucinationScoresZero() {
 testIdenticalRuns();
 testUsesSecondPersonBump();
 testWeightedOverall();
+testOverallCapHighScores();
+testOverallCapMotherRootUncapped();
 testEngagementBands();
 testSingleDimensionChange();
 testAugmentFindingsBrandStoryDelta();

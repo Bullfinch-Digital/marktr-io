@@ -1,4 +1,9 @@
-import { DIMENSION_WEIGHTS, HEALTH_CHECK_SCORER_VERSION } from "./constants";
+import {
+  DIMENSION_WEIGHTS,
+  HEALTH_CHECK_SCORER_VERSION,
+  OVERALL_CAP,
+  OVERALL_CAP_FRAMING_COPY,
+} from "./constants";
 import type { HealthCheckFacts } from "./factsSchema";
 import { absentHealthCheckFacts } from "./factsSchema";
 import type {
@@ -68,7 +73,11 @@ export type DeterministicHealthCheckRun = {
     contentConsistency: number;
     socialPresence: number;
     overall: number;
+    overallRaw: number;
+    capped: boolean;
   };
+  /** Present only when capped — human-eye disclaimer for the overall summary. */
+  overallSummary?: string;
   lowestDimension: string;
   lowestScore: number;
 };
@@ -205,13 +214,19 @@ export function weightedOverallScore(scores: {
   brandStory: number;
   contentConsistency: number;
   socialPresence: number;
-}): number {
-  return Math.round(
+}): { overall: number; overallRaw: number; capped: boolean } {
+  const overallRaw = Math.round(
     scores.websiteClarity * DIMENSION_WEIGHTS.websiteClarity +
       scores.brandStory * DIMENSION_WEIGHTS.brandStory +
       scores.contentConsistency * DIMENSION_WEIGHTS.contentConsistency +
       scores.socialPresence * DIMENSION_WEIGHTS.socialPresence
   );
+  const capped = overallRaw > OVERALL_CAP;
+  return {
+    overallRaw,
+    overall: capped ? OVERALL_CAP : overallRaw,
+    capped,
+  };
 }
 
 const DIMENSION_LABELS: Record<keyof typeof DIMENSION_WEIGHTS, string> = {
@@ -229,18 +244,22 @@ export function scoreFromFacts(
   const scoredFacts = sanitizeFactsForScoring(facts, apifyMetrics);
   const points = scorePointsFromFacts(scoredFacts, socialBands, apifyMetrics);
 
-  const scores = {
+  const dimensionScores = {
     websiteClarity: points.website.total,
     brandStory: points.story.total,
     contentConsistency: points.content.total,
     socialPresence: points.social.total,
-    overall: 0,
   };
-  scores.overall = weightedOverallScore(scores);
+  const overallResult = weightedOverallScore(dimensionScores);
+  const scores = {
+    ...dimensionScores,
+    ...overallResult,
+  };
 
-  const entries = Object.entries(scores).filter(
-    ([key]) => key !== "overall"
-  ) as [keyof typeof DIMENSION_WEIGHTS, number][];
+  const entries = Object.entries(dimensionScores) as [
+    keyof typeof DIMENSION_WEIGHTS,
+    number,
+  ][];
   const [lowestKey, lowestVal] = entries.reduce((a, b) =>
     b[1] < a[1] ? b : a
   );
@@ -259,6 +278,7 @@ export function scoreFromFacts(
     socialBands,
     points,
     scores,
+    overallSummary: scores.capped ? OVERALL_CAP_FRAMING_COPY : undefined,
     lowestDimension: DIMENSION_LABELS[lowestKey],
     lowestScore: lowestVal,
   };

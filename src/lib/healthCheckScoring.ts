@@ -56,6 +56,9 @@ export interface HealthCheckScores {
   contentConsistency: DimensionScore;
   socialPresence: DimensionScore;
   overall: number;
+  overallRaw?: number;
+  capped?: boolean;
+  overallSummary?: string;
   lowestDimension: string;
   lowestScore: number;
   deterministic?: DeterministicHealthCheckRun;
@@ -184,6 +187,9 @@ function scoresFromDeterministicRun(
       observation: findingObservation("Social Presence", socialObservation, input.websiteScore),
     },
     overall: scores.overall,
+    overallRaw: scores.overallRaw,
+    capped: scores.capped,
+    overallSummary: run.overallSummary,
     lowestDimension: run.lowestDimension,
     lowestScore: run.lowestScore,
     deterministic: run,

@@ -11,6 +11,7 @@ import {
   Palette,
   FileText,
   FolderPlus,
+  FolderMinus,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -32,6 +33,7 @@ import { avatarUrlFromKey } from "../../utils/avatarLibrary";
 import "../../styles/Modal.css";
 import { useICPs, generateIcpCopyName } from "../../hooks/useICPs";
 import useSubscription from "../../hooks/useSubscription";
+import { resolveBrandIdForIcpOps } from "../../lib/icpBrandAttach";
 
 // EXACT same helper pattern as CollectionCard
 const stop = (e: React.MouseEvent | Event) => {
@@ -107,6 +109,7 @@ export function ICPPreviewCard(props: ICPPreviewCardProps) {
     brands,
     onRemoveFromCollection,
     onAddToCollection,
+    isInCollection = false,
     isLocked,
     onChangeColor,
     onChangeAvatar,
@@ -226,12 +229,22 @@ export function ICPPreviewCard(props: ICPPreviewCardProps) {
           }
 
           const names = Array.isArray(allIcps) ? allIcps.map((i: any) => i?.name || "") : [];
+          const {
+            data: { user: authUser },
+          } = await supabase.auth.getUser();
+          const resolvedBrandId = authUser?.id
+            ? await resolveBrandIdForIcpOps(
+                authUser.id,
+                (original as any).brand_id ?? null
+              )
+            : (original as any).brand_id ?? null;
           const payload: any = {
             ...original,
             id: undefined,
             _index: undefined,
             brandName: undefined,
             brands: undefined,
+            brand_id: resolvedBrandId,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
             name: generateIcpCopyName(original.name || "ICP", names),
@@ -472,6 +485,34 @@ export function ICPPreviewCard(props: ICPPreviewCardProps) {
                   >
                     <FolderPlus className="h-4 w-4 mr-2" />
                     Move to brand…
+                  </DropdownMenuItem>
+                ) : null}
+
+                {onAddToCollection && !isInCollection ? (
+                  <DropdownMenuItem
+                    data-no-card-click="true"
+                    className="text-sm"
+                    onSelect={(e) => {
+                      stop(e);
+                      handleAction("add-to-collection");
+                    }}
+                  >
+                    <FolderPlus className="h-4 w-4 mr-2" />
+                    Add to collection
+                  </DropdownMenuItem>
+                ) : null}
+
+                {onRemoveFromCollection && isInCollection ? (
+                  <DropdownMenuItem
+                    data-no-card-click="true"
+                    className="text-sm"
+                    onSelect={(e) => {
+                      stop(e);
+                      handleAction("remove-from-collection");
+                    }}
+                  >
+                    <FolderMinus className="h-4 w-4 mr-2" />
+                    Remove from collection
                   </DropdownMenuItem>
                 ) : null}
 

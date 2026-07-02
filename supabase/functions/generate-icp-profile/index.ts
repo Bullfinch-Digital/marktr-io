@@ -24,6 +24,7 @@ type GenerateInput = {
   targetMarket: string;
   pricePoint?: string;
   extraContext?: string;
+  brandId?: string;
 };
 
 type GeneratedICP = {
@@ -39,6 +40,28 @@ type GeneratedICP = {
 
 const OPENAI_URL = "https://api.openai.com/v1/chat/completions";
 const OPENAI_MODEL = "gpt-4.1-mini";
+
+async function resolveBrandIdForIcpOps(
+  supabaseClient: ReturnType<typeof createClient>,
+  userId: string,
+  preferredBrandId?: string | null
+): Promise<string | null> {
+  if (preferredBrandId) return preferredBrandId;
+
+  const { data, error } = await supabaseClient
+    .from("brands")
+    .select("id")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: true })
+    .limit(1);
+
+  if (error) {
+    console.error("brand lookup failed", error);
+    return null;
+  }
+
+  return data?.[0]?.id ?? null;
+}
 
 serve(async (req: Request): Promise<Response> => {
   if (req.method !== "POST") {
@@ -92,6 +115,7 @@ serve(async (req: Request): Promise<Response> => {
       targetMarket: body.targetMarket,
       pricePoint: body.pricePoint ?? "",
       extraContext: body.extraContext ?? "",
+      brandId: body.brandId,
     };
 
     // Call OpenAI to generate a structured ICP object
@@ -177,9 +201,15 @@ serve(async (req: Request): Promise<Response> => {
     const icp: GeneratedICP =
       typeof content === "string" ? JSON.parse(content) : content;
 
-    // Prepare row for "icps" table. Adjust field names if your schema differs.
+    const brandId = await resolveBrandIdForIcpOps(
+      supabase,
+      user.id,
+      generateInput.brandId ?? null
+    );
+
     const rowToInsert: Record<string, unknown> = {
       user_id: user.id,
+      brand_id: brandId,
       name: icp.name,
       description: icp.summary,
       industry: icp.industry,
@@ -188,8 +218,6 @@ serve(async (req: Request): Promise<Response> => {
       goals: icp.goals ?? [],
       pain_points: icp.painPoints ?? [],
       tags: icp.tags ?? [],
-      // You can also store the raw AI result for debugging:
-      ai_meta: { source: "generate-icp-profile", icp },
     };
 
     const { data, error } = await supabase

@@ -12,6 +12,7 @@ import {
   outbox,
   type PendingOp,
 } from "../lib/localCache";
+import { resolveBrandIdForIcpInsertPayload } from "../lib/icpBrandAttach";
 
 // ---- DB-safe payload helpers (Outbox hardening) ----
 const stripKeys = <T extends Record<string, any>>(obj: T, keys: string[]) => {
@@ -92,10 +93,11 @@ export function useOutboxSync() {
       switch (op.type) {
         case "create_icp": {
           const dbPayload = toDbIcpPayload(op.payload);
+          const resolvedPayload = await resolveBrandIdForIcpInsertPayload(userId, dbPayload);
 
           const { data: created, error } = await supabase
             .from("icps")
-            .insert([dbPayload])
+            .insert([resolvedPayload])
             .select()
             .single();
 

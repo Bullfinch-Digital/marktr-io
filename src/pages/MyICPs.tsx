@@ -5,8 +5,10 @@ import { Input } from "../components/ui/input";
 import { ICPPreviewCard } from "../components/cards/ICPPreviewCard";
 import ICPColorModal from "../components/ICPColorModal";
 import ICPAvatarModal from "../components/ICPAvatarModal";
+import { CollectionPickerModal } from "../components/modals/CollectionPickerModal";
 import { useICPs } from "../hooks/useICPs";
 import { useBrands } from "../hooks/useBrands";
+import { useCollections } from "../hooks/useCollections";
 import useSubscription from "../hooks/useSubscription";
 import { useOutboxSync } from "../hooks/useOutboxSync";
 import { useAuth } from "../contexts/AuthContext";
@@ -33,10 +35,12 @@ export default function MyICPsPage() {
     gender: null as string | null,
     ageRange: null as string | null,
   });
+  const [addToCollectionIcpId, setAddToCollectionIcpId] = useState<string | null>(null);
 
   const { user, loading: authLoading } = useAuth();
   const { icps: rawICPs, isLoading: icpsLoading, fetchICPs, isOffline: icpsOffline, updateICP } = useICPs();
   const { brands } = useBrands();
+  const { addICPToCollection, createCollection } = useCollections();
   const { tier: userTier, effectiveTier, trialActive, isLoading: subscriptionLoading } = useSubscription();
   const { isSyncing, pendingCount } = useOutboxSync();
   const { openPaywall } = usePaywall();
@@ -292,6 +296,7 @@ export default function MyICPsPage() {
                   brands={brands?.map((b) => ({ id: b.id, name: b.name })) || []}
                   onMoveToBrand={handleMoveIcpToBrand}
                   onDelete={fetchICPs}
+                  onAddToCollection={() => setAddToCollectionIcpId(icp.id)}
                 />
               ))}
             </div>
@@ -344,6 +349,21 @@ export default function MyICPsPage() {
         }
         onSaved={async () => {
           await fetchICPs();
+        }}
+      />
+
+      <CollectionPickerModal
+        isOpen={!!addToCollectionIcpId}
+        onClose={() => setAddToCollectionIcpId(null)}
+        onSelectCollection={async (collectionId) => {
+          if (!addToCollectionIcpId) return false;
+          const ok = await addICPToCollection(collectionId, addToCollectionIcpId);
+          if (ok) setAddToCollectionIcpId(null);
+          return ok;
+        }}
+        onCreateCollection={async (data) => {
+          const created = await createCollection(data);
+          return created?.id ?? null;
         }}
       />
     </>

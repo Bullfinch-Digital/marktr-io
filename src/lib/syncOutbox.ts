@@ -10,6 +10,7 @@ import {
   outbox,
   type PendingOp,
 } from "./localCache";
+import { resolveBrandIdForIcpInsertPayload } from "./icpBrandAttach";
 
 const inFlight = new Map<string, Promise<number>>();
 
@@ -56,9 +57,10 @@ async function syncOperation(op: PendingOp, userId: string): Promise<boolean> {
     switch (op.type) {
       case "create_icp": {
         const dbPayload = toDbIcpPayload(op.payload);
+        const resolvedPayload = await resolveBrandIdForIcpInsertPayload(userId, dbPayload);
         const { data: created, error } = await supabase
           .from("icps")
-          .insert([dbPayload])
+          .insert([resolvedPayload])
           .select()
           .single();
 

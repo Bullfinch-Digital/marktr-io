@@ -33,6 +33,15 @@ export async function resolveBrandIdForIcpOps(
   return fetchUserPrimaryBrandId(userId);
 }
 
+/** Resolve brand_id on an ICP insert row (outbox replay, edge inserts). */
+export async function resolveBrandIdForIcpInsertPayload<T extends { brand_id?: string | null }>(
+  userId: string,
+  payload: T
+): Promise<T & { brand_id: string | null }> {
+  const brand_id = await resolveBrandIdForIcpOps(userId, payload.brand_id ?? null);
+  return { ...payload, brand_id };
+}
+
 /**
  * Attach user ICP rows with null brand_id to the given brand.
  * When onlyWhenSingleBrand is true, skips if the user has more than one brand.

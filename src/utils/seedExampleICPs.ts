@@ -1,5 +1,6 @@
 import { supabase } from "../config/supabase";
 import { ICP } from "../hooks/useICPs";
+import { resolveBrandIdForIcpOps } from "../lib/icpBrandAttach";
 
 /**
  * Seed the database with example ICPs for testing
@@ -7,10 +8,12 @@ import { ICP } from "../hooks/useICPs";
  */
 export async function seedExampleICPs(userId: string): Promise<ICP[]> {
   const now = new Date().toISOString();
+  const brandId = await resolveBrandIdForIcpOps(userId, null);
 
   const examples = [
     {
       user_id: userId,
+      brand_id: brandId,
       name: "Sarah the Startup Founder",
       description: "Early-stage tech founder seeking product-market fit.",
       industry: "Tech / SaaS",
@@ -36,6 +39,7 @@ export async function seedExampleICPs(userId: string): Promise<ICP[]> {
     },
     {
       user_id: userId,
+      brand_id: brandId,
       name: "Marcus the Marketing Manager",
       description: "Growth-focused B2B marketing lead.",
       industry: "B2B SaaS",
@@ -61,6 +65,7 @@ export async function seedExampleICPs(userId: string): Promise<ICP[]> {
     },
     {
       user_id: userId,
+      brand_id: brandId,
       name: "Emma the E-commerce Owner",
       description: "Runs a sustainable DTC online shop.",
       industry: "E-commerce / Retail",

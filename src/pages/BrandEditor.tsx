@@ -17,6 +17,8 @@ import { generateICPs } from "../lib/ai/pipeline";
 import { ICPPreviewCard } from "../components/cards/ICPPreviewCard";
 import ICPColorModal from "../components/ICPColorModal";
 import ICPAvatarModal from "../components/ICPAvatarModal";
+import { CollectionPickerModal } from "../components/modals/CollectionPickerModal";
+import { useCollections } from "../hooks/useCollections";
 import BrandDeleteModal from "../components/BrandDeleteModal";
 import BrandColorModal from "../components/BrandColorModal";
 import { exportBrandAsPDF } from "../utils/exportBrand";
@@ -79,6 +81,8 @@ export default function BrandEditor() {
     gender: null as string | null,
     ageRange: null as string | null,
   });
+  const [addToCollectionIcpId, setAddToCollectionIcpId] = useState<string | null>(null);
+  const { addICPToCollection, createCollection } = useCollections();
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -844,6 +848,7 @@ export default function BrandEditor() {
                         } catch {}
                         await fetchICPs(true);
                       }}
+                      onAddToCollection={() => setAddToCollectionIcpId(icp.id)}
                     />
                   ))}
                 </div>
@@ -1315,6 +1320,22 @@ export default function BrandEditor() {
           await fetchICPs(true);
         }}
       />
+
+      <CollectionPickerModal
+        isOpen={!!addToCollectionIcpId}
+        onClose={() => setAddToCollectionIcpId(null)}
+        onSelectCollection={async (collectionId) => {
+          if (!addToCollectionIcpId) return false;
+          const ok = await addICPToCollection(collectionId, addToCollectionIcpId);
+          if (ok) setAddToCollectionIcpId(null);
+          return ok;
+        }}
+        onCreateCollection={async (data) => {
+          const created = await createCollection(data);
+          return created?.id ?? null;
+        }}
+      />
+
       <BrandColorModal
         open={brandColorModal.open}
         id={brandColorModal.id}

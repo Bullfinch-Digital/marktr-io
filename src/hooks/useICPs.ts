@@ -4,7 +4,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { useBrand } from "../contexts/BrandContext";
 import { getCachedICPs, setCachedICPs, addPendingOp, getPendingOps, type PendingOp } from "../lib/localCache";
 import { isBrandScopeReady, resolveScopedBrandId } from "../lib/brandScopedReads";
-import { attachOrphanIcpsToBrand } from "../lib/icpBrandAttach";
+import { attachOrphanIcpsToBrand, resolveBrandIdForIcpOps } from "../lib/icpBrandAttach";
 
 export interface ICP {
   id: string;
@@ -338,11 +338,12 @@ export function useICPs() {
     if (!user?.id) return null;
 
     const dbSafe = toDbIcpPayload(data);
+    const preferredBrandId = (dbSafe as any)?.brand_id ?? activeBrandId ?? null;
+    const resolvedBrandId = await resolveBrandIdForIcpOps(user.id, preferredBrandId);
     const newICP = {
       ...dbSafe,
       user_id: user.id,
-      // ensure brand_id is explicitly present when passed (nullable is allowed)
-      brand_id: (dbSafe as any)?.brand_id ?? null,
+      brand_id: resolvedBrandId,
       name: (dbSafe as any)?.name || "",
       description: (dbSafe as any)?.description || "",
       created_at: new Date().toISOString(),

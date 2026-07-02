@@ -21,6 +21,7 @@ import {
   isGuestLeadCaptured,
   updateGuestContext,
 } from "../lib/guestContext";
+import { resolveBrandIdForIcpOps } from "../lib/icpBrandAttach";
 import {
   WelcomeScreen,
   NameScreen,
@@ -537,7 +538,8 @@ export default function OnboardingBuild() {
           // and use it to allocate the new ICPs.
           let resolvedBrandId: string | null = null;
           try {
-            resolvedBrandId = await ensureBrandForAuthenticatedOnboarding();
+            const ensuredBrandId = await ensureBrandForAuthenticatedOnboarding();
+            resolvedBrandId = await resolveBrandIdForIcpOps(user.id, ensuredBrandId);
           } catch (err) {
             if (import.meta.env.DEV) {
               console.warn("[Onboarding] ensureBrandForAuthenticatedOnboarding error", err);

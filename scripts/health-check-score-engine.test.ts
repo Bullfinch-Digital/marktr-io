@@ -5,6 +5,7 @@
 import assert from "node:assert/strict";
 import {
   absentHealthCheckFacts,
+  absentApifyMetrics,
   bandEngagementForSize,
   buildHealthCheckRun,
   scoreFromFacts,
@@ -69,6 +70,7 @@ function testIdenticalRuns() {
     },
   });
 
+  assert.equal(run1.scorerVersion, "1.0.1");
   assert.deepEqual(run1.scores, run2.scores);
   assert.equal(run1.scores.overall, run2.scores.overall);
   console.log("✓ identical runs produce identical scores", run1.scores);
@@ -246,10 +248,46 @@ function testAugmentFindingsBrandStoryDelta() {
   console.log("✓ augmentFindingsWithPriorRun references Brand Story delta");
 }
 
+function testNoSocialHallucinationScoresZero() {
+  const apify = absentApifyMetrics();
+  const hallucinated = {
+    ...absentHealthCheckFacts(),
+    valueProp: "clear" as const,
+    namesCustomer: "clear" as const,
+    usesSecondPerson: true,
+    primaryCTA: "single" as const,
+    proofOnPage: "real" as const,
+    pathToBuyContact: "clear" as const,
+    socialReflectsStory: "expresses" as const,
+    igProfileComplete: "complete" as const,
+    bioOnMessage: "complete" as const,
+  };
+
+  const run = buildHealthCheckRun({
+    facts: hallucinated,
+    apifyMetrics: apify,
+    modelVersion: "test",
+    inputs: {
+      websiteUrl: "https://shropshirelearningassessments.com",
+      instagramHandle: "",
+      facebookUrl: "",
+      domain: "shropshirelearningassessments.com",
+    },
+  });
+
+  assert.equal(run.scorerVersion, "1.0.1");
+  assert.equal(run.scores.socialPresence, 0);
+  assert.equal(run.scores.contentConsistency, 0);
+  assert.equal(run.points.content.socialReflectsStory, 0);
+  assert.equal(run.points.content.bioOnMessage, 0);
+  console.log("✓ no social profile → social facts forced absent, Social/Content social-derived = 0");
+}
+
 testIdenticalRuns();
 testUsesSecondPersonBump();
 testWeightedOverall();
 testEngagementBands();
 testSingleDimensionChange();
 testAugmentFindingsBrandStoryDelta();
+testNoSocialHallucinationScoresZero();
 console.log("\nAll score engine tests passed.");

@@ -15,12 +15,26 @@ type PriorRunInput = {
   created_at: string;
 };
 
+type BrandStoryPillarInput = {
+  foundingStory: string;
+  pointOfView: string;
+  positioningStatement: string;
+  brandPurpose: string;
+  hasDefinedStory: boolean;
+};
+
+type PillarContextInput = {
+  brandStory?: BrandStoryPillarInput | null;
+};
+
 type Input = {
   websiteUrl: string;
   instagramHandle?: string;
   facebookUrl?: string;
   /** Optional prior run — findings prose ONLY; never affects fact extraction or scores. */
   priorRun?: PriorRunInput;
+  /** Pillar definitions (marktr) — findings prose ONLY; never affects facts or scores. */
+  pillarContext?: PillarContextInput;
 };
 
 /** Pinned model version — same string recorded client-side (§6). */
@@ -454,6 +468,75 @@ async function fetchFacebookPublic(facebookUrl: string): Promise<FacebookFetchRe
   }
 }
 
+/** Strip scripts/styles so main-body text extraction isn't dominated by inline CSS. */
+function stripNonContentHtml(html: string): string {
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ");
+}
+
+/**
+ * Pull customer review / testimonial quotes from SSR HTML (Shopify review cards,
+ * blockquotes, common widget class names). Many SMEs embed reviews in the initial HTML
+ * even when a JS widget enhances them — the LLM needs the quote text, not just "verified".
+ */
+function extractReviewSignals(html: string): string[] {
+  const reviews: string[] = [];
+  const seen = new Set<string>();
+
+  const pushReview = (line: string) => {
+    const normalized = line.replace(/\s+/g, " ").trim();
+    if (normalized.length < 20 || normalized.length > 400) return;
+    const key = normalized.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    reviews.push(normalized);
+  };
+
+  // Shopify featured-reviews / review-card blocks (e.g. Mother Root + Reviews.io SSR)
+  const cardBlocks = [
+    ...html.matchAll(
+      /<div[^>]*class="[^"]*review-card[^"]*"[\s\S]*?<\/div>\s*<\/div>\s*<\/div>/gi
+    ),
+  ];
+  for (const block of cardBlocks.slice(0, 8)) {
+    const chunk = block[0];
+    const quote =
+      chunk.match(/class="[^"]*review-content[^"]*"[^>]*>([\s\S]*?)<\/div>/i)?.[1]
+        ?.replace(/<[^>]+>/g, " ")
+        .replace(/\s+/g, " ")
+        .trim() ?? "";
+    const author =
+      chunk.match(/class="[^"]*author[^"]*"[^>]*>([^<]+)</i)?.[1]?.trim() ?? "";
+    const verified = /verified\s+customer/i.test(chunk);
+    if (!quote) continue;
+    const prefix = [
+      author && `Reviewer: ${author}`,
+      verified && "Verified Customer",
+    ]
+      .filter(Boolean)
+      .join(" | ");
+    pushReview(prefix ? `${prefix} — "${quote}"` : `"${quote}"`);
+  }
+
+  // Generic review-content / testimonial class patterns
+  for (const m of html.matchAll(
+    /class="[^"]*(?:review-content|testimonial-text|review-body|okeReviews)[^"]*"[^>]*>([\s\S]*?)<\/(?:div|p|blockquote)>/gi
+  )) {
+    const quote = m[1].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+    if (quote) pushReview(`"${quote}"`);
+    if (reviews.length >= 6) break;
+  }
+
+  for (const m of html.matchAll(/<blockquote[^>]*>([\s\S]*?)<\/blockquote>/gi)) {
+    const quote = m[1].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+    if (quote) pushReview(`"${quote}"`);
+    if (reviews.length >= 6) break;
+  }
+
+  return reviews.slice(0, 6);
+}
+
 function extractAllSignals(html: string, url: string): string {
   const get = (pattern: RegExp) => {
     const m = html.match(pattern);
@@ -534,12 +617,14 @@ function extractAllSignals(html: string, url: string): string {
     html.match(/<main[^>]*>([\s\S]*?)<\/main>/i) ||
     html.match(/<div[^>]*id=["']main["'][^>]*>([\s\S]*?)<\/div>/i);
   const mainText = mainMatch
-    ? mainMatch[1]
+    ? stripNonContentHtml(mainMatch[1])
         .replace(/<[^>]+>/g, " ")
         .replace(/\s+/g, " ")
         .trim()
         .slice(0, 1200)
     : "";
+
+  const reviewSignals = extractReviewSignals(html);
 
   const hasContact = /contact|get in touch|reach us|email us|call us/i.test(html);
   const hasEmail =
@@ -566,6 +651,8 @@ function extractAllSignals(html: string, url: string): string {
     ctaLinks.length && `CTA buttons/links: ${ctaLinks.join(", ")}`,
     socialProofMatches.length &&
       `Social proof signals: ${socialProofMatches.join(", ")}`,
+    reviewSignals.length &&
+      `Customer reviews / testimonials:\n${reviewSignals.map((r, i) => `${i + 1}. ${r}`).join("\n")}`,
     schemaType && `Schema type: ${schemaType}`,
     schemaDesc && `Schema description: ${schemaDesc}`,
     socialPlatforms.length && `Social media: ${socialPlatforms.join(", ")}`,
@@ -640,11 +727,11 @@ const FACTS_SYSTEM_PROMPT = `You extract observable marketing FACTS from website
 }
 
 WEBSITE CLARITY:
-- valueProp: clear = states what they do plainly; vague = present but jargon/generic; absent = can't tell what they do
+- valueProp: "clear" ONLY if the hero/above-the-fold headline (H1 or primary hero text) plainly states what they offer and who it's for in concrete terms. Mission-statement, aspirational-only, or values-only heroes (e.g. "Empowering Learners, Changing Lives") where the actual offer lives only in body copy → "vague", NOT "clear". "vague" = offer present but buried, jargon-heavy, or generic. "absent" = can't tell what they do.
 - namesCustomer: clear = names/implies who it's for; hinted = weak audience signal; absent = speaks to no one
 - usesSecondPerson: true if hero/body uses "you"/"your" addressing the reader
 - primaryCTA: single = one clear next step; competing = multiple competing CTAs; absent = no clear action
-- proofOnPage: real = testimonials/logos/press/reviews; claimed = claims without proof; absent = none
+- proofOnPage: "real" when the scrape shows specific proof — named reviewers with product/experience detail, "Verified Customer" quotes with specifics, named client logos, credentials, or press. Multiple detailed customer quotes (even without surnames) with concrete product language count as "real". "claimed" ONLY for generic/anonymous praise without specifics ("great service!", bare star counts, marketing boasts with no verifiable detail). "absent" = no proof signals or review quotes in the scrape.
 - pathToBuyContact: clear = obvious shop/contact/book path; buried = hard to find; absent = none found
 
 BRAND STORY (from about/story pages + homepage):
@@ -654,14 +741,57 @@ BRAND STORY (from about/story pages + homepage):
 - pointOfView: distinct = clear belief/stance; implied = weak stance; absent = none
 - valuesMission: concrete = specific values/mission; generic = present but generic; absent = none
 
-STORY ↔ SOCIAL (compare story to Instagram bio/recent post themes in the input):
+STORY ↔ SOCIAL (ONLY when Instagram/Facebook data is present in the input — otherwise skip these three fields; they will be forced absent in code):
 - socialReflectsStory: expresses = socials reflect brand story/POV; loose = loosely connected; disconnected = unrelated generic socials
 
-SOCIAL PROFILE (qualitative only — follower counts are handled separately):
+SOCIAL PROFILE (ONLY when Instagram data is present in the input):
 - igProfileComplete: complete = bio, name, link feel complete; thin = sparse; absent = empty/default or no IG data
 - bioOnMessage: complete = bio on-brand and names audience; thin = generic bio; absent = empty or no IG
 
+If NO social sections appear in the input, set socialReflectsStory="disconnected", igProfileComplete="absent", bioOnMessage="absent".
+
 Do NOT output scores, points, or findings. Facts only.`;
+
+function hasAnySocialProfile(metrics: ApifySocialMetrics): boolean {
+  return metrics.instagramFound || metrics.facebookFound;
+}
+
+function sanitizeFactsForScoring(
+  facts: HealthCheckFacts,
+  apifyMetrics: ApifySocialMetrics
+): HealthCheckFacts {
+  if (hasAnySocialProfile(apifyMetrics)) return facts;
+  return {
+    ...facts,
+    socialReflectsStory: "disconnected",
+    igProfileComplete: "absent",
+    bioOnMessage: "absent",
+  };
+}
+
+function normalizePillarContext(raw: unknown): PillarContextInput | undefined {
+  if (!raw || typeof raw !== "object") return undefined;
+  const record = raw as Record<string, unknown>;
+  const brandStoryRaw = record.brandStory;
+  if (!brandStoryRaw || typeof brandStoryRaw !== "object") return undefined;
+  const bs = brandStoryRaw as Record<string, unknown>;
+  const foundingStory = typeof bs.foundingStory === "string" ? bs.foundingStory.trim() : "";
+  const pointOfView = typeof bs.pointOfView === "string" ? bs.pointOfView.trim() : "";
+  const positioningStatement =
+    typeof bs.positioningStatement === "string" ? bs.positioningStatement.trim() : "";
+  const brandPurpose = typeof bs.brandPurpose === "string" ? bs.brandPurpose.trim() : "";
+  const hasDefinedStory = Boolean(bs.hasDefinedStory);
+  if (!hasDefinedStory) return undefined;
+  return {
+    brandStory: {
+      foundingStory,
+      pointOfView,
+      positioningStatement,
+      brandPurpose,
+      hasDefinedStory: true,
+    },
+  };
+}
 
 const FINDINGS_SYSTEM_PROMPT = `You write advisory findings for a digital health check. Return ONLY valid JSON — no markdown.
 
@@ -691,7 +821,13 @@ WHEN priorRun IS PROVIDED (follow-up check):
 - Compare against priorRun.findings, priorRun.gaps, and priorRun.missingElements when judging what was fixed.
 
 WHEN priorRun IS ABSENT (first check):
-- Fresh advice only — no "compared to last time" language.`;
+- Fresh advice only — no "compared to last time" language.
+
+WHEN pillarContext.brandStory IS PROVIDED (marktr-defined story — findings ONLY, scores already set from live site):
+- Compare DEFINED (in marktr) vs LIVE (on public website from extractedFacts/scrape).
+- If a strong story is defined in marktr but site facts show thin/absent founder story → Brand Story finding MUST call this out: they've defined a founder story/POV in marktr but it's not live on the website; getting it onto the about page would help visitors and could lift Brand Story over time. Reference a specific element from pillarContext.brandStory (founding story, POV, etc.).
+- If defined AND live site facts align → acknowledge alignment briefly.
+- pillarContext NEVER changes scores — only enriches advice.`;
 
 type FindingsResponse = {
   findings: Array<{ dimension: string; score: number; finding: string }>;
@@ -782,6 +918,7 @@ async function generateFindingsProse(
   apifyMetrics: ApifySocialMetrics,
   scores: ReturnType<typeof computeDeterministicScores>,
   priorRun: PriorRunInput | undefined,
+  pillarContext: PillarContextInput | undefined,
   scrapeSummary: string
 ): Promise<FindingsResponse | null> {
   const userPayload = {
@@ -810,6 +947,7 @@ async function generateFindingsProse(
       postsPerWeek: apifyMetrics.postsPerWeek,
     },
     priorRun: priorRun ?? null,
+    pillarContext: pillarContext ?? null,
     scrapeSummary: scrapeSummary.slice(0, 4000),
   };
 
@@ -869,6 +1007,7 @@ Deno.serve(async (req) => {
     const body = (await req.json()) as Partial<Input>;
     console.log("Raw instagramHandle received:", body.instagramHandle);
     const priorRun = normalizePriorRun(body.priorRun);
+    const pillarContext = normalizePillarContext(body.pillarContext);
     const websiteUrl = normaliseUrl(body.websiteUrl ?? "");
     if (!websiteUrl) return json({ error: "websiteUrl is required" }, 400);
 
@@ -1007,8 +1146,9 @@ Deno.serve(async (req) => {
           : "";
       if (!content) throw new Error("Empty model response");
 
-      const facts = parseFactsJson(content);
-      const deterministicScores = computeDeterministicScores(facts, apifyMetrics);
+      const rawFacts = parseFactsJson(content);
+      const facts = sanitizeFactsForScoring(rawFacts, apifyMetrics);
+      const deterministicScores = computeDeterministicScores(rawFacts, apifyMetrics);
 
       let findingsPayload: FindingsResponse | null = null;
       try {
@@ -1018,6 +1158,7 @@ Deno.serve(async (req) => {
           apifyMetrics,
           deterministicScores,
           priorRun,
+          pillarContext,
           combinedText
         );
       } catch (findingsErr) {

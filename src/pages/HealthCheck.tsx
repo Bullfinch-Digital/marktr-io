@@ -34,6 +34,7 @@ import { captureGuestLeadOnce, isTurnstileConfigured } from "../lib/leadCapture"
 import { resolveScopedBrandId } from "../lib/brandScopedReads";
 import { fetchLatestHealthCheck, resolveBrandIdForHealthWrite } from "../lib/healthCheckPersistence";
 import { buildPriorRunPayload } from "../lib/healthCheckPriorRun";
+import { fetchBrandStoryPillarForHealth } from "../lib/healthCheckPillarContext";
 
 type Step = "welcome" | "inputs" | "loading";
 
@@ -324,6 +325,7 @@ export default function HealthCheck() {
         scoreInFlightKeyRef.current = scoreInputKey;
         try {
           let priorRun = undefined;
+          let pillarContext: { brandStory: Awaited<ReturnType<typeof fetchBrandStoryPillarForHealth>> } | undefined;
           if (isLoggedIn && user?.id) {
             const scopedBrandId = resolveScopedBrandId(activeBrandId, brands);
             const { brandId } = await resolveBrandIdForHealthWrite(
@@ -332,8 +334,14 @@ export default function HealthCheck() {
               brands
             );
             if (brandId) {
-              const priorRow = await fetchLatestHealthCheck(user.id, brandId);
+              const [priorRow, brandStoryPillar] = await Promise.all([
+                fetchLatestHealthCheck(user.id, brandId),
+                fetchBrandStoryPillarForHealth(user.id, brandId),
+              ]);
               priorRun = buildPriorRunPayload(priorRow);
+              if (brandStoryPillar) {
+                pillarContext = { brandStory: brandStoryPillar };
+              }
             }
           }
 
@@ -343,6 +351,7 @@ export default function HealthCheck() {
               instagramHandle: formData.instagramHandle?.trim() || undefined,
               facebookUrl: facebookUrl || undefined,
               ...(priorRun ? { priorRun } : {}),
+              ...(pillarContext ? { pillarContext } : {}),
             },
           });
           if (data && (data.facts !== undefined || data.apifyMetrics !== undefined)) {

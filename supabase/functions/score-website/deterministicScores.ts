@@ -1,6 +1,6 @@
 /**
  * Edge copy of client score engine — findings prompt context only.
- * Keep in sync with src/lib/healthCheck/scoreEngine.ts + socialBands.ts.
+ * Keep in sync with src/lib/healthCheck/scoreEngine.ts + socialBands.ts + factsSanitize.ts.
  */
 
 type HealthCheckFacts = {
@@ -89,6 +89,23 @@ const CROSS_PLATFORM_PTS: Record<CrossPlatformBand, number> = {
   one: 10,
   none: 0,
 };
+
+function hasAnySocialProfile(metrics: ApifySocialMetrics): boolean {
+  return metrics.instagramFound || metrics.facebookFound;
+}
+
+function sanitizeFactsForScoring(
+  facts: HealthCheckFacts,
+  apifyMetrics: ApifySocialMetrics
+): HealthCheckFacts {
+  if (hasAnySocialProfile(apifyMetrics)) return facts;
+  return {
+    ...facts,
+    socialReflectsStory: "disconnected",
+    igProfileComplete: "absent",
+    bioOnMessage: "absent",
+  };
+}
 
 function followerTier(followers: number): "nano" | "mid" | "large" {
   if (followers >= 100_000) return "large";
@@ -189,32 +206,35 @@ export function computeDeterministicScores(
   social: number;
   overall: number;
 } {
+  const scoredFacts = sanitizeFactsForScoring(facts, apifyMetrics);
   const socialBands = bandSocialSignals(apifyMetrics);
+  const hasSocialProfile = hasAnySocialProfile(apifyMetrics);
 
   const website =
-    VALUE_PROP_PTS[facts.valueProp] +
-    namesCustomerPoints(facts) +
-    PRIMARY_CTA_PTS[facts.primaryCTA] +
-    PROOF_PTS[facts.proofOnPage] +
-    PATH_PTS[facts.pathToBuyContact];
+    VALUE_PROP_PTS[scoredFacts.valueProp] +
+    namesCustomerPoints(scoredFacts) +
+    PRIMARY_CTA_PTS[scoredFacts.primaryCTA] +
+    PROOF_PTS[scoredFacts.proofOnPage] +
+    PATH_PTS[scoredFacts.pathToBuyContact];
 
   const brandStory =
-    FOUNDER_PTS[facts.founderStory] +
-    STORY_SPECIFIC_PTS[facts.storySpecific] +
-    POV_PTS[facts.pointOfView] +
-    VALUES_PTS[facts.valuesMission];
+    FOUNDER_PTS[scoredFacts.founderStory] +
+    STORY_SPECIFIC_PTS[scoredFacts.storySpecific] +
+    POV_PTS[scoredFacts.pointOfView] +
+    VALUES_PTS[scoredFacts.valuesMission];
 
   const content =
     RECENCY_PTS[socialBands.postingRecency] +
     REGULARITY_PTS[socialBands.postingRegularity] +
-    SOCIAL_REFLECTS_PTS[facts.socialReflectsStory] +
-    BIO_PTS[facts.bioOnMessage];
+    SOCIAL_REFLECTS_PTS[scoredFacts.socialReflectsStory] +
+    BIO_PTS[scoredFacts.bioOnMessage];
 
-  const social =
-    PROFILE_PTS[socialBands.profileCompleteness] +
-    ENGAGEMENT_PTS[socialBands.engagement] +
-    AUDIENCE_PTS[socialBands.audienceSize] +
-    CROSS_PLATFORM_PTS[socialBands.crossPlatform];
+  const social = hasSocialProfile
+    ? PROFILE_PTS[socialBands.profileCompleteness] +
+      (apifyMetrics.instagramFound ? ENGAGEMENT_PTS[socialBands.engagement] : 0) +
+      (apifyMetrics.instagramFound ? AUDIENCE_PTS[socialBands.audienceSize] : 0) +
+      CROSS_PLATFORM_PTS[socialBands.crossPlatform]
+    : 0;
 
   const overall = Math.round(
     website * DIMENSION_WEIGHTS.websiteClarity +

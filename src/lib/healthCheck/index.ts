@@ -41,3 +41,5 @@ export {
   type ScoreWebsiteApiResponse,
   parseScoreWebsiteResponse,
 } from "./parseApiResponse";
+
+export { sanitizeFactsForScoring, hasAnySocialProfile } from "./factsSanitize";

@@ -22,6 +22,7 @@ import {
   type HealthCheckRow,
 } from "../lib/healthCheckPersistence";
 import { buildPriorRunPayload } from "../lib/healthCheckPriorRun";
+import { fetchBrandStoryPillarForHealth } from "../lib/healthCheckPillarContext";
 import {
   augmentFindingsWithPriorRun,
   applyFindingsToWebsiteScore,
@@ -232,6 +233,8 @@ export default function HealthReport() {
       });
 
       const priorRun = buildPriorRunPayload(currentRow);
+      const brandStoryPillar = await fetchBrandStoryPillarForHealth(user.id, brandId);
+      const pillarContext = brandStoryPillar ? { brandStory: brandStoryPillar } : undefined;
 
       const { data, error: invokeError } = await supabase.functions.invoke("score-website", {
         body: {
@@ -239,6 +242,7 @@ export default function HealthReport() {
           instagramHandle: snapshot.instagram_handle || undefined,
           facebookUrl: snapshot.facebook_url || undefined,
           ...(priorRun ? { priorRun } : {}),
+          ...(pillarContext ? { pillarContext } : {}),
         },
       });
 

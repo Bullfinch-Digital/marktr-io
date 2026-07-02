@@ -15,6 +15,7 @@ import {
   absentApifyMetrics,
   bandSocialSignals,
 } from "./socialBands";
+import { sanitizeFactsForScoring, hasAnySocialProfile } from "./factsSanitize";
 
 export type HealthCheckPointBreakdown = {
   website: {
@@ -124,14 +125,18 @@ function namesCustomerPoints(facts: HealthCheckFacts): number {
 
 export function scorePointsFromFacts(
   facts: HealthCheckFacts,
-  socialBands: BandedSocialSignals
+  socialBands: BandedSocialSignals,
+  apifyMetrics: ApifySocialMetrics
 ): HealthCheckPointBreakdown {
+  const scoredFacts = sanitizeFactsForScoring(facts, apifyMetrics);
+  const hasSocialProfile = hasAnySocialProfile(apifyMetrics);
+
   const website = {
-    valueProp: VALUE_PROP_PTS[facts.valueProp],
-    namesCustomer: namesCustomerPoints(facts),
-    primaryCTA: PRIMARY_CTA_PTS[facts.primaryCTA],
-    proofOnPage: PROOF_PTS[facts.proofOnPage],
-    pathToBuyContact: PATH_PTS[facts.pathToBuyContact],
+    valueProp: VALUE_PROP_PTS[scoredFacts.valueProp],
+    namesCustomer: namesCustomerPoints(scoredFacts),
+    primaryCTA: PRIMARY_CTA_PTS[scoredFacts.primaryCTA],
+    proofOnPage: PROOF_PTS[scoredFacts.proofOnPage],
+    pathToBuyContact: PATH_PTS[scoredFacts.pathToBuyContact],
     total: 0,
   };
   website.total =
@@ -142,10 +147,10 @@ export function scorePointsFromFacts(
     website.pathToBuyContact;
 
   const story = {
-    founderStory: FOUNDER_PTS[facts.founderStory],
-    storySpecific: STORY_SPECIFIC_PTS[facts.storySpecific],
-    pointOfView: POV_PTS[facts.pointOfView],
-    valuesMission: VALUES_PTS[facts.valuesMission],
+    founderStory: FOUNDER_PTS[scoredFacts.founderStory],
+    storySpecific: STORY_SPECIFIC_PTS[scoredFacts.storySpecific],
+    pointOfView: POV_PTS[scoredFacts.pointOfView],
+    valuesMission: VALUES_PTS[scoredFacts.valuesMission],
     total: 0,
   };
   story.total =
@@ -157,8 +162,8 @@ export function scorePointsFromFacts(
   const content = {
     postingRecency: RECENCY_PTS[socialBands.postingRecency],
     postingRegularity: REGULARITY_PTS[socialBands.postingRegularity],
-    socialReflectsStory: SOCIAL_REFLECTS_PTS[facts.socialReflectsStory],
-    bioOnMessage: BIO_PTS[facts.bioOnMessage],
+    socialReflectsStory: SOCIAL_REFLECTS_PTS[scoredFacts.socialReflectsStory],
+    bioOnMessage: BIO_PTS[scoredFacts.bioOnMessage],
     total: 0,
   };
   content.total =
@@ -167,13 +172,25 @@ export function scorePointsFromFacts(
     content.socialReflectsStory +
     content.bioOnMessage;
 
-  const social = {
-    profileCompleteness: PROFILE_PTS[socialBands.profileCompleteness],
-    engagementForSize: ENGAGEMENT_PTS[socialBands.engagement],
-    audienceSize: AUDIENCE_PTS[socialBands.audienceSize],
-    crossPlatform: CROSS_PLATFORM_PTS[socialBands.crossPlatform],
-    total: 0,
-  };
+  const social = hasSocialProfile
+    ? {
+        profileCompleteness: PROFILE_PTS[socialBands.profileCompleteness],
+        engagementForSize: apifyMetrics.instagramFound
+          ? ENGAGEMENT_PTS[socialBands.engagement]
+          : 0,
+        audienceSize: apifyMetrics.instagramFound
+          ? AUDIENCE_PTS[socialBands.audienceSize]
+          : 0,
+        crossPlatform: CROSS_PLATFORM_PTS[socialBands.crossPlatform],
+        total: 0,
+      }
+    : {
+        profileCompleteness: 0,
+        engagementForSize: 0,
+        audienceSize: 0,
+        crossPlatform: 0,
+        total: 0,
+      };
   social.total =
     social.profileCompleteness +
     social.engagementForSize +
@@ -209,7 +226,8 @@ export function scoreFromFacts(
   apifyMetrics: ApifySocialMetrics
 ): DeterministicHealthCheckRun {
   const socialBands = bandSocialSignals(apifyMetrics);
-  const points = scorePointsFromFacts(facts, socialBands);
+  const scoredFacts = sanitizeFactsForScoring(facts, apifyMetrics);
+  const points = scorePointsFromFacts(scoredFacts, socialBands, apifyMetrics);
 
   const scores = {
     websiteClarity: points.website.total,
@@ -236,7 +254,7 @@ export function scoreFromFacts(
       facebookUrl: "",
       domain: "",
     },
-    facts,
+    facts: scoredFacts,
     apifyMetrics,
     socialBands,
     points,

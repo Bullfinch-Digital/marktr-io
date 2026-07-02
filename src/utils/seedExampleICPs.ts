@@ -1,14 +1,28 @@
 import { supabase } from "../config/supabase";
 import { ICP } from "../hooks/useICPs";
 import { resolveBrandIdForIcpOps } from "../lib/icpBrandAttach";
+import { newGenerationId, supersedeBrandCurrentIcps, withVersioningDefaults } from "../lib/icpVersioning";
 
 /**
- * Seed the database with example ICPs for testing
- * Uses only the new Supabase schema fields
+ * Seed the database with example ICPs for testing.
+ * Supersedes any current rows on the target brand first so re-runs don't hit the name unique index.
  */
-export async function seedExampleICPs(userId: string): Promise<ICP[]> {
+export async function seedExampleICPs(
+  userId: string,
+  preferredBrandId?: string | null
+): Promise<ICP[]> {
   const now = new Date().toISOString();
-  const brandId = await resolveBrandIdForIcpOps(userId, null);
+  const brandId = await resolveBrandIdForIcpOps(userId, preferredBrandId ?? null);
+  const generationId = newGenerationId();
+
+  if (brandId) {
+    try {
+      await supersedeBrandCurrentIcps(brandId);
+    } catch (supersedeErr) {
+      console.warn("[seedExampleICPs] supersedeBrandCurrentIcps failed", supersedeErr);
+      throw supersedeErr;
+    }
+  }
 
   const examples = [
     {
@@ -89,7 +103,7 @@ export async function seedExampleICPs(userId: string): Promise<ICP[]> {
       created_at: now,
       updated_at: now
     }
-  ];
+  ].map((row) => withVersioningDefaults(row, generationId));
 
   const { data, error } = await supabase
     .from("icps")

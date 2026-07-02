@@ -99,11 +99,25 @@ export async function fetchCurrentIcpByLineageId(
   } as ICP;
 }
 
+/** Postgres/PostgREST errors that will never succeed on retry. */
+export function isPermanentIcpSyncError(error: unknown): boolean {
+  const code = (error as { code?: string })?.code;
+  if (!code) return false;
+  return (
+    code === "42703" || // undefined_column
+    code === "42883" || // undefined_function
+    code === "22P02" || // invalid_text_representation (bad uuid)
+    code === "23505" || // unique_violation
+    code === "23503" || // foreign_key_violation
+    code === "PGRST202" // RPC not found
+  );
+}
+
 /** Transactional supersede + insert version via Postgres RPC. */
 export async function insertIcpVersionRpc(
   icpId: string,
   updates: Record<string, unknown>
-): Promise<ICP | null> {
+): Promise<ICP> {
   const { data, error } = await supabase.rpc("icp_insert_version", {
     p_icp_id: icpId,
     p_updates: updates,
@@ -111,9 +125,12 @@ export async function insertIcpVersionRpc(
 
   if (error) {
     console.error("[icpVersioning] insertIcpVersionRpc failed", error);
-    return null;
+    throw error;
   }
-  return (data as ICP) ?? null;
+  if (!data) {
+    throw new Error("ICP version insert returned no row");
+  }
+  return data as ICP;
 }
 
 export function withVersioningDefaults(

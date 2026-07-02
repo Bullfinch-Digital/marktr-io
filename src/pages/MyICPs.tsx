@@ -12,6 +12,7 @@ import { useCollections } from "../hooks/useCollections";
 import useSubscription from "../hooks/useSubscription";
 import { useOutboxSync } from "../hooks/useOutboxSync";
 import { useAuth } from "../contexts/AuthContext";
+import { useBrand } from "../contexts/BrandContext";
 import { usePaywall } from "../contexts/PaywallContext";
 import { seedExampleICPs } from "../utils/seedExampleICPs";
 import { Search, Plus, Sparkles, WifiOff, AlertCircle } from "lucide-react";
@@ -40,6 +41,7 @@ export default function MyICPsPage() {
   const { user, loading: authLoading } = useAuth();
   const { icps: rawICPs, isLoading: icpsLoading, fetchICPs, isOffline: icpsOffline, updateICP } = useICPs();
   const { brands } = useBrands();
+  const { activeBrandId } = useBrand();
   const { addICPToCollection, createCollection } = useCollections();
   const { tier: userTier, effectiveTier, trialActive, isLoading: subscriptionLoading } = useSubscription();
   const { isSyncing, pendingCount } = useOutboxSync();
@@ -79,7 +81,7 @@ export default function MyICPsPage() {
     if (!user?.id) return;
     setIsSeeding(true);
     try {
-      await seedExampleICPs(user.id);
+      await seedExampleICPs(user.id, activeBrandId);
       await fetchICPs();
     } catch (error) {
       console.error("Error seeding example ICPs:", error);

@@ -13,7 +13,7 @@ import {
   type PendingOp,
 } from "../lib/localCache";
 import { resolveBrandIdForIcpInsertPayload } from "../lib/icpBrandAttach";
-import { insertIcpVersionRpc } from "../lib/icpVersioning";
+import { insertIcpVersionRpc, isPermanentIcpSyncError } from "../lib/icpVersioning";
 
 // ---- DB-safe payload helpers (Outbox hardening) ----
 const stripKeys = <T extends Record<string, any>>(obj: T, keys: string[]) => {
@@ -121,11 +121,10 @@ export function useOutboxSync() {
         }
 
         case "update_icp": {
-          const versioned = await insertIcpVersionRpc(
+          await insertIcpVersionRpc(
             op.payload.id,
             toDbIcpPayload(op.payload.updates)
           );
-          if (!versioned) throw new Error("ICP version insert failed");
           return true;
         }
 
@@ -279,14 +278,18 @@ export function useOutboxSync() {
       }
     } catch (err: any) {
       console.error(`Error syncing operation ${op.id} (${op.type}):`, err);
-      
-      // If error is invalid UUID syntax (22P02), remove the op to prevent infinite retries
-      if (err?.code === "22P02" || err?.message?.includes("invalid input syntax for type uuid")) {
-        console.warn(`Removing operation ${op.id} due to invalid UUID syntax - operation payload is invalid`);
+
+      // Drop ops that can never succeed (schema mismatch, bad payload, etc.)
+      if (
+        isPermanentIcpSyncError(err) ||
+        err?.code === "22P02" ||
+        err?.message?.includes("invalid input syntax for type uuid")
+      ) {
+        console.warn(`Removing operation ${op.id} — permanent sync failure`, err?.code ?? err?.message);
         await removePendingOp(userId, op.id);
-        return true; // Consider it handled (dropped)
+        return true;
       }
-      
+
       return false;
     }
   };

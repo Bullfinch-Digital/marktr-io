@@ -9,6 +9,7 @@ import {
   applyCurrentIcpFilter,
   fetchCurrentIcpByLineageId,
   insertIcpVersionRpc,
+  isPermanentIcpSyncError,
   newGenerationId,
   pickLatestGenerationRows,
   withVersioningDefaults,
@@ -481,21 +482,8 @@ export function useICPs() {
       return updated;
     });
 
-    const op: PendingOp = {
-      id: `op-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      type: "update_icp",
-      payload: { id, updates: updatesWithTimestamp },
-      timestamp: Date.now(),
-      retryCount: 0,
-    };
-    await addPendingOp(user.id, op);
-
     try {
       const versioned = await insertIcpVersionRpc(id, updatesWithTimestamp);
-      if (!versioned) throw new Error("Version insert failed");
-
-      const { removePendingOp } = await import("../lib/localCache");
-      await removePendingOp(user.id, op.id);
 
       const hydrated = {
         ...versioned,
@@ -520,16 +508,37 @@ export function useICPs() {
       console.error("Error versioning ICP in Supabase:", err);
       const error = err as any;
 
-      const isNetworkError = !error.code ||
+      const isNetworkError =
+        !error.code ||
         error.code === "ECONNREFUSED" ||
         error.code === "ENOTFOUND" ||
         error.message?.includes("network") ||
         error.message?.includes("fetch");
 
       if (isNetworkError) {
+        const op: PendingOp = {
+          id: `op-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          type: "update_icp",
+          payload: { id, updates: updatesWithTimestamp },
+          timestamp: Date.now(),
+          retryCount: 0,
+        };
+        await addPendingOp(user.id, op);
         setIsOffline(true);
       } else {
         setIsOffline(false);
+        if (isPermanentIcpSyncError(error)) {
+          // Revert optimistic preview when the server rejected the mutation.
+          if (existing) {
+            setICPs((prev) => {
+              const reverted = prev.map((icp) => (icp.id === id ? existing : icp));
+              setCachedICPs(user.id, reverted).catch((cacheErr) =>
+                console.error("Error reverting cached ICPs after failed save:", cacheErr)
+              );
+              return reverted;
+            });
+          }
+        }
       }
 
       return null;

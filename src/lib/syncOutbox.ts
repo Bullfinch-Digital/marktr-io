@@ -11,7 +11,7 @@ import {
   type PendingOp,
 } from "./localCache";
 import { resolveBrandIdForIcpInsertPayload } from "./icpBrandAttach";
-import { insertIcpVersionRpc } from "./icpVersioning";
+import { insertIcpVersionRpc, isPermanentIcpSyncError } from "./icpVersioning";
 
 const inFlight = new Map<string, Promise<number>>();
 
@@ -80,11 +80,10 @@ async function syncOperation(op: PendingOp, userId: string): Promise<boolean> {
       }
 
       case "update_icp": {
-        const versioned = await insertIcpVersionRpc(
+        await insertIcpVersionRpc(
           op.payload.id,
           toDbIcpPayload(op.payload.updates)
         );
-        if (!versioned) throw new Error("ICP version insert failed");
         return true;
       }
 
@@ -220,7 +219,11 @@ async function syncOperation(op: PendingOp, userId: string): Promise<boolean> {
     }
   } catch (err: any) {
     console.error(`[syncOutbox] error syncing ${op.id} (${op.type})`, err);
-    if (err?.code === "22P02" || err?.message?.includes("invalid input syntax for type uuid")) {
+    if (
+      isPermanentIcpSyncError(err) ||
+      err?.code === "22P02" ||
+      err?.message?.includes("invalid input syntax for type uuid")
+    ) {
       await removePendingOp(userId, op.id);
       return true;
     }

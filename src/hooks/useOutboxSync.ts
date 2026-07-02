@@ -13,6 +13,7 @@ import {
   type PendingOp,
 } from "../lib/localCache";
 import { resolveBrandIdForIcpInsertPayload } from "../lib/icpBrandAttach";
+import { insertIcpVersionRpc } from "../lib/icpVersioning";
 
 // ---- DB-safe payload helpers (Outbox hardening) ----
 const stripKeys = <T extends Record<string, any>>(obj: T, keys: string[]) => {
@@ -120,31 +121,43 @@ export function useOutboxSync() {
         }
 
         case "update_icp": {
-          const { error } = await supabase
-            .from("icps")
-            .update(toDbIcpPayload(op.payload.updates))
-            .eq("id", op.payload.id)
-            .eq("user_id", userId);
-
-          if (error) throw error;
+          const versioned = await insertIcpVersionRpc(
+            op.payload.id,
+            toDbIcpPayload(op.payload.updates)
+          );
+          if (!versioned) throw new Error("ICP version insert failed");
           return true;
         }
 
         case "delete_icp": {
-          // Delete from collection_items first
-          // IMPORTANT: collection_items does NOT have user_id column - only filter by icp_id
-          await supabase
-            .from("collection_items")
-            .delete()
-            .eq("icp_id", op.payload.id);
-
-          const { error } = await supabase
+          const { data: target, error: fetchError } = await supabase
             .from("icps")
-            .delete()
+            .select("lineage_id")
             .eq("id", op.payload.id)
-            .eq("user_id", userId);
+            .eq("user_id", userId)
+            .single();
 
-          if (error) throw error;
+          if (fetchError) throw fetchError;
+
+          const lineageId = (target as any)?.lineage_id as string | undefined;
+
+          if (lineageId) {
+            await supabase.from("collection_items").delete().eq("lineage_id", lineageId);
+            const { error } = await supabase
+              .from("icps")
+              .delete()
+              .eq("lineage_id", lineageId)
+              .eq("user_id", userId);
+            if (error) throw error;
+          } else {
+            const { error } = await supabase
+              .from("icps")
+              .delete()
+              .eq("id", op.payload.id)
+              .eq("user_id", userId);
+            if (error) throw error;
+          }
+
           return true;
         }
 
@@ -212,13 +225,11 @@ export function useOutboxSync() {
             return true; // Consider it handled (dropped)
           }
 
-          // Check if already exists
-          // IMPORTANT: collection_items does NOT have user_id column - only filter by collection_id and icp_id
           let checkQuery = supabase
             .from("collection_items")
             .select("*")
             .eq("collection_id", collectionId)
-            .eq("icp_id", op.payload.icp_id);
+            .eq("lineage_id", op.payload.lineage_id);
           
           const { data: existing } = await checkQuery.maybeSingle();
 
@@ -226,10 +237,12 @@ export function useOutboxSync() {
             return true; // Already exists, consider it success
           }
 
-          // IMPORTANT: collection_items only has collection_id and icp_id - no user_id
-          const { error } = await supabase
-            .from("collection_items")
-            .insert([op.payload]);
+          const { error } = await supabase.from("collection_items").insert([
+            {
+              collection_id: collectionId,
+              lineage_id: op.payload.lineage_id,
+            },
+          ]);
 
           if (error) throw error;
 
@@ -243,12 +256,11 @@ export function useOutboxSync() {
         }
 
         case "remove_icp_from_collection": {
-          // IMPORTANT: collection_items does NOT have user_id column - only filter by collection_id and icp_id
           const { error } = await supabase
             .from("collection_items")
             .delete()
             .eq("collection_id", op.payload.collection_id)
-            .eq("icp_id", op.payload.icp_id);
+            .eq("lineage_id", op.payload.lineage_id);
 
           if (error) throw error;
 

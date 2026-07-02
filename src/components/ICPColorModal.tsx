@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { supabase } from "../config/supabase";
+import { insertIcpVersionRpc } from "../lib/icpVersioning";
 
 const COLORS = ["#FF9922", "#FF6B6B", "#6BCB77", "#4D96FF", "#9D4EDD", "#FFD93D"];
 
@@ -8,7 +8,7 @@ type Props = {
   id: string | null;
   currentColor: string | null;
   onClose: () => void;
-  onSaved?: (color?: string) => void;
+  onSaved?: (color?: string, newIcpId?: string) => void;
 };
 
 export default function ICPColorModal({ isOpen, id, currentColor, onClose, onSaved }: Props) {
@@ -25,18 +25,14 @@ export default function ICPColorModal({ isOpen, id, currentColor, onClose, onSav
         selectedColor,
       });
     }
-    const { error } = await supabase
-      .from("icps")
-      .update({ color: selectedColor })
-      .eq("id", id);
-
-    if (error) {
-      console.error("❌ ICPColorModal: failed to persist icps.color", error);
+    const updated = await insertIcpVersionRpc(id, { color: selectedColor });
+    if (!updated) {
+      console.error("❌ ICPColorModal: failed to persist icps.color");
       setSaving(false);
       return;
     }
 
-    onSaved?.(selectedColor as any);
+    onSaved?.(selectedColor as any, updated.id);
     setSaving(false);
     onClose();
   };

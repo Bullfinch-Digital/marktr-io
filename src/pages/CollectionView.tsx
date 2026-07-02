@@ -95,6 +95,7 @@ export default function CollectionView() {
   const transformICPs = (icps: any[]) =>
     icps.map((icp, index) => ({
       id: icp.id,
+      lineage_id: icp.lineage_id ?? icp.id,
       name: icp.name,
       description: icp.description,
       industry: icp.industry,
@@ -206,13 +207,12 @@ export default function CollectionView() {
     }
   };
 
-  const handleRemoveICP = async (icpId: string) => {
+  const handleRemoveICP = async (lineageId: string) => {
     if (!collection) return;
     
-    const success = await removeICPFromCollection(collection.id, icpId);
+    const success = await removeICPFromCollection(collection.id, lineageId);
     if (success) {
-      // Optimistic update
-      setICPsInCollection(prev => prev.filter(icp => icp.id !== icpId));
+      setICPsInCollection(prev => prev.filter(icp => (icp as any).lineage_id !== lineageId));
     }
   };
 
@@ -220,13 +220,13 @@ export default function CollectionView() {
     setIsPickerOpen(true);
   };
 
-  const handleAssignICPs = async (selectedIcpIds: string[]) => {
-    if (!collection?.id || selectedIcpIds.length === 0) return;
+  const handleAssignICPs = async (selectedLineageIds: string[]) => {
+    if (!collection?.id || selectedLineageIds.length === 0) return;
     setIsAdding(true);
     setAddError(null);
     try {
-      for (const icpId of selectedIcpIds) {
-        await addICPToCollection(collection.id, icpId);
+      for (const lineageId of selectedLineageIds) {
+        await addICPToCollection(collection.id, lineageId);
       }
       const updated = await getCollectionICPs(collection.id);
       setICPsInCollection(transformICPs(updated));
@@ -301,7 +301,10 @@ export default function CollectionView() {
   }, [icpsInCollection, searchQuery]);
 
   const availableICPs = (allICPs || []).filter(
-    (icp) => !icpsInCollection.some((existing) => existing.id === icp.id)
+    (icp) =>
+      !icpsInCollection.some(
+        (existing) => (existing as any).lineage_id === (icp as any).lineage_id
+      )
   );
 
   const showEmptyState = !isLoading && icpsInCollection.length === 0;
@@ -492,7 +495,9 @@ export default function CollectionView() {
                       userTier={effectiveTier}
                       onUpgrade={handleUpgrade}
                       isInCollection={true}
-                      onRemoveFromCollection={() => handleRemoveICP(icp.id)}
+                      onRemoveFromCollection={() =>
+                        handleRemoveICP((icp as any).lineage_id || icp.id)
+                      }
                       onChangeColor={handleOpenIcpColorModal}
                       onChangeAvatar={handleOpenIcpAvatarModal}
                       brands={brands?.map((b) => ({ id: b.id, name: b.name })) || []}
@@ -539,7 +544,10 @@ export default function CollectionView() {
       <CollectionPickerModal
         isOpen={isPickerOpen}
         onClose={() => setIsPickerOpen(false)}
-        icps={availableICPs.map((icp) => ({ id: icp.id, name: icp.name }))}
+        icps={availableICPs.map((icp) => ({
+          id: (icp as any).lineage_id || icp.id,
+          name: icp.name,
+        }))}
         multiple={true}
         onConfirm={handleAssignICPs}
       />

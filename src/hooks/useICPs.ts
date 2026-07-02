@@ -5,6 +5,14 @@ import { useBrand } from "../contexts/BrandContext";
 import { getCachedICPs, setCachedICPs, addPendingOp, getPendingOps, type PendingOp } from "../lib/localCache";
 import { isBrandScopeReady, resolveScopedBrandId } from "../lib/brandScopedReads";
 import { attachOrphanIcpsToBrand, resolveBrandIdForIcpOps } from "../lib/icpBrandAttach";
+import {
+  applyCurrentIcpFilter,
+  fetchCurrentIcpByLineageId,
+  insertIcpVersionRpc,
+  newGenerationId,
+  pickLatestGenerationRows,
+  withVersioningDefaults,
+} from "../lib/icpVersioning";
 
 export interface ICP {
   id: string;
@@ -34,6 +42,10 @@ export interface ICP {
   created_at: string;
   updated_at: string;
   collection_id?: string | null;
+  lineage_id?: string;
+  generation_id?: string;
+  version?: number;
+  superseded_at?: string | null;
 }
 
 // Helper: build a unique "(Copy)" name for ICP duplicates
@@ -62,15 +74,23 @@ export function generateIcpCopyName(originalName: string, existingNames: string[
 }
 
 // Helper: strip client-only fields from ICP payload before DB insert/update/outbox
-export function toDbIcpPayload(input: Partial<ICP>): any {
+export function toDbIcpPayload(input: Partial<ICP>, opts?: { preserveVersioning?: boolean }): any {
   const {
     id,
     _index,
     brandName,
     brands,
-    // any other joined/transient fields can be stripped here
+    superseded_at,
     ...rest
   } = input as any;
+
+  if (!opts?.preserveVersioning) {
+    delete (rest as any).lineage_id;
+    delete (rest as any).generation_id;
+    delete (rest as any).version;
+    delete (rest as any).superseded_at;
+  }
+
   return rest;
 }
 
@@ -158,6 +178,7 @@ export function useICPs() {
       
       // Apply filters
       query = query.eq("user_id", user.id);
+      query = applyCurrentIcpFilter(query);
       if (scopedBrandId) {
         query = query.eq("brand_id", scopedBrandId);
       }
@@ -195,7 +216,11 @@ export function useICPs() {
       }
 
       // Success: update both state and cache
-      const icpsWithIndex = (data || []).map((icp: any, index: number) => ({
+      let currentRows = (data || []) as any[];
+      if (scopedBrandId) {
+        currentRows = pickLatestGenerationRows(currentRows);
+      }
+      const icpsWithIndex = currentRows.map((icp: any, index: number) => ({
         ...icp,
         // Supabase join returns `brands: { name } | null` (because FK is brands)
         brandName:
@@ -320,11 +345,16 @@ export function useICPs() {
         .single();
 
       if (fetchError) throw fetchError;
+      let row = data as any;
+      if (row?.superseded_at && row?.lineage_id) {
+        const current = await fetchCurrentIcpByLineageId(user.id, row.lineage_id);
+        if (current) row = { ...current, _requestedId: id };
+      }
       const hydrated = {
-        ...(data as any),
+        ...row,
         brandName:
-          ((data as any)?.brands && typeof (data as any).brands?.name === "string"
-            ? (data as any).brands.name
+          (row?.brands && typeof row.brands?.name === "string"
+            ? row.brands.name
             : null) ?? null,
       } as ICP;
       return hydrated;
@@ -340,15 +370,19 @@ export function useICPs() {
     const dbSafe = toDbIcpPayload(data);
     const preferredBrandId = (dbSafe as any)?.brand_id ?? activeBrandId ?? null;
     const resolvedBrandId = await resolveBrandIdForIcpOps(user.id, preferredBrandId);
-    const newICP = {
-      ...dbSafe,
-      user_id: user.id,
-      brand_id: resolvedBrandId,
-      name: (dbSafe as any)?.name || "",
-      description: (dbSafe as any)?.description || "",
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    } as ICP;
+    const generationId = (dbSafe as any)?.generation_id ?? newGenerationId();
+    const newICP = withVersioningDefaults(
+      {
+        ...dbSafe,
+        user_id: user.id,
+        brand_id: resolvedBrandId,
+        name: (dbSafe as any)?.name || "",
+        description: (dbSafe as any)?.description || "",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+      generationId
+    ) as unknown as ICP;
 
     // Generate temporary ID for offline support
     const tempId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -426,26 +460,27 @@ export function useICPs() {
     }
   };
 
-  const updateICP = async (id: string, updates: Partial<ICP>): Promise<boolean> => {
-    if (!user?.id) return false;
+  const updateICP = async (id: string, updates: Partial<ICP>): Promise<ICP | null> => {
+    if (!user?.id) return null;
 
-    // Ensure updated_at is always set
     const updatesWithTimestamp = {
-      ...updates,
+      ...toDbIcpPayload(updates),
       updated_at: new Date().toISOString(),
     };
 
-    // Optimistic update: update state and cache immediately
+    const existing = icps.find((icp) => icp.id === id);
+
+    // Optimistic: replace row with merged preview (real id assigned after RPC)
     setICPs((prev) => {
-      const updated = prev.map((icp) => (icp.id === id ? { ...icp, ...updatesWithTimestamp } : icp));
-      // Update cache in background
+      const updated = prev.map((icp) =>
+        icp.id === id ? { ...icp, ...updatesWithTimestamp } : icp
+      );
       setCachedICPs(user.id, updated).catch((err) =>
         console.error("Error caching ICPs after update:", err)
       );
       return updated;
     });
 
-    // Add to outbox for sync
     const op: PendingOp = {
       id: `op-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       type: "update_icp",
@@ -455,49 +490,49 @@ export function useICPs() {
     };
     await addPendingOp(user.id, op);
 
-    // Then attempt Supabase mutation immediately
     try {
-      const { data: updated, error: updateError } = await supabase
-        .from("icps")
-        .update(updatesWithTimestamp)
-        .eq("id", id)
-        .eq("user_id", user.id)
-        .select()
-        .single();
+      const versioned = await insertIcpVersionRpc(id, updatesWithTimestamp);
+      if (!versioned) throw new Error("Version insert failed");
 
-      if (updateError) throw updateError;
-
-      // Success: remove from outbox
       const { removePendingOp } = await import("../lib/localCache");
       await removePendingOp(user.id, op.id);
 
+      const hydrated = {
+        ...versioned,
+        brandName: existing?.brandName ?? null,
+      } as ICP;
+
+      setICPs((prev) => {
+        const withoutOld = prev.filter((icp) => icp.id !== id);
+        const updated = [hydrated, ...withoutOld];
+        setCachedICPs(user.id, updated).catch((err) =>
+          console.error("Error caching ICPs after version insert:", err)
+        );
+        return updated;
+      });
+
       setIsOffline(false);
-      // No refetch here — we already did an optimistic update + cache write.
-      // Trigger global listeners (dashboard / lists) to refresh if they want to.
       try {
         window.dispatchEvent(new Event("icps:changed"));
       } catch {}
-      return !!updated;
+      return hydrated;
     } catch (err) {
-      console.error("Error updating ICP in Supabase:", err);
+      console.error("Error versioning ICP in Supabase:", err);
       const error = err as any;
-      
-      // Only set offline for actual network errors
-      const isNetworkError = !error.code || 
-                            error.code === "ECONNREFUSED" || 
-                            error.code === "ENOTFOUND" ||
-                            error.message?.includes("network") ||
-                            error.message?.includes("fetch");
-      
+
+      const isNetworkError = !error.code ||
+        error.code === "ECONNREFUSED" ||
+        error.code === "ENOTFOUND" ||
+        error.message?.includes("network") ||
+        error.message?.includes("fetch");
+
       if (isNetworkError) {
-        console.log('Setting isOffline to true - network error detected');
         setIsOffline(true);
       } else {
         setIsOffline(false);
       }
-      
-      // Signal failure so callers can show an error
-      return false;
+
+      return null;
     }
   };
 
@@ -526,20 +561,38 @@ export function useICPs() {
 
     // Then attempt Supabase mutation immediately
     try {
-      // Delete from collection_items first (if exists)
-      await supabase
-        .from("collection_items")
-        .delete()
-        .eq("icp_id", id);
-
-      // Delete the ICP
-      const { error: deleteError } = await supabase
+      const { data: target, error: fetchError } = await supabase
         .from("icps")
-        .delete()
+        .select("lineage_id")
         .eq("id", id)
-        .eq("user_id", user.id);
+        .eq("user_id", user.id)
+        .single();
 
-      if (deleteError) throw deleteError;
+      if (fetchError) throw fetchError;
+
+      const lineageId = (target as any)?.lineage_id as string | undefined;
+
+      if (lineageId) {
+        await supabase
+          .from("collection_items")
+          .delete()
+          .eq("lineage_id", lineageId);
+
+        const { error: deleteLineageError } = await supabase
+          .from("icps")
+          .delete()
+          .eq("lineage_id", lineageId)
+          .eq("user_id", user.id);
+
+        if (deleteLineageError) throw deleteLineageError;
+      } else {
+        const { error: deleteError } = await supabase
+          .from("icps")
+          .delete()
+          .eq("id", id)
+          .eq("user_id", user.id);
+        if (deleteError) throw deleteError;
+      }
 
       // Success: remove from outbox
       const { removePendingOp } = await import("../lib/localCache");

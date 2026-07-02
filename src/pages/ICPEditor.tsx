@@ -114,6 +114,10 @@ export default function ICPEditor() {
       if (!originalDataRef.current) setIsLoading(true);
       const icp = await getICP(id);
       if (icp) {
+        if (icp.id !== id) {
+          navigate(`/icp/${icp.id}`, { replace: true });
+          return;
+        }
         setICPData(icp);
         originalDataRef.current = icp;
         setIsDirty(false);
@@ -222,15 +226,19 @@ export default function ICPEditor() {
       opportunities: icpData.opportunities,
     };
 
-    const success = await updateICP(id, updates);
-    if (!success) {
+    const saved = await updateICP(id, updates);
+    if (!saved) {
       setSaveStatus("error");
       setTimeout(() => setSaveStatus("idle"), 3000);
       alert("Failed to save changes. Please try again.");
       setIsSaving(false);
       return false;
     }
-    originalDataRef.current = { ...icpData, ...updates };
+    if (saved.id !== id) {
+      navigate(`/icp/${saved.id}`, { replace: true });
+    }
+    setICPData(saved);
+    originalDataRef.current = saved;
     setIsDirty(false);
     setSaveStatus("saved");
     setTimeout(() => setSaveStatus("idle"), 3000);

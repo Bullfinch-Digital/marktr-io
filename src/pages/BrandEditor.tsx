@@ -14,6 +14,7 @@ import useSubscription from "../hooks/useSubscription";
 import { usePaywall } from "../contexts/PaywallContext";
 import { useICPs } from "../hooks/useICPs";
 import { generateICPs } from "../lib/ai/pipeline";
+import { newGenerationId, supersedeBrandCurrentIcps } from "../lib/icpVersioning";
 import { ICPPreviewCard } from "../components/cards/ICPPreviewCard";
 import ICPColorModal from "../components/ICPColorModal";
 import ICPAvatarModal from "../components/ICPAvatarModal";
@@ -81,7 +82,7 @@ export default function BrandEditor() {
     gender: null as string | null,
     ageRange: null as string | null,
   });
-  const [addToCollectionIcpId, setAddToCollectionIcpId] = useState<string | null>(null);
+  const [addToCollectionLineageId, setAddToCollectionLineageId] = useState<string | null>(null);
   const { addICPToCollection, createCollection } = useCollections();
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -418,11 +419,18 @@ export default function BrandEditor() {
 
       const result = await generateICPs(payload as any);
       const generated = (result as any)?.icps ?? [];
+      const generationId = newGenerationId();
+      try {
+        await supersedeBrandCurrentIcps(id);
+      } catch (supersedeErr) {
+        console.warn("[BrandEditor] supersedeBrandCurrentIcps error", supersedeErr);
+      }
       const created: any[] = [];
       for (const icp of generated) {
         const createdRow = await createICP({
           ...icp,
           brand_id: id,
+          generation_id: generationId,
         } as any);
         if (createdRow) created.push(createdRow);
       }
@@ -848,7 +856,9 @@ export default function BrandEditor() {
                         } catch {}
                         await fetchICPs(true);
                       }}
-                      onAddToCollection={() => setAddToCollectionIcpId(icp.id)}
+                      onAddToCollection={() => {
+                        if (icp.lineage_id) setAddToCollectionLineageId(icp.lineage_id);
+                      }}
                     />
                   ))}
                 </div>
@@ -1322,12 +1332,12 @@ export default function BrandEditor() {
       />
 
       <CollectionPickerModal
-        isOpen={!!addToCollectionIcpId}
-        onClose={() => setAddToCollectionIcpId(null)}
+        isOpen={!!addToCollectionLineageId}
+        onClose={() => setAddToCollectionLineageId(null)}
         onSelectCollection={async (collectionId) => {
-          if (!addToCollectionIcpId) return false;
-          const ok = await addICPToCollection(collectionId, addToCollectionIcpId);
-          if (ok) setAddToCollectionIcpId(null);
+          if (!addToCollectionLineageId) return false;
+          const ok = await addICPToCollection(collectionId, addToCollectionLineageId);
+          if (ok) setAddToCollectionLineageId(null);
           return ok;
         }}
         onCreateCollection={async (data) => {

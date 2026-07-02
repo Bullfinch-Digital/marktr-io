@@ -24,6 +24,7 @@ export default function IcpReport() {
       .from("icps")
       .select("id", { count: "exact", head: true })
       .eq("user_id", user.id)
+      .is("superseded_at", null)
       .then(({ count, error }) => {
         if (cancelled) return;
         if (error) {

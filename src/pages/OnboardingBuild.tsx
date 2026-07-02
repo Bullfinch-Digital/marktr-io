@@ -22,6 +22,7 @@ import {
   updateGuestContext,
 } from "../lib/guestContext";
 import { resolveBrandIdForIcpOps } from "../lib/icpBrandAttach";
+import { newGenerationId, supersedeBrandCurrentIcps } from "../lib/icpVersioning";
 import {
   WelcomeScreen,
   NameScreen,
@@ -209,16 +210,17 @@ export default function OnboardingBuild() {
 
     void supabase
       .from("icps")
-      .select("id, created_at")
+      .select("generation_id, created_at")
       .eq("user_id", user.id)
+      .is("superseded_at", null)
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle()
       .then(({ data }) => {
         if (!cancelled) {
           setExistingIcpRun(
-            data?.id && data?.created_at
-              ? { id: data.id, created_at: data.created_at }
+            data?.generation_id && data?.created_at
+              ? { id: data.generation_id, created_at: data.created_at }
               : null
           );
         }
@@ -547,6 +549,14 @@ export default function OnboardingBuild() {
           }
 
           const now = new Date().toISOString();
+          const generationId = newGenerationId();
+          if (resolvedBrandId) {
+            try {
+              await supersedeBrandCurrentIcps(resolvedBrandId);
+            } catch (supersedeErr) {
+              console.warn("[Onboarding] supersedeBrandCurrentIcps error", supersedeErr);
+            }
+          }
           const rowsToInsert = result.icps.map((icp: any) => {
             const {
               id,
@@ -566,6 +576,9 @@ export default function OnboardingBuild() {
               brand_id: (rest as any)?.brand_id ?? resolvedBrandId ?? null,
               name: (rest as any)?.name || "",
               description: (rest as any)?.description || "",
+              generation_id: generationId,
+              version: 1,
+              superseded_at: null,
               created_at: now,
               updated_at: now,
             };

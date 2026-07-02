@@ -35,7 +35,7 @@ export default function MyICPsPage() {
     gender: null as string | null,
     ageRange: null as string | null,
   });
-  const [addToCollectionIcpId, setAddToCollectionIcpId] = useState<string | null>(null);
+  const [addToCollectionLineageId, setAddToCollectionLineageId] = useState<string | null>(null);
 
   const { user, loading: authLoading } = useAuth();
   const { icps: rawICPs, isLoading: icpsLoading, fetchICPs, isOffline: icpsOffline, updateICP } = useICPs();
@@ -296,7 +296,9 @@ export default function MyICPsPage() {
                   brands={brands?.map((b) => ({ id: b.id, name: b.name })) || []}
                   onMoveToBrand={handleMoveIcpToBrand}
                   onDelete={fetchICPs}
-                  onAddToCollection={() => setAddToCollectionIcpId(icp.id)}
+                  onAddToCollection={() => {
+                    if (icp.lineage_id) setAddToCollectionLineageId(icp.lineage_id);
+                  }}
                 />
               ))}
             </div>
@@ -353,12 +355,12 @@ export default function MyICPsPage() {
       />
 
       <CollectionPickerModal
-        isOpen={!!addToCollectionIcpId}
-        onClose={() => setAddToCollectionIcpId(null)}
+        isOpen={!!addToCollectionLineageId}
+        onClose={() => setAddToCollectionLineageId(null)}
         onSelectCollection={async (collectionId) => {
-          if (!addToCollectionIcpId) return false;
-          const ok = await addICPToCollection(collectionId, addToCollectionIcpId);
-          if (ok) setAddToCollectionIcpId(null);
+          if (!addToCollectionLineageId) return false;
+          const ok = await addICPToCollection(collectionId, addToCollectionLineageId);
+          if (ok) setAddToCollectionLineageId(null);
           return ok;
         }}
         onCreateCollection={async (data) => {

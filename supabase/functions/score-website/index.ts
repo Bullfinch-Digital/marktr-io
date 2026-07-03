@@ -1,6 +1,11 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { computeDeterministicScores, OVERALL_CAP_FRAMING_COPY } from "./deterministicScores.ts";
-import { extractAllSignals } from "./extractSignals.ts";
+import {
+  extractAllSignals,
+  findProductUrl,
+  parseAggregateRating,
+  type AggregateRatingSignal,
+} from "./extractSignals.ts";
 
 type PriorRunInput = {
   scores: {
@@ -266,6 +271,21 @@ function normaliseFacebookUrl(value: string): string {
 async function fetchPage(baseUrl: string, path: string): Promise<string> {
   try {
     const url = baseUrl.replace(/\/+$/, "") + path;
+    const res = await fetch(url, {
+      headers: { "User-Agent": "marktr-bot/1.0" },
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!res.ok) return "";
+    const html = await res.text();
+    return html.length > 500 ? html : "";
+  } catch {
+    return "";
+  }
+}
+
+/** Fetch an already-absolute URL's HTML. Degrades to "" on any error/timeout (never throws/hangs). */
+async function fetchAbsoluteHtml(url: string): Promise<string> {
+  try {
     const res = await fetch(url, {
       headers: { "User-Agent": "marktr-bot/1.0" },
       signal: AbortSignal.timeout(5000),
@@ -814,6 +834,7 @@ Deno.serve(async (req) => {
     if (!websiteUrl) return json({ error: "websiteUrl is required" }, 400);
 
     let combinedText = "";
+    let aggregateRatingProof: AggregateRatingSignal | null = null;
     let instagramFetch: InstagramFetchResult = {
       signals: "",
       found: false,
@@ -844,13 +865,30 @@ Deno.serve(async (req) => {
         hasFullName: false,
       };
 
-      const fetchHomepageSignals = async () => {
+      const fetchHomepageSignals = async (): Promise<{
+        signals: string;
+        aggregateRating: AggregateRatingSignal | null;
+      }> => {
         const res = await fetch(websiteUrl, {
           headers: { "User-Agent": "marktr-bot/1.0" },
           signal: AbortSignal.timeout(8000),
         });
         const html = await res.text();
-        return extractAllSignals(html, websiteUrl);
+        const signals = extractAllSignals(html, websiteUrl);
+
+        // JSON-LD AggregateRating is the deterministic proof signal. It usually lives
+        // on product pages, not the homepage, so check the homepage first then
+        // opportunistically crawl one product page. Degrades to homepage-only if no
+        // product link is found or the PDP fetch fails.
+        let aggregateRating = parseAggregateRating(html);
+        if (!aggregateRating) {
+          const productUrl = findProductUrl(html, websiteUrl);
+          if (productUrl) {
+            const pdpHtml = await fetchAbsoluteHtml(productUrl);
+            if (pdpHtml) aggregateRating = parseAggregateRating(pdpHtml);
+          }
+        }
+        return { signals, aggregateRating };
       };
 
       const fetchStorySignals = async () => {
@@ -867,13 +905,16 @@ Deno.serve(async (req) => {
         console.log("Calling Instagram API with username:", username);
       }
 
-      const [homepageSignals, storySignals, instagramFetchResult] = await Promise.all([
+      const [homepageResult, storySignals, instagramFetchResult] = await Promise.all([
         fetchHomepageSignals(),
         fetchStorySignals(),
         body.instagramHandle
           ? fetchInstagramPublic(body.instagramHandle)
           : Promise.resolve(emptyInstagram),
       ]);
+
+      const homepageSignals = homepageResult.signals;
+      aggregateRatingProof = homepageResult.aggregateRating;
 
       instagramFetch = instagramFetchResult;
       console.log("Instagram signals:", instagramFetch.signals || "EMPTY");
@@ -949,6 +990,19 @@ Deno.serve(async (req) => {
       if (!content) throw new Error("Empty model response");
 
       const rawFacts = parseFactsJson(content);
+
+      // Deterministic proof override: a valid JSON-LD AggregateRating (parseable
+      // ratingValue + count above the floor) is higher-confidence than the LLM's
+      // judgement, so force proofOnPage="real". Composes with — never downgrades —
+      // the LLM's own "real" verdict from testimonials/press/endorsements.
+      if (aggregateRatingProof && rawFacts.proofOnPage !== "real") {
+        console.log(
+          "[proofOnPage] deterministic override via JSON-LD AggregateRating",
+          JSON.stringify(aggregateRatingProof)
+        );
+        rawFacts.proofOnPage = "real";
+      }
+
       const facts = sanitizeFactsForScoring(rawFacts, apifyMetrics);
       const deterministicScores = computeDeterministicScores(rawFacts, apifyMetrics);
 

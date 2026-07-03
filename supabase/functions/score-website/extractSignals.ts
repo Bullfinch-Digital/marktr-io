@@ -8,6 +8,244 @@ export const MAIN_TEXT_MAX_CHARS = 5000;
 export const H2_MAX_COUNT = 10;
 export const REVIEW_QUOTES_MAX = 10;
 
+/**
+ * Minimum review/rating count for a JSON-LD AggregateRating to count as real proof.
+ * Filters out placeholder/test schema (0–2 reviews) that shouldn't drive proofOnPage.
+ */
+export const AGGREGATE_RATING_MIN_COUNT = 3;
+
+export type AggregateRatingSignal = {
+  ratingValue: number;
+  count: number;
+  countField: "reviewCount" | "ratingCount";
+};
+
+/** Coerce a JSON-LD numeric field (string or number, may contain commas) to a finite number. */
+function coerceRatingNumber(value: unknown): number | null {
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  if (typeof value === "string") {
+    const cleaned = value.replace(/,/g, "").trim();
+    if (!cleaned) return null;
+    const n = Number(cleaned);
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
+}
+
+/** Extract a valid AggregateRating from a single object node, if present. */
+function readAggregateRating(source: Record<string, unknown>): AggregateRatingSignal | null {
+  const ratingValue = coerceRatingNumber(source["ratingValue"]);
+  const reviewCount = coerceRatingNumber(source["reviewCount"]);
+  const ratingCount = coerceRatingNumber(source["ratingCount"]);
+  // Prefer reviewCount when both are present; fall back to ratingCount.
+  const countField: "reviewCount" | "ratingCount" | null =
+    reviewCount != null ? "reviewCount" : ratingCount != null ? "ratingCount" : null;
+  const count = reviewCount != null ? reviewCount : ratingCount;
+  if (ratingValue == null || ratingValue <= 0) return null;
+  if (count == null || countField == null) return null;
+  return { ratingValue, count, countField };
+}
+
+/**
+ * Recursively walk a parsed JSON-LD node collecting every AggregateRating found —
+ * whether it's a standalone `@type: AggregateRating`, nested under a `Product`
+ * (`.aggregateRating`), or buried in an `@graph` / arbitrary array.
+ */
+function collectAggregateRatings(node: unknown, out: AggregateRatingSignal[]): void {
+  if (Array.isArray(node)) {
+    for (const item of node) collectAggregateRatings(item, out);
+    return;
+  }
+  if (!node || typeof node !== "object") return;
+  const obj = node as Record<string, unknown>;
+
+  const typeVal = obj["@type"];
+  const typeStr = Array.isArray(typeVal)
+    ? typeVal.map((t) => String(t).toLowerCase())
+    : [String(typeVal ?? "").toLowerCase()];
+
+  // This node is itself an AggregateRating.
+  if (typeStr.includes("aggregaterating")) {
+    const found = readAggregateRating(obj);
+    if (found) out.push(found);
+  }
+
+  // Node carries a nested aggregateRating (e.g. Product.aggregateRating).
+  const nested = obj["aggregateRating"];
+  if (nested && typeof nested === "object" && !Array.isArray(nested)) {
+    const found = readAggregateRating(nested as Record<string, unknown>);
+    if (found) out.push(found);
+  }
+
+  // Recurse into every value (covers @graph, itemListElement, mainEntity, etc.)
+  // aggregateRating already handled above; skip to avoid a redundant re-read.
+  for (const key of Object.keys(obj)) {
+    if (key === "aggregateRating") continue;
+    collectAggregateRatings(obj[key], out);
+  }
+}
+
+/**
+ * Parse all <script type="application/ld+json"> blocks on the page and return the
+ * most representative valid AggregateRating (highest count), or null if none qualify.
+ * Handles single objects, top-level arrays, @graph containers, string/number field
+ * types, reviewCount|ratingCount, and dedupes across multiple Product blocks.
+ */
+export function parseAggregateRating(html: string): AggregateRatingSignal | null {
+  if (!html) return null;
+  const candidates: AggregateRatingSignal[] = [];
+
+  for (const block of html.matchAll(
+    /<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi
+  )) {
+    const raw = block[1]?.trim();
+    if (!raw) continue;
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      continue; // ignore malformed JSON-LD
+    }
+    collectAggregateRatings(parsed, candidates);
+  }
+
+  const valid = candidates.filter((c) => c.count >= AGGREGATE_RATING_MIN_COUNT);
+  if (!valid.length) return null;
+  // Dedupe across blocks: take the highest count as the representative signal
+  // rather than summing (multiple Product blocks often repeat the same rating).
+  return valid.reduce((best, c) => (c.count > best.count ? c : best));
+}
+
+/** First object carrying an `@type`, descending through arrays and `@graph`. */
+function schemaEntityFrom(node: unknown): Record<string, unknown> | null {
+  if (Array.isArray(node)) {
+    for (const item of node) {
+      const found = schemaEntityFrom(item);
+      if (found) return found;
+    }
+    return null;
+  }
+  if (!node || typeof node !== "object") return null;
+  const obj = node as Record<string, unknown>;
+  if ("@type" in obj) return obj; // prefer own @type (matches legacy precedence)
+  if (Array.isArray(obj["@graph"])) return schemaEntityFrom(obj["@graph"]);
+  return null;
+}
+
+/**
+ * Summarise the page's primary schema.org entity (@type + description) for LLM context.
+ * Fixes the old single-block / no-array parser: a legacy fast-path preserves the exact
+ * prior output whenever the first block is a typed object (no behaviour change for those
+ * sites), then falls back to a robust walk across all blocks, arrays, and @graph.
+ */
+export function extractSchemaSummary(html: string): { schemaType: string; schemaDesc: string } {
+  const blocks = [
+    ...html.matchAll(
+      /<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi
+    ),
+  ];
+
+  const first = blocks[0]?.[1]?.trim();
+  if (first) {
+    try {
+      const schema = JSON.parse(first);
+      if (
+        schema &&
+        typeof schema === "object" &&
+        !Array.isArray(schema) &&
+        typeof (schema as Record<string, unknown>)["@type"] === "string"
+      ) {
+        const o = schema as Record<string, unknown>;
+        return {
+          schemaType: (o["@type"] as string) ?? "",
+          schemaDesc:
+            typeof o["description"] === "string"
+              ? cleanExtractedText(o["description"] as string)
+              : "",
+        };
+      }
+    } catch {
+      // fall through to robust walk
+    }
+  }
+
+  for (const block of blocks) {
+    const raw = block[1]?.trim();
+    if (!raw) continue;
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      continue;
+    }
+    const entity = schemaEntityFrom(parsed);
+    if (!entity) continue;
+    const typeVal = entity["@type"];
+    const schemaType = Array.isArray(typeVal)
+      ? String(typeVal[0] ?? "")
+      : typeof typeVal === "string"
+        ? typeVal
+        : "";
+    const schemaDesc =
+      typeof entity["description"] === "string"
+        ? cleanExtractedText(entity["description"] as string)
+        : "";
+    if (schemaType || schemaDesc) return { schemaType, schemaDesc };
+  }
+
+  return { schemaType: "", schemaDesc: "" };
+}
+
+/** Hostname without a leading www. for loose same-site comparison. */
+function baseHostname(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./i, "").toLowerCase();
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * Find one representative product-page URL linked from the given page HTML.
+ * Recognises common platform shapes (Shopify "/products/SLUG" and
+ * "/collections/.../products/SLUG", WooCommerce "/product/SLUG", generic
+ * "/shop/SLUG") and stays on the same site. Returns an absolute URL, or null if
+ * none can be confidently identified (caller should then skip the PDP crawl).
+ */
+export function findProductUrl(html: string, pageUrl: string): string | null {
+  if (!html) return null;
+  const host = baseHostname(pageUrl);
+  if (!host) return null;
+
+  // Ordered by confidence: a /collections/x/products/y link is unambiguously a PDP.
+  const patterns = [
+    /\/collections\/[^"'\s?#]+\/products\/[a-z0-9][a-z0-9\-_%]+/i,
+    /\/products\/[a-z0-9][a-z0-9\-_%]+/i,
+    /\/product\/[a-z0-9][a-z0-9\-_%]+/i,
+    /\/shop\/[a-z0-9][a-z0-9\-_%]+/i,
+  ];
+
+  const hrefs = [...html.matchAll(/href=["']([^"']+)["']/gi)]
+    .map((m) => m[1])
+    .filter(Boolean);
+
+  for (const pattern of patterns) {
+    for (const href of hrefs) {
+      if (!pattern.test(href)) continue;
+      let resolved: URL;
+      try {
+        resolved = new URL(href, pageUrl);
+      } catch {
+        continue;
+      }
+      if (baseHostname(resolved.href) !== host) continue; // stay on-site
+      resolved.hash = "";
+      return resolved.href;
+    }
+  }
+  return null;
+}
+
 /** Decode common HTML entities so quotes read naturally to the model. */
 export function decodeHtmlEntities(text: string): string {
   return text
@@ -252,22 +490,7 @@ export function extractAllSignals(html: string, url: string): string {
     /(★|☆|\d+(\.\d+)?\s*stars?|\d+\s*reviews?|award|rated|certified|trusted|verified|testimonial|customers?)/gi;
   const socialProofMatches = (html.match(socialProofPatterns) || []).slice(0, 5);
 
-  const jsonLdMatch = html.match(
-    /<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/i
-  );
-  let schemaType = "";
-  let schemaDesc = "";
-  if (jsonLdMatch) {
-    try {
-      const schema = JSON.parse(jsonLdMatch[1]);
-      schemaType = schema["@type"] ?? "";
-      schemaDesc = typeof schema["description"] === "string"
-        ? cleanExtractedText(schema["description"])
-        : "";
-    } catch {
-      // ignore malformed JSON-LD
-    }
-  }
+  const { schemaType, schemaDesc } = extractSchemaSummary(html);
 
   const footerMatch = html.match(/<footer[^>]*>([\s\S]*?)<\/footer>/i);
   const footerText = footerMatch

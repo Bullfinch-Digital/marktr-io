@@ -3,8 +3,9 @@ import { runOncePerKey } from "./asyncUserLock";
 import {
   attachOrphanIcpsToBrand,
   resolveBrandIdForIcpOps,
+  resolveBrandIdForIcpWrite,
 } from "./icpBrandAttach";
-import { newGenerationId, supersedeBrandCurrentIcps } from "./icpVersioning";
+import { applyCurrentIcpFilter, newGenerationId, supersedeBrandCurrentIcps } from "./icpVersioning";
 import {
   claimStorageLock,
   markStorageLockDone,
@@ -134,7 +135,7 @@ function buildIcpInsertRow(
   };
 
   if (opts?.includeBrandId !== false) {
-    row.brand_id = icp.brand_id ?? brandId ?? null;
+    row.brand_id = icp.brand_id ?? brandId;
   }
 
   return {
@@ -174,11 +175,14 @@ async function fetchExistingKeys(
   userId: string,
   fallbackBrandId: string | null
 ): Promise<Set<string>> {
-  const { data: existingRows, error: existingError } = await supabase
+  let query = supabase
     .from("icps")
     .select("name,description,brand_id")
-    .eq("user_id", userId)
-    .is("superseded_at", null);
+    .eq("user_id", userId);
+
+  query = applyCurrentIcpFilter(query);
+
+  const { data: existingRows, error: existingError } = await query;
 
   if (existingError) {
     throw existingError;
@@ -285,7 +289,14 @@ async function flushGuestICPsToSupabaseInner(
   }
 
   const now = new Date().toISOString();
-  const brandIdForRows = await resolveBrandIdForIcpOps(userId, opts?.brandId ?? null);
+  let brandIdForRows: string;
+  try {
+    brandIdForRows = await resolveBrandIdForIcpWrite(userId, opts?.brandId ?? null);
+  } catch (brandErr) {
+    logSupabaseError("[flushGuestICPs] brand resolution failed — aborting insert", brandErr);
+    releaseStorageLock(FLUSH_FLAG);
+    return false;
+  }
   const generationId = newGenerationId();
 
   if (brandIdForRows) {

@@ -13,6 +13,7 @@ import {
   type PendingOp,
 } from "../lib/localCache";
 import { resolveBrandIdForIcpInsertPayload } from "../lib/icpBrandAttach";
+import { softDeleteIcpById } from "../lib/icpVersioning";
 import { insertIcpVersionRpc, isPermanentIcpSyncError } from "../lib/icpVersioning";
 
 // ---- DB-safe payload helpers (Outbox hardening) ----
@@ -129,34 +130,7 @@ export function useOutboxSync() {
         }
 
         case "delete_icp": {
-          const { data: target, error: fetchError } = await supabase
-            .from("icps")
-            .select("lineage_id")
-            .eq("id", op.payload.id)
-            .eq("user_id", userId)
-            .single();
-
-          if (fetchError) throw fetchError;
-
-          const lineageId = (target as any)?.lineage_id as string | undefined;
-
-          if (lineageId) {
-            await supabase.from("collection_items").delete().eq("lineage_id", lineageId);
-            const { error } = await supabase
-              .from("icps")
-              .delete()
-              .eq("lineage_id", lineageId)
-              .eq("user_id", userId);
-            if (error) throw error;
-          } else {
-            const { error } = await supabase
-              .from("icps")
-              .delete()
-              .eq("id", op.payload.id)
-              .eq("user_id", userId);
-            if (error) throw error;
-          }
-
+          await softDeleteIcpById(userId, op.payload.id);
           return true;
         }
 

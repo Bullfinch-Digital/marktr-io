@@ -33,7 +33,8 @@ import { avatarUrlFromKey } from "../../utils/avatarLibrary";
 import "../../styles/Modal.css";
 import { useICPs, generateIcpCopyName } from "../../hooks/useICPs";
 import useSubscription from "../../hooks/useSubscription";
-import { resolveBrandIdForIcpOps } from "../../lib/icpBrandAttach";
+import { resolveBrandIdForIcpWrite } from "../../lib/icpBrandAttach";
+import { softDeleteIcpById } from "../../lib/icpVersioning";
 
 // EXACT same helper pattern as CollectionCard
 const stop = (e: React.MouseEvent | Event) => {
@@ -233,11 +234,11 @@ export function ICPPreviewCard(props: ICPPreviewCardProps) {
             data: { user: authUser },
           } = await supabase.auth.getUser();
           const resolvedBrandId = authUser?.id
-            ? await resolveBrandIdForIcpOps(
+            ? await resolveBrandIdForIcpWrite(
                 authUser.id,
                 (original as any).brand_id ?? null
               )
-            : (original as any).brand_id ?? null;
+            : (original as any).brand_id;
           const payload: any = {
             ...original,
             id: undefined,
@@ -328,11 +329,11 @@ export function ICPPreviewCard(props: ICPPreviewCardProps) {
       );
       if (!confirmed) return;
       try {
-        const { error } = await supabase.from("icps").delete().eq("id", icp.id);
-        if (error) {
-          console.error("Failed to delete ICP:", error);
-          return;
-        }
+        const {
+          data: { user: authUser },
+        } = await supabase.auth.getUser();
+        if (!authUser?.id) return;
+        await softDeleteIcpById(authUser.id, icp.id);
         onDelete?.();
       } catch (err) {
         console.error("Unexpected delete error:", err);

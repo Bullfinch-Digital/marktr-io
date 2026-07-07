@@ -55,13 +55,23 @@ const waitForImages = async (container: HTMLElement) => {
 const joinList = (items?: string[] | null) =>
   Array.isArray(items) && items.length ? items.join(" | ") : "";
 
-const fetchIcpStrategy = async (icpId?: string | null) => {
+const fetchIcpStrategy = async (icp: ICPRecord) => {
+  const icpId = icp?.id as string | undefined;
   if (!icpId) return null;
   try {
+    const { data: icpRow, error: icpError } = await supabase
+      .from("icps")
+      .select("lineage_id")
+      .eq("id", icpId)
+      .maybeSingle();
+    if (icpError) throw icpError;
+    const lineageId = (icpRow as { lineage_id?: string | null } | null)?.lineage_id;
+    if (!lineageId) return null;
+
     const { data, error } = await supabase
       .from("icp_strategies")
       .select("goal, channel, offer_type, tone, strategy, prompt_version, model")
-      .eq("icp_id", icpId)
+      .eq("lineage_id", lineageId)
       .maybeSingle();
     if (error) throw error;
     return data || null;
@@ -127,7 +137,7 @@ export function exportICPAsCSV(icp: ICPRecord) {
 }
 
 async function exportICPAsCSVInternal(icp: ICPRecord) {
-  const strategyRecord = await fetchIcpStrategy(icp.id);
+  const strategyRecord = await fetchIcpStrategy(icp);
   const strategy = strategyRecord?.strategy || null;
 
   const row = {
@@ -202,7 +212,7 @@ async function exportICPAsPDFInternal(icp: ICPRecord) {
   const date = new Date().toISOString().split("T")[0];
   const filename = `icp_${sanitizeFilename(icp.name)}_${date}.pdf`;
 
-  const strategyRecord = await fetchIcpStrategy(icp.id);
+  const strategyRecord = await fetchIcpStrategy(icp);
   const strategy = strategyRecord?.strategy || null;
 
   const origin =

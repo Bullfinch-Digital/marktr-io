@@ -4,7 +4,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { useBrand } from "../contexts/BrandContext";
 import { getCachedICPs, setCachedICPs, addPendingOp, getPendingOps, type PendingOp } from "../lib/localCache";
 import { isBrandScopeReady, resolveScopedBrandId } from "../lib/brandScopedReads";
-import { attachOrphanIcpsToBrand, resolveBrandIdForIcpOps } from "../lib/icpBrandAttach";
+import { attachOrphanIcpsToBrand, resolveBrandIdForIcpWrite } from "../lib/icpBrandAttach";
 import {
   applyCurrentIcpFilter,
   fetchCurrentIcpByLineageId,
@@ -12,6 +12,8 @@ import {
   isPermanentIcpSyncError,
   newGenerationId,
   pickLatestGenerationRows,
+  restoreIcpLineage,
+  softDeleteIcpById,
   withVersioningDefaults,
 } from "../lib/icpVersioning";
 
@@ -370,7 +372,13 @@ export function useICPs() {
 
     const dbSafe = toDbIcpPayload(data);
     const preferredBrandId = (dbSafe as any)?.brand_id ?? activeBrandId ?? null;
-    const resolvedBrandId = await resolveBrandIdForIcpOps(user.id, preferredBrandId);
+    let resolvedBrandId: string;
+    try {
+      resolvedBrandId = await resolveBrandIdForIcpWrite(user.id, preferredBrandId);
+    } catch (brandErr) {
+      console.error("createICP: brand resolution failed", brandErr);
+      return null;
+    }
     const generationId = (dbSafe as any)?.generation_id ?? newGenerationId();
     const newICP = withVersioningDefaults(
       {
@@ -570,38 +578,7 @@ export function useICPs() {
 
     // Then attempt Supabase mutation immediately
     try {
-      const { data: target, error: fetchError } = await supabase
-        .from("icps")
-        .select("lineage_id")
-        .eq("id", id)
-        .eq("user_id", user.id)
-        .single();
-
-      if (fetchError) throw fetchError;
-
-      const lineageId = (target as any)?.lineage_id as string | undefined;
-
-      if (lineageId) {
-        await supabase
-          .from("collection_items")
-          .delete()
-          .eq("lineage_id", lineageId);
-
-        const { error: deleteLineageError } = await supabase
-          .from("icps")
-          .delete()
-          .eq("lineage_id", lineageId)
-          .eq("user_id", user.id);
-
-        if (deleteLineageError) throw deleteLineageError;
-      } else {
-        const { error: deleteError } = await supabase
-          .from("icps")
-          .delete()
-          .eq("id", id)
-          .eq("user_id", user.id);
-        if (deleteError) throw deleteError;
-      }
+      await softDeleteIcpById(user.id, id);
 
       // Success: remove from outbox
       const { removePendingOp } = await import("../lib/localCache");
@@ -707,6 +684,18 @@ export function useICPs() {
     }
   };
 
+  const restoreICP = async (lineageId: string): Promise<boolean> => {
+    if (!user?.id || !lineageId) return false;
+    try {
+      await restoreIcpLineage(lineageId);
+      await fetchICPs();
+      return true;
+    } catch (err) {
+      console.error("Error restoring ICP lineage:", err);
+      return false;
+    }
+  };
+
   return {
     icps,
     isLoading,
@@ -718,6 +707,7 @@ export function useICPs() {
     createICP,
     updateICP,
     deleteICP,
+    restoreICP,
     duplicateICP,
     exportICP,
   };

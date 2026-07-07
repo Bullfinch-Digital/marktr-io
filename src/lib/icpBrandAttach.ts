@@ -1,4 +1,5 @@
 import { supabase } from "../config/supabase";
+import { ensureBrandForPostAuth } from "./ensureGuestBrand";
 import { logSupabaseError } from "./guestICP";
 
 /**
@@ -33,12 +34,66 @@ export async function resolveBrandIdForIcpOps(
   return fetchUserPrimaryBrandId(userId);
 }
 
-/** Resolve brand_id on an ICP insert row (outbox replay, edge inserts). */
+/** Create a minimal default brand when no guest/onboarding context exists. */
+async function ensureDefaultBrandForUser(userId: string): Promise<string> {
+  const now = new Date().toISOString();
+  const { data, error } = await supabase
+    .from("brands")
+    .insert([
+      {
+        user_id: userId,
+        name: "My Brand",
+        created_at: now,
+        updated_at: now,
+      },
+    ])
+    .select("id")
+    .single();
+
+  if (error) {
+    const existing = await fetchUserPrimaryBrandId(userId);
+    if (existing) return existing;
+
+    const err = new Error(
+      `[icpBrand] failed to ensure default brand: ${(error as { message?: string })?.message ?? "unknown"}`
+    );
+    logSupabaseError("[icpBrand] ensureDefaultBrandForUser failed", error);
+    throw err;
+  }
+
+  return data.id;
+}
+
+/**
+ * Resolve or create a brand for ICP writes. Never returns null — throws if unrecoverable.
+ * Order: explicit/preferred → primary brand → guest post-auth brand → default brand.
+ */
+export async function resolveBrandIdForIcpWrite(
+  userId: string,
+  preferredBrandId?: string | null
+): Promise<string> {
+  let brandId = await resolveBrandIdForIcpOps(userId, preferredBrandId ?? null);
+  if (brandId) return brandId;
+
+  brandId = await ensureBrandForPostAuth(userId);
+  if (brandId) return brandId;
+
+  brandId = await ensureDefaultBrandForUser(userId);
+  if (!brandId) {
+    const err = new Error("[icpBrand] ICP write blocked: could not resolve or create brand");
+    logSupabaseError("[icpBrand] resolveBrandIdForIcpWrite failed", err);
+    throw err;
+  }
+
+  return brandId;
+}
+
+/** Resolve brand_id on an ICP insert row (outbox replay, edge inserts). Fails if no brand. */
 export async function resolveBrandIdForIcpInsertPayload<T extends { brand_id?: string | null }>(
   userId: string,
   payload: T
-): Promise<T & { brand_id: string | null }> {
-  const brand_id = await resolveBrandIdForIcpOps(userId, payload.brand_id ?? null);
+): Promise<T & { brand_id: string }> {
+  const brand_id = await resolveBrandIdForIcpWrite(userId, payload.brand_id ?? null);
   return { ...payload, brand_id };
 }
 

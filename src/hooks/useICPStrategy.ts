@@ -43,6 +43,7 @@ export type ICPStrategyPayload = {
 export type ICPStrategyRecord = {
   id: string;
   icp_id: string;
+  lineage_id: string;
   user_id: string;
   goal: string;
   channel: string | null;
@@ -66,6 +67,21 @@ type GenerateStrategyInput = {
   marketingCapacity?: string | null;
 };
 
+async function resolveLineageIdForIcp(
+  userId: string,
+  icpId: string
+): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("icps")
+    .select("lineage_id")
+    .eq("id", icpId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return (data as { lineage_id?: string | null } | null)?.lineage_id ?? null;
+}
+
 export function useICPStrategy(icpId?: string | null) {
   const { user } = useAuth();
   const [record, setRecord] = useState<ICPStrategyRecord | null>(null);
@@ -82,10 +98,16 @@ export function useICPStrategy(icpId?: string | null) {
     setIsLoading(true);
     setError(null);
     try {
+      const lineageId = await resolveLineageIdForIcp(user.id, icpId);
+      if (!lineageId) {
+        setRecord(null);
+        return;
+      }
+
       const { data, error: fetchError } = await supabase
         .from("icp_strategies")
         .select("*")
-        .eq("icp_id", icpId)
+        .eq("lineage_id", lineageId)
         .maybeSingle();
 
       if (fetchError) throw fetchError;

@@ -1,11 +1,11 @@
 import { supabase } from "../config/supabase";
 import type { ICP } from "../hooks/useICPs";
 
-/** PostgREST filter: only current (non-superseded) ICP rows. */
+/** PostgREST filter: visible current ICP rows (not superseded, not soft-deleted). */
 export function applyCurrentIcpFilter<T extends { is: (col: string, val: null) => T }>(
   query: T
 ): T {
-  return query.is("superseded_at", null);
+  return query.is("superseded_at", null).is("deleted_at", null);
 }
 
 export function newGenerationId(): string {
@@ -87,6 +87,7 @@ export async function fetchCurrentIcpByLineageId(
     .eq("user_id", userId)
     .eq("lineage_id", lineageId)
     .is("superseded_at", null)
+    .is("deleted_at", null)
     .maybeSingle();
 
   if (error || !data) return null;
@@ -142,5 +143,58 @@ export function withVersioningDefaults(
     generation_id: generationId,
     version: 1,
     superseded_at: null,
+    deleted_at: null,
   };
+}
+
+/** Soft-delete all versions of a persona (recoverable). */
+export async function softDeleteIcpLineage(lineageId: string): Promise<number> {
+  const { data, error } = await supabase.rpc("icp_soft_delete_lineage", {
+    p_lineage_id: lineageId,
+  });
+  if (error) {
+    console.error("[icpVersioning] softDeleteIcpLineage failed", error);
+    throw error;
+  }
+  return typeof data === "number" ? data : 0;
+}
+
+/** Restore a soft-deleted persona (all versions). Unwired from UI for now. */
+export async function restoreIcpLineage(lineageId: string): Promise<number> {
+  const { data, error } = await supabase.rpc("icp_restore_lineage", {
+    p_lineage_id: lineageId,
+  });
+  if (error) {
+    console.error("[icpVersioning] restoreIcpLineage failed", error);
+    throw error;
+  }
+  return typeof data === "number" ? data : 0;
+}
+
+/** Soft-delete by row id (resolves lineage_id). */
+export async function softDeleteIcpById(userId: string, icpId: string): Promise<boolean> {
+  const { data: target, error: fetchError } = await supabase
+    .from("icps")
+    .select("lineage_id")
+    .eq("id", icpId)
+    .eq("user_id", userId)
+    .single();
+
+  if (fetchError) throw fetchError;
+
+  const lineageId = (target as { lineage_id?: string | null })?.lineage_id;
+  if (lineageId) {
+    await softDeleteIcpLineage(lineageId);
+    return true;
+  }
+
+  const now = new Date().toISOString();
+  const { error: updateError } = await supabase
+    .from("icps")
+    .update({ deleted_at: now, updated_at: now })
+    .eq("id", icpId)
+    .eq("user_id", userId);
+
+  if (updateError) throw updateError;
+  return true;
 }

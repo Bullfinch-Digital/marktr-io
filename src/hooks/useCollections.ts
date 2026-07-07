@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../config/supabase";
 import { useAuth } from "../contexts/AuthContext";
 import { getCachedCollections, setCachedCollections, addPendingOp, type PendingOp } from "../lib/localCache";
+import { applyCurrentIcpFilter } from "../lib/icpVersioning";
 
 export interface Collection {
   id: string;
@@ -629,8 +630,9 @@ export function useCollections() {
         .from("icps")
         .select("*, brands(name)")
         .eq("user_id", user.id)
-        .in("lineage_id", lineageIds)
-        .is("superseded_at", null);
+        .in("lineage_id", lineageIds);
+
+      icpsQuery = applyCurrentIcpFilter(icpsQuery);
       
       const { data: icps, error: icpsError } = await icpsQuery;
 

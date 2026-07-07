@@ -22,7 +22,6 @@ import {
   DropdownMenuTrigger,
 } from "../components/ui/dropdown-menu";
 import { getAvatarSrc } from "../utils/avatarLibrary";
-import { supabase } from "../config/supabase";
 import "../styles/Modal.css";
 import {
   ArrowLeft,
@@ -46,7 +45,7 @@ import {
 export default function ICPEditor() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getICP, updateICP, duplicateICP } = useICPs();
+  const { getICP, updateICP, duplicateICP, deleteICP } = useICPs();
   const { brands, isLoading: brandsLoading } = useBrands();
   const { tier: userTier, trialActive } = useSubscription();
   const { openPaywall } = usePaywall();
@@ -352,8 +351,8 @@ export default function ICPEditor() {
     const ok = window.confirm("Are you sure you want to delete this ICP? This action cannot be undone.");
     if (!ok) return;
     try {
-      const { error } = await supabase.from("icps").delete().eq("id", id);
-      if (error) throw error;
+      const ok = await deleteICP(id);
+      if (!ok) throw new Error("Delete failed");
       try {
         window.dispatchEvent(new Event("icps:changed"));
       } catch {}

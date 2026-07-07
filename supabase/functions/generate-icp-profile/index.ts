@@ -63,6 +63,44 @@ async function resolveBrandIdForIcpOps(
   return data?.[0]?.id ?? null;
 }
 
+async function ensureDefaultBrandForUser(
+  supabaseClient: ReturnType<typeof createClient>,
+  userId: string
+): Promise<string> {
+  const now = new Date().toISOString();
+  const { data, error } = await supabaseClient
+    .from("brands")
+    .insert([
+      {
+        user_id: userId,
+        name: "My Brand",
+        created_at: now,
+        updated_at: now,
+      },
+    ])
+    .select("id")
+    .single();
+
+  if (error) {
+    const existing = await resolveBrandIdForIcpOps(supabaseClient, userId, null);
+    if (existing) return existing;
+    console.error("failed to ensure default brand", error);
+    throw new Error("ICP write blocked: could not resolve or create brand");
+  }
+
+  return data.id;
+}
+
+async function resolveBrandIdForIcpWrite(
+  supabaseClient: ReturnType<typeof createClient>,
+  userId: string,
+  preferredBrandId?: string | null
+): Promise<string> {
+  let brandId = await resolveBrandIdForIcpOps(supabaseClient, userId, preferredBrandId ?? null);
+  if (brandId) return brandId;
+  return ensureDefaultBrandForUser(supabaseClient, userId);
+}
+
 serve(async (req: Request): Promise<Response> => {
   if (req.method !== "POST") {
     return new Response("Method not allowed", { status: 405 });
@@ -201,7 +239,7 @@ serve(async (req: Request): Promise<Response> => {
     const icp: GeneratedICP =
       typeof content === "string" ? JSON.parse(content) : content;
 
-    const brandId = await resolveBrandIdForIcpOps(
+    const brandId = await resolveBrandIdForIcpWrite(
       supabase,
       user.id,
       generateInput.brandId ?? null

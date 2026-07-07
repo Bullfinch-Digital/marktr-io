@@ -308,8 +308,14 @@ Deno.serve(async (req) => {
     }
 
     const now = new Date().toISOString();
+    const lineageId = (icp as { lineage_id?: string | null }).lineage_id;
+    if (!lineageId) {
+      return json({ error: "ICP missing lineage_id" }, 400);
+    }
+
     const row = {
       icp_id: body.icpId,
+      lineage_id: lineageId,
       user_id: user.id,
       goal: body.goal,
       channel: body.channel ?? null,
@@ -324,7 +330,7 @@ Deno.serve(async (req) => {
 
     const { data: saved, error: saveError } = await supabase
       .from("icp_strategies")
-      .upsert(row, { onConflict: "icp_id" })
+      .upsert(row, { onConflict: "lineage_id" })
       .select()
       .single();
 

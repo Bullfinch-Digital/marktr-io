@@ -4,6 +4,7 @@ import { Loader2 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../config/supabase";
 import { Button } from "../components/ui/button";
+import { applyCurrentIcpFilter } from "../lib/icpVersioning";
 
 export default function IcpReport() {
   const navigate = useNavigate();
@@ -20,12 +21,12 @@ export default function IcpReport() {
 
     let cancelled = false;
 
-    void supabase
-      .from("icps")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", user.id)
-      .is("superseded_at", null)
-      .then(({ count, error }) => {
+    void applyCurrentIcpFilter(
+      supabase
+        .from("icps")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+    ).then(({ count, error }) => {
         if (cancelled) return;
         if (error) {
           console.warn("[IcpReport] load failed", error);

@@ -1,6 +1,6 @@
 import { supabase } from "../config/supabase";
 import { ICP } from "../hooks/useICPs";
-import { resolveBrandIdForIcpOps } from "../lib/icpBrandAttach";
+import { resolveBrandIdForIcpWrite } from "../lib/icpBrandAttach";
 import { newGenerationId, supersedeBrandCurrentIcps, withVersioningDefaults } from "../lib/icpVersioning";
 
 /**
@@ -12,7 +12,7 @@ export async function seedExampleICPs(
   preferredBrandId?: string | null
 ): Promise<ICP[]> {
   const now = new Date().toISOString();
-  const brandId = await resolveBrandIdForIcpOps(userId, preferredBrandId ?? null);
+  const brandId = await resolveBrandIdForIcpWrite(userId, preferredBrandId ?? null);
   const generationId = newGenerationId();
 
   if (brandId) {

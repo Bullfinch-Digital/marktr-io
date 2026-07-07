@@ -21,8 +21,8 @@ import {
   isGuestLeadCaptured,
   updateGuestContext,
 } from "../lib/guestContext";
-import { resolveBrandIdForIcpOps } from "../lib/icpBrandAttach";
-import { newGenerationId, supersedeBrandCurrentIcps } from "../lib/icpVersioning";
+import { resolveBrandIdForIcpWrite } from "../lib/icpBrandAttach";
+import { applyCurrentIcpFilter, newGenerationId, supersedeBrandCurrentIcps } from "../lib/icpVersioning";
 import {
   WelcomeScreen,
   NameScreen,
@@ -208,11 +208,12 @@ export default function OnboardingBuild() {
 
     let cancelled = false;
 
-    void supabase
-      .from("icps")
-      .select("generation_id, created_at")
-      .eq("user_id", user.id)
-      .is("superseded_at", null)
+    void applyCurrentIcpFilter(
+      supabase
+        .from("icps")
+        .select("generation_id, created_at")
+        .eq("user_id", user.id)
+    )
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle()
@@ -541,21 +542,19 @@ export default function OnboardingBuild() {
           let resolvedBrandId: string | null = null;
           try {
             const ensuredBrandId = await ensureBrandForAuthenticatedOnboarding();
-            resolvedBrandId = await resolveBrandIdForIcpOps(user.id, ensuredBrandId);
+            resolvedBrandId = await resolveBrandIdForIcpWrite(user.id, ensuredBrandId);
           } catch (err) {
-            if (import.meta.env.DEV) {
-              console.warn("[Onboarding] ensureBrandForAuthenticatedOnboarding error", err);
-            }
+            console.error("[Onboarding] brand resolution failed — skipping ICP insert", err);
+            hasPersistedRef.current = false;
           }
 
+          if (resolvedBrandId) {
           const now = new Date().toISOString();
           const generationId = newGenerationId();
-          if (resolvedBrandId) {
-            try {
-              await supersedeBrandCurrentIcps(resolvedBrandId);
-            } catch (supersedeErr) {
-              console.warn("[Onboarding] supersedeBrandCurrentIcps error", supersedeErr);
-            }
+          try {
+            await supersedeBrandCurrentIcps(resolvedBrandId);
+          } catch (supersedeErr) {
+            console.warn("[Onboarding] supersedeBrandCurrentIcps error", supersedeErr);
           }
           const rowsToInsert = result.icps.map((icp: any) => {
             const {
@@ -573,7 +572,7 @@ export default function OnboardingBuild() {
               avatar_gender: (icp as any)?.avatar_gender ?? null,
               avatar_age_range: (icp as any)?.avatar_age_range ?? null,
               user_id: user.id,
-              brand_id: (rest as any)?.brand_id ?? resolvedBrandId ?? null,
+              brand_id: resolvedBrandId,
               name: (rest as any)?.name || "",
               description: (rest as any)?.description || "",
               generation_id: generationId,
@@ -701,6 +700,7 @@ export default function OnboardingBuild() {
             try {
               window.dispatchEvent(new Event("icps:changed"));
             } catch {}
+          }
           }
         }
       }

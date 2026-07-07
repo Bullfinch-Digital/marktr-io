@@ -16,8 +16,9 @@ import { useBrand } from "../contexts/BrandContext";
 import { usePaywall } from "../contexts/PaywallContext";
 import { seedExampleICPs } from "../utils/seedExampleICPs";
 import { isBrandScopeReady, resolveScopedBrandId } from "../lib/brandScopedReads";
-import { fetchArchivedIcpsForBrand, type ArchivedIcpRow } from "../lib/icpVersioning";
-import { Search, Plus, Sparkles, WifiOff, AlertCircle, Archive, ChevronDown, ChevronUp, RotateCcw } from "lucide-react";
+import { fetchArchivedIcpsForBrand, hardDeleteIcpLineage, type ArchivedIcpRow } from "../lib/icpVersioning";
+import IcpPermanentDeleteModal from "../components/IcpPermanentDeleteModal";
+import { Search, Plus, Sparkles, WifiOff, AlertCircle, Archive, ChevronDown, ChevronUp, RotateCcw, Trash2 } from "lucide-react";
 import { canViewICP, canCreateICP } from "../config/accessRules";
 import DashboardShell from "../layouts/DashboardShell";
 
@@ -54,6 +55,8 @@ export default function MyICPsPage() {
   const [archivedLoading, setArchivedLoading] = useState(false);
   const [restoringLineageId, setRestoringLineageId] = useState<string | null>(null);
   const [restoreNudge, setRestoreNudge] = useState<string | null>(null);
+  const [permanentDeleteTarget, setPermanentDeleteTarget] = useState<ArchivedIcpRow | null>(null);
+  const [isPermanentDeleting, setIsPermanentDeleting] = useState(false);
 
   const { user, loading: authLoading } = useAuth();
   const { icps: rawICPs, isLoading: icpsLoading, fetchICPs, isOffline: icpsOffline, updateICP, restoreICP } = useICPs();
@@ -118,6 +121,23 @@ export default function MyICPsPage() {
       }
     } finally {
       setRestoringLineageId(null);
+    }
+  };
+
+  const handlePermanentDeleteConfirm = async () => {
+    if (!permanentDeleteTarget?.lineage_id) return;
+    setIsPermanentDeleting(true);
+    try {
+      await hardDeleteIcpLineage(permanentDeleteTarget.lineage_id);
+      setPermanentDeleteTarget(null);
+      await loadArchived();
+      try {
+        window.dispatchEvent(new Event("icps:changed"));
+      } catch {}
+    } catch (err) {
+      console.error("[MyICPs] permanent delete failed", err);
+    } finally {
+      setIsPermanentDeleting(false);
     }
   };
 
@@ -426,21 +446,34 @@ export default function MyICPsPage() {
                               </p>
                             )}
                           </div>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            disabled={restoringLineageId === row.lineage_id}
-                            onClick={() => void handleRestoreArchived(row.lineage_id)}
-                            className="border-black rounded-design font-['Inter'] text-xs h-8 px-3 gap-1.5"
-                          >
-                            {restoringLineageId === row.lineage_id ? (
-                              <span className="w-3.5 h-3.5 border-2 border-foreground/40 border-t-transparent rounded-full animate-spin" />
-                            ) : (
-                              <RotateCcw className="h-3.5 w-3.5" />
-                            )}
-                            Restore
-                          </Button>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              disabled={restoringLineageId === row.lineage_id || isPermanentDeleting}
+                              onClick={() => void handleRestoreArchived(row.lineage_id)}
+                              className="border-black rounded-design font-['Inter'] text-xs h-8 px-3 gap-1.5"
+                            >
+                              {restoringLineageId === row.lineage_id ? (
+                                <span className="w-3.5 h-3.5 border-2 border-foreground/40 border-t-transparent rounded-full animate-spin" />
+                              ) : (
+                                <RotateCcw className="h-3.5 w-3.5" />
+                              )}
+                              Restore
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              disabled={restoringLineageId === row.lineage_id || isPermanentDeleting}
+                              onClick={() => setPermanentDeleteTarget(row)}
+                              className="border-red-300 text-red-700 hover:bg-red-50 rounded-design font-['Inter'] text-xs h-8 px-3 gap-1.5"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                              Delete permanently
+                            </Button>
+                          </div>
                         </li>
                       ))}
                     </ul>
@@ -513,6 +546,16 @@ export default function MyICPsPage() {
           const created = await createCollection(data);
           return created?.id ?? null;
         }}
+      />
+
+      <IcpPermanentDeleteModal
+        isOpen={!!permanentDeleteTarget}
+        personaName={permanentDeleteTarget?.name || ""}
+        isDeleting={isPermanentDeleting}
+        onClose={() => {
+          if (!isPermanentDeleting) setPermanentDeleteTarget(null);
+        }}
+        onConfirm={() => void handlePermanentDeleteConfirm()}
       />
     </>
   );

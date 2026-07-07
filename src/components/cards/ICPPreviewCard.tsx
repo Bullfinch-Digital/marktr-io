@@ -5,7 +5,7 @@ import { Button } from "../ui/button";
 import {
   Eye,
   Copy,
-  Trash2,
+  Archive,
   MoreVertical,
   Lock,
   Palette,
@@ -318,7 +318,7 @@ export function ICPPreviewCard(props: ICPPreviewCardProps) {
       return;
     }
 
-    if (action === "delete") {
+    if (action === "archive") {
       if (!hasFullAccess) {
         triggerShake();
         onUpgrade?.();
@@ -524,14 +524,15 @@ export function ICPPreviewCard(props: ICPPreviewCardProps) {
 
                 <DropdownMenuItem
                   data-no-card-click="true"
-                  className="text-sm text-red-600 focus:text-red-600"
+                  className="text-sm"
+                  aria-label="Archive customer profile"
                   onSelect={(e) => {
                     stop(e);
-                    handleAction("delete");
+                    handleAction("archive");
                   }}
                 >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete ICP
+                  <Archive className="h-4 w-4 mr-2" />
+                  Archive
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

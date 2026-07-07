@@ -35,6 +35,7 @@ import {
   Pencil,
   Check,
   Trash2,
+  Archive,
   Undo2,
   MoreVertical,
   Palette,
@@ -342,23 +343,25 @@ export default function ICPEditor() {
     }
   };
 
-  const handleDelete = async () => {
+  const handleArchive = async () => {
     if (!id) return;
     if (isFreeTier) {
       openPaywall();
       return;
     }
-    const ok = window.confirm("Are you sure you want to delete this ICP? This action cannot be undone.");
-    if (!ok) return;
+    const confirmed = window.confirm(
+      "Archive this customer profile? You can restore it later from Archived."
+    );
+    if (!confirmed) return;
     try {
       const ok = await deleteICP(id);
-      if (!ok) throw new Error("Delete failed");
+      if (!ok) throw new Error("Archive failed");
       try {
         window.dispatchEvent(new Event("icps:changed"));
       } catch {}
       navigate("/icps");
     } catch (err) {
-      console.error("ICPEditor delete error:", err);
+      console.error("ICPEditor archive error:", err);
     }
   };
 
@@ -854,15 +857,16 @@ export default function ICPEditor() {
                         <DropdownMenuSeparator />
 
                         <DropdownMenuItem
-                          className="text-sm text-red-600 focus:text-red-600"
+                          className="text-sm"
+                          aria-label="Archive customer profile"
                           onSelect={(e) => {
                             e.preventDefault();
                             (e as any).stopPropagation?.();
-                            handleDelete();
+                            handleArchive();
                           }}
                         >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Delete ICP
+                          <Archive className="h-4 w-4 mr-2" />
+                          Archive
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>

@@ -231,3 +231,14 @@ export async function fetchArchivedIcpsForBrand(
     (a, b) => new Date(b.deleted_at).getTime() - new Date(a.deleted_at).getTime()
   );
 }
+
+/** Permanently delete a persona lineage and all related rows (irreversible). */
+export async function hardDeleteIcpLineage(lineageId: string): Promise<void> {
+  const { error } = await supabase.rpc("icp_hard_delete_lineage", {
+    p_lineage_id: lineageId,
+  });
+  if (error) {
+    console.error("[icpVersioning] hardDeleteIcpLineage failed", error);
+    throw error;
+  }
+}

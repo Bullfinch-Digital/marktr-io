@@ -11,7 +11,6 @@ import {
   insertIcpVersionRpc,
   isPermanentIcpSyncError,
   newGenerationId,
-  pickLatestGenerationRows,
   restoreIcpLineage,
   softDeleteIcpById,
   withVersioningDefaults,
@@ -219,10 +218,7 @@ export function useICPs() {
       }
 
       // Success: update both state and cache
-      let currentRows = (data || []) as any[];
-      if (scopedBrandId) {
-        currentRows = pickLatestGenerationRows(currentRows);
-      }
+      const currentRows = (data || []) as any[];
       const icpsWithIndex = currentRows.map((icp: any, index: number) => ({
         ...icp,
         // Supabase join returns `brands: { name } | null` (because FK is brands)

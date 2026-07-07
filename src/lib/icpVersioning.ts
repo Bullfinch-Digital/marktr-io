@@ -62,20 +62,6 @@ export async function supersedeBrandCurrentIcps(
   return typeof data === "number" ? data : 0;
 }
 
-export function pickLatestGenerationRows<T extends { generation_id?: string | null; created_at?: string }>(
-  rows: T[]
-): T[] {
-  if (!rows.length) return rows;
-  const latest = rows.reduce((best, row) => {
-    const rowTs = new Date(row.created_at ?? 0).getTime();
-    const bestTs = new Date(best.created_at ?? 0).getTime();
-    return rowTs > bestTs ? row : best;
-  });
-  const latestGenerationId = latest.generation_id;
-  if (!latestGenerationId) return rows;
-  return rows.filter((row) => row.generation_id === latestGenerationId);
-}
-
 /** Resolve current row for a lineage (for superseded id redirects). */
 export async function fetchCurrentIcpByLineageId(
   userId: string,

@@ -1,11 +1,15 @@
 import { supabase } from "../config/supabase";
 import { ICP } from "../hooks/useICPs";
 import { resolveBrandIdForIcpWrite } from "../lib/icpBrandAttach";
-import { newGenerationId, supersedeBrandCurrentIcps, withVersioningDefaults } from "../lib/icpVersioning";
+import {
+  applyCurrentIcpFilter,
+  newGenerationId,
+  withVersioningDefaults,
+} from "../lib/icpVersioning";
 
 /**
  * Seed the database with example ICPs for testing.
- * Supersedes any current rows on the target brand first so re-runs don't hit the name unique index.
+ * Only runs when the target brand has no current personas.
  */
 export async function seedExampleICPs(
   userId: string,
@@ -15,13 +19,23 @@ export async function seedExampleICPs(
   const brandId = await resolveBrandIdForIcpWrite(userId, preferredBrandId ?? null);
   const generationId = newGenerationId();
 
-  if (brandId) {
-    try {
-      await supersedeBrandCurrentIcps(brandId);
-    } catch (supersedeErr) {
-      console.warn("[seedExampleICPs] supersedeBrandCurrentIcps failed", supersedeErr);
-      throw supersedeErr;
-    }
+  let existingQuery = supabase
+    .from("icps")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("brand_id", brandId);
+
+  existingQuery = applyCurrentIcpFilter(existingQuery);
+
+  const { count: existingCount, error: countError } = await existingQuery;
+  if (countError) {
+    console.error("[seedExampleICPs] existing ICP count failed", countError);
+    throw countError;
+  }
+  if ((existingCount ?? 0) > 0) {
+    throw new Error(
+      "[seedExampleICPs] refused: brand already has current ICPs — load examples only on an empty brand"
+    );
   }
 
   const examples = [

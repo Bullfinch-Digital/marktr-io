@@ -1,11 +1,14 @@
 import { supabase } from "../config/supabase";
 import { applyCurrentIcpFilter } from "./icpVersioning";
 
-/** Max current (non-archived, non-superseded) personas per brand. */
-export const ICP_CURRENT_CAP = 10;
+/** ICPs are generated in fixed batch sizes. */
+export const ICP_BATCH_SIZE = 3;
 
-/** Show a gentle nudge when initiating regenerate at or above this count. */
-export const ICP_NUDGE_THRESHOLD = 7;
+/** Max current personas per brand (three batches of 3). */
+export const ICP_CURRENT_CAP = 9;
+
+/** Nudge before the final batch so the warning is actionable (6 + 3 = 9). */
+export const ICP_NUDGE_THRESHOLD = 6;
 
 let pendingRegenerateNudge: string | null = null;
 
@@ -50,11 +53,11 @@ export function shouldShowIcpNudge(currentCount: number): boolean {
 }
 
 export function formatIcpCapBlockMessage(brandName: string): string {
-  return `You've reached the limit of ${ICP_CURRENT_CAP} customer profiles for ${brandName}. Archive some you're not using before generating more.`;
+  return `You've reached the limit of ${ICP_CURRENT_CAP} customer profiles for ${brandName}. Generating adds ${ICP_BATCH_SIZE} at a time — archive some you're not using before generating more.`;
 }
 
 export function formatIcpNudgeMessage(currentCount: number): string {
-  return `You've got ${currentCount} profiles — you can have up to ${ICP_CURRENT_CAP}. Archiving ones you're not using keeps your targeting focused.`;
+  return `You've got ${currentCount} profiles — one more set of ${ICP_BATCH_SIZE} fills you up (max ${ICP_CURRENT_CAP}). Archiving ones you're not using keeps your targeting focused.`;
 }
 
 export function formatIcpRestoreOverCapNudge(countAfterRestore: number): string {

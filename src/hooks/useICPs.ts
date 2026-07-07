@@ -371,6 +371,7 @@ export function useICPs() {
   const createICP = async (data: Partial<ICP>): Promise<ICP | null> => {
     if (!user?.id) return null;
 
+    const explicitGenerationId = data.generation_id ?? null;
     const dbSafe = toDbIcpPayload(data);
     const preferredBrandId = (dbSafe as any)?.brand_id ?? activeBrandId ?? null;
     let resolvedBrandId: string;
@@ -380,7 +381,7 @@ export function useICPs() {
       console.error("createICP: brand resolution failed", brandErr);
       return null;
     }
-    const generationId = (dbSafe as any)?.generation_id ?? newGenerationId();
+    const generationId = explicitGenerationId ?? newGenerationId();
     const newICP = withVersioningDefaults(
       {
         ...dbSafe,

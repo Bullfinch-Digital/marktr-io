@@ -45,6 +45,14 @@ export type ICPExportData = {
     } | null;
     success_metrics?: { kpis?: string[]; targets?: string[] };
   } | null;
+  strategies?: Array<{
+    goal?: string | null;
+    channel?: string | null;
+    offer_type?: string | null;
+    tone?: string | null;
+    created_at?: string | null;
+    strategy?: ICPExportData["strategy"];
+  }> | null;
   exportedAt?: string | null;
 };
 
@@ -90,6 +98,7 @@ export function ICPExportLayout({ data }: ICPExportLayoutProps) {
   const displayName = data.name && data.name.trim().length ? data.name : "Untitled ICP";
   const description = data.description && data.description.trim().length ? data.description : "—";
   const strategy = data.strategy || null;
+  const strategies = (data.strategies || []).filter(Boolean);
   const origin =
     typeof window !== "undefined" && window.location?.origin ? window.location.origin : "";
   const fallbackUrl = data.id ? `${origin}/icp/${data.id}` : "";
@@ -176,7 +185,172 @@ export function ICPExportLayout({ data }: ICPExportLayoutProps) {
         <SectionCard title="Challenges" items={data.challenges} />
         <SectionCard title="Opportunities" items={data.opportunities} />
 
-        {strategy ? (
+        {strategies.length ? (
+          <>
+            {strategies.map((entry, entryIndex) => {
+              const s = entry.strategy || null;
+              const number = entryIndex + 1;
+              return (
+                <div key={`strategy-export-${entryIndex}`} className="space-y-4">
+                  <div data-export-block className="export-card export-border border border-black rounded-design p-4 bg-white">
+                    <h3 className="font-['Fraunces'] text-lg mb-2">Marketing Strategy {number}</h3>
+                    <p className="export-muted font-['Inter'] text-xs text-foreground/60">
+                      {[
+                        entry.goal ? `Goal: ${entry.goal}` : null,
+                        entry.channel ? `Channel: ${entry.channel}` : null,
+                        entry.offer_type ? `Offer: ${entry.offer_type}` : null,
+                        entry.tone ? `Tone: ${entry.tone}` : null,
+                        entry.created_at
+                          ? `Created: ${new Date(entry.created_at).toLocaleDateString("en-GB")}`
+                          : null,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </p>
+                  </div>
+
+                  <div data-export-block className="export-card export-border border border-black rounded-design p-4 bg-white">
+                    <h4 className="font-['Fraunces'] text-lg mb-2">Positioning</h4>
+                    <p className="text-sm font-['Inter'] text-foreground/80">
+                      <span className="font-semibold">One-liner:</span> {s?.positioning?.one_liner || "—"}
+                    </p>
+                    <p className="text-sm font-['Inter'] text-foreground/80 mt-2">
+                      <span className="font-semibold">Why us:</span> {s?.positioning?.why_us || "—"}
+                    </p>
+                    <ul className="list-disc list-inside text-sm text-foreground/80 font-['Inter'] mt-2 space-y-1">
+                      {(s?.positioning?.differentiators || []).map((item, index) => (
+                        <li key={`exp-diff-${entryIndex}-${index}`}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div data-export-block className="export-card export-border border border-black rounded-design p-4 bg-white">
+                    <h4 className="font-['Fraunces'] text-lg mb-2">Messaging</h4>
+                    <p className="export-muted font-['Inter'] text-xs text-foreground/60 mb-1">Value props</p>
+                    <ul className="list-disc list-inside text-sm text-foreground/80 font-['Inter'] space-y-1">
+                      {(s?.messaging?.value_props || []).map((item, index) => (
+                        <li key={`exp-vp-${entryIndex}-${index}`}>{item}</li>
+                      ))}
+                    </ul>
+                    <p className="export-muted font-['Inter'] text-xs text-foreground/60 mb-1 mt-3">Pain to promise</p>
+                    <ul className="list-disc list-inside text-sm text-foreground/80 font-['Inter'] space-y-1">
+                      {(s?.messaging?.pain_to_promise || []).map((item, index) => (
+                        <li key={`exp-ptp-${entryIndex}-${index}`}>{item}</li>
+                      ))}
+                    </ul>
+                    <p className="export-muted font-['Inter'] text-xs text-foreground/60 mb-1 mt-3">
+                      Objections & rebuttals
+                    </p>
+                    <ul className="list-disc list-inside text-sm text-foreground/80 font-['Inter'] space-y-1">
+                      {(s?.messaging?.objections_and_rebuttals || []).map((item, index) => (
+                        <li key={`exp-obr-${entryIndex}-${index}`}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div data-export-block className="export-card export-border border border-black rounded-design p-4 bg-white">
+                    <h4 className="font-['Fraunces'] text-lg mb-2">Campaign ideas</h4>
+                    <div className="space-y-3">
+                      {(s?.campaign_ideas || []).map((idea, index) => (
+                        <div key={`exp-campaign-${entryIndex}-${index}`} className="border border-black/10 rounded-design p-3 bg-white">
+                          <p className="text-sm font-['Inter'] text-foreground/80">
+                            <span className="font-semibold">{idea.name}:</span> {idea.hook}
+                          </p>
+                          <p className="text-sm font-['Inter'] text-foreground/70 mt-1">{idea.angle}</p>
+                          <p className="text-sm font-['Inter'] text-foreground/70 mt-1">CTA: {idea.cta}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div data-export-block className="export-card export-border border border-black rounded-design p-4 bg-white">
+                    <h4 className="font-['Fraunces'] text-lg mb-2">Channel plan</h4>
+                    <p className="text-sm font-['Inter'] text-foreground/80">
+                      <span className="font-semibold">Primary:</span>{" "}
+                      {s?.channel_plan?.primary_channel || "—"}
+                    </p>
+                    <p className="export-muted font-['Inter'] text-xs text-foreground/60 mb-1 mt-2">Secondary</p>
+                    <ul className="list-disc list-inside text-sm text-foreground/80 font-['Inter'] space-y-1">
+                      {(s?.channel_plan?.secondary_channels || []).map((item, index) => (
+                        <li key={`exp-secondary-${entryIndex}-${index}`}>{item}</li>
+                      ))}
+                    </ul>
+                    <p className="export-muted font-['Inter'] text-xs text-foreground/60 mb-1 mt-3">First 14 days</p>
+                    <ul className="list-disc list-inside text-sm text-foreground/80 font-['Inter'] space-y-1">
+                      {(s?.channel_plan?.first_14_days || []).map((item, index) => (
+                        <li key={`exp-first14-${entryIndex}-${index}`}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div data-export-block className="export-card export-border border border-black rounded-design p-4 bg-white">
+                    <h4 className="font-['Fraunces'] text-lg mb-2">Offer</h4>
+                    <p className="text-sm font-['Inter'] text-foreground/80">
+                      <span className="font-semibold">Recommended:</span>{" "}
+                      {s?.offer?.recommended_offer || "—"}
+                    </p>
+                    <p className="text-sm font-['Inter'] text-foreground/80 mt-2">
+                      <span className="font-semibold">Lead magnet:</span>{" "}
+                      {s?.offer?.lead_magnet_idea || "—"}
+                    </p>
+                    <p className="export-muted font-['Inter'] text-xs text-foreground/60 mb-1 mt-3">
+                      Landing page sections
+                    </p>
+                    <ul className="list-disc list-inside text-sm text-foreground/80 font-['Inter'] space-y-1">
+                      {(s?.offer?.landing_page_sections || []).map((item, index) => (
+                        <li key={`exp-landing-${entryIndex}-${index}`}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div data-export-block className="export-card export-border border border-black rounded-design p-4 bg-white">
+                    <h4 className="font-['Fraunces'] text-lg mb-2">Ad assets</h4>
+                    {s?.ad_assets ? (
+                      <>
+                        <p className="export-muted font-['Inter'] text-xs text-foreground/60 mb-1">Headlines</p>
+                        <ul className="list-disc list-inside text-sm text-foreground/80 font-['Inter'] space-y-1">
+                          {(s?.ad_assets?.headlines || []).map((item, index) => (
+                            <li key={`exp-headline-${entryIndex}-${index}`}>{item}</li>
+                          ))}
+                        </ul>
+                        <p className="export-muted font-['Inter'] text-xs text-foreground/60 mb-1 mt-3">Primary text</p>
+                        <ul className="list-disc list-inside text-sm text-foreground/80 font-['Inter'] space-y-1">
+                          {(s?.ad_assets?.primary_texts || []).map((item, index) => (
+                            <li key={`exp-primary-${entryIndex}-${index}`}>{item}</li>
+                          ))}
+                        </ul>
+                        <p className="export-muted font-['Inter'] text-xs text-foreground/60 mb-1 mt-3">Creative briefs</p>
+                        <ul className="list-disc list-inside text-sm text-foreground/80 font-['Inter'] space-y-1">
+                          {(s?.ad_assets?.creative_briefs || []).map((item, index) => (
+                            <li key={`exp-brief-${entryIndex}-${index}`}>{item}</li>
+                          ))}
+                        </ul>
+                      </>
+                    ) : (
+                      <p className="text-sm font-['Inter'] text-foreground/60">Not included</p>
+                    )}
+                  </div>
+
+                  <div data-export-block className="export-card export-border border border-black rounded-design p-4 bg-white">
+                    <h4 className="font-['Fraunces'] text-lg mb-2">Success metrics</h4>
+                    <p className="export-muted font-['Inter'] text-xs text-foreground/60 mb-1">KPIs</p>
+                    <ul className="list-disc list-inside text-sm text-foreground/80 font-['Inter'] space-y-1">
+                      {(s?.success_metrics?.kpis || []).map((item, index) => (
+                        <li key={`exp-kpi-${entryIndex}-${index}`}>{item}</li>
+                      ))}
+                    </ul>
+                    <p className="export-muted font-['Inter'] text-xs text-foreground/60 mb-1 mt-3">Targets</p>
+                    <ul className="list-disc list-inside text-sm text-foreground/80 font-['Inter'] space-y-1">
+                      {(s?.success_metrics?.targets || []).map((item, index) => (
+                        <li key={`exp-target-${entryIndex}-${index}`}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              );
+            })}
+          </>
+        ) : strategy ? (
           <>
             <div data-export-block className="export-card export-border border border-black rounded-design p-4 bg-white">
               <h3 className="font-['Fraunces'] text-lg mb-2">Marketing Strategy</h3>

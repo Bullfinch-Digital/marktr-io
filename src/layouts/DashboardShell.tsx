@@ -78,7 +78,7 @@ export default function DashboardShell({
       </div>
 
       {showTrialOverlay && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center p-6">
+        <div className="absolute inset-0 z-50 flex items-start justify-center pt-12 sm:pt-16 md:pt-20 px-6 pb-6">
           <div className="absolute inset-0 bg-background/80" />
           <div className="relative w-full max-w-lg bg-background border border-black rounded-design shadow-xl p-8 text-center">
             <h2 className="font-['Fraunces'] text-2xl mb-2">Your trial has ended</h2>

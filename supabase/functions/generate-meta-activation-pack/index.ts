@@ -1,15 +1,9 @@
-// Supabase Edge Function: generate-icp-strategy
-// Deploy with: supabase functions deploy generate-icp-strategy
-// Set secret with: supabase secrets set OPENAI_API_KEY=sk-...
-//
-// Generates a marketing strategy for a specific ICP and inserts into icp_strategies.
-
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const PROMPT_VERSION = "icp_strategy_v2_brand_context";
+const PROMPT_VERSION = "meta_activation_pack_v1";
 const MODEL = "gpt-5.2";
-const MAX_ICP_STRATEGIES = 10;
+const MAX_PACKS_PER_ICP = 10;
 const MONTHLY_SPEND_CAP_GBP = Number(Deno.env.get("OPENAI_MONTHLY_SPEND_CAP_GBP") ?? "7.5");
 const GBP_TO_USD_RATE = Number(Deno.env.get("OPENAI_GBP_USD_RATE") ?? "1.28");
 const MONTHLY_SPEND_CAP_USD = MONTHLY_SPEND_CAP_GBP * GBP_TO_USD_RATE;
@@ -98,7 +92,7 @@ async function logOpenAiUsage(
 ) {
   const { error } = await supabase.from("openai_usage_events").insert({
     user_id: payload.userId,
-    feature: "generate_icp_strategy",
+    feature: "generate_meta_activation_pack",
     model: MODEL,
     status: payload.status,
     icp_id: payload.icpId,
@@ -117,14 +111,9 @@ async function logOpenAiUsage(
 
 type GenerateInput = {
   icpId: string;
-  goal: string;
-  channel?: string | null;
-  offerType?: string | null;
-  tone?: string | null;
-  businessStage?: string | null;
-  monthlyBudgetBand?: string | null;
-  objectiveHorizon?: string | null;
-  marketingCapacity?: string | null;
+  strategyId?: string | null;
+  goal?: string | null;
+  packName?: string | null;
 };
 
 function json(resBody: unknown, status = 200) {
@@ -153,14 +142,26 @@ function corsPreflight(req: Request) {
   return null;
 }
 
-function buildPrompt(icp: Record<string, any>, brand: Record<string, any> | null, input: GenerateInput) {
-  const list = (arr: unknown) =>
-    Array.isArray(arr) && arr.length ? arr.join("; ") : "Not provided";
+function list(value: unknown): string {
+  return Array.isArray(value) && value.length ? value.join("; ") : "Not provided";
+}
 
+function buildPrompt(icp: Record<string, unknown>, brand: Record<string, unknown> | null, strategy: any, input: GenerateInput) {
   return `
-You are a senior marketing strategist. Use UK English. Be concise and practical.
-Do not invent company-specific facts. If details are missing, use plausible but generic examples.
-Return STRICT JSON ONLY that matches the given schema. No markdown.
+You are a senior performance marketer specialising in Meta Ads (Facebook/Instagram). Use UK English.
+Return STRICT JSON ONLY. No markdown. Keep everything practical and implementable.
+
+You are creating a "Meta Activation Pack" that helps a business:
+1) build Custom Audiences in Meta Ads Manager,
+2) prepare better Lookalike seed data from first-party data,
+3) map messaging and creatives to funnel stages,
+4) follow a 30-day activation roadmap.
+
+CRITICAL POLICY RULES:
+- Do NOT claim direct API creation of Meta audiences.
+- Do NOT infer or target sensitive traits (health, financial status, housing, employment, ethnicity, religion, sexuality, etc.).
+- Include clear compliance notes about consent and lawful data use.
+- Keep recommendations consistent with Meta audience workflows.
 
 ICP context:
 - Name: ${icp.name || "Not provided"}
@@ -168,136 +169,170 @@ ICP context:
 - Industry: ${icp.industry || "Not provided"}
 - Company size: ${icp.company_size || "Not provided"}
 - Location: ${icp.location || "Not provided"}
+- Budget: ${icp.budget || "Not provided"}
 - Goals: ${list(icp.goals)}
 - Pain points: ${list(icp.pain_points)}
-- Budget: ${icp.budget || "Not provided"}
 - Decision makers: ${list(icp.decision_makers)}
 - Tech stack: ${list(icp.tech_stack)}
 - Challenges: ${list(icp.challenges)}
 - Opportunities: ${list(icp.opportunities)}
 
-Brand context (if available):
-- Brand name: ${brand?.name || "Not provided"}
-- Brand description: ${brand?.business_description || "Not provided"}
+Brand context:
+- Name: ${brand?.name || "Not provided"}
+- Description: ${brand?.business_description || "Not provided"}
 - Product/service: ${brand?.product_or_service || "Not provided"}
-- Business type: ${brand?.business_type || "Not provided"}
-- Assumed audience: ${list(brand?.assumed_audience)}
 - Existing channels: ${list(brand?.marketing_channels)}
+- Audience assumptions: ${list(brand?.assumed_audience)}
 - Country: ${brand?.country || "Not provided"}
-- Region/city: ${brand?.region_or_city || "Not provided"}
-- Currency: ${brand?.currency || "Not provided"}
 
-Strategy inputs:
-- Goal (required): ${input.goal}
-- Preferred channel: ${input.channel || "No preference"}
-- Offer type: ${input.offerType || "No preference"}
-- Tone: ${input.tone || "No preference"}
-- Business stage / size: ${input.businessStage || "Not specified"}
-- Monthly marketing budget band: ${input.monthlyBudgetBand || "Not specified"}
-- Objective horizon: ${input.objectiveHorizon || "Not specified"}
-- Weekly marketing capacity: ${input.marketingCapacity || "Not specified"}
+Optional strategy context:
+- Positioning one-liner: ${strategy?.positioning?.one_liner || "Not provided"}
+- Value props: ${list(strategy?.messaging?.value_props)}
+- Campaign ideas: ${list(strategy?.campaign_ideas?.map((x: any) => x?.name).filter(Boolean))}
 
-Rules:
-- Keep outputs short and actionable.
-- Avoid jargon and hype.
-- Provide 3–5 items per list where possible.
-- Prioritise recommendations that can realistically be executed within the stated budget and capacity.
+Activation objective:
+- Goal: ${input.goal || "Generate a practical Meta activation plan"}
+
+Output requirements:
+- audience_plan: 6-10 practical audience recipes across mixed source types where possible.
+- seed_quality: specific qualification rules for high-quality lookalike seeds.
+- lookalike_plan: explicit tiering (1%, 2%, 3-5%).
+- messaging_matrix: at least 5 rows tied to funnel stages.
+- roadmap_30d: 4 weekly phases with action checklists.
+- compliance_notes: concise mandatory warnings.
 `;
 }
 
 const RESPONSE_SCHEMA = {
-  name: "icp_strategy",
+  name: "meta_activation_pack",
   schema: {
     type: "object",
     additionalProperties: false,
     properties: {
-      positioning: {
-        type: "object",
-        additionalProperties: false,
-        properties: {
-          one_liner: { type: "string" },
-          why_us: { type: "string" },
-          differentiators: { type: "array", items: { type: "string" } },
-        },
-        required: ["one_liner", "why_us", "differentiators"],
-      },
-      messaging: {
-        type: "object",
-        additionalProperties: false,
-        properties: {
-          value_props: { type: "array", items: { type: "string" } },
-          pain_to_promise: { type: "array", items: { type: "string" } },
-          objections_and_rebuttals: { type: "array", items: { type: "string" } },
-        },
-        required: ["value_props", "pain_to_promise", "objections_and_rebuttals"],
-      },
-      campaign_ideas: {
+      audience_plan: {
         type: "array",
         items: {
           type: "object",
           additionalProperties: false,
           properties: {
-            name: { type: "string" },
-            hook: { type: "string" },
-            angle: { type: "string" },
-            cta: { type: "string" },
+            audience_name: { type: "string" },
+            source_type: { type: "string" },
+            build_rule: { type: "string" },
+            retention_window: { type: "string" },
+            use_case: { type: "string" },
+            exclusions: { type: "array", items: { type: "string" } },
           },
-          required: ["name", "hook", "angle", "cta"],
+          required: [
+            "audience_name",
+            "source_type",
+            "build_rule",
+            "retention_window",
+            "use_case",
+            "exclusions",
+          ],
         },
       },
-      channel_plan: {
+      seed_quality: {
         type: "object",
         additionalProperties: false,
         properties: {
-          primary_channel: { type: "string" },
-          secondary_channels: { type: "array", items: { type: "string" } },
-          first_14_days: { type: "array", items: { type: "string" } },
+          primary_seed_definition: { type: "string" },
+          fallback_seed_definition: { type: "string" },
+          minimum_size: { type: "string" },
+          recommended_size: { type: "string" },
+          data_quality_checklist: { type: "array", items: { type: "string" } },
+          do_not_use_cohorts: { type: "array", items: { type: "string" } },
         },
-        required: ["primary_channel", "secondary_channels", "first_14_days"],
-      },
-      offer: {
-        type: "object",
-        additionalProperties: false,
-        properties: {
-          recommended_offer: { type: "string" },
-          lead_magnet_idea: { anyOf: [{ type: "string" }, { type: "null" }] },
-          landing_page_sections: { type: "array", items: { type: "string" } },
-        },
-        required: ["recommended_offer", "lead_magnet_idea", "landing_page_sections"],
-      },
-      ad_assets: {
-        anyOf: [
-          {
-            type: "object",
-            additionalProperties: false,
-            properties: {
-              headlines: { type: "array", items: { type: "string" } },
-              primary_texts: { type: "array", items: { type: "string" } },
-              creative_briefs: { type: "array", items: { type: "string" } },
-            },
-            required: ["headlines", "primary_texts", "creative_briefs"],
-          },
-          { type: "null" },
+        required: [
+          "primary_seed_definition",
+          "fallback_seed_definition",
+          "minimum_size",
+          "recommended_size",
+          "data_quality_checklist",
+          "do_not_use_cohorts",
         ],
       },
-      success_metrics: {
+      lookalike_plan: {
         type: "object",
         additionalProperties: false,
         properties: {
-          kpis: { type: "array", items: { type: "string" } },
-          targets: { type: "array", items: { type: "string" } },
+          source_audiences: { type: "array", items: { type: "string" } },
+          tier_recommendations: {
+            type: "array",
+            items: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                tier_name: { type: "string" },
+                percentage: { type: "string" },
+                use_case: { type: "string" },
+              },
+              required: ["tier_name", "percentage", "use_case"],
+            },
+          },
+          stacking_strategy: { type: "string" },
+          mandatory_exclusions: { type: "array", items: { type: "string" } },
+          location_note: { type: "string" },
         },
-        required: ["kpis", "targets"],
+        required: [
+          "source_audiences",
+          "tier_recommendations",
+          "stacking_strategy",
+          "mandatory_exclusions",
+          "location_note",
+        ],
       },
+      messaging_matrix: {
+        type: "array",
+        items: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            audience: { type: "string" },
+            funnel_stage: { type: "string" },
+            awareness_level: { type: "string" },
+            pain_angle: { type: "string" },
+            promise_angle: { type: "string" },
+            primary_cta: { type: "string" },
+            proof_type: { type: "string" },
+            creative_format: { type: "string" },
+          },
+          required: [
+            "audience",
+            "funnel_stage",
+            "awareness_level",
+            "pain_angle",
+            "promise_angle",
+            "primary_cta",
+            "proof_type",
+            "creative_format",
+          ],
+        },
+      },
+      roadmap_30d: {
+        type: "array",
+        items: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            week: { type: "string" },
+            focus: { type: "string" },
+            tasks: { type: "array", items: { type: "string" } },
+            checkpoint: { type: "string" },
+            decision_rule: { type: "string" },
+          },
+          required: ["week", "focus", "tasks", "checkpoint", "decision_rule"],
+        },
+      },
+      compliance_notes: { type: "array", items: { type: "string" } },
     },
     required: [
-      "positioning",
-      "messaging",
-      "campaign_ideas",
-      "channel_plan",
-      "offer",
-      "ad_assets",
-      "success_metrics",
+      "audience_plan",
+      "seed_quality",
+      "lookalike_plan",
+      "messaging_matrix",
+      "roadmap_30d",
+      "compliance_notes",
     ],
   },
   strict: true,
@@ -314,9 +349,8 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
-    const apiKey = Deno.env.get("OPENAI_API_KEY");
-
-    if (!supabaseUrl || !supabaseAnonKey || !apiKey) {
+    const openAiKey = Deno.env.get("OPENAI_API_KEY");
+    if (!supabaseUrl || !supabaseAnonKey || !openAiKey) {
       return json({ error: "Missing server env vars" }, 500);
     }
 
@@ -333,14 +367,13 @@ Deno.serve(async (req) => {
       data: { user },
       error: userError,
     } = await supabase.auth.getUser();
-
     if (userError || !user) {
       return json({ error: "Unauthenticated" }, 401);
     }
 
     const body = (await req.json()) as Partial<GenerateInput>;
-    if (!body?.icpId || !body?.goal) {
-      return json({ error: "icpId and goal are required" }, 400);
+    if (!body?.icpId) {
+      return json({ error: "icpId is required" }, 400);
     }
 
     const { data: icp, error: icpError } = await supabase
@@ -349,37 +382,43 @@ Deno.serve(async (req) => {
       .eq("id", body.icpId)
       .eq("user_id", user.id)
       .single();
-
     if (icpError || !icp) {
       return json({ error: "ICP not found" }, 404);
     }
 
     const { count: existingCount, error: countError } = await supabase
-      .from("icp_strategies")
+      .from("icp_meta_activation_packs")
       .select("id", { count: "exact", head: true })
       .eq("icp_id", body.icpId)
       .eq("user_id", user.id);
-
     if (countError) {
-      return json({ error: "Failed to count existing strategies", details: countError.message }, 500);
+      return json({ error: "Failed to count existing packs", details: countError.message }, 500);
+    }
+    if ((existingCount ?? 0) >= MAX_PACKS_PER_ICP) {
+      return json({ error: `You can save up to ${MAX_PACKS_PER_ICP} Meta activation packs per ICP.` }, 400);
     }
 
-    if ((existingCount ?? 0) >= MAX_ICP_STRATEGIES) {
-      return json(
-        { error: `You can save up to ${MAX_ICP_STRATEGIES} strategies per ICP.` },
-        400
-      );
-    }
-
-    let brand: Record<string, any> | null = null;
-    if (icp?.brand_id) {
+    let brand: Record<string, unknown> | null = null;
+    if ((icp as any)?.brand_id) {
       const { data: brandData } = await supabase
         .from("brands")
         .select("*")
-        .eq("id", icp.brand_id)
+        .eq("id", (icp as any).brand_id)
         .eq("user_id", user.id)
         .maybeSingle();
-      brand = brandData || null;
+      brand = (brandData as Record<string, unknown> | null) ?? null;
+    }
+
+    let strategy: any = null;
+    if (body.strategyId) {
+      const { data: strategyData } = await supabase
+        .from("icp_strategies")
+        .select("id, strategy")
+        .eq("id", body.strategyId)
+        .eq("icp_id", body.icpId)
+        .eq("user_id", user.id)
+        .maybeSingle();
+      strategy = strategyData?.strategy ?? null;
     }
 
     const monthlyUsage = await getMonthlyUsageSpendUsd(supabase, user.id);
@@ -403,12 +442,11 @@ Deno.serve(async (req) => {
       );
     }
 
-    const prompt = buildPrompt(icp, brand, body as GenerateInput);
-
+    const prompt = buildPrompt(icp as Record<string, unknown>, brand, strategy, body as GenerateInput);
     const resp = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${apiKey}`,
+        Authorization: `Bearer ${openAiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -427,7 +465,6 @@ Deno.serve(async (req) => {
 
     if (!resp.ok) {
       const errText = await resp.text();
-      console.error("OpenAI error", resp.status, errText);
       await logOpenAiUsage(supabase, {
         userId: user.id,
         icpId: body.icpId,
@@ -437,36 +474,33 @@ Deno.serve(async (req) => {
       return json({ error: "OpenAI call failed", status: resp.status, details: errText }, 500);
     }
 
-    const data = await resp.json();
-    const usage = extractUsage(data);
+    const aiData = await resp.json();
+    const usage = extractUsage(aiData);
     const outputText =
-      data?.output_text ??
-      data?.output?.[0]?.content?.[0]?.text ??
-      data?.output?.[0]?.content?.[0]?.value ??
+      aiData?.output_text ??
+      aiData?.output?.[0]?.content?.[0]?.text ??
+      aiData?.output?.[0]?.content?.[0]?.value ??
       "";
 
-    let parsed: any = null;
+    let parsed: unknown = null;
     try {
       parsed = JSON.parse(outputText);
     } catch {
       const match = String(outputText).match(/\{[\s\S]*\}/);
       if (match) parsed = JSON.parse(match[0]);
     }
-
     if (!parsed) {
-      return json({ error: "Model response did not contain valid JSON.", raw: outputText }, 500);
+      return json({ error: "Model response did not contain valid JSON", raw: outputText }, 500);
     }
 
     const now = new Date().toISOString();
     const row = {
       icp_id: body.icpId,
       user_id: user.id,
-      strategy_name: `Strategy ${(existingCount ?? 0) + 1}`,
-      goal: body.goal,
-      channel: body.channel ?? null,
-      offer_type: body.offerType ?? null,
-      tone: body.tone ?? null,
-      strategy: parsed,
+      strategy_id: body.strategyId ?? null,
+      pack_name: body.packName?.trim() || `Meta Activation Pack ${(existingCount ?? 0) + 1}`,
+      goal: body.goal ?? null,
+      pack_json: parsed,
       prompt_version: PROMPT_VERSION,
       model: MODEL,
       created_at: now,
@@ -474,11 +508,10 @@ Deno.serve(async (req) => {
     };
 
     const { data: saved, error: saveError } = await supabase
-      .from("icp_strategies")
+      .from("icp_meta_activation_packs")
       .insert(row)
-      .select()
+      .select("*")
       .single();
-
     if (saveError) {
       await logOpenAiUsage(supabase, {
         userId: user.id,
@@ -489,9 +522,9 @@ Deno.serve(async (req) => {
         outputTokens: usage.outputTokens,
         totalTokens: usage.totalTokens,
         reasoningTokens: usage.reasoningTokens,
-        errorMessage: `Failed to save strategy: ${saveError.message}`,
+        errorMessage: `Failed to save Meta activation pack: ${saveError.message}`,
       });
-      return json({ error: "Failed to save strategy", details: saveError.message }, 500);
+      return json({ error: "Failed to save Meta activation pack", details: saveError.message }, 500);
     }
 
     await logOpenAiUsage(supabase, {
@@ -506,12 +539,7 @@ Deno.serve(async (req) => {
       reasoningTokens: usage.reasoningTokens,
     });
 
-    return json({
-      strategy: parsed,
-      prompt_version: PROMPT_VERSION,
-      model: MODEL,
-      record: saved,
-    });
+    return json({ record: saved, pack: parsed, prompt_version: PROMPT_VERSION, model: MODEL });
   } catch (err) {
     return json({ error: "Unhandled error", message: String(err) }, 500);
   }

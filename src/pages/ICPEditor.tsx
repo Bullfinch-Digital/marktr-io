@@ -10,6 +10,7 @@ import { exportICPAsPDF } from "../utils/exportICP";
 import { canExportICP } from "../config/accessRules";
 import { usePaywall } from "../contexts/PaywallContext";
 import { useICPStrategy } from "../hooks/useICPStrategy";
+import { MetaActivationPackPanel } from "../components/icp/MetaActivationPackPanel";
 import DashboardShell from "../layouts/DashboardShell";
 import { ICPProfileLayout } from "../components/icp/ICPProfileLayout";
 import ICPColorModal from "../components/ICPColorModal";
@@ -41,6 +42,7 @@ import {
   Palette,
   Image as ImageIcon,
   FolderPlus,
+  Loader2,
 } from "lucide-react";
 
 export default function ICPEditor() {
@@ -52,10 +54,17 @@ export default function ICPEditor() {
   const { openPaywall } = usePaywall();
   const {
     strategy,
+    record: strategyRecord,
+    records: strategyRecords,
+    selectedId: selectedStrategyId,
+    selectStrategy,
     isLoading: strategyLoading,
     isGenerating: strategyGenerating,
     error: strategyError,
     generateStrategy,
+    renameStrategy,
+    deleteStrategy,
+    maxStrategies,
   } = useICPStrategy(id);
   // Treat trial users as "pro" for export gating.
   const effectiveTier = userTier === "free" && !trialActive ? "free" : "pro";
@@ -106,6 +115,56 @@ export default function ICPEditor() {
   const [strategyMonthlyBudgetBand, setStrategyMonthlyBudgetBand] = useState("");
   const [strategyObjectiveHorizon, setStrategyObjectiveHorizon] = useState("next_30_days");
   const [strategyMarketingCapacity, setStrategyMarketingCapacity] = useState("");
+  const [showNewStrategyForm, setShowNewStrategyForm] = useState(false);
+  const [isRenamingStrategy, setIsRenamingStrategy] = useState(false);
+  const [renameStrategyValue, setRenameStrategyValue] = useState("");
+  const [hasUnsavedMetaPackRename, setHasUnsavedMetaPackRename] = useState(false);
+  const metaPackSavePendingRenameRef = useRef<null | (() => Promise<boolean>)>(null);
+  const activeStrategyIndex = strategyRecord
+    ? strategyRecords.findIndex((r) => r.id === strategyRecord.id)
+    : -1;
+  const activeStrategyFallbackName =
+    activeStrategyIndex >= 0 ? `Strategy ${strategyRecords.length - activeStrategyIndex}` : "Strategy";
+  const activeStrategySavedName = strategyRecord?.strategy_name || activeStrategyFallbackName;
+  const hasUnsavedStrategyRename =
+    isRenamingStrategy && renameStrategyValue.trim() !== activeStrategySavedName.trim();
+  const hasUnsavedChanges = isDirty || hasUnsavedStrategyRename || hasUnsavedMetaPackRename;
+
+  const handleGenerateNewStrategy = useCallback(async () => {
+    const res = await generateStrategy({
+      goal: strategyGoal,
+      channel: strategyChannel || null,
+      offerType: strategyOfferType || null,
+      tone: strategyTone || null,
+      businessStage: strategyBusinessStage || null,
+      monthlyBudgetBand: strategyMonthlyBudgetBand || null,
+      objectiveHorizon: strategyObjectiveHorizon || null,
+      marketingCapacity: strategyMarketingCapacity || null,
+    });
+    if (res?.record) {
+      setShowNewStrategyForm(false);
+    }
+  }, [
+    generateStrategy,
+    strategyGoal,
+    strategyChannel,
+    strategyOfferType,
+    strategyTone,
+    strategyBusinessStage,
+    strategyMonthlyBudgetBand,
+    strategyObjectiveHorizon,
+    strategyMarketingCapacity,
+  ]);
+
+  useEffect(() => {
+    if (!strategyRecord) {
+      setRenameStrategyValue("");
+      return;
+    }
+    const index = strategyRecords.findIndex((r) => r.id === strategyRecord.id);
+    const fallbackName = index >= 0 ? `Strategy ${strategyRecords.length - index}` : "Strategy";
+    setRenameStrategyValue(strategyRecord.strategy_name || fallbackName);
+  }, [strategyRecord?.id, strategyRecord?.strategy_name, strategyRecords]);
 
   useEffect(() => {
     const loadICP = async () => {
@@ -126,16 +185,27 @@ export default function ICPEditor() {
     loadICP();
   }, [id, getICP, navigate]);
 
+  useEffect(() => {
+    const count = strategyRecords?.length ?? 0;
+    // Show generation form only when there are no saved strategies;
+    // otherwise default to showing the selected saved strategy.
+    if (count === 0) {
+      setShowNewStrategyForm(true);
+    } else {
+      setShowNewStrategyForm(false);
+    }
+  }, [strategyRecords?.length]);
+
   // Warn on browser/tab close if there are unsaved changes
   useEffect(() => {
     const handler = (event: BeforeUnloadEvent) => {
-      if (!isDirty) return;
+      if (!hasUnsavedChanges) return;
       event.preventDefault();
       event.returnValue = "";
     };
     window.addEventListener("beforeunload", handler);
     return () => window.removeEventListener("beforeunload", handler);
-  }, [isDirty]);
+  }, [hasUnsavedChanges]);
 
   // Track dirty state whenever icpData changes
   useEffect(() => {
@@ -161,10 +231,10 @@ export default function ICPEditor() {
 
   // Intercept in-app navigation clicks and prompt to save/discard
   useEffect(() => {
-    if (!isDirty) return;
+    if (!hasUnsavedChanges) return;
 
     const onClickCapture = (e: MouseEvent) => {
-      if (!isDirty) return;
+      if (!hasUnsavedChanges) return;
       if (e.defaultPrevented) return;
       if (e.button !== 0) return;
       if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
@@ -196,7 +266,7 @@ export default function ICPEditor() {
 
     document.addEventListener("click", onClickCapture, true);
     return () => document.removeEventListener("click", onClickCapture, true);
-  }, [isDirty]);
+  }, [hasUnsavedChanges]);
 
   const handleSave = useCallback(async (): Promise<boolean> => {
     if (!id) return false;
@@ -255,8 +325,19 @@ export default function ICPEditor() {
   };
 
   const handleSaveAndLeave = async () => {
-    const ok = await handleSave();
-    if (!ok) return;
+    if (isDirty) {
+      const ok = await handleSave();
+      if (!ok) return;
+    }
+    if (hasUnsavedStrategyRename && strategyRecord) {
+      const renamed = await renameStrategy(strategyRecord.id, renameStrategyValue);
+      if (!renamed) return;
+      setIsRenamingStrategy(false);
+    }
+    if (metaPackSavePendingRenameRef.current) {
+      const ok = await metaPackSavePendingRenameRef.current();
+      if (!ok) return;
+    }
     setLeaveDialogOpen(false);
     performPendingNavigation(pendingNavRef.current);
   };
@@ -682,7 +763,7 @@ export default function ICPEditor() {
                 <ArrowLeft className="w-5 h-5" />
                 <span className="font-['Inter']">Back to Dashboard</span>
               </Link>
-              {isDirty && saveStatus !== "saving" && (
+              {hasUnsavedChanges && saveStatus !== "saving" && (
                 <span className="text-sm text-amber-700 bg-amber-100 border border-amber-300 rounded-full px-3 py-1 font-['Inter']">
                   Unsaved changes
                 </span>
@@ -1065,8 +1146,124 @@ export default function ICPEditor() {
                   </div>
                 ) : strategyLoading ? (
                   <p className="text-sm text-foreground/60 font-['Inter']">Loading strategy…</p>
-                ) : strategy ? (
+                ) : strategy && !showNewStrategyForm ? (
                   <div className="space-y-4">
+                    {strategyRecords.length > 0 && (
+                      <div className="border border-black rounded-design p-3 bg-white">
+                        <div className="flex flex-wrap items-center gap-2">
+                          {strategyRecords.map((r, index) => {
+                            const isActive = r.id === selectedStrategyId;
+                            const displayName = r.strategy_name || `Strategy ${strategyRecords.length - index}`;
+                            return (
+                              <button
+                                key={r.id}
+                                type="button"
+                                onClick={() => selectStrategy(r.id)}
+                                className={`px-3 py-1.5 rounded-design border text-xs font-['Inter'] ${
+                                  isActive
+                                    ? "bg-button-green/40 border-black text-foreground"
+                                    : "bg-white border-black/40 text-foreground/70 hover:bg-accent-grey/30"
+                                }`}
+                              >
+                                {displayName}
+                              </button>
+                            );
+                          })}
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="border-black rounded-design ml-auto"
+                            onClick={() => setShowNewStrategyForm(true)}
+                            disabled={strategyRecords.length >= maxStrategies}
+                          >
+                            Generate new strategy
+                          </Button>
+                        </div>
+                        {strategyRecords.length >= maxStrategies && (
+                          <p className="text-xs font-['Inter'] text-foreground/60 mt-2">
+                            Maximum of {maxStrategies} strategies reached. Delete one to create another.
+                          </p>
+                        )}
+                        {strategyRecord?.created_at && (
+                          <p className="text-xs font-['Inter'] text-foreground/60 mt-2">
+                            Viewing strategy created{" "}
+                            {new Date(strategyRecord.created_at).toLocaleString("en-GB", {
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </p>
+                        )}
+                        <div className="mt-3 flex flex-wrap items-center gap-2">
+                          {isRenamingStrategy ? (
+                            <>
+                              <Input
+                                value={renameStrategyValue}
+                                onChange={(e) => setRenameStrategyValue(e.target.value)}
+                                className="h-9 border-black rounded-design max-w-xs"
+                                maxLength={80}
+                              />
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                className="border-black rounded-design"
+                                onClick={async () => {
+                                  if (!strategyRecord) return;
+                                  const ok = await renameStrategy(strategyRecord.id, renameStrategyValue);
+                                  if (ok) setIsRenamingStrategy(false);
+                                }}
+                              >
+                                Save name
+                              </Button>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                className="border-black rounded-design"
+                                onClick={() => {
+                                  setIsRenamingStrategy(false);
+                                  setRenameStrategyValue(activeStrategySavedName);
+                                }}
+                              >
+                                Cancel
+                              </Button>
+                            </>
+                          ) : (
+                            <>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                className="border-black rounded-design"
+                                onClick={() => setIsRenamingStrategy(true)}
+                              >
+                                Rename strategy
+                              </Button>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                className="border-red-500 text-red-700 hover:bg-red-50 rounded-design"
+                                onClick={async () => {
+                                  if (!strategyRecord) return;
+                                  const ok = window.confirm(
+                                    "Delete this strategy? This action cannot be undone."
+                                  );
+                                  if (!ok) return;
+                                  await deleteStrategy(strategyRecord.id);
+                                }}
+                              >
+                                Delete strategy
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
                     <div className="border border-black rounded-design p-4 bg-white">
                       <h4 className="font-['Fraunces'] text-lg mb-2">Positioning</h4>
                       <p className="text-sm font-['Inter'] text-foreground/80">
@@ -1327,28 +1524,55 @@ export default function ICPEditor() {
                         {strategyError}
                       </p>
                     )}
-                    <div className="mt-4">
+                    <div className="mt-4 flex items-center gap-3">
+                      {strategy && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="border-black rounded-design"
+                          onClick={() => setShowNewStrategyForm(false)}
+                        >
+                          Cancel
+                        </Button>
+                      )}
                       <Button
-                        onClick={() =>
-                          generateStrategy({
-                            goal: strategyGoal,
-                            channel: strategyChannel || null,
-                            offerType: strategyOfferType || null,
-                            tone: strategyTone || null,
-                            businessStage: strategyBusinessStage || null,
-                            monthlyBudgetBand: strategyMonthlyBudgetBand || null,
-                            objectiveHorizon: strategyObjectiveHorizon || null,
-                            marketingCapacity: strategyMarketingCapacity || null,
-                          })
+                        onClick={handleGenerateNewStrategy}
+                        disabled={
+                          strategyGenerating || !strategyGoal || strategyRecords.length >= maxStrategies
                         }
-                        disabled={strategyGenerating || !strategyGoal}
                         className="bg-button-green hover:bg-button-green/90 text-foreground border border-black rounded-design px-6 py-3"
                       >
-                        {strategyGenerating ? "Generating…" : "Generate Strategy"}
+                        {strategyGenerating ? (
+                          <span className="inline-flex items-center gap-2">
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Generating strategy...
+                          </span>
+                        ) : (
+                          "Generate Strategy"
+                        )}
                       </Button>
                     </div>
+                    {strategyGenerating && (
+                      <p className="text-xs font-['Inter'] text-foreground/70 mt-3 animate-pulse">
+                        Working through your ICP and brand context. This can take up to 30 seconds. Please do not refresh
+                        or navigate away.
+                      </p>
+                    )}
                   </div>
                 )}
+              </div>
+
+              <div className="mt-6">
+                <MetaActivationPackPanel
+                  icpId={id}
+                  selectedStrategyId={selectedStrategyId}
+                  isFreeTier={isFreeTier}
+                  onUpgrade={() => openPaywall()}
+                  onUnsavedRenameChange={setHasUnsavedMetaPackRename}
+                  registerSavePendingRename={(saveFn) => {
+                    metaPackSavePendingRenameRef.current = saveFn;
+                  }}
+                />
               </div>
             </div>
         }
@@ -1409,14 +1633,24 @@ export default function ICPEditor() {
             ageRange: null,
           })
         }
-        onSaved={(avatarKey) => {
+        onSaved={({ avatarKey, gender, ageRange }) => {
           const nextKey = avatarKey ?? null;
           setIcpAvatarModal({ open: false, id: null, currentAvatarKey: null, gender: null, ageRange: null });
 
           // Update UI immediately (and avoid "dirty" since it was already saved in modal)
-          setICPData((prev) => ({ ...prev, avatar_key: nextKey as any }));
+          setICPData((prev) => ({
+            ...prev,
+            avatar_key: nextKey as any,
+            avatar_gender: gender as any,
+            avatar_age_range: ageRange as any,
+          }));
           if (originalDataRef.current) {
-            originalDataRef.current = { ...originalDataRef.current, avatar_key: nextKey as any };
+            originalDataRef.current = {
+              ...originalDataRef.current,
+              avatar_key: nextKey as any,
+              avatar_gender: gender as any,
+              avatar_age_range: ageRange as any,
+            };
           }
           setIsDirty(false);
           setSaveStatus("idle");

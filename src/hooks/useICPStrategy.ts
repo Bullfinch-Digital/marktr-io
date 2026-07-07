@@ -48,6 +48,7 @@ export type ICPStrategyRecord = {
   channel: string | null;
   offer_type: string | null;
   tone: string | null;
+  strategy_name: string | null;
   strategy: ICPStrategyPayload;
   prompt_version: string;
   model: string;
@@ -66,16 +67,20 @@ type GenerateStrategyInput = {
   marketingCapacity?: string | null;
 };
 
+export const MAX_ICP_STRATEGIES = 10;
+
 export function useICPStrategy(icpId?: string | null) {
   const { user } = useAuth();
-  const [record, setRecord] = useState<ICPStrategyRecord | null>(null);
+  const [records, setRecords] = useState<ICPStrategyRecord[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchStrategy = useCallback(async () => {
     if (!user?.id || !icpId) {
-      setRecord(null);
+      setRecords([]);
+      setSelectedId(null);
       return;
     }
 
@@ -86,10 +91,15 @@ export function useICPStrategy(icpId?: string | null) {
         .from("icp_strategies")
         .select("*")
         .eq("icp_id", icpId)
-        .maybeSingle();
+        .order("created_at", { ascending: false });
 
       if (fetchError) throw fetchError;
-      setRecord((data as ICPStrategyRecord) || null);
+      const next = ((data as ICPStrategyRecord[]) || []).filter(Boolean);
+      setRecords(next);
+      setSelectedId((prev) => {
+        if (prev && next.some((r) => r.id === prev)) return prev;
+        return next[0]?.id ?? null;
+      });
     } catch (err: any) {
       console.error("useICPStrategy: fetch error", err);
       setError(err?.message || "Failed to load strategy.");
@@ -106,6 +116,11 @@ export function useICPStrategy(icpId?: string | null) {
     async (input: GenerateStrategyInput) => {
       if (!user?.id || !icpId) {
         setError("Missing user or ICP.");
+        return null;
+      }
+
+      if (records.length >= MAX_ICP_STRATEGIES) {
+        setError(`You can save up to ${MAX_ICP_STRATEGIES} strategies per ICP.`);
         return null;
       }
 
@@ -132,7 +147,10 @@ export function useICPStrategy(icpId?: string | null) {
         if (invokeError) throw invokeError;
 
         const nextRecord = (data?.record as ICPStrategyRecord) || null;
-        setRecord(nextRecord);
+        if (nextRecord) {
+          setRecords((prev) => [nextRecord, ...prev]);
+          setSelectedId(nextRecord.id);
+        }
 
         try {
           window.dispatchEvent(new Event("icpStrategy:changed"));
@@ -147,16 +165,81 @@ export function useICPStrategy(icpId?: string | null) {
         setIsGenerating(false);
       }
     },
-    [icpId, user?.id]
+    [icpId, user?.id, records.length]
+  );
+
+  const renameStrategy = useCallback(
+    async (strategyId: string, nextNameRaw: string) => {
+      const nextName = nextNameRaw.trim();
+      if (!nextName) {
+        setError("Strategy name cannot be empty.");
+        return false;
+      }
+      try {
+        const { data, error: updateError } = await supabase
+          .from("icp_strategies")
+          .update({
+            strategy_name: nextName,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", strategyId)
+          .select("*")
+          .single();
+        if (updateError) throw updateError;
+        const updated = data as ICPStrategyRecord;
+        setRecords((prev) => prev.map((r) => (r.id === strategyId ? updated : r)));
+        setError(null);
+        return true;
+      } catch (err: any) {
+        console.error("useICPStrategy: rename error", err);
+        setError(err?.message || "Failed to rename strategy.");
+        return false;
+      }
+    },
+    []
+  );
+
+  const deleteStrategy = useCallback(
+    async (strategyId: string) => {
+      try {
+        const { error: deleteError } = await supabase
+          .from("icp_strategies")
+          .delete()
+          .eq("id", strategyId);
+        if (deleteError) throw deleteError;
+
+        setRecords((prev) => {
+          const next = prev.filter((r) => r.id !== strategyId);
+          setSelectedId((current) => {
+            if (current !== strategyId) return current;
+            return next[0]?.id ?? null;
+          });
+          return next;
+        });
+        setError(null);
+        return true;
+      } catch (err: any) {
+        console.error("useICPStrategy: delete error", err);
+        setError(err?.message || "Failed to delete strategy.");
+        return false;
+      }
+    },
+    []
   );
 
   return {
-    record,
-    strategy: record?.strategy ?? null,
+    records,
+    record: records.find((r) => r.id === selectedId) ?? null,
+    strategy: (records.find((r) => r.id === selectedId) ?? null)?.strategy ?? null,
+    selectedId,
+    selectStrategy: setSelectedId,
     isLoading,
     isGenerating,
     error,
     fetchStrategy,
     generateStrategy,
+    renameStrategy,
+    deleteStrategy,
+    maxStrategies: MAX_ICP_STRATEGIES,
   };
 }

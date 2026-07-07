@@ -55,19 +55,21 @@ const waitForImages = async (container: HTMLElement) => {
 const joinList = (items?: string[] | null) =>
   Array.isArray(items) && items.length ? items.join(" | ") : "";
 
-const fetchIcpStrategy = async (icpId?: string | null) => {
-  if (!icpId) return null;
+const fetchIcpStrategies = async (
+  icpId?: string | null
+): Promise<Array<Record<string, any>>> => {
+  if (!icpId) return [];
   try {
     const { data, error } = await supabase
       .from("icp_strategies")
-      .select("goal, channel, offer_type, tone, strategy, prompt_version, model")
+      .select("goal, channel, offer_type, tone, strategy, prompt_version, model, created_at")
       .eq("icp_id", icpId)
-      .maybeSingle();
+      .order("created_at", { ascending: true });
     if (error) throw error;
-    return data || null;
+    return (data as any[]) || [];
   } catch (err) {
-    console.error("[exportICP] failed to fetch strategy", err);
-    return null;
+    console.error("[exportICP] failed to fetch strategies", err);
+    return [];
   }
 };
 
@@ -127,7 +129,8 @@ export function exportICPAsCSV(icp: ICPRecord) {
 }
 
 async function exportICPAsCSVInternal(icp: ICPRecord) {
-  const strategyRecord = await fetchIcpStrategy(icp.id);
+  const strategyRecords = await fetchIcpStrategies(icp.id);
+  const strategyRecord = strategyRecords[strategyRecords.length - 1] || null;
   const strategy = strategyRecord?.strategy || null;
 
   const row = {
@@ -202,7 +205,8 @@ async function exportICPAsPDFInternal(icp: ICPRecord) {
   const date = new Date().toISOString().split("T")[0];
   const filename = `icp_${sanitizeFilename(icp.name)}_${date}.pdf`;
 
-  const strategyRecord = await fetchIcpStrategy(icp.id);
+  const strategyRecords = await fetchIcpStrategies(icp.id);
+  const strategyRecord = strategyRecords[strategyRecords.length - 1] || null;
   const strategy = strategyRecord?.strategy || null;
 
   const origin =
@@ -242,6 +246,7 @@ async function exportICPAsPDFInternal(icp: ICPRecord) {
     strategyOfferType: strategyRecord?.offer_type ?? null,
     strategyTone: strategyRecord?.tone ?? null,
     strategy,
+    strategies: strategyRecords,
     exportedAt: date,
   };
 

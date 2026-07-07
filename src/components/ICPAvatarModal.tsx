@@ -17,7 +17,11 @@ type Props = {
   gender?: string | null;
   ageRange?: string | null;
   onClose: () => void;
-  onSaved?: (avatarKey: string | null) => void | Promise<void>;
+  onSaved?: (payload: {
+    avatarKey: string | null;
+    gender: AvatarGender;
+    ageRange: AvatarAgeRange;
+  }) => void | Promise<void>;
 };
 
 export default function ICPAvatarModal({
@@ -29,7 +33,10 @@ export default function ICPAvatarModal({
   onClose,
   onSaved,
 }: Props) {
+  const initialFolder = useMemo(() => getAvatarFolderInfo(gender, ageRange), [gender, ageRange]);
   const [selected, setSelected] = useState<string | null>(currentAvatarKey ?? null);
+  const [selectedGender, setSelectedGender] = useState<AvatarGender>(initialFolder.gender);
+  const [selectedAgeRange, setSelectedAgeRange] = useState<AvatarAgeRange>(initialFolder.ageRange);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -37,14 +44,25 @@ export default function ICPAvatarModal({
   useEffect(() => {
     if (!isOpen) return;
     setSelected(currentAvatarKey ?? null);
+    const nextFolder = getAvatarFolderInfo(gender, ageRange);
+    setSelectedGender(nextFolder.gender);
+    setSelectedAgeRange(nextFolder.ageRange);
     setError(null);
-  }, [isOpen, currentAvatarKey, icpId]);
+  }, [isOpen, currentAvatarKey, icpId, gender, ageRange]);
 
-  const folder = useMemo(() => getAvatarFolderInfo(gender, ageRange), [gender, ageRange]);
   const options = useMemo(() => {
-    const { gender, ageRange } = folder;
-    return pickNAlternatives(gender as AvatarGender, ageRange as AvatarAgeRange, 5, currentAvatarKey ?? null);
-  }, [folder, currentAvatarKey]);
+    return pickNAlternatives(selectedGender, selectedAgeRange, 5, currentAvatarKey ?? null);
+  }, [selectedGender, selectedAgeRange, currentAvatarKey]);
+
+  useEffect(() => {
+    if (!options.length) {
+      setSelected(null);
+      return;
+    }
+    if (!selected || !options.includes(selected)) {
+      setSelected(options[0]);
+    }
+  }, [options, selected]);
 
   if (!isOpen || !icpId) return null;
 
@@ -52,13 +70,33 @@ export default function ICPAvatarModal({
     setIsSaving(true);
     setError(null);
     try {
-      const { error } = await supabase.from("icps").update({ avatar_key: selected }).eq("id", icpId);
+      const updateWithMeta = {
+        avatar_key: selected,
+        avatar_gender: selectedGender,
+        avatar_age_range: selectedAgeRange,
+      };
+
+      let { error } = await supabase.from("icps").update(updateWithMeta).eq("id", icpId);
       if (error) {
-        console.error("ICPAvatarModal: Failed to update avatar_key", error);
+        const missingMetaColumn =
+          /avatar_(gender|age_range)|column/i.test(error.message || "") ||
+          /avatar_(gender|age_range)/i.test(error.details || "");
+        if (missingMetaColumn) {
+          const fallback = await supabase.from("icps").update({ avatar_key: selected }).eq("id", icpId);
+          error = fallback.error;
+        }
+      }
+
+      if (error) {
+        console.error("ICPAvatarModal: Failed to update avatar fields", error);
         setError("Failed to save avatar. Please try again.");
         return;
       }
-      await onSaved?.(selected);
+      await onSaved?.({
+        avatarKey: selected,
+        gender: selectedGender,
+        ageRange: selectedAgeRange,
+      });
       onClose();
     } catch (e) {
       console.error("ICPAvatarModal: Unexpected error", e);
@@ -80,11 +118,42 @@ export default function ICPAvatarModal({
       <Card className="relative w-[92%] max-w-lg border border-black rounded-design bg-background p-6 shadow-xl">
         <div className="mb-4">
           <h3 className="font-['Fraunces'] text-2xl">Choose an avatar</h3>
-          <p className="font-['Inter'] text-sm text-foreground/70 mt-1">
-            Showing options from <span className="font-medium">{folder.gender}</span> /{" "}
-            <span className="font-medium">{folder.ageRange}</span>
-          </p>
         </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+          <div>
+            <p className="font-['Inter'] text-xs text-foreground/60 mb-1">Sex</p>
+            <select
+              value={selectedGender}
+              onChange={(e) => setSelectedGender(e.target.value as AvatarGender)}
+              className="w-full border border-black rounded-design px-3 py-2 bg-white font-['Inter'] text-sm"
+            >
+              <option value="female">Female</option>
+              <option value="male">Male</option>
+              <option value="non_binary">Non-binary</option>
+            </select>
+          </div>
+          <div>
+            <p className="font-['Inter'] text-xs text-foreground/60 mb-1">Age range</p>
+            <select
+              value={selectedAgeRange}
+              onChange={(e) => setSelectedAgeRange(e.target.value as AvatarAgeRange)}
+              className="w-full border border-black rounded-design px-3 py-2 bg-white font-['Inter'] text-sm"
+            >
+              <option value="18-24">18-24</option>
+              <option value="25-34">25-34</option>
+              <option value="35-44">35-44</option>
+              <option value="45-54">45-54</option>
+              <option value="55-64">55-64</option>
+              <option value="65+">65+</option>
+            </select>
+          </div>
+        </div>
+
+        <p className="font-['Inter'] text-sm text-foreground/70 mt-1 mb-3">
+          Showing options from <span className="font-medium">{selectedGender}</span> /{" "}
+          <span className="font-medium">{selectedAgeRange}</span>
+        </p>
 
         <div className="grid grid-cols-5 gap-3 mb-5">
           {options.map((key) => {

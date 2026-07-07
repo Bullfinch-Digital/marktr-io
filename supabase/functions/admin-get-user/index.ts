@@ -150,6 +150,32 @@ Deno.serve(async (req) => {
         return json({ error: "Profile lookup failed" }, 500);
       }
       profile = data;
+
+      // profiles.email can be null on older accounts; fall back to Auth email match.
+      if (!profile) {
+        const { data: authData, error: authErr } =
+          await supabaseAdmin.auth.admin.getUserByEmail(email);
+        if (authErr) {
+          console.warn("[admin-get-user] auth lookup", authErr.message);
+        }
+        const authUserId = authData?.user?.id ?? null;
+        if (authUserId) {
+          const { data: byId, error: byIdErr } = await supabaseAdmin
+            .from("profiles")
+            .select(
+              "id,email,name,subscription_tier,trial_started_at,trial_ends_at,trial_converted_at,role"
+            )
+            .eq("id", authUserId)
+            .maybeSingle();
+          if (byIdErr) {
+            return json({ error: "Profile lookup failed" }, 500);
+          }
+          profile = byId;
+          if (profile && !(profile as any).email && authData?.user?.email) {
+            (profile as any).email = authData.user.email;
+          }
+        }
+      }
     }
 
     if (!profile) {

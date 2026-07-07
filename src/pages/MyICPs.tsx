@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -15,9 +15,21 @@ import { useAuth } from "../contexts/AuthContext";
 import { useBrand } from "../contexts/BrandContext";
 import { usePaywall } from "../contexts/PaywallContext";
 import { seedExampleICPs } from "../utils/seedExampleICPs";
-import { Search, Plus, Sparkles, WifiOff, AlertCircle } from "lucide-react";
+import { isBrandScopeReady, resolveScopedBrandId } from "../lib/brandScopedReads";
+import { fetchArchivedIcpsForBrand, type ArchivedIcpRow } from "../lib/icpVersioning";
+import { Search, Plus, Sparkles, WifiOff, AlertCircle, Archive, ChevronDown, ChevronUp, RotateCcw } from "lucide-react";
 import { canViewICP, canCreateICP } from "../config/accessRules";
 import DashboardShell from "../layouts/DashboardShell";
+
+function formatArchivedDate(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
 
 export default function MyICPsPage() {
   const navigate = useNavigate();
@@ -37,15 +49,77 @@ export default function MyICPsPage() {
     ageRange: null as string | null,
   });
   const [addToCollectionLineageId, setAddToCollectionLineageId] = useState<string | null>(null);
+  const [archivedOpen, setArchivedOpen] = useState(false);
+  const [archivedRows, setArchivedRows] = useState<ArchivedIcpRow[]>([]);
+  const [archivedLoading, setArchivedLoading] = useState(false);
+  const [restoringLineageId, setRestoringLineageId] = useState<string | null>(null);
+  const [restoreNudge, setRestoreNudge] = useState<string | null>(null);
 
   const { user, loading: authLoading } = useAuth();
-  const { icps: rawICPs, isLoading: icpsLoading, fetchICPs, isOffline: icpsOffline, updateICP } = useICPs();
+  const { icps: rawICPs, isLoading: icpsLoading, fetchICPs, isOffline: icpsOffline, updateICP, restoreICP } = useICPs();
   const { brands } = useBrands();
-  const { activeBrandId } = useBrand();
+  const { activeBrandId, loading: brandLoading } = useBrand();
   const { addICPToCollection, createCollection } = useCollections();
   const { tier: userTier, effectiveTier, trialActive, isLoading: subscriptionLoading } = useSubscription();
   const { isSyncing, pendingCount } = useOutboxSync();
   const { openPaywall } = usePaywall();
+
+  const scopedBrandId = useMemo(
+    () => resolveScopedBrandId(activeBrandId, brands || []),
+    [activeBrandId, brands]
+  );
+
+  const loadArchived = useCallback(async () => {
+    if (!user?.id || !scopedBrandId) {
+      setArchivedRows([]);
+      return;
+    }
+    setArchivedLoading(true);
+    try {
+      const rows = await fetchArchivedIcpsForBrand(user.id, scopedBrandId);
+      setArchivedRows(rows);
+    } catch (err) {
+      console.error("[MyICPs] archived fetch failed", err);
+      setArchivedRows([]);
+    } finally {
+      setArchivedLoading(false);
+    }
+  }, [user?.id, scopedBrandId]);
+
+  const refreshRoster = useCallback(async () => {
+    await fetchICPs(true);
+    await loadArchived();
+  }, [fetchICPs, loadArchived]);
+
+  useEffect(() => {
+    if (!isBrandScopeReady(brandLoading, brands || [], scopedBrandId)) return;
+    void loadArchived();
+  }, [loadArchived, brandLoading, brands, scopedBrandId]);
+
+  useEffect(() => {
+    const onChanged = () => {
+      void loadArchived();
+    };
+    window.addEventListener("icps:changed", onChanged);
+    return () => window.removeEventListener("icps:changed", onChanged);
+  }, [loadArchived]);
+
+  const handleRestoreArchived = async (lineageId: string) => {
+    setRestoringLineageId(lineageId);
+    setRestoreNudge(null);
+    try {
+      const result = await restoreICP(lineageId);
+      if (result.nudge) setRestoreNudge(result.nudge);
+      if (result.ok) {
+        await loadArchived();
+        try {
+          window.dispatchEvent(new Event("icps:changed"));
+        } catch {}
+      }
+    } finally {
+      setRestoringLineageId(null);
+    }
+  };
 
   const brandNameById = useMemo(() => {
     const map = new Map<string, string>();
@@ -297,12 +371,82 @@ export default function MyICPsPage() {
                   onChangeAvatar={handleOpenIcpAvatarModal}
                   brands={brands?.map((b) => ({ id: b.id, name: b.name })) || []}
                   onMoveToBrand={handleMoveIcpToBrand}
-                  onDelete={fetchICPs}
+                  onDelete={refreshRoster}
                   onAddToCollection={() => {
                     if (icp.lineage_id) setAddToCollectionLineageId(icp.lineage_id);
                   }}
                 />
               ))}
+            </div>
+          )}
+
+          {!isLoading && scopedBrandId && (
+            <div className="mt-10 border-t border-black/10 pt-6">
+              <button
+                type="button"
+                onClick={() => setArchivedOpen((open) => !open)}
+                className="inline-flex items-center gap-1.5 font-['Inter'] text-xs text-foreground/55 hover:text-foreground/80 transition-colors"
+              >
+                <Archive className="h-3.5 w-3.5" />
+                Archived
+                {archivedRows.length > 0 ? ` (${archivedRows.length})` : ""}
+                {archivedOpen ? (
+                  <ChevronUp className="h-3.5 w-3.5" />
+                ) : (
+                  <ChevronDown className="h-3.5 w-3.5" />
+                )}
+              </button>
+
+              {restoreNudge && (
+                <p className="mt-3 font-['Inter'] text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-design px-3 py-2 max-w-2xl">
+                  {restoreNudge}
+                </p>
+              )}
+
+              {archivedOpen && (
+                <div className="mt-4 rounded-design border border-black/15 bg-accent-grey/20 px-4 py-3">
+                  {archivedLoading ? (
+                    <p className="font-['Inter'] text-xs text-foreground/50">Loading archived profiles…</p>
+                  ) : archivedRows.length === 0 ? (
+                    <p className="font-['Inter'] text-xs text-foreground/50">Nothing archived.</p>
+                  ) : (
+                    <ul className="space-y-3">
+                      {archivedRows.map((row) => (
+                        <li
+                          key={row.lineage_id}
+                          className="flex flex-wrap items-center justify-between gap-3 border-b border-black/10 pb-3 last:border-0 last:pb-0"
+                        >
+                          <div className="min-w-0">
+                            <p className="font-['Inter'] text-sm text-foreground truncate">
+                              {row.name || "Untitled profile"}
+                            </p>
+                            {row.deleted_at && (
+                              <p className="font-['Inter'] text-xs text-foreground/50">
+                                Archived {formatArchivedDate(row.deleted_at)}
+                              </p>
+                            )}
+                          </div>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            disabled={restoringLineageId === row.lineage_id}
+                            onClick={() => void handleRestoreArchived(row.lineage_id)}
+                            className="border-black rounded-design font-['Inter'] text-xs h-8 px-3 gap-1.5"
+                          >
+                            {restoringLineageId === row.lineage_id ? (
+                              <span className="w-3.5 h-3.5 border-2 border-foreground/40 border-t-transparent rounded-full animate-spin" />
+                            ) : (
+                              <RotateCcw className="h-3.5 w-3.5" />
+                            )}
+                            Restore
+                          </Button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
             </div>
           )}
 

@@ -325,7 +325,7 @@ export function ICPPreviewCard(props: ICPPreviewCardProps) {
         return;
       }
       const confirmed = window.confirm(
-        "Are you sure you want to delete this ICP? This action cannot be undone."
+        "Archive this customer profile? You can restore it later from Archived."
       );
       if (!confirmed) return;
       try {
@@ -334,6 +334,9 @@ export function ICPPreviewCard(props: ICPPreviewCardProps) {
         } = await supabase.auth.getUser();
         if (!authUser?.id) return;
         await softDeleteIcpById(authUser.id, icp.id);
+        try {
+          window.dispatchEvent(new Event("icps:changed"));
+        } catch {}
         onDelete?.();
       } catch (err) {
         console.error("Unexpected delete error:", err);

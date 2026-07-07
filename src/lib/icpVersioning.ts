@@ -184,3 +184,50 @@ export async function softDeleteIcpById(userId: string, icpId: string): Promise<
   if (updateError) throw updateError;
   return true;
 }
+
+export type ArchivedIcpRow = {
+  id: string;
+  lineage_id: string;
+  name: string;
+  deleted_at: string;
+  brand_id?: string | null;
+  superseded_at?: string | null;
+  version?: number;
+};
+
+/** Soft-deleted personas for a brand — one row per lineage (latest version). */
+export async function fetchArchivedIcpsForBrand(
+  userId: string,
+  brandId: string
+): Promise<ArchivedIcpRow[]> {
+  const { data, error } = await supabase
+    .from("icps")
+    .select("id, lineage_id, name, deleted_at, brand_id, superseded_at, version")
+    .eq("user_id", userId)
+    .eq("brand_id", brandId)
+    .not("deleted_at", "is", null)
+    .order("version", { ascending: false });
+
+  if (error) {
+    console.error("[icpVersioning] fetchArchivedIcpsForBrand failed", error);
+    throw error;
+  }
+
+  const byLineage = new Map<string, ArchivedIcpRow>();
+  for (const row of (data || []) as ArchivedIcpRow[]) {
+    if (!row.lineage_id) continue;
+    const existing = byLineage.get(row.lineage_id);
+    if (!existing) {
+      byLineage.set(row.lineage_id, row);
+      continue;
+    }
+    // Prefer the latest current version (non-superseded) for display.
+    if (!row.superseded_at && existing.superseded_at) {
+      byLineage.set(row.lineage_id, row);
+    }
+  }
+
+  return Array.from(byLineage.values()).sort(
+    (a, b) => new Date(b.deleted_at).getTime() - new Date(a.deleted_at).getTime()
+  );
+}

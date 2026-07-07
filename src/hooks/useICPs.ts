@@ -53,7 +53,10 @@ export interface ICP {
   generation_id?: string;
   version?: number;
   superseded_at?: string | null;
+  deleted_at?: string | null;
 }
+
+export type RestoreIcpResult = { ok: boolean; nudge?: string };
 
 // Helper: build a unique "(Copy)" name for ICP duplicates
 export function generateIcpCopyName(originalName: string, existingNames: string[]): string {
@@ -686,8 +689,8 @@ export function useICPs() {
     }
   };
 
-  const restoreICP = async (lineageId: string): Promise<boolean> => {
-    if (!user?.id || !lineageId) return false;
+  const restoreICP = async (lineageId: string): Promise<RestoreIcpResult> => {
+    if (!user?.id || !lineageId) return { ok: false };
     try {
       const { data: lineageRow } = await supabase
         .from("icps")
@@ -698,19 +701,20 @@ export function useICPs() {
         .maybeSingle();
 
       const brandId = (lineageRow as { brand_id?: string | null } | null)?.brand_id;
+      let nudge: string | undefined;
       if (brandId) {
         const currentCount = await countCurrentIcpsForBrand(user.id, brandId);
         if (currentCount + 1 > ICP_CURRENT_CAP) {
-          console.warn(formatIcpRestoreOverCapNudge(currentCount + 1));
+          nudge = formatIcpRestoreOverCapNudge(currentCount + 1);
         }
       }
 
       await restoreIcpLineage(lineageId);
       await fetchICPs();
-      return true;
+      return { ok: true, nudge };
     } catch (err) {
       console.error("Error restoring ICP lineage:", err);
-      return false;
+      return { ok: false };
     }
   };
 

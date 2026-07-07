@@ -43,6 +43,8 @@ import {
   Palette,
   Image as ImageIcon,
   FolderPlus,
+  ChevronDown,
+  Sparkles,
 } from "lucide-react";
 
 export default function ICPEditor() {
@@ -54,6 +56,7 @@ export default function ICPEditor() {
   const { tier: userTier, trialActive } = useSubscription();
   const { openPaywall } = usePaywall();
   const {
+    record: strategyRecord,
     strategy,
     isLoading: strategyLoading,
     isGenerating: strategyGenerating,
@@ -109,6 +112,21 @@ export default function ICPEditor() {
   const [strategyMonthlyBudgetBand, setStrategyMonthlyBudgetBand] = useState("");
   const [strategyObjectiveHorizon, setStrategyObjectiveHorizon] = useState("next_30_days");
   const [strategyMarketingCapacity, setStrategyMarketingCapacity] = useState("");
+
+  const scrollToMarketingStrategy = useCallback(() => {
+    document.getElementById("icp-marketing-strategy")?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  }, []);
+
+  const strategyUpdatedLabel = strategyRecord?.updated_at
+    ? new Date(strategyRecord.updated_at).toLocaleDateString("en-GB", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      })
+    : null;
 
   useEffect(() => {
     const loadICP = async () => {
@@ -1060,9 +1078,35 @@ export default function ICPEditor() {
               />
             ) : null}
 
+            <div className="border-t border-black/10 pt-4 mt-2">
+              <button
+                type="button"
+                onClick={scrollToMarketingStrategy}
+                className="inline-flex items-center gap-1.5 font-['Inter'] text-xs text-foreground/55 hover:text-foreground/80 transition-colors"
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+                {isFreeTier
+                  ? "Marketing strategy"
+                  : strategyLoading
+                    ? "Marketing strategy…"
+                    : strategy
+                      ? "View marketing strategy"
+                      : "Generate marketing strategy"}
+                <ChevronDown className="h-3.5 w-3.5" />
+              </button>
+            </div>
+
             {/* Marketing Strategy */}
-            <div className="bg-[#F1F7FF]/60 border border-black rounded-design p-6 shadow-md animate-fade-in-up delay-[400ms]">
+            <div
+              id="icp-marketing-strategy"
+              className="bg-[#F1F7FF]/60 border border-black rounded-design p-6 shadow-md animate-fade-in-up delay-[400ms]"
+            >
                 <h3 className="font-['Fraunces'] text-xl mb-2">Marketing Strategy</h3>
+                {!isFreeTier && strategy && strategyUpdatedLabel ? (
+                  <p className="font-['Inter'] text-xs text-foreground/50 mb-3">
+                    One strategy for this persona · updated {strategyUpdatedLabel}
+                  </p>
+                ) : null}
                 {isFreeTier ? (
                   <div className="relative">
                     <div className="space-y-4 blur-sm pointer-events-none select-none">

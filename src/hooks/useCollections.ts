@@ -24,6 +24,58 @@ export interface CollectionItem {
   lineage_id: string;
 }
 
+/** Lineage → collection names for the signed-in user (roster indicators). */
+export async function fetchCollectionNamesByLineageIds(
+  userId: string,
+  lineageIds: string[]
+): Promise<Record<string, string[]>> {
+  const uniqueLineageIds = [...new Set(lineageIds.filter(Boolean))];
+  if (!uniqueLineageIds.length) return {};
+
+  const { data: collections, error: collectionsError } = await supabase
+    .from("collections")
+    .select("id, name")
+    .eq("user_id", userId);
+
+  if (collectionsError) {
+    console.error("[useCollections] fetchCollectionNamesByLineageIds collections failed", collectionsError);
+    throw collectionsError;
+  }
+
+  if (!collections?.length) return {};
+
+  const nameById = Object.fromEntries(collections.map((col) => [col.id, col.name]));
+  const collectionIds = collections.map((col) => col.id);
+
+  const { data: items, error: itemsError } = await supabase
+    .from("collection_items")
+    .select("lineage_id, collection_id")
+    .in("collection_id", collectionIds)
+    .in("lineage_id", uniqueLineageIds);
+
+  if (itemsError) {
+    console.error("[useCollections] fetchCollectionNamesByLineageIds items failed", itemsError);
+    throw itemsError;
+  }
+
+  const result: Record<string, string[]> = {};
+  for (const item of items || []) {
+    if (!item.lineage_id) continue;
+    const name = nameById[item.collection_id];
+    if (!name) continue;
+    if (!result[item.lineage_id]) result[item.lineage_id] = [];
+    if (!result[item.lineage_id].includes(name)) {
+      result[item.lineage_id].push(name);
+    }
+  }
+
+  for (const names of Object.values(result)) {
+    names.sort((a, b) => a.localeCompare(b));
+  }
+
+  return result;
+}
+
 /**
  * Hook for managing collections from Supabase
  * @returns Collections list and CRUD operations

@@ -8,7 +8,7 @@ import ICPAvatarModal from "../components/ICPAvatarModal";
 import { CollectionPickerModal } from "../components/modals/CollectionPickerModal";
 import { useICPs } from "../hooks/useICPs";
 import { useBrands } from "../hooks/useBrands";
-import { useCollections } from "../hooks/useCollections";
+import { useCollections, fetchCollectionNamesByLineageIds } from "../hooks/useCollections";
 import useSubscription from "../hooks/useSubscription";
 import { useOutboxSync } from "../hooks/useOutboxSync";
 import { useAuth } from "../contexts/AuthContext";
@@ -57,6 +57,9 @@ export default function MyICPsPage() {
   const [restoreNudge, setRestoreNudge] = useState<string | null>(null);
   const [permanentDeleteTarget, setPermanentDeleteTarget] = useState<ArchivedIcpRow | null>(null);
   const [isPermanentDeleting, setIsPermanentDeleting] = useState(false);
+  const [collectionNamesByLineage, setCollectionNamesByLineage] = useState<
+    Record<string, string[]>
+  >({});
 
   const { user, loading: authLoading } = useAuth();
   const { icps: rawICPs, isLoading: icpsLoading, fetchICPs, isOffline: icpsOffline, updateICP, restoreICP } = useICPs();
@@ -224,6 +227,42 @@ export default function MyICPsPage() {
     icp.description?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const loadCollectionMemberships = useCallback(async () => {
+    if (!user?.id) {
+      setCollectionNamesByLineage({});
+      return;
+    }
+    const lineageIds = [
+      ...new Set(
+        icps
+          .map((icp) => icp.lineage_id)
+          .filter((lineageId): lineageId is string => Boolean(lineageId))
+      ),
+    ];
+    if (!lineageIds.length) {
+      setCollectionNamesByLineage({});
+      return;
+    }
+    try {
+      const map = await fetchCollectionNamesByLineageIds(user.id, lineageIds);
+      setCollectionNamesByLineage(map);
+    } catch (err) {
+      console.error("[MyICPs] collection membership fetch failed", err);
+    }
+  }, [user?.id, icps]);
+
+  useEffect(() => {
+    void loadCollectionMemberships();
+  }, [loadCollectionMemberships]);
+
+  useEffect(() => {
+    const onChanged = () => {
+      void loadCollectionMemberships();
+    };
+    window.addEventListener("collections:changed", onChanged);
+    return () => window.removeEventListener("collections:changed", onChanged);
+  }, [loadCollectionMemberships]);
+
   const showEmptyState = !authLoading && !icpsLoading && icps.length === 0;
   const isLoading = authLoading || icpsLoading || subscriptionLoading;
 
@@ -387,6 +426,9 @@ export default function MyICPsPage() {
                       userTier={effectiveTier}
                       onUpgrade={handleUpgrade}
                       isLocked={!canViewICP(effectiveTier as any, icp._index ?? 0)}
+                  collectionNames={
+                    icp.lineage_id ? collectionNamesByLineage[icp.lineage_id] || [] : []
+                  }
                   onChangeColor={handleOpenIcpColorModal}
                   onChangeAvatar={handleOpenIcpAvatarModal}
                   brands={brands?.map((b) => ({ id: b.id, name: b.name })) || []}
@@ -539,7 +581,10 @@ export default function MyICPsPage() {
         onSelectCollection={async (collectionId) => {
           if (!addToCollectionLineageId) return false;
           const ok = await addICPToCollection(collectionId, addToCollectionLineageId);
-          if (ok) setAddToCollectionLineageId(null);
+          if (ok) {
+            setAddToCollectionLineageId(null);
+            void loadCollectionMemberships();
+          }
           return ok;
         }}
         onCreateCollection={async (data) => {

@@ -12,6 +12,7 @@ import {
   FileText,
   FolderPlus,
   FolderMinus,
+  FolderOpen,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -46,6 +47,42 @@ const stop = (e: React.MouseEvent | Event) => {
 // Helper to merge class names
 function cls(...c: (string | false | null | undefined)[]) {
   return c.filter(Boolean).join(" ");
+}
+
+function CollectionMembershipIndicator({ names }: { names: string[] }) {
+  if (!names.length) return null;
+
+  const chipClass =
+    "inline-flex items-center gap-1 px-2 py-0.5 text-[11px] text-foreground/55 border border-black/15 rounded-design bg-foreground/[0.03] max-w-full";
+
+  if (names.length === 1) {
+    return (
+      <span className={chipClass} title={names[0]}>
+        <FolderOpen className="h-3 w-3 shrink-0" />
+        <span className="truncate">in {names[0]}</span>
+      </span>
+    );
+  }
+
+  if (names.length === 2) {
+    return (
+      <div className="flex flex-wrap gap-1 justify-center max-w-full">
+        {names.map((name) => (
+          <span key={name} className={chipClass} title={name}>
+            <FolderOpen className="h-3 w-3 shrink-0" />
+            <span className="truncate max-w-[7rem]">in {name}</span>
+          </span>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <span className={chipClass} title={names.join(", ")}>
+      <FolderOpen className="h-3 w-3 shrink-0" />
+      in {names.length} collections
+    </span>
+  );
 }
 
 interface ICPPreviewCardProps {
@@ -96,6 +133,8 @@ interface ICPPreviewCardProps {
   onDelete?: () => void;
   onMoveToBrand?: (icpId: string, brandId: string | null) => Promise<void> | void;
   onCardClickOverride?: () => void;
+  /** Collection names this persona belongs to (lineage membership). */
+  collectionNames?: string[];
   /** Guest preview — card is display-only, no navigation on click */
   previewOnly?: boolean;
   // Optional brand list so the card can resolve a brand name globally
@@ -118,6 +157,7 @@ export function ICPPreviewCard(props: ICPPreviewCardProps) {
     onMoveToBrand,
     onCardClickOverride,
     previewOnly = false,
+    collectionNames = [],
   } = props;
   const [isHovered, setIsHovered] = useState(false);
   const [shake, setShake] = useState(false);
@@ -660,6 +700,12 @@ export function ICPPreviewCard(props: ICPPreviewCardProps) {
               ? `Brand: ${displayBrandName || "Unknown brand"}`
               : "No brand allocated"}
           </p>
+
+          {collectionNames.length > 0 ? (
+            <div className="mb-2 flex justify-center">
+              <CollectionMembershipIndicator names={collectionNames} />
+            </div>
+          ) : null}
 
           {icp.industry && (
             <p className="font-['Inter'] text-xs text-foreground/60 mb-2">

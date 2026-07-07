@@ -16,6 +16,7 @@ import { ICPProfileLayout } from "../components/icp/ICPProfileLayout";
 import { IcpVersionHistorySection } from "../components/icp/IcpVersionHistorySection";
 import ICPColorModal from "../components/ICPColorModal";
 import ICPAvatarModal from "../components/ICPAvatarModal";
+import IcpArchiveModal from "../components/IcpArchiveModal";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -104,6 +105,8 @@ export default function ICPEditor() {
 
   const [moveBrandOpen, setMoveBrandOpen] = useState(false);
   const [moveBrandId, setMoveBrandId] = useState<string | null>(null);
+  const [archiveModalOpen, setArchiveModalOpen] = useState(false);
+  const [isArchiving, setIsArchiving] = useState(false);
   const [strategyGoal, setStrategyGoal] = useState("Generate qualified leads");
   const [strategyChannel, setStrategyChannel] = useState("");
   const [strategyOfferType, setStrategyOfferType] = useState("");
@@ -364,25 +367,30 @@ export default function ICPEditor() {
     }
   };
 
-  const handleArchive = async () => {
+  const handleOpenArchiveModal = () => {
     if (!id) return;
     if (isFreeTier) {
       openPaywall();
       return;
     }
-    const confirmed = window.confirm(
-      "Archive this customer profile? You can restore it later from Archived."
-    );
-    if (!confirmed) return;
+    setArchiveModalOpen(true);
+  };
+
+  const handleArchiveConfirm = async () => {
+    if (!id) return;
+    setIsArchiving(true);
     try {
       const ok = await deleteICP(id);
       if (!ok) throw new Error("Archive failed");
+      setArchiveModalOpen(false);
       try {
         window.dispatchEvent(new Event("icps:changed"));
       } catch {}
       navigate("/icps");
     } catch (err) {
       console.error("ICPEditor archive error:", err);
+    } finally {
+      setIsArchiving(false);
     }
   };
 
@@ -883,7 +891,7 @@ export default function ICPEditor() {
                           onSelect={(e) => {
                             e.preventDefault();
                             (e as any).stopPropagation?.();
-                            handleArchive();
+                            handleOpenArchiveModal();
                           }}
                         >
                           <Archive className="h-4 w-4 mr-2" />
@@ -1549,6 +1557,15 @@ export default function ICPEditor() {
           </div>
         </div>
       )}
+
+      <IcpArchiveModal
+        isOpen={archiveModalOpen}
+        isArchiving={isArchiving}
+        onClose={() => {
+          if (!isArchiving) setArchiveModalOpen(false);
+        }}
+        onConfirm={() => void handleArchiveConfirm()}
+      />
     </DashboardShell>
   );
 }

@@ -36,6 +36,7 @@ import { useICPs, generateIcpCopyName } from "../../hooks/useICPs";
 import useSubscription from "../../hooks/useSubscription";
 import { resolveBrandIdForIcpWrite } from "../../lib/icpBrandAttach";
 import { softDeleteIcpById } from "../../lib/icpVersioning";
+import IcpArchiveModal from "../IcpArchiveModal";
 
 // EXACT same helper pattern as CollectionCard
 const stop = (e: React.MouseEvent | Event) => {
@@ -161,6 +162,8 @@ export function ICPPreviewCard(props: ICPPreviewCardProps) {
   } = props;
   const [isHovered, setIsHovered] = useState(false);
   const [shake, setShake] = useState(false);
+  const [archiveModalOpen, setArchiveModalOpen] = useState(false);
+  const [isArchiving, setIsArchiving] = useState(false);
   const [moveBrandOpen, setMoveBrandOpen] = useState(false);
   const [moveBrandId, setMoveBrandId] = useState<string | null>(icp.brand_id ?? null);
   const [isDuplicating, setIsDuplicating] = useState(false);
@@ -364,24 +367,28 @@ export function ICPPreviewCard(props: ICPPreviewCardProps) {
         onUpgrade?.();
         return;
       }
-      const confirmed = window.confirm(
-        "Archive this customer profile? You can restore it later from Archived."
-      );
-      if (!confirmed) return;
-      try {
-        const {
-          data: { user: authUser },
-        } = await supabase.auth.getUser();
-        if (!authUser?.id) return;
-        await softDeleteIcpById(authUser.id, icp.id);
-        try {
-          window.dispatchEvent(new Event("icps:changed"));
-        } catch {}
-        onDelete?.();
-      } catch (err) {
-        console.error("Unexpected delete error:", err);
-      }
+      setArchiveModalOpen(true);
       return;
+    }
+  };
+
+  const handleArchiveConfirm = async () => {
+    setIsArchiving(true);
+    try {
+      const {
+        data: { user: authUser },
+      } = await supabase.auth.getUser();
+      if (!authUser?.id) return;
+      await softDeleteIcpById(authUser.id, icp.id);
+      setArchiveModalOpen(false);
+      try {
+        window.dispatchEvent(new Event("icps:changed"));
+      } catch {}
+      onDelete?.();
+    } catch (err) {
+      console.error("Unexpected archive error:", err);
+    } finally {
+      setIsArchiving(false);
     }
   };
 
@@ -653,6 +660,15 @@ export function ICPPreviewCard(props: ICPPreviewCardProps) {
             </div>
           </div>
         )}
+
+        <IcpArchiveModal
+          isOpen={archiveModalOpen}
+          isArchiving={isArchiving}
+          onClose={() => {
+            if (!isArchiving) setArchiveModalOpen(false);
+          }}
+          onConfirm={() => void handleArchiveConfirm()}
+        />
 
         {/* Body */}
         {previewOnly ? (

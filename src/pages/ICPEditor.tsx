@@ -9,9 +9,11 @@ import useSubscription from "../hooks/useSubscription";
 import { exportICPAsPDF } from "../utils/exportICP";
 import { canExportICP } from "../config/accessRules";
 import { usePaywall } from "../contexts/PaywallContext";
+import { useAuth } from "../contexts/AuthContext";
 import { useICPStrategy } from "../hooks/useICPStrategy";
 import DashboardShell from "../layouts/DashboardShell";
 import { ICPProfileLayout } from "../components/icp/ICPProfileLayout";
+import { IcpVersionHistorySection } from "../components/icp/IcpVersionHistorySection";
 import ICPColorModal from "../components/ICPColorModal";
 import ICPAvatarModal from "../components/ICPAvatarModal";
 import {
@@ -46,6 +48,7 @@ import {
 export default function ICPEditor() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { getICP, updateICP, duplicateICP, deleteICP } = useICPs();
   const { brands, isLoading: brandsLoading } = useBrands();
   const { tier: userTier, trialActive } = useSubscription();
@@ -1037,6 +1040,25 @@ export default function ICPEditor() {
               </div>
 
             </div>
+
+            {icpData.lineage_id && id && user?.id ? (
+              <IcpVersionHistorySection
+                lineageId={icpData.lineage_id}
+                currentIcpId={id}
+                userId={user.id}
+                disabled={isFreeTier}
+                onVersionRestored={(newIcp) => {
+                  setICPData(newIcp);
+                  originalDataRef.current = newIcp;
+                  setIsDirty(false);
+                  setSaveStatus("idle");
+                  navigate(`/icp/${newIcp.id}`, { replace: true });
+                  try {
+                    window.dispatchEvent(new Event("icps:changed"));
+                  } catch {}
+                }}
+              />
+            ) : null}
 
             {/* Marketing Strategy */}
             <div className="bg-[#F1F7FF]/60 border border-black rounded-design p-6 shadow-md animate-fade-in-up delay-[400ms]">

@@ -120,6 +120,84 @@ export async function insertIcpVersionRpc(
   return data as ICP;
 }
 
+export type IcpVersionRow = {
+  id: string;
+  lineage_id: string;
+  version?: number | null;
+  superseded_at?: string | null;
+  deleted_at?: string | null;
+  created_at: string;
+  updated_at: string;
+  name: string;
+  description?: string | null;
+  industry?: string | null;
+  company_size?: string | null;
+  location?: string | null;
+  goals?: string[] | null;
+  pain_points?: string[] | null;
+  budget?: string | null;
+  decision_makers?: string[] | null;
+  tech_stack?: string[] | null;
+  challenges?: string[] | null;
+  opportunities?: string[] | null;
+  tags?: string[] | null;
+  color?: string | null;
+  avatar_key?: string | null;
+  avatar_gender?: string | null;
+  avatar_age_range?: string | null;
+  brand_id?: string | null;
+};
+
+/** All versions for a persona lineage (newest first). */
+export async function fetchIcpVersionsForLineage(
+  userId: string,
+  lineageId: string
+): Promise<IcpVersionRow[]> {
+  const { data, error } = await supabase
+    .from("icps")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("lineage_id", lineageId)
+    .order("version", { ascending: false });
+
+  if (error) {
+    console.error("[icpVersioning] fetchIcpVersionsForLineage failed", error);
+    throw error;
+  }
+
+  return (data || []) as IcpVersionRow[];
+}
+
+export function icpVersionRowToRestorePayload(row: IcpVersionRow): Record<string, unknown> {
+  return {
+    name: row.name,
+    description: row.description ?? "",
+    industry: row.industry ?? null,
+    company_size: row.company_size ?? null,
+    location: row.location ?? null,
+    goals: row.goals ?? [],
+    pain_points: row.pain_points ?? [],
+    budget: row.budget ?? null,
+    decision_makers: row.decision_makers ?? [],
+    tech_stack: row.tech_stack ?? [],
+    challenges: row.challenges ?? [],
+    opportunities: row.opportunities ?? [],
+    tags: row.tags ?? [],
+    color: row.color ?? null,
+    avatar_key: row.avatar_key ?? null,
+    avatar_gender: row.avatar_gender ?? null,
+    avatar_age_range: row.avatar_age_range ?? null,
+  };
+}
+
+/** Append a new current version copied from an older version (history grows). */
+export async function restoreIcpVersionFromRow(
+  currentIcpId: string,
+  sourceVersionRow: IcpVersionRow
+): Promise<ICP> {
+  return insertIcpVersionRpc(currentIcpId, icpVersionRowToRestorePayload(sourceVersionRow));
+}
+
 export function withVersioningDefaults(
   row: Record<string, unknown>,
   generationId: string

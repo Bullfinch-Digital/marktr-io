@@ -22,7 +22,15 @@ import {
   updateGuestContext,
 } from "../lib/guestContext";
 import { resolveBrandIdForIcpWrite } from "../lib/icpBrandAttach";
-import { applyCurrentIcpFilter, newGenerationId, supersedeBrandCurrentIcps } from "../lib/icpVersioning";
+import {
+  countCurrentIcpsForBrand,
+  formatIcpCapBlockMessage,
+  formatIcpNudgeMessage,
+  setPendingIcpRegenerateNudge,
+  shouldShowIcpNudge,
+  wouldExceedIcpCap,
+} from "../lib/icpPersonaCap";
+import { applyCurrentIcpFilter, newGenerationId } from "../lib/icpVersioning";
 import {
   WelcomeScreen,
   NameScreen,
@@ -462,6 +470,24 @@ export default function OnboardingBuild() {
     console.log("[Onboarding] runIcpGeneration start");
     console.debug("[Onboarding] importing pipeline…");
 
+    if (isLoggedIn && user?.id) {
+      try {
+        const ensuredBrandId = await ensureBrandForAuthenticatedOnboarding();
+        if (ensuredBrandId) {
+          const currentCount = await countCurrentIcpsForBrand(user.id, ensuredBrandId);
+          setPendingIcpRegenerateNudge(
+            shouldShowIcpNudge(currentCount) ? formatIcpNudgeMessage(currentCount) : null
+          );
+        } else {
+          setPendingIcpRegenerateNudge(null);
+        }
+      } catch {
+        setPendingIcpRegenerateNudge(null);
+      }
+    } else {
+      setPendingIcpRegenerateNudge(null);
+    }
+
     const { generateICPs } = await import("../lib/ai/pipeline");
     console.debug("[Onboarding] calling generateICPs…");
 
@@ -549,13 +575,23 @@ export default function OnboardingBuild() {
           }
 
           if (resolvedBrandId) {
+          const brandName = formData.brandName.trim() || "this brand";
+          const batchSize = Array.isArray(result.icps) ? result.icps.length : 0;
+          let currentCount = 0;
+          try {
+            currentCount = await countCurrentIcpsForBrand(user.id, resolvedBrandId);
+          } catch (countErr) {
+            console.error("[Onboarding] current ICP count failed", countErr);
+            hasPersistedRef.current = false;
+            currentCount = -1;
+          }
+
+          if (currentCount >= 0 && wouldExceedIcpCap(currentCount, batchSize)) {
+            alert(formatIcpCapBlockMessage(brandName));
+            hasPersistedRef.current = false;
+          } else if (currentCount >= 0) {
           const now = new Date().toISOString();
           const generationId = newGenerationId();
-          try {
-            await supersedeBrandCurrentIcps(resolvedBrandId);
-          } catch (supersedeErr) {
-            console.warn("[Onboarding] supersedeBrandCurrentIcps error", supersedeErr);
-          }
           const rowsToInsert = result.icps.map((icp: any) => {
             const {
               id,
@@ -704,6 +740,7 @@ export default function OnboardingBuild() {
           }
         }
       }
+      }
 
       setLastGenerated(result.icps || []);
     } else {
@@ -726,6 +763,7 @@ export default function OnboardingBuild() {
     icpsLoading,
     subscriptionLoading,
     user?.id,
+    isLoggedIn,
     ensureBrandForAuthenticatedOnboarding,
     navigate,
   ]);

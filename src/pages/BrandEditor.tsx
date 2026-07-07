@@ -14,7 +14,15 @@ import useSubscription from "../hooks/useSubscription";
 import { usePaywall } from "../contexts/PaywallContext";
 import { useICPs } from "../hooks/useICPs";
 import { generateICPs } from "../lib/ai/pipeline";
-import { newGenerationId, supersedeBrandCurrentIcps } from "../lib/icpVersioning";
+import { newGenerationId } from "../lib/icpVersioning";
+import {
+  countCurrentIcpsForBrand,
+  formatIcpCapBlockMessage,
+  formatIcpNudgeMessage,
+  shouldShowIcpNudge,
+  wouldExceedIcpCap,
+} from "../lib/icpPersonaCap";
+import { useAuth } from "../contexts/AuthContext";
 import { ICPPreviewCard } from "../components/cards/ICPPreviewCard";
 import ICPColorModal from "../components/ICPColorModal";
 import ICPAvatarModal from "../components/ICPAvatarModal";
@@ -58,11 +66,15 @@ export default function BrandEditor() {
   );
   const [generateLineIndex, setGenerateLineIndex] = useState(0);
   const [generateLineOverride, setGenerateLineOverride] = useState<string | null>(null);
+  const [generateNudgeMessage, setGenerateNudgeMessage] = useState<string | null>(null);
+
+  const { user } = useAuth();
 
   useEffect(() => {
     if (!isGenerating) return;
     setGenerateLineIndex(0);
     setGenerateLineOverride(null);
+    setGenerateNudgeMessage(null);
     const t = setInterval(() => {
       setGenerateLineIndex((prev) => (prev + 1) % GENERATE_LINES.length);
     }, 2000);
@@ -398,6 +410,15 @@ export default function BrandEditor() {
         return s.length ? s : fallback;
       };
 
+      const brandName = safeText(brandData.name, "this brand");
+      let currentCount = 0;
+      if (user?.id) {
+        currentCount = await countCurrentIcpsForBrand(user.id, id);
+        if (shouldShowIcpNudge(currentCount)) {
+          setGenerateNudgeMessage(formatIcpNudgeMessage(currentCount));
+        }
+      }
+
       const payload = {
         // Edge function requires these to be non-empty strings
         name: safeText(brandData.name, "Founder"),
@@ -419,12 +440,14 @@ export default function BrandEditor() {
 
       const result = await generateICPs(payload as any);
       const generated = (result as any)?.icps ?? [];
-      const generationId = newGenerationId();
-      try {
-        await supersedeBrandCurrentIcps(id);
-      } catch (supersedeErr) {
-        console.warn("[BrandEditor] supersedeBrandCurrentIcps error", supersedeErr);
+
+      if (user?.id && wouldExceedIcpCap(currentCount, generated.length)) {
+        alert(formatIcpCapBlockMessage(brandName));
+        setGenerateStatus("error");
+        return;
       }
+
+      const generationId = newGenerationId();
       const created: any[] = [];
       for (const icp of generated) {
         const createdRow = await createICP({
@@ -580,10 +603,17 @@ export default function BrandEditor() {
 
                 {/* Live status line while generating */}
                 {isGenerating && (
-                  <div className="mt-3 flex items-center gap-2">
-                    <span className="text-xs font-['Inter'] text-foreground/70">
-                      {generateLineOverride ?? GENERATE_LINES[generateLineIndex]}
-                    </span>
+                  <div className="mt-3 flex flex-col gap-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-['Inter'] text-foreground/70">
+                        {generateLineOverride ?? GENERATE_LINES[generateLineIndex]}
+                      </span>
+                    </div>
+                    {generateNudgeMessage && (
+                      <span className="text-xs font-['Inter'] text-foreground/60 max-w-md">
+                        {generateNudgeMessage}
+                      </span>
+                    )}
                   </div>
                 )}
 

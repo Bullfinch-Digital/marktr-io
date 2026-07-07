@@ -2,6 +2,11 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "../config/supabase";
 import { useAuth } from "../contexts/AuthContext";
 import { useBrand } from "../contexts/BrandContext";
+import {
+  formatIcpRestoreOverCapNudge,
+  countCurrentIcpsForBrand,
+  ICP_CURRENT_CAP,
+} from "../lib/icpPersonaCap";
 import { getCachedICPs, setCachedICPs, addPendingOp, getPendingOps, type PendingOp } from "../lib/localCache";
 import { isBrandScopeReady, resolveScopedBrandId } from "../lib/brandScopedReads";
 import { attachOrphanIcpsToBrand, resolveBrandIdForIcpWrite } from "../lib/icpBrandAttach";
@@ -683,6 +688,22 @@ export function useICPs() {
   const restoreICP = async (lineageId: string): Promise<boolean> => {
     if (!user?.id || !lineageId) return false;
     try {
+      const { data: lineageRow } = await supabase
+        .from("icps")
+        .select("brand_id")
+        .eq("lineage_id", lineageId)
+        .eq("user_id", user.id)
+        .limit(1)
+        .maybeSingle();
+
+      const brandId = (lineageRow as { brand_id?: string | null } | null)?.brand_id;
+      if (brandId) {
+        const currentCount = await countCurrentIcpsForBrand(user.id, brandId);
+        if (currentCount + 1 > ICP_CURRENT_CAP) {
+          console.warn(formatIcpRestoreOverCapNudge(currentCount + 1));
+        }
+      }
+
       await restoreIcpLineage(lineageId);
       await fetchICPs();
       return true;

@@ -30,6 +30,7 @@ import { CollectionPickerModal } from "../components/modals/CollectionPickerModa
 import { useCollections } from "../hooks/useCollections";
 import BrandDeleteModal from "../components/BrandDeleteModal";
 import BrandColorModal from "../components/BrandColorModal";
+import { BrandAimsSection } from "../components/brand/BrandAimsSection";
 import { exportBrandAsPDF } from "../utils/exportBrand";
 import { canCreateBrand, canExportBrand } from "../config/accessRules";
 
@@ -895,6 +896,8 @@ export default function BrandEditor() {
               );
             })()}
           </div>
+
+          {id ? <BrandAimsSection brandId={id} /> : null}
             </>
           )}
 

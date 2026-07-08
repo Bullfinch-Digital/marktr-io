@@ -8,11 +8,14 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const PROMPT_VERSION = "icp_strategy_v2_brand_context";
-const MODEL = "gpt-5.2";
+const MULTI_PROMPT_VERSION = "strategy_v1_brand_aims_and_icp_targets";
+const MODEL = "gpt-5.5";
 
 type GenerateInput = {
-  icpId: string;
-  goal: string;
+  // Legacy single-ICP generation
+  icpId?: string;
+  goal?: string;
+
   channel?: string | null;
   offerType?: string | null;
   tone?: string | null;
@@ -20,6 +23,13 @@ type GenerateInput = {
   monthlyBudgetBand?: string | null;
   objectiveHorizon?: string | null;
   marketingCapacity?: string | null;
+
+  // Multi-aim / multi-ICP generation
+  aimLineageIds?: string[];
+  icpLineageIds?: string[];
+  brandId?: string | null;
+  strategyId?: string; // current strategy row id for a version bump (optional)
+  title?: string; // optional strategy title override
 };
 
 function json(resBody: unknown, status = 200) {
@@ -83,7 +93,7 @@ Brand context (if available):
 - Currency: ${brand?.currency || "Not provided"}
 
 Strategy inputs:
-- Goal (required): ${input.goal}
+- Goal (required): ${input.goal || "Not provided"}
 - Preferred channel: ${input.channel || "No preference"}
 - Offer type: ${input.offerType || "No preference"}
 - Tone: ${input.tone || "No preference"}
@@ -97,6 +107,97 @@ Rules:
 - Avoid jargon and hype.
 - Provide 3–5 items per list where possible.
 - Prioritise recommendations that can realistically be executed within the stated budget and capacity.
+`;
+}
+
+function buildMultiPrompt(
+  brand: Record<string, any> | null,
+  aims: Array<Record<string, any>>,
+  icps: Array<Record<string, any>>,
+  input: GenerateInput
+) {
+  const list = (arr: unknown) =>
+    Array.isArray(arr) && arr.length ? arr.join("; ") : "Not provided";
+
+  const aimsBlock =
+    aims?.length
+      ? aims
+          .map(
+            (aim, idx) => `
+Aim ${idx + 1}:
+- Title: ${aim.title || "Not provided"}
+- Type: ${aim.aim_type || "Not provided"}
+- Description: ${aim.description || "Not provided"}`
+          )
+          .join("\n\n")
+      : "- Not provided";
+
+  const icpsBlock = icps?.length
+    ? icps
+        .map(
+          (icp, idx) => `
+ICP ${idx + 1} context:
+- Name: ${icp.name || "Not provided"}
+- Description: ${icp.description || "Not provided"}
+- Industry: ${icp.industry || "Not provided"}
+- Company size: ${icp.company_size || "Not provided"}
+- Location: ${icp.location || "Not provided"}
+- Goals: ${list(icp.goals)}
+- Pain points: ${list(icp.pain_points)}
+- Budget: ${icp.budget || "Not provided"}
+- Decision makers: ${list(icp.decision_makers)}
+- Tech stack: ${list(icp.tech_stack)}
+- Challenges: ${list(icp.challenges)}
+- Opportunities: ${list(icp.opportunities)}
+`
+        )
+        .join("\n\n")
+    : "- Not provided";
+
+  return `
+You are a senior marketing strategist. Use UK English. Be concise and practical.
+Do not invent company-specific facts. If details are missing, use plausible but generic examples.
+
+You will receive:
+- Brand context
+- A set of Brand Aims (growth levers)
+- A set of ICP personas (customer contexts)
+
+Your job: synthesize a single cohesive marketing strategy that serves ALL selected Brand Aims and can be executed across ALL selected ICPs.
+Return STRICT JSON ONLY that matches the given schema. No markdown.
+
+Brand context (if available):
+- Brand name: ${brand?.name || "Not provided"}
+- Brand description: ${brand?.business_description || "Not provided"}
+- Product/service: ${brand?.product_or_service || "Not provided"}
+- Business type: ${brand?.business_type || "Not provided"}
+- Assumed audience: ${list(brand?.assumed_audience)}
+- Existing channels: ${list(brand?.marketing_channels)}
+- Country: ${brand?.country || "Not provided"}
+- Region/city: ${brand?.region_or_city || "Not provided"}
+- Currency: ${brand?.currency || "Not provided"}
+
+Brand aims:
+${aimsBlock}
+
+ICP personas:
+${icpsBlock}
+
+Strategy inputs:
+- Preferred channel: ${input.channel || "No preference"}
+- Offer type: ${input.offerType || "No preference"}
+- Tone: ${input.tone || "No preference"}
+- Business stage / size: ${input.businessStage || "Not specified"}
+- Monthly marketing budget band: ${input.monthlyBudgetBand || "Not specified"}
+- Objective horizon: ${input.objectiveHorizon || "Not specified"}
+- Weekly marketing capacity: ${input.marketingCapacity || "Not specified"}
+
+Rules:
+- Keep outputs short and actionable.
+- Avoid jargon and hype.
+- Provide 3–5 items per list where possible.
+- Prioritise recommendations that can realistically be executed within the stated budget and capacity.
+- Where a recommendation depends on one or more aims or ICPs, embed the rationale into the text fields (e.g., positioning one-liner, differentiators, and campaign hooks/angles).
 `;
 }
 
@@ -234,6 +335,187 @@ Deno.serve(async (req) => {
     }
 
     const body = (await req.json()) as Partial<GenerateInput>;
+
+    const aimLineageIds = body.aimLineageIds;
+    const icpLineageIds = body.icpLineageIds;
+    const isMulti =
+      Array.isArray(aimLineageIds) &&
+      aimLineageIds.length > 0 &&
+      Array.isArray(icpLineageIds) &&
+      icpLineageIds.length > 0;
+
+    if (isMulti) {
+      const aimIds = Array.from(new Set(aimLineageIds as string[]));
+      const icpIds = Array.from(new Set(icpLineageIds as string[]));
+
+      if (aimIds.length < 1 || aimIds.length > 3) {
+        return json({ error: "aimLineageIds must be 1-3 items" }, 400);
+      }
+      if (icpIds.length < 1 || icpIds.length > 5) {
+        return json({ error: "icpLineageIds must be 1-5 items" }, 400);
+      }
+
+      const { data: aims, error: aimsError } = await supabase
+        .from("brand_aims")
+        .select("*")
+        .eq("user_id", user.id)
+        .in("lineage_id", aimIds)
+        .is("superseded_at", null)
+        .is("deleted_at", null);
+
+      if (aimsError || !aims || aims.length !== aimIds.length) {
+        return json({ error: "Invalid aimLineageIds" }, 400);
+      }
+
+      const brandIds = Array.from(
+        new Set((aims as Array<Record<string, any>>).map((a) => a.brand_id))
+      ).filter(Boolean);
+      const strategyBrandId = (body.brandId ?? brandIds[0]) as string | undefined;
+      if (!strategyBrandId) {
+        return json({ error: "Could not resolve strategy brand" }, 400);
+      }
+      if (brandIds.some((b) => b !== strategyBrandId)) {
+        return json({ error: "All aims must belong to the same brand" }, 400);
+      }
+
+      const { data: icps, error: icpsError } = await supabase
+        .from("icps")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("brand_id", strategyBrandId)
+        .in("lineage_id", icpIds)
+        .is("superseded_at", null)
+        .is("deleted_at", null);
+
+      if (icpsError || !icps || icps.length !== icpIds.length) {
+        return json({ error: "Invalid icpLineageIds" }, 400);
+      }
+
+      const { data: brandData, error: brandError } = await supabase
+        .from("brands")
+        .select("*")
+        .eq("id", strategyBrandId)
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (brandError) {
+        return json({ error: "Brand context not found" }, 400);
+      }
+
+      const brand = (brandData ?? null) as Record<string, any> | null;
+
+      const prompt = buildMultiPrompt(
+        brand,
+        aims as Array<Record<string, any>>,
+        icps as Array<Record<string, any>>,
+        body as GenerateInput
+      );
+
+      const resp = await fetch("https://api.openai.com/v1/responses", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: MODEL,
+          input: prompt,
+          text: {
+            format: {
+              type: "json_schema",
+              name: MULTI_PROMPT_VERSION,
+              schema: RESPONSE_SCHEMA.schema,
+              strict: true,
+            },
+          },
+        }),
+      });
+
+      if (!resp.ok) {
+        const errText = await resp.text();
+        console.error("OpenAI error", resp.status, errText);
+        return json(
+          { error: "OpenAI call failed", status: resp.status, details: errText },
+          500
+        );
+      }
+
+      const data = await resp.json();
+      const outputText =
+        data?.output_text ??
+        data?.output?.[0]?.content?.[0]?.text ??
+        data?.output?.[0]?.content?.[0]?.value ??
+        "";
+
+      let parsed: any = null;
+      try {
+        parsed = JSON.parse(outputText);
+      } catch {
+        const match = String(outputText).match(/\{[\s\S]*\}/);
+        if (match) parsed = JSON.parse(match[0]);
+      }
+
+      if (!parsed) {
+        return json({ error: "Model response did not contain valid JSON.", raw: outputText }, 500);
+      }
+
+      const title = (body.title ?? "").trim() || `${brand?.name || "Brand"} strategy`;
+      const channelArray =
+        body.channel && String(body.channel).trim()
+          ? [String(body.channel).trim()]
+          : null;
+
+      if (body.strategyId) {
+        const { data: saved, error: saveError } = await supabase
+          .rpc("strategy_insert_version", {
+            p_strategy_id: body.strategyId,
+            p_updates: {
+              title,
+              strategy: parsed,
+              channel: channelArray,
+              prompt_version: MULTI_PROMPT_VERSION,
+              model: MODEL,
+            },
+          });
+
+        if (saveError) {
+          return json({ error: "Failed to save strategy", details: saveError.message }, 500);
+        }
+
+        return json({
+          strategy: parsed,
+          prompt_version: MULTI_PROMPT_VERSION,
+          model: MODEL,
+          record: saved,
+        });
+      }
+
+      const { data: saved, error: saveError } = await supabase.rpc(
+        "strategy_create_with_links",
+        {
+          p_brand_id: strategyBrandId,
+          p_title: title,
+          p_strategy: parsed,
+          p_channel: channelArray,
+          p_prompt_version: MULTI_PROMPT_VERSION,
+          p_model: MODEL,
+          p_aim_lineage_ids: aimIds,
+          p_icp_lineage_ids: icpIds,
+        }
+      );
+
+      if (saveError) {
+        return json({ error: "Failed to save strategy", details: saveError.message }, 500);
+      }
+
+      return json({
+        strategy: parsed,
+        prompt_version: MULTI_PROMPT_VERSION,
+        model: MODEL,
+        record: saved,
+      });
+    }
+
     if (!body?.icpId || !body?.goal) {
       return json({ error: "icpId and goal are required" }, 400);
     }

@@ -31,6 +31,7 @@ import { useCollections } from "../hooks/useCollections";
 import BrandDeleteModal from "../components/BrandDeleteModal";
 import BrandColorModal from "../components/BrandColorModal";
 import { BrandAimsSection } from "../components/brand/BrandAimsSection";
+import { BrandStrategiesSection } from "../components/brand/BrandStrategiesSection";
 import { exportBrandAsPDF } from "../utils/exportBrand";
 import { canCreateBrand, canExportBrand } from "../config/accessRules";
 
@@ -898,6 +899,8 @@ export default function BrandEditor() {
           </div>
 
           {id ? <BrandAimsSection brandId={id} /> : null}
+
+          {id ? <BrandStrategiesSection brandId={id} /> : null}
             </>
           )}
 

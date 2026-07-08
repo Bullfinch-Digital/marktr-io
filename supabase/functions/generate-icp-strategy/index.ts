@@ -58,6 +58,60 @@ function corsPreflight(req: Request) {
   return null;
 }
 
+function extractStructuredOutput(response: any): {
+  outputText: string;
+  messageTexts: string[];
+  messageItemCount: number;
+  outputItemTypes: string[];
+} {
+  const output = Array.isArray(response?.output) ? response.output : [];
+  const messageTexts: string[] = [];
+  let messageItemCount = 0;
+
+  for (const item of output) {
+    const itemType = item?.type;
+    if (itemType !== "message") continue;
+    messageItemCount += 1;
+    const content = Array.isArray(item?.content) ? item.content : [];
+    for (const part of content) {
+      const partType = part?.type;
+      if (partType === "output_text" && typeof part?.text === "string" && part.text.trim()) {
+        messageTexts.push(part.text);
+      } else if (partType === "text" && typeof part?.text === "string" && part.text.trim()) {
+        messageTexts.push(part.text);
+      } else if (typeof part?.value === "string" && part.value.trim()) {
+        messageTexts.push(part.value);
+      }
+    }
+  }
+
+  const helperText =
+    typeof response?.output_text === "string" && response.output_text.trim()
+      ? response.output_text
+      : "";
+  const joinedMessageText = messageTexts.join("\n").trim();
+  const outputText = helperText || joinedMessageText;
+
+  return {
+    outputText,
+    messageTexts,
+    messageItemCount,
+    outputItemTypes: output.map((item: any) => item?.type ?? "unknown"),
+  };
+}
+
+function logOpenAiResponse(label: string, response: any) {
+  try {
+    console.log(
+      `[generate-icp-strategy] ${label} OpenAI response`,
+      JSON.stringify(response, null, 2)
+    );
+  } catch (err) {
+    console.log(`[generate-icp-strategy] ${label} OpenAI response (stringify failed)`, err);
+    console.log(response);
+  }
+}
+
 function buildPrompt(icp: Record<string, any>, brand: Record<string, any> | null, input: GenerateInput) {
   const list = (arr: unknown) =>
     Array.isArray(arr) && arr.length ? arr.join("; ") : "Not provided";
@@ -419,6 +473,10 @@ Deno.serve(async (req) => {
         body: JSON.stringify({
           model: MODEL,
           input: prompt,
+          reasoning: {
+            effort: "low",
+          },
+          max_output_tokens: 4000,
           text: {
             format: {
               type: "json_schema",
@@ -440,11 +498,9 @@ Deno.serve(async (req) => {
       }
 
       const data = await resp.json();
-      const outputText =
-        data?.output_text ??
-        data?.output?.[0]?.content?.[0]?.text ??
-        data?.output?.[0]?.content?.[0]?.value ??
-        "";
+      logOpenAiResponse("multi", data);
+      const extracted = extractStructuredOutput(data);
+      const outputText = extracted.outputText;
 
       let parsed: any = null;
       try {
@@ -455,7 +511,17 @@ Deno.serve(async (req) => {
       }
 
       if (!parsed) {
-        return json({ error: "Model response did not contain valid JSON.", raw: outputText }, 500);
+        return json(
+          {
+            error: "Model response did not contain valid JSON.",
+            raw: outputText,
+            response_status: data?.status ?? null,
+            incomplete_details: data?.incomplete_details ?? null,
+            output_item_types: extracted.outputItemTypes,
+            message_item_count: extracted.messageItemCount,
+          },
+          500
+        );
       }
 
       const title = (body.title ?? "").trim() || `${brand?.name || "Brand"} strategy`;
@@ -552,6 +618,10 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         model: MODEL,
         input: prompt,
+        reasoning: {
+          effort: "low",
+        },
+        max_output_tokens: 4000,
         text: {
           format: {
             type: "json_schema",
@@ -570,11 +640,9 @@ Deno.serve(async (req) => {
     }
 
     const data = await resp.json();
-    const outputText =
-      data?.output_text ??
-      data?.output?.[0]?.content?.[0]?.text ??
-      data?.output?.[0]?.content?.[0]?.value ??
-      "";
+    logOpenAiResponse("legacy", data);
+    const extracted = extractStructuredOutput(data);
+    const outputText = extracted.outputText;
 
     let parsed: any = null;
     try {
@@ -585,7 +653,17 @@ Deno.serve(async (req) => {
     }
 
     if (!parsed) {
-      return json({ error: "Model response did not contain valid JSON.", raw: outputText }, 500);
+      return json(
+        {
+          error: "Model response did not contain valid JSON.",
+          raw: outputText,
+          response_status: data?.status ?? null,
+          incomplete_details: data?.incomplete_details ?? null,
+          output_item_types: extracted.outputItemTypes,
+          message_item_count: extracted.messageItemCount,
+        },
+        500
+      );
     }
 
     const now = new Date().toISOString();

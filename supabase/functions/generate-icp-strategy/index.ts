@@ -338,11 +338,10 @@ Deno.serve(async (req) => {
 
     const aimLineageIds = body.aimLineageIds;
     const icpLineageIds = body.icpLineageIds;
+    // Multi mode whenever both arrays are provided (even empty),
+    // so we can return clean 400s for empty selections.
     const isMulti =
-      Array.isArray(aimLineageIds) &&
-      aimLineageIds.length > 0 &&
-      Array.isArray(icpLineageIds) &&
-      icpLineageIds.length > 0;
+      Array.isArray(aimLineageIds) && Array.isArray(icpLineageIds);
 
     if (isMulti) {
       const aimIds = Array.from(new Set(aimLineageIds as string[]));

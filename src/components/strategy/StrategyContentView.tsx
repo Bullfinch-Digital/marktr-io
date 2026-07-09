@@ -1,11 +1,29 @@
 import type { ICPStrategyPayload } from "../../hooks/useICPStrategy";
+import type { StrategySectionId } from "../../lib/strategyEditPayload";
 
 type Props = {
   strategy: ICPStrategyPayload;
   compact?: boolean;
+  bare?: boolean;
+  section?: Exclude<StrategySectionId, "title">;
 };
 
-export function StrategyContentView({ strategy, compact = false }: Props) {
+function SectionLabel({ bare, children }: { bare: boolean; children: React.ReactNode }) {
+  if (bare) return null;
+  return (
+    <p className="font-['Inter'] text-xs uppercase tracking-wide text-foreground/55">{children}</p>
+  );
+}
+
+function wrapSection(content: React.ReactNode, bare: boolean) {
+  if (!content) return null;
+  if (bare) return <>{content}</>;
+  return (
+    <section className="rounded-design border border-black/10 bg-white p-4">{content}</section>
+  );
+}
+
+export function StrategyContentView({ strategy, compact = false, bare = false, section }: Props) {
   const positioning = strategy?.positioning;
   const messaging = strategy?.messaging;
   const offer = strategy?.offer;
@@ -16,12 +34,13 @@ export function StrategyContentView({ strategy, compact = false }: Props) {
 
   const campaignLimit = compact ? 2 : undefined;
 
-  return (
-    <div className="space-y-4">
-      {positioning ? (
-        <section className="rounded-design border border-black/10 bg-white p-4">
-          <p className="font-['Inter'] text-xs uppercase tracking-wide text-foreground/55">Positioning</p>
-          <p className="font-['Fraunces'] text-lg text-foreground mt-2">{positioning.one_liner}</p>
+  const positioningSection = positioning
+    ? wrapSection(
+        <>
+          <SectionLabel bare={bare}>Positioning</SectionLabel>
+          <p className={`font-['Fraunces'] text-lg text-foreground ${bare ? "" : "mt-2"}`}>
+            {positioning.one_liner}
+          </p>
           {positioning.why_us ? (
             <p className="font-['Inter'] text-sm text-foreground/75 mt-2 whitespace-pre-wrap">
               {positioning.why_us}
@@ -34,14 +53,17 @@ export function StrategyContentView({ strategy, compact = false }: Props) {
               ))}
             </ul>
           ) : null}
-        </section>
-      ) : null}
+        </>,
+        bare
+      )
+    : null;
 
-      {messaging ? (
-        <section className="rounded-design border border-black/10 bg-white p-4">
-          <p className="font-['Inter'] text-xs uppercase tracking-wide text-foreground/55">Messaging</p>
+  const messagingSection = messaging
+    ? wrapSection(
+        <>
+          <SectionLabel bare={bare}>Messaging</SectionLabel>
           {(messaging.value_props?.length ?? 0) > 0 ? (
-            <div className="mt-2">
+            <div className={bare ? "" : "mt-2"}>
               <p className="font-['Inter'] text-xs font-medium text-foreground/60">Value props</p>
               <ul className="mt-1 list-disc list-inside space-y-1 font-['Inter'] text-sm text-foreground/80">
                 {messaging.value_props.map((item, i) => (
@@ -62,7 +84,9 @@ export function StrategyContentView({ strategy, compact = false }: Props) {
           ) : null}
           {(messaging.objections_and_rebuttals?.length ?? 0) > 0 ? (
             <div className="mt-3">
-              <p className="font-['Inter'] text-xs font-medium text-foreground/60">Objections & rebuttals</p>
+              <p className="font-['Inter'] text-xs font-medium text-foreground/60">
+                Objections & rebuttals
+              </p>
               <ul className="mt-1 list-disc list-inside space-y-1 font-['Inter'] text-sm text-foreground/80">
                 {messaging.objections_and_rebuttals.map((item, i) => (
                   <li key={`obj-${i}`}>{item}</li>
@@ -70,36 +94,44 @@ export function StrategyContentView({ strategy, compact = false }: Props) {
               </ul>
             </div>
           ) : null}
-        </section>
-      ) : null}
+        </>,
+        bare
+      )
+    : null;
 
+  const campaignIdeasSection = wrapSection(
+    <>
+      <SectionLabel bare={bare}>Campaign ideas</SectionLabel>
       {campaigns.length > 0 ? (
-        <section className="rounded-design border border-black/10 bg-white p-4">
-          <p className="font-['Inter'] text-xs uppercase tracking-wide text-foreground/55">Campaign ideas</p>
-          <div className="mt-3 grid gap-3 sm:grid-cols-2">
-            {(campaignLimit ? campaigns.slice(0, campaignLimit) : campaigns).map((c, i) => (
-              <div
-                key={`camp-${i}`}
-                className="rounded-design border border-black/10 bg-accent-grey/10 p-3"
-              >
-                <p className="font-['Inter'] text-sm font-medium text-foreground">{c.name}</p>
-                <p className="font-['Inter'] text-xs text-foreground/70 mt-1">{c.hook}</p>
-                <p className="font-['Inter'] text-xs text-foreground/60 mt-2">
-                  <span className="font-medium">Angle:</span> {c.angle}
-                </p>
-                <p className="font-['Inter'] text-xs text-foreground/60 mt-1">
-                  <span className="font-medium">CTA:</span> {c.cta}
-                </p>
-              </div>
-            ))}
-          </div>
-        </section>
-      ) : null}
+        <div className={`grid gap-3 sm:grid-cols-2 ${bare ? "mt-2" : "mt-3"}`}>
+          {(campaignLimit ? campaigns.slice(0, campaignLimit) : campaigns).map((c, i) => (
+            <div
+              key={`camp-${i}`}
+              className="rounded-design border border-black/10 bg-accent-grey/10 p-3"
+            >
+              <p className="font-['Inter'] text-sm font-medium text-foreground">{c.name}</p>
+              <p className="font-['Inter'] text-xs text-foreground/70 mt-1">{c.hook}</p>
+              <p className="font-['Inter'] text-xs text-foreground/60 mt-2">
+                <span className="font-medium">Angle:</span> {c.angle}
+              </p>
+              <p className="font-['Inter'] text-xs text-foreground/60 mt-1">
+                <span className="font-medium">CTA:</span> {c.cta}
+              </p>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="font-['Inter'] text-sm text-foreground/60 mt-2">No campaign ideas yet.</p>
+      )}
+    </>,
+    bare
+  );
 
-      {channelPlan ? (
-        <section className="rounded-design border border-black/10 bg-white p-4">
-          <p className="font-['Inter'] text-xs uppercase tracking-wide text-foreground/55">Channel plan</p>
-          <p className="font-['Inter'] text-sm text-foreground mt-2">
+  const channelPlanSection = channelPlan
+    ? wrapSection(
+        <>
+          <SectionLabel bare={bare}>Channel plan</SectionLabel>
+          <p className={`font-['Inter'] text-sm text-foreground ${bare ? "mt-2" : "mt-2"}`}>
             <span className="font-medium">Primary:</span> {channelPlan.primary_channel}
           </p>
           {(channelPlan.secondary_channels?.length ?? 0) > 0 ? (
@@ -118,13 +150,18 @@ export function StrategyContentView({ strategy, compact = false }: Props) {
               </ol>
             </div>
           ) : null}
-        </section>
-      ) : null}
+        </>,
+        bare
+      )
+    : null;
 
-      {offer ? (
-        <section className="rounded-design border border-black/10 bg-white p-4">
-          <p className="font-['Inter'] text-xs uppercase tracking-wide text-foreground/55">Offer</p>
-          <p className="font-['Inter'] text-sm text-foreground mt-2">{offer.recommended_offer}</p>
+  const offerSection = offer
+    ? wrapSection(
+        <>
+          <SectionLabel bare={bare}>Offer</SectionLabel>
+          <p className={`font-['Inter'] text-sm text-foreground ${bare ? "mt-2" : "mt-2"}`}>
+            {offer.recommended_offer}
+          </p>
           {offer.lead_magnet_idea ? (
             <p className="font-['Inter'] text-sm text-foreground/75 mt-2">
               <span className="font-medium">Lead magnet:</span> {offer.lead_magnet_idea}
@@ -137,14 +174,17 @@ export function StrategyContentView({ strategy, compact = false }: Props) {
               ))}
             </ul>
           ) : null}
-        </section>
-      ) : null}
+        </>,
+        bare
+      )
+    : null;
 
-      {success ? (
-        <section className="rounded-design border border-black/10 bg-white p-4">
-          <p className="font-['Inter'] text-xs uppercase tracking-wide text-foreground/55">Success metrics</p>
+  const successMetricsSection = success
+    ? wrapSection(
+        <>
+          <SectionLabel bare={bare}>Success metrics</SectionLabel>
           {(success.kpis?.length ?? 0) > 0 ? (
-            <p className="font-['Inter'] text-sm text-foreground/80 mt-2">
+            <p className={`font-['Inter'] text-sm text-foreground/80 ${bare ? "mt-2" : "mt-2"}`}>
               <span className="font-medium">KPIs:</span> {success.kpis.join(" · ")}
             </p>
           ) : null}
@@ -153,14 +193,17 @@ export function StrategyContentView({ strategy, compact = false }: Props) {
               <span className="font-medium">Targets:</span> {success.targets.join(" · ")}
             </p>
           ) : null}
-        </section>
-      ) : null}
+        </>,
+        bare
+      )
+    : null;
 
-      {!compact && adAssets ? (
-        <section className="rounded-design border border-black/10 bg-white p-4">
-          <p className="font-['Inter'] text-xs uppercase tracking-wide text-foreground/55">Ad assets</p>
-          {(adAssets.headlines?.length ?? 0) > 0 ? (
-            <div className="mt-2">
+  const adAssetsSection = !compact
+    ? wrapSection(
+        <>
+          <SectionLabel bare={bare}>Ad assets</SectionLabel>
+          {adAssets && (adAssets.headlines?.length ?? 0) > 0 ? (
+            <div className={bare ? "mt-2" : "mt-2"}>
               <p className="font-['Inter'] text-xs font-medium text-foreground/60">Headlines</p>
               <ul className="mt-1 list-disc list-inside space-y-1 font-['Inter'] text-sm text-foreground/75">
                 {adAssets.headlines.map((item, i) => (
@@ -168,9 +211,33 @@ export function StrategyContentView({ strategy, compact = false }: Props) {
                 ))}
               </ul>
             </div>
-          ) : null}
-        </section>
-      ) : null}
+          ) : (
+            <p className="font-['Inter'] text-sm text-foreground/60 mt-2">
+              No ad assets in this strategy.
+            </p>
+          )}
+        </>,
+        bare
+      )
+    : null;
+
+  if (section === "positioning") return positioningSection;
+  if (section === "messaging") return messagingSection;
+  if (section === "campaign_ideas") return campaignIdeasSection;
+  if (section === "channel_plan") return channelPlanSection;
+  if (section === "offer") return offerSection;
+  if (section === "success_metrics") return successMetricsSection;
+  if (section === "ad_assets") return adAssetsSection;
+
+  return (
+    <div className="space-y-4">
+      {positioningSection}
+      {messagingSection}
+      {campaignIdeasSection}
+      {channelPlanSection}
+      {offerSection}
+      {successMetricsSection}
+      {adAssetsSection}
     </div>
   );
 }

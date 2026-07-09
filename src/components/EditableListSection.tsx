@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Check, Lock, Pencil, Plus, Trash2, Undo2, X } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -9,6 +9,11 @@ type Props = {
   isLocked?: boolean;
   onChange?: (items: string[]) => void;
 };
+
+function itemsEqual(a: string[], b: string[]): boolean {
+  if (a.length !== b.length) return false;
+  return a.every((item, index) => item === b[index]);
+}
 
 export function EditableListSection({
   title,
@@ -23,12 +28,22 @@ export function EditableListSection({
   const [history, setHistory] = useState<string[][]>([items]);
   const [historyIndex, setHistoryIndex] = useState(0);
   const [showUndo, setShowUndo] = useState(false);
+  const lastEmittedRef = useRef<string[] | null>(null);
 
   useEffect(() => {
+    if (lastEmittedRef.current && itemsEqual(lastEmittedRef.current, items)) {
+      lastEmittedRef.current = null;
+      return;
+    }
     setLocalItems(items);
     setHistory([items]);
     setHistoryIndex(0);
   }, [items]);
+
+  const emitChange = (nextItems: string[]) => {
+    lastEmittedRef.current = nextItems;
+    onChange?.(nextItems);
+  };
 
   const saveToHistory = (newItems: string[]) => {
     const newHistory = history.slice(0, historyIndex + 1);
@@ -36,7 +51,7 @@ export function EditableListSection({
     setHistory(newHistory);
     setHistoryIndex(newHistory.length - 1);
     setLocalItems(newItems);
-    onChange?.(newItems);
+    emitChange(newItems);
 
     setShowUndo(true);
     setTimeout(() => setShowUndo(false), 3000);
@@ -45,8 +60,10 @@ export function EditableListSection({
   const handleUndo = () => {
     if (historyIndex > 0) {
       const newIndex = historyIndex - 1;
+      const restored = history[newIndex];
       setHistoryIndex(newIndex);
-      setLocalItems(history[newIndex]);
+      setLocalItems(restored);
+      emitChange(restored);
       setShowUndo(true);
       setTimeout(() => setShowUndo(false), 3000);
     }
@@ -189,7 +206,7 @@ export function EditableListSection({
         </div>
       ) : null}
 
-      {showUndo ? (
+      {showUndo && historyIndex > 0 ? (
         <div className="mt-2">
           <Button
             type="button"

@@ -18,12 +18,16 @@ import {
 } from "../lib/strategyComposition";
 import { subscribeStrategyCompositionStale } from "../lib/strategyEvents";
 import {
+  applyStrategySectionSnapshot,
+  captureStrategySectionSnapshot,
+  getStagedStrategySections,
   normalizeStrategyPayload,
   serializeStrategyDraft,
+  type StrategySectionId,
+  type StrategySectionSnapshot,
 } from "../lib/strategyEditPayload";
 import { StrategyCompositionBanner } from "../components/strategy/StrategyCompositionBanner";
-import { StrategyContentView } from "../components/strategy/StrategyContentView";
-import { StrategyEditForm } from "../components/strategy/StrategyEditForm";
+import { StrategyEditableDocument } from "../components/strategy/StrategyEditableDocument";
 import { StrategyVersionHistorySection } from "../components/strategy/StrategyVersionHistorySection";
 import StrategyArchiveModal from "../components/strategy/StrategyArchiveModal";
 import StrategyPermanentDeleteModal from "../components/strategy/StrategyPermanentDeleteModal";
@@ -62,9 +66,9 @@ export default function StrategyEditor() {
   const [strategy, setStrategy] = useState<StrategyDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [editing, setEditing] = useState(false);
   const [draftTitle, setDraftTitle] = useState("");
   const [draftStrategy, setDraftStrategy] = useState<ICPStrategyPayload | null>(null);
+  const [activeSection, setActiveSection] = useState<StrategySectionId | null>(null);
   const [isDirty, setIsDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [archiveOpen, setArchiveOpen] = useState(false);
@@ -74,6 +78,7 @@ export default function StrategyEditor() {
   const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
   const pendingNavRef = useRef<string | null>(null);
   const editBaselineRef = useRef<string | null>(null);
+  const sectionSnapshotRef = useRef<StrategySectionSnapshot | null>(null);
 
   const brandId = strategy?.brand_id ?? "";
   const { updateStrategy, archiveStrategy, hardDeleteStrategy } = useBrandStrategies(brandId);
@@ -84,6 +89,8 @@ export default function StrategyEditor() {
     setDraftStrategy(normalized);
     editBaselineRef.current = serializeStrategyDraft(detail.title, normalized);
     setIsDirty(false);
+    setActiveSection(null);
+    sectionSnapshotRef.current = null;
   }, []);
 
   const load = useCallback(async () => {
@@ -126,9 +133,9 @@ export default function StrategyEditor() {
   }, [load]);
 
   useEffect(() => {
-    if (!strategy || editing) return;
+    if (!strategy) return;
     resetEditDraft(strategy);
-  }, [strategy?.id, strategy?.version, editing, resetEditDraft, strategy]);
+  }, [strategy?.id, strategy?.version, resetEditDraft]);
 
   useEffect(() => {
     if (!user?.id || !strategy?.lineage_id) return;
@@ -149,29 +156,29 @@ export default function StrategyEditor() {
   }, [user?.id, strategy?.lineage_id]);
 
   useEffect(() => {
-    if (!editing || !draftStrategy || !editBaselineRef.current) {
+    if (!draftStrategy || !editBaselineRef.current || !strategy) {
       setIsDirty(false);
       return;
     }
     const current = serializeStrategyDraft(draftTitle, draftStrategy);
     setIsDirty(current !== editBaselineRef.current);
-  }, [editing, draftTitle, draftStrategy]);
+  }, [draftTitle, draftStrategy, strategy]);
 
   useEffect(() => {
     const handler = (event: BeforeUnloadEvent) => {
-      if (!editing || !isDirty) return;
+      if (!isDirty) return;
       event.preventDefault();
       event.returnValue = "";
     };
     window.addEventListener("beforeunload", handler);
     return () => window.removeEventListener("beforeunload", handler);
-  }, [editing, isDirty]);
+  }, [isDirty]);
 
   useEffect(() => {
-    if (!editing || !isDirty) return;
+    if (!isDirty) return;
 
     const onClickCapture = (e: MouseEvent) => {
-      if (!editing || !isDirty) return;
+      if (!isDirty) return;
       if (e.defaultPrevented) return;
       if (e.button !== 0) return;
       if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
@@ -201,22 +208,55 @@ export default function StrategyEditor() {
 
     document.addEventListener("click", onClickCapture, true);
     return () => document.removeEventListener("click", onClickCapture, true);
-  }, [editing, isDirty]);
+  }, [isDirty]);
 
   const isArchived = !!strategy?.deleted_at;
   const readOnly = isArchived;
 
-  const startEdit = () => {
-    if (!strategy || readOnly) return;
-    resetEditDraft(strategy);
-    setEditing(true);
+  const savedTitle = strategy?.title ?? "";
+  const savedStrategy = useMemo(
+    () => (strategy ? normalizeStrategyPayload(strategy.strategy) : null),
+    [strategy]
+  );
+
+  const stagedSections = useMemo(() => {
+    if (!savedStrategy || !draftStrategy) return [];
+    return getStagedStrategySections(savedTitle, savedStrategy, draftTitle, draftStrategy);
+  }, [savedTitle, savedStrategy, draftTitle, draftStrategy]);
+
+  const startSectionEdit = (section: StrategySectionId) => {
+    if (!draftStrategy || readOnly || activeSection) return;
+    sectionSnapshotRef.current = captureStrategySectionSnapshot(section, draftTitle, draftStrategy);
+    setActiveSection(section);
   };
 
-  const cancelEdit = () => {
+  const doneSectionEdit = () => {
+    setActiveSection(null);
+    sectionSnapshotRef.current = null;
+  };
+
+  const cancelSectionEdit = () => {
+    if (!activeSection || !draftStrategy || !sectionSnapshotRef.current) {
+      setActiveSection(null);
+      sectionSnapshotRef.current = null;
+      return;
+    }
+    const restored = applyStrategySectionSnapshot(
+      activeSection,
+      draftTitle,
+      draftStrategy,
+      sectionSnapshotRef.current
+    );
+    setDraftTitle(restored.title);
+    setDraftStrategy(restored.strategy);
+    setActiveSection(null);
+    sectionSnapshotRef.current = null;
+  };
+
+  const discardAllDraft = () => {
     if (strategy) {
       resetEditDraft(strategy);
     }
-    setEditing(false);
     setLeaveDialogOpen(false);
     pendingNavRef.current = null;
   };
@@ -237,7 +277,6 @@ export default function StrategyEditor() {
           setStrategy(reloaded);
           resetEditDraft(reloaded);
         }
-        setEditing(false);
         if (updated.id !== strategy.id) {
           navigate(`/strategy/${updated.id}`, { replace: true });
         }
@@ -278,7 +317,8 @@ export default function StrategyEditor() {
   };
 
   const handleVersionRestored = (row: StrategyRow) => {
-    setEditing(false);
+    setActiveSection(null);
+    sectionSnapshotRef.current = null;
     if (row.id !== strategy?.id) {
       navigate(`/strategy/${row.id}`, { replace: true });
     } else {
@@ -294,7 +334,6 @@ export default function StrategyEditor() {
 
   const handleLeaveWithoutSaving = () => {
     setLeaveDialogOpen(false);
-    setEditing(false);
     if (strategy) resetEditDraft(strategy);
     performPendingNavigation(pendingNavRef.current);
   };
@@ -310,8 +349,6 @@ export default function StrategyEditor() {
     if (!strategy) return null;
     return strategy as StrategyWithLinks;
   }, [strategy]);
-
-  const displayTitle = editing ? draftTitle : strategy?.title ?? "";
 
   return (
     <DashboardShell contentClassName="flex-1 px-6 py-8 lg:px-12">
@@ -363,21 +400,43 @@ export default function StrategyEditor() {
         </div>
       ) : null}
 
-      <div className="mx-auto max-w-4xl space-y-6 pb-10">
+      {isDirty ? (
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-black/15 bg-white/95 backdrop-blur-sm px-6 py-3 shadow-[0_-4px_16px_rgba(0,0,0,0.08)]">
+          <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-between gap-3">
+            <span className="font-['Inter'] text-sm text-amber-800">Unsaved changes</span>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                disabled={saving}
+                onClick={() => void handleSave()}
+                className="bg-button-green hover:bg-button-green/90 text-foreground border border-black rounded-design"
+              >
+                {saving ? "Saving…" : "Save as new version"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="border-black rounded-design"
+                disabled={saving}
+                onClick={discardAllDraft}
+              >
+                Discard all
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      <div className={`mx-auto max-w-4xl space-y-6 ${isDirty ? "pb-24" : "pb-10"}`}>
         <div className="flex flex-wrap items-center gap-3">
           <Link
             to="/strategy"
-            data-allow-navigation={editing && isDirty ? undefined : "true"}
+            data-allow-navigation={isDirty ? undefined : "true"}
             className="inline-flex items-center gap-2 font-['Inter'] text-sm text-foreground/70 hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to Strategy
           </Link>
-          {editing && isDirty ? (
-            <span className="text-sm text-amber-700 bg-amber-100 border border-amber-300 rounded-full px-3 py-1 font-['Inter']">
-              Unsaved changes
-            </span>
-          ) : null}
         </div>
 
         {loading ? (
@@ -395,60 +454,21 @@ export default function StrategyEditor() {
                     Archived (read-only)
                   </span>
                 ) : null}
-                {!editing ? (
-                  <h1 className="font-['Fraunces'] text-3xl lg:text-4xl text-[#0D1833]">
-                    {displayTitle}
-                  </h1>
-                ) : null}
-                <p className="font-['Inter'] text-xs text-foreground/55 mt-2">
+                <p className="font-['Inter'] text-xs text-foreground/55">
                   Version {strategy.version}
                 </p>
               </div>
               {!readOnly ? (
-                <div className="flex flex-wrap items-center gap-2">
-                  {editing ? (
-                    <>
-                      <Button
-                        type="button"
-                        disabled={saving || !isDirty}
-                        onClick={() => void handleSave()}
-                        className="bg-button-green hover:bg-button-green/90 text-foreground border border-black rounded-design"
-                      >
-                        {saving ? "Saving…" : "Save as new version"}
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="border-black rounded-design"
-                        disabled={saving}
-                        onClick={cancelEdit}
-                      >
-                        Cancel
-                      </Button>
-                    </>
-                  ) : (
-                    <>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="border-black rounded-design"
-                        onClick={startEdit}
-                      >
-                        Edit
-                      </Button>
-                      <ArchiveActionTooltip>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="border-black rounded-design"
-                          onClick={() => setArchiveOpen(true)}
-                        >
-                          Archive
-                        </Button>
-                      </ArchiveActionTooltip>
-                    </>
-                  )}
-                </div>
+                <ArchiveActionTooltip>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="border-black rounded-design"
+                    onClick={() => setArchiveOpen(true)}
+                  >
+                    Archive
+                  </Button>
+                </ArchiveActionTooltip>
               ) : (
                 <Button
                   type="button"
@@ -467,18 +487,22 @@ export default function StrategyEditor() {
               <StrategyCompositionBanner aims={rosterStrategy.aims} icps={rosterStrategy.icps} />
             ) : null}
 
-            {editing && draftStrategy ? (
-              <StrategyEditForm
+            {draftStrategy ? (
+              <StrategyEditableDocument
                 title={draftTitle}
                 strategy={draftStrategy}
+                stagedSections={stagedSections}
+                activeSection={activeSection}
+                readOnly={readOnly}
+                onStartEdit={startSectionEdit}
+                onDoneSection={doneSectionEdit}
+                onCancelSection={cancelSectionEdit}
                 onTitleChange={setDraftTitle}
                 onStrategyChange={setDraftStrategy}
               />
-            ) : (
-              <StrategyContentView strategy={strategy.strategy} />
-            )}
+            ) : null}
 
-            {user?.id && !readOnly && !editing ? (
+            {user?.id && !readOnly ? (
               <StrategyVersionHistorySection
                 lineageId={strategy.lineage_id}
                 currentStrategyId={strategy.id}

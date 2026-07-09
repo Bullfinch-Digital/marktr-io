@@ -1,5 +1,6 @@
 import {
   compositionHasArchivedLinks,
+  compositionHasDeletedLinks,
   formatCompositionSentence,
   type CompositionAim,
   type CompositionIcp,
@@ -22,33 +23,45 @@ type Props = {
 };
 
 function AimChip({ aim }: { aim: CompositionAim }) {
+  const isDeleted = aim.linkState === "deleted";
+  const isArchived = aim.linkState === "archived";
+
   return (
     <span
       className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 font-['Inter'] text-[11px] ${
-        aim.isArchived
-          ? "border-amber-300 bg-amber-50 text-amber-900"
-          : "border-primary/30 bg-primary/5 text-primary"
+        isDeleted
+          ? "border-red-300 bg-red-50 text-red-900"
+          : isArchived
+            ? "border-amber-300 bg-amber-50 text-amber-900"
+            : "border-primary/30 bg-primary/5 text-primary"
       }`}
     >
       {AIM_TYPE_LABELS[aim.aim_type]}
       <span className="text-foreground/50">·</span>
-      {aim.title}
-      {aim.isArchived ? <span className="text-amber-700">(archived)</span> : null}
+      <span className={isDeleted ? "line-through decoration-red-400" : undefined}>{aim.title}</span>
+      {isArchived ? <span className="text-amber-700">(archived)</span> : null}
+      {isDeleted ? <span className="text-red-700">(deleted)</span> : null}
     </span>
   );
 }
 
 function PersonaChip({ icp }: { icp: CompositionIcp }) {
+  const isDeleted = icp.linkState === "deleted";
+  const isArchived = icp.linkState === "archived";
+
   return (
     <span
       className={`inline-flex items-center rounded-full border px-2.5 py-1 font-['Inter'] text-[11px] ${
-        icp.isArchived
-          ? "border-amber-300 bg-amber-50 text-amber-900"
-          : "border-black/20 bg-accent-grey/30 text-foreground/80"
+        isDeleted
+          ? "border-red-300 bg-red-50 text-red-900"
+          : isArchived
+            ? "border-amber-300 bg-amber-50 text-amber-900"
+            : "border-black/20 bg-accent-grey/30 text-foreground/80"
       }`}
     >
-      {icp.name}
-      {icp.isArchived ? <span className="ml-1 text-amber-700">(archived)</span> : null}
+      <span className={isDeleted ? "line-through decoration-red-400" : undefined}>{icp.name}</span>
+      {isArchived ? <span className="ml-1 text-amber-700">(archived)</span> : null}
+      {isDeleted ? <span className="ml-1 text-red-700">(deleted)</span> : null}
     </span>
   );
 }
@@ -83,6 +96,7 @@ export function StrategyCompositionBanner({
   compact = false,
 }: Props) {
   const hasArchived = showGentleFlag && compositionHasArchivedLinks(aims, icps);
+  const hasDeleted = showGentleFlag && compositionHasDeletedLinks(aims, icps);
 
   return (
     <div className={compact ? "space-y-2" : "space-y-3"}>
@@ -112,6 +126,13 @@ export function StrategyCompositionBanner({
         </ChipGroup>
       </div>
 
+      {hasDeleted ? (
+        <p className="font-['Inter'] text-xs text-red-950 bg-red-100 border border-red-300 rounded-design px-3 py-2 max-w-2xl">
+          This strategy targets a permanently deleted aim or persona — it can&apos;t be recovered.
+          Review this strategy.
+        </p>
+      ) : null}
+
       {hasArchived ? (
         <p className="font-['Inter'] text-xs text-red-900 bg-red-50 border border-red-200 rounded-design px-3 py-2 max-w-2xl">
           This strategy targets an archived aim or persona — review it before acting on it.
@@ -120,3 +141,6 @@ export function StrategyCompositionBanner({
     </div>
   );
 }
+
+// Re-export for callers that only need archived detection (e.g. restore nudge).
+export { compositionHasArchivedLinks, compositionHasDeletedLinks };

@@ -3,9 +3,11 @@ import { supabase } from "../config/supabase";
 import { useAuth } from "../contexts/AuthContext";
 import type { ICPStrategyPayload } from "./useICPStrategy";
 import {
-  fetchCompositionForLineages,
+  buildCompositionLookup,
+  type AimJoinRef,
   type CompositionAim,
   type CompositionIcp,
+  type IcpJoinRef,
 } from "../lib/strategyComposition";
 import {
   hardDeleteStrategyLineage,
@@ -38,11 +40,14 @@ export type StrategyWithLinks = StrategyRow & {
 type StrategyLinkAimRow = {
   strategy_lineage_id: string;
   aim_lineage_id: string;
+  aim_title_snapshot?: string | null;
+  aim_type_snapshot?: string | null;
 };
 
 type StrategyLinkIcpRow = {
   strategy_lineage_id: string;
   icp_lineage_id: string;
+  icp_name_snapshot?: string | null;
 };
 
 type StrategyFetchCache = {
@@ -58,39 +63,48 @@ async function attachCompositionToStrategies(
   aimLink: StrategyLinkAimRow[],
   icpLink: StrategyLinkIcpRow[]
 ): Promise<StrategyWithLinks[]> {
-  const aimLineagesByStrategy = new Map<string, string[]>();
-  const icpLineagesByStrategy = new Map<string, string[]>();
+  const aimJoinsByStrategy = new Map<string, AimJoinRef[]>();
+  const icpJoinsByStrategy = new Map<string, IcpJoinRef[]>();
 
   for (const link of aimLink) {
-    const list = aimLineagesByStrategy.get(link.strategy_lineage_id) || [];
-    list.push(link.aim_lineage_id);
-    aimLineagesByStrategy.set(link.strategy_lineage_id, list);
+    const list = aimJoinsByStrategy.get(link.strategy_lineage_id) || [];
+    list.push({
+      aim_lineage_id: link.aim_lineage_id,
+      aim_title_snapshot: link.aim_title_snapshot,
+      aim_type_snapshot: link.aim_type_snapshot,
+    });
+    aimJoinsByStrategy.set(link.strategy_lineage_id, list);
   }
 
   for (const link of icpLink) {
-    const list = icpLineagesByStrategy.get(link.strategy_lineage_id) || [];
-    list.push(link.icp_lineage_id);
-    icpLineagesByStrategy.set(link.strategy_lineage_id, list);
+    const list = icpJoinsByStrategy.get(link.strategy_lineage_id) || [];
+    list.push({
+      icp_lineage_id: link.icp_lineage_id,
+      icp_name_snapshot: link.icp_name_snapshot,
+    });
+    icpJoinsByStrategy.set(link.strategy_lineage_id, list);
   }
 
-  const allAimLineages = Array.from(new Set(aimLink.map((r) => r.aim_lineage_id)));
-  const allIcpLineages = Array.from(new Set(icpLink.map((r) => r.icp_lineage_id)));
-  const { aims: allAims, icps: allIcps } = await fetchCompositionForLineages(
+  const lookup = await buildCompositionLookup(
     userId,
-    allAimLineages,
-    allIcpLineages
+    aimLink.map((link) => ({
+      aim_lineage_id: link.aim_lineage_id,
+      aim_title_snapshot: link.aim_title_snapshot,
+      aim_type_snapshot: link.aim_type_snapshot,
+    })),
+    icpLink.map((link) => ({
+      icp_lineage_id: link.icp_lineage_id,
+      icp_name_snapshot: link.icp_name_snapshot,
+    }))
   );
 
-  const aimByLineage = new Map(allAims.map((a) => [a.lineage_id, a]));
-  const icpByLineage = new Map(allIcps.map((i) => [i.lineage_id, i]));
-
   return rows.map((row) => {
-    const aimIds = aimLineagesByStrategy.get(row.lineage_id) || [];
-    const icpIds = icpLineagesByStrategy.get(row.lineage_id) || [];
+    const strategyAimJoins = aimJoinsByStrategy.get(row.lineage_id) || [];
+    const strategyIcpJoins = icpJoinsByStrategy.get(row.lineage_id) || [];
     return {
       ...row,
-      aims: aimIds.map((id) => aimByLineage.get(id)).filter(Boolean) as CompositionAim[],
-      icps: icpIds.map((id) => icpByLineage.get(id)).filter(Boolean) as CompositionIcp[],
+      aims: strategyAimJoins.map((join) => lookup.resolveAim(join)),
+      icps: strategyIcpJoins.map((join) => lookup.resolveIcp(join)),
     };
   });
 }
@@ -154,14 +168,14 @@ export function useBrandStrategies(brandId: string) {
         allLineages.length
           ? supabase
               .from("strategy_aims")
-              .select("strategy_lineage_id, aim_lineage_id")
+              .select("strategy_lineage_id, aim_lineage_id, aim_title_snapshot, aim_type_snapshot")
               .eq("user_id", user.id)
               .in("strategy_lineage_id", allLineages)
           : Promise.resolve({ data: [], error: null }),
         allLineages.length
           ? supabase
               .from("strategy_targets")
-              .select("strategy_lineage_id, icp_lineage_id")
+              .select("strategy_lineage_id, icp_lineage_id, icp_name_snapshot")
               .eq("user_id", user.id)
               .in("strategy_lineage_id", allLineages)
           : Promise.resolve({ data: [], error: null }),

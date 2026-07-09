@@ -4,7 +4,6 @@ import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { ICPExportLayout } from "../components/icp/ICPExportLayout";
 import { avatarUrlFromKey } from "./avatarLibrary";
-import { supabase } from "../config/supabase";
 
 type ICPRecord = Record<string, any>;
 
@@ -50,35 +49,6 @@ const waitForImages = async (container: HTMLElement) => {
       });
     })
   );
-};
-
-const joinList = (items?: string[] | null) =>
-  Array.isArray(items) && items.length ? items.join(" | ") : "";
-
-const fetchIcpStrategy = async (icp: ICPRecord) => {
-  const icpId = icp?.id as string | undefined;
-  if (!icpId) return null;
-  try {
-    const { data: icpRow, error: icpError } = await supabase
-      .from("icps")
-      .select("lineage_id")
-      .eq("id", icpId)
-      .maybeSingle();
-    if (icpError) throw icpError;
-    const lineageId = (icpRow as { lineage_id?: string | null } | null)?.lineage_id;
-    if (!lineageId) return null;
-
-    const { data, error } = await supabase
-      .from("icp_strategies")
-      .select("goal, channel, offer_type, tone, strategy, prompt_version, model")
-      .eq("lineage_id", lineageId)
-      .maybeSingle();
-    if (error) throw error;
-    return data || null;
-  } catch (err) {
-    console.error("[exportICP] failed to fetch strategy", err);
-    return null;
-  }
 };
 
 const buildSlices = (container: HTMLElement, canvas: HTMLCanvasElement, pageHeightPx: number) => {
@@ -133,13 +103,6 @@ const buildSlices = (container: HTMLElement, canvas: HTMLCanvasElement, pageHeig
 };
 
 export function exportICPAsCSV(icp: ICPRecord) {
-  void exportICPAsCSVInternal(icp);
-}
-
-async function exportICPAsCSVInternal(icp: ICPRecord) {
-  const strategyRecord = await fetchIcpStrategy(icp);
-  const strategy = strategyRecord?.strategy || null;
-
   const row = {
     id: icp.id,
     name: icp.name,
@@ -154,33 +117,6 @@ async function exportICPAsCSVInternal(icp: ICPRecord) {
     decision_makers: safe(icp.decision_makers),
     challenges: safe(icp.challenges),
     opportunities: safe(icp.opportunities),
-    strategy_goal: strategyRecord?.goal ?? "",
-    strategy_channel: strategyRecord?.channel ?? "",
-    strategy_offer_type: strategyRecord?.offer_type ?? "",
-    strategy_tone: strategyRecord?.tone ?? "",
-    positioning_one_liner: strategy?.positioning?.one_liner ?? "",
-    positioning_why_us: strategy?.positioning?.why_us ?? "",
-    positioning_differentiators: joinList(strategy?.positioning?.differentiators),
-    messaging_value_props: joinList(strategy?.messaging?.value_props),
-    messaging_pain_to_promise: joinList(strategy?.messaging?.pain_to_promise),
-    messaging_objections_and_rebuttals: joinList(strategy?.messaging?.objections_and_rebuttals),
-    campaign_ideas: Array.isArray(strategy?.campaign_ideas)
-      ? strategy.campaign_ideas
-          .map((idea: any) => `${idea?.name || ""}:${idea?.hook || ""}:${idea?.cta || ""}`)
-          .join(" || ")
-      : "",
-    channel_plan_primary_channel: strategy?.channel_plan?.primary_channel ?? "",
-    channel_plan_secondary_channels: joinList(strategy?.channel_plan?.secondary_channels),
-    channel_plan_first_14_days: joinList(strategy?.channel_plan?.first_14_days),
-    offer_recommended_offer: strategy?.offer?.recommended_offer ?? "",
-    offer_lead_magnet_idea: strategy?.offer?.lead_magnet_idea ?? "",
-    offer_landing_page_sections: joinList(strategy?.offer?.landing_page_sections),
-    ad_assets_headlines: joinList(strategy?.ad_assets?.headlines),
-    ad_assets_primary_texts: joinList(strategy?.ad_assets?.primary_texts),
-    ad_assets_creative_briefs: joinList(strategy?.ad_assets?.creative_briefs),
-    success_metrics_kpis: joinList(strategy?.success_metrics?.kpis),
-    success_metrics_targets: joinList(strategy?.success_metrics?.targets),
-    strategy_json: strategy ? JSON.stringify(strategy) : "",
     created_at: icp.created_at,
   };
 
@@ -211,9 +147,6 @@ export function exportICPAsPDF(icp: ICPRecord) {
 async function exportICPAsPDFInternal(icp: ICPRecord) {
   const date = new Date().toISOString().split("T")[0];
   const filename = `icp_${sanitizeFilename(icp.name)}_${date}.pdf`;
-
-  const strategyRecord = await fetchIcpStrategy(icp);
-  const strategy = strategyRecord?.strategy || null;
 
   const origin =
     typeof window !== "undefined" && window.location?.origin ? window.location.origin : "";
@@ -247,11 +180,6 @@ async function exportICPAsPDFInternal(icp: ICPRecord) {
     tech_stack: toList(icp.tech_stack),
     challenges: toList(icp.challenges),
     opportunities: toList(icp.opportunities),
-    strategyGoal: strategyRecord?.goal ?? null,
-    strategyChannel: strategyRecord?.channel ?? null,
-    strategyOfferType: strategyRecord?.offer_type ?? null,
-    strategyTone: strategyRecord?.tone ?? null,
-    strategy,
     exportedAt: date,
   };
 

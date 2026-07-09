@@ -1,9 +1,12 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { CheckCircle2, Loader2 } from "lucide-react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
+import type { Brand } from "../../hooks/useBrands";
 import type { BrandAim } from "../../hooks/useBrandAims";
 import type { ICP } from "../../hooks/useICPs";
+import { isBrandContextThin } from "../../lib/brandContextQuality";
 
 const GENERATION_LOADING_ITEMS = [
   "Reading your brand aims",
@@ -21,6 +24,9 @@ function uniq<T>(arr: T[]) {
 type Props = {
   aims: BrandAim[];
   icps: ICP[];
+  brand?: Brand | null;
+  initialAimLineageIds?: string[];
+  initialIcpLineageIds?: string[];
   onGenerate: (input: {
     aimLineageIds: string[];
     icpLineageIds: string[];
@@ -31,7 +37,15 @@ type Props = {
   onClose: () => void;
 };
 
-export function StrategyCreatePanel({ aims, icps, onGenerate, onClose }: Props) {
+export function StrategyCreatePanel({
+  aims,
+  icps,
+  brand = null,
+  initialAimLineageIds = [],
+  initialIcpLineageIds = [],
+  onGenerate,
+  onClose,
+}: Props) {
   const [selectedAimLineages, setSelectedAimLineages] = useState<string[]>([]);
   const [selectedIcpLineages, setSelectedIcpLineages] = useState<string[]>([]);
   const [title, setTitle] = useState("");
@@ -40,6 +54,19 @@ export function StrategyCreatePanel({ aims, icps, onGenerate, onClose }: Props) 
   const [generating, setGenerating] = useState(false);
   const [completedCount, setCompletedCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
+
+  const showThinBrandNudge = isBrandContextThin(brand);
+
+  useEffect(() => {
+    const validAims = initialAimLineageIds.filter((id) =>
+      aims.some((aim) => aim.lineage_id === id)
+    );
+    const validIcps = initialIcpLineageIds.filter((id) =>
+      icps.some((icp) => icp.lineage_id === id)
+    );
+    if (validAims.length) setSelectedAimLineages(validAims.slice(0, 3));
+    if (validIcps.length) setSelectedIcpLineages(validIcps.slice(0, 5));
+  }, [aims, icps, initialAimLineageIds, initialIcpLineageIds]);
 
   const aimCount = selectedAimLineages.length;
   const icpCount = selectedIcpLineages.length;
@@ -180,6 +207,21 @@ export function StrategyCreatePanel({ aims, icps, onGenerate, onClose }: Props) 
           Cancel
         </Button>
       </div>
+
+      {showThinBrandNudge && brand?.id ? (
+        <div className="rounded-design border border-amber-200 bg-amber-50/80 px-4 py-3">
+          <p className="font-['Inter'] text-sm text-amber-900">
+            Your brand story isn&apos;t set up yet — strategies are much sharper when marktr knows
+            your brand.{" "}
+            <Link
+              to={`/my-brands/${brand.id}`}
+              className="font-medium underline underline-offset-2 hover:text-amber-950"
+            >
+              Set it up (2 mins) →
+            </Link>
+          </p>
+        </div>
+      ) : null}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="space-y-2">

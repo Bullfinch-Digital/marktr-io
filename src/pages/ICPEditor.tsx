@@ -10,7 +10,6 @@ import { exportICPAsPDF } from "../utils/exportICP";
 import { canExportICP } from "../config/accessRules";
 import { usePaywall } from "../contexts/PaywallContext";
 import { useAuth } from "../contexts/AuthContext";
-import { useICPStrategy } from "../hooks/useICPStrategy";
 import DashboardShell from "../layouts/DashboardShell";
 import { ICPProfileLayout } from "../components/icp/ICPProfileLayout";
 import { IcpVersionHistorySection } from "../components/icp/IcpVersionHistorySection";
@@ -27,6 +26,10 @@ import {
 } from "../components/ui/dropdown-menu";
 import { getAvatarSrc } from "../utils/avatarLibrary";
 import { EditableListSection } from "../components/EditableListSection";
+import {
+  buildStrategyLauncherIntent,
+  STRATEGY_LAUNCHER_STATE_KEY,
+} from "../lib/strategyLauncherState";
 import "../styles/Modal.css";
 import {
   ArrowLeft,
@@ -40,8 +43,7 @@ import {
   Palette,
   Image as ImageIcon,
   FolderPlus,
-  ChevronDown,
-  Sparkles,
+  Target,
 } from "lucide-react";
 
 export default function ICPEditor() {
@@ -52,14 +54,6 @@ export default function ICPEditor() {
   const { brands, isLoading: brandsLoading } = useBrands();
   const { tier: userTier, trialActive } = useSubscription();
   const { openPaywall } = usePaywall();
-  const {
-    record: strategyRecord,
-    strategy,
-    isLoading: strategyLoading,
-    isGenerating: strategyGenerating,
-    error: strategyError,
-    generateStrategy,
-  } = useICPStrategy(id);
   // Treat trial users as "pro" for export gating.
   const effectiveTier = userTier === "free" && !trialActive ? "free" : "pro";
   const isFreeTier = effectiveTier === "free";
@@ -103,29 +97,20 @@ export default function ICPEditor() {
   const [moveBrandId, setMoveBrandId] = useState<string | null>(null);
   const [archiveModalOpen, setArchiveModalOpen] = useState(false);
   const [isArchiving, setIsArchiving] = useState(false);
-  const [strategyGoal, setStrategyGoal] = useState("Generate qualified leads");
-  const [strategyChannel, setStrategyChannel] = useState("");
-  const [strategyOfferType, setStrategyOfferType] = useState("");
-  const [strategyTone, setStrategyTone] = useState("");
-  const [strategyBusinessStage, setStrategyBusinessStage] = useState("");
-  const [strategyMonthlyBudgetBand, setStrategyMonthlyBudgetBand] = useState("");
-  const [strategyObjectiveHorizon, setStrategyObjectiveHorizon] = useState("next_30_days");
-  const [strategyMarketingCapacity, setStrategyMarketingCapacity] = useState("");
 
-  const scrollToMarketingStrategy = useCallback(() => {
-    document.getElementById("icp-marketing-strategy")?.scrollIntoView({
-      behavior: "smooth",
-      block: "start",
+  const handleBuildStrategyForPersona = () => {
+    if (!id || !icpData.lineage_id) return;
+    navigate("/strategy", {
+      state: {
+        [STRATEGY_LAUNCHER_STATE_KEY]: buildStrategyLauncherIntent({
+          icpLineageId: icpData.lineage_id,
+          icpId: id,
+          icpName: icpData.name || "this persona",
+          brandId: ((icpData as { brand_id?: string | null }).brand_id ?? null),
+        }),
+      },
     });
-  }, []);
-
-  const strategyUpdatedLabel = strategyRecord?.updated_at
-    ? new Date(strategyRecord.updated_at).toLocaleDateString("en-GB", {
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-      })
-    : null;
+  };
 
   useEffect(() => {
     const loadICP = async () => {
@@ -886,355 +871,27 @@ export default function ICPEditor() {
             ) : null}
 
             <div className="border-t border-black/10 pt-4 mt-2">
-              <button
-                type="button"
-                onClick={scrollToMarketingStrategy}
-                className="inline-flex items-center gap-1.5 font-['Inter'] text-xs text-foreground/55 hover:text-foreground/80 transition-colors"
-              >
-                <Sparkles className="h-3.5 w-3.5" />
-                {isFreeTier
-                  ? "Marketing strategy"
-                  : strategyLoading
-                    ? "Marketing strategy…"
-                    : strategy
-                      ? "View marketing strategy"
-                      : "Generate marketing strategy"}
-                <ChevronDown className="h-3.5 w-3.5" />
-              </button>
-            </div>
-
-            {/* Marketing Strategy */}
-            <div
-              id="icp-marketing-strategy"
-              className="bg-[#F1F7FF]/60 border border-black rounded-design p-6 shadow-md animate-fade-in-up delay-[400ms]"
-            >
-                <h3 className="font-['Fraunces'] text-xl mb-2">Marketing Strategy</h3>
-                {!isFreeTier && strategy && strategyUpdatedLabel ? (
-                  <p className="font-['Inter'] text-xs text-foreground/50 mb-3">
-                    One strategy for this persona · updated {strategyUpdatedLabel}
+              <div className="rounded-design border border-black/15 bg-accent-grey/15 px-4 py-4 flex flex-wrap items-center justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="font-['Fraunces'] text-lg text-[#0D1833]">Strategy</p>
+                  <p className="font-['Inter'] text-sm text-foreground/65 mt-1 max-w-xl">
+                    Strategies live in the Strategy pillar — build one for this persona there, then refine
+                    through edits and version history.
                   </p>
-                ) : null}
-                {isFreeTier ? (
-                  <div className="relative">
-                    <div className="space-y-4 blur-sm pointer-events-none select-none">
-                      <div className="border border-black rounded-design p-4 bg-white">
-                        <h4 className="font-['Fraunces'] text-lg mb-2">Positioning</h4>
-                        <p className="text-sm font-['Inter'] text-foreground/80">
-                          Your ICP positioning, messaging and differentiators will appear here.
-                        </p>
-                      </div>
-
-                      <div className="border border-black rounded-design p-4 bg-white">
-                        <h4 className="font-['Fraunces'] text-lg mb-2">Campaign Ideas</h4>
-                        <p className="text-sm font-['Inter'] text-foreground/80">
-                          Ready-to-use campaign hooks, angles and CTAs tailored to this ICP.
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6">
-                      <h4 className="font-['Fraunces'] text-lg mb-2">
-                        Unlock your marketing strategy
-                      </h4>
-                      <p className="text-sm font-['Inter'] text-foreground/70 mb-4 max-w-sm">
-                        Generate positioning, messaging, campaigns and ad ideas tailored to this ICP.
-                      </p>
-                      <Button
-                        className="bg-button-green hover:bg-button-green/90 text-foreground border border-black rounded-design px-6 py-3"
-                        onClick={() => openPaywall()}
-                      >
-                        Start your FREE 7-day trial
-                      </Button>
-                    </div>
-                  </div>
-                ) : strategyLoading ? (
-                  <p className="text-sm text-foreground/60 font-['Inter']">Loading strategy…</p>
-                ) : strategy ? (
-                  <div className="space-y-4">
-                    <div className="border border-black rounded-design p-4 bg-white">
-                      <h4 className="font-['Fraunces'] text-lg mb-2">Positioning</h4>
-                      <p className="text-sm font-['Inter'] text-foreground/80">
-                        <span className="font-semibold">One-liner:</span> {strategy.positioning?.one_liner}
-                      </p>
-                      <p className="text-sm font-['Inter'] text-foreground/80 mt-2">
-                        <span className="font-semibold">Why us:</span> {strategy.positioning?.why_us}
-                      </p>
-                      <ul className="list-disc list-inside text-sm text-foreground/80 font-['Inter'] mt-2 space-y-1">
-                        {(strategy.positioning?.differentiators || []).map((item, index) => (
-                          <li key={`diff-${index}`}>{item}</li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    <div className="border border-black rounded-design p-4 bg-white">
-                      <h4 className="font-['Fraunces'] text-lg mb-2">Messaging</h4>
-                      <p className="text-xs font-['Inter'] text-foreground/60 mb-1">Value props</p>
-                      <ul className="list-disc list-inside text-sm text-foreground/80 font-['Inter'] space-y-1">
-                        {(strategy.messaging?.value_props || []).map((item, index) => (
-                          <li key={`vp-${index}`}>{item}</li>
-                        ))}
-                      </ul>
-                      <p className="text-xs font-['Inter'] text-foreground/60 mb-1 mt-3">Pain to promise</p>
-                      <ul className="list-disc list-inside text-sm text-foreground/80 font-['Inter'] space-y-1">
-                        {(strategy.messaging?.pain_to_promise || []).map((item, index) => (
-                          <li key={`ptp-${index}`}>{item}</li>
-                        ))}
-                      </ul>
-                      <p className="text-xs font-['Inter'] text-foreground/60 mb-1 mt-3">Objections & rebuttals</p>
-                      <ul className="list-disc list-inside text-sm text-foreground/80 font-['Inter'] space-y-1">
-                        {(strategy.messaging?.objections_and_rebuttals || []).map((item, index) => (
-                          <li key={`obr-${index}`}>{item}</li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    <div className="border border-black rounded-design p-4 bg-white">
-                      <h4 className="font-['Fraunces'] text-lg mb-2">Campaign ideas</h4>
-                      <div className="space-y-3">
-                        {(strategy.campaign_ideas || []).map((idea, index) => (
-                          <div key={`campaign-${index}`} className="border border-black/10 rounded-design p-3 bg-white">
-                            <p className="text-sm font-['Inter'] text-foreground/80">
-                              <span className="font-semibold">{idea.name}:</span> {idea.hook}
-                            </p>
-                            <p className="text-sm font-['Inter'] text-foreground/70 mt-1">{idea.angle}</p>
-                            <p className="text-sm font-['Inter'] text-foreground/70 mt-1">CTA: {idea.cta}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="border border-black rounded-design p-4 bg-white">
-                        <h4 className="font-['Fraunces'] text-lg mb-2">Channel plan</h4>
-                        <p className="text-sm font-['Inter'] text-foreground/80">
-                          <span className="font-semibold">Primary:</span> {strategy.channel_plan?.primary_channel}
-                        </p>
-                        <p className="text-xs font-['Inter'] text-foreground/60 mb-1 mt-2">Secondary</p>
-                        <ul className="list-disc list-inside text-sm text-foreground/80 font-['Inter'] space-y-1">
-                          {(strategy.channel_plan?.secondary_channels || []).map((item, index) => (
-                            <li key={`secondary-${index}`}>{item}</li>
-                          ))}
-                        </ul>
-                        <p className="text-xs font-['Inter'] text-foreground/60 mb-1 mt-3">First 14 days</p>
-                        <ul className="list-disc list-inside text-sm text-foreground/80 font-['Inter'] space-y-1">
-                          {(strategy.channel_plan?.first_14_days || []).map((item, index) => (
-                            <li key={`first14-${index}`}>{item}</li>
-                          ))}
-                        </ul>
-                      </div>
-
-                      <div className="border border-black rounded-design p-4 bg-white">
-                        <h4 className="font-['Fraunces'] text-lg mb-2">Offer</h4>
-                        <p className="text-sm font-['Inter'] text-foreground/80">
-                          <span className="font-semibold">Recommended:</span> {strategy.offer?.recommended_offer}
-                        </p>
-                        <p className="text-sm font-['Inter'] text-foreground/80 mt-2">
-                          <span className="font-semibold">Lead magnet:</span>{" "}
-                          {strategy.offer?.lead_magnet_idea || "—"}
-                        </p>
-                        <p className="text-xs font-['Inter'] text-foreground/60 mb-1 mt-3">Landing page sections</p>
-                        <ul className="list-disc list-inside text-sm text-foreground/80 font-['Inter'] space-y-1">
-                          {(strategy.offer?.landing_page_sections || []).map((item, index) => (
-                            <li key={`landing-${index}`}>{item}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="border border-black rounded-design p-4 bg-white">
-                        <h4 className="font-['Fraunces'] text-lg mb-2">Ad assets</h4>
-                        {strategy.ad_assets ? (
-                          <>
-                            <p className="text-xs font-['Inter'] text-foreground/60 mb-1">Headlines</p>
-                            <ul className="list-disc list-inside text-sm text-foreground/80 font-['Inter'] space-y-1">
-                              {(strategy.ad_assets?.headlines || []).map((item, index) => (
-                                <li key={`headline-${index}`}>{item}</li>
-                              ))}
-                            </ul>
-                            <p className="text-xs font-['Inter'] text-foreground/60 mb-1 mt-3">Primary text</p>
-                            <ul className="list-disc list-inside text-sm text-foreground/80 font-['Inter'] space-y-1">
-                              {(strategy.ad_assets?.primary_texts || []).map((item, index) => (
-                                <li key={`primary-${index}`}>{item}</li>
-                              ))}
-                            </ul>
-                            <p className="text-xs font-['Inter'] text-foreground/60 mb-1 mt-3">Creative briefs</p>
-                            <ul className="list-disc list-inside text-sm text-foreground/80 font-['Inter'] space-y-1">
-                              {(strategy.ad_assets?.creative_briefs || []).map((item, index) => (
-                                <li key={`brief-${index}`}>{item}</li>
-                              ))}
-                            </ul>
-                          </>
-                        ) : (
-                          <p className="text-sm font-['Inter'] text-foreground/60">Not included</p>
-                        )}
-                      </div>
-
-                      <div className="border border-black rounded-design p-4 bg-white">
-                        <h4 className="font-['Fraunces'] text-lg mb-2">Success metrics</h4>
-                        <p className="text-xs font-['Inter'] text-foreground/60 mb-1">KPIs</p>
-                        <ul className="list-disc list-inside text-sm text-foreground/80 font-['Inter'] space-y-1">
-                          {(strategy.success_metrics?.kpis || []).map((item, index) => (
-                            <li key={`kpi-${index}`}>{item}</li>
-                          ))}
-                        </ul>
-                        <p className="text-xs font-['Inter'] text-foreground/60 mb-1 mt-3">Targets</p>
-                        <ul className="list-disc list-inside text-sm text-foreground/80 font-['Inter'] space-y-1">
-                          {(strategy.success_metrics?.targets || []).map((item, index) => (
-                            <li key={`target-${index}`}>{item}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="border border-black rounded-design p-4 bg-white">
-                    <p className="text-sm font-['Inter'] text-foreground/70 mb-4">
-                      Generate a tailored marketing strategy for this ICP.
-                    </p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-xs font-['Inter'] text-foreground/60 mb-1">Goal</p>
-                        <select
-                          value={strategyGoal}
-                          onChange={(e) => setStrategyGoal(e.target.value)}
-                          className="w-full border border-black rounded-design px-4 py-3 bg-white font-['Inter'] text-foreground"
-                        >
-                          <option value="Generate qualified leads">Generate qualified leads</option>
-                          <option value="Increase conversions">Increase conversions</option>
-                          <option value="Launch a new offer">Launch a new offer</option>
-                          <option value="Improve retention">Improve retention</option>
-                        </select>
-                      </div>
-                      <div>
-                        <p className="text-xs font-['Inter'] text-foreground/60 mb-1">Channel (optional)</p>
-                        <select
-                          value={strategyChannel}
-                          onChange={(e) => setStrategyChannel(e.target.value)}
-                          className="w-full border border-black rounded-design px-4 py-3 bg-white font-['Inter'] text-foreground"
-                        >
-                          <option value="">No preference</option>
-                          <option value="Paid social">Paid social</option>
-                          <option value="Search">Search</option>
-                          <option value="LinkedIn organic">LinkedIn organic</option>
-                          <option value="Email">Email</option>
-                          <option value="Content">Content</option>
-                        </select>
-                      </div>
-                      <div>
-                        <p className="text-xs font-['Inter'] text-foreground/60 mb-1">Offer type (optional)</p>
-                        <select
-                          value={strategyOfferType}
-                          onChange={(e) => setStrategyOfferType(e.target.value)}
-                          className="w-full border border-black rounded-design px-4 py-3 bg-white font-['Inter'] text-foreground"
-                        >
-                          <option value="">No preference</option>
-                          <option value="Audit">Audit</option>
-                          <option value="Consultation">Consultation</option>
-                          <option value="Demo">Demo</option>
-                          <option value="Free trial">Free trial</option>
-                          <option value="Download">Download</option>
-                        </select>
-                      </div>
-                      <div>
-                        <p className="text-xs font-['Inter'] text-foreground/60 mb-1">Tone (optional)</p>
-                        <select
-                          value={strategyTone}
-                          onChange={(e) => setStrategyTone(e.target.value)}
-                          className="w-full border border-black rounded-design px-4 py-3 bg-white font-['Inter'] text-foreground"
-                        >
-                          <option value="">No preference</option>
-                          <option value="Direct">Direct</option>
-                          <option value="Friendly">Friendly</option>
-                          <option value="Premium">Premium</option>
-                          <option value="Educational">Educational</option>
-                        </select>
-                      </div>
-                      <div>
-                        <p className="text-xs font-['Inter'] text-foreground/60 mb-1">Business stage / size</p>
-                        <select
-                          value={strategyBusinessStage}
-                          onChange={(e) => setStrategyBusinessStage(e.target.value)}
-                          className="w-full border border-black rounded-design px-4 py-3 bg-white font-['Inter'] text-foreground"
-                        >
-                          <option value="">Not specified</option>
-                          <option value="Solo founder">Solo founder</option>
-                          <option value="Small team (2-10)">Small team (2-10)</option>
-                          <option value="Growing business (11-50)">Growing business (11-50)</option>
-                          <option value="Established business (50+)">Established business (50+)</option>
-                        </select>
-                      </div>
-                      <div>
-                        <p className="text-xs font-['Inter'] text-foreground/60 mb-1">Monthly marketing budget</p>
-                        <select
-                          value={strategyMonthlyBudgetBand}
-                          onChange={(e) => setStrategyMonthlyBudgetBand(e.target.value)}
-                          className="w-full border border-black rounded-design px-4 py-3 bg-white font-['Inter'] text-foreground"
-                        >
-                          <option value="">Not specified</option>
-                          <option value="£0-500">£0-500</option>
-                          <option value="£500-2,000">£500-2,000</option>
-                          <option value="£2,000-10,000">£2,000-10,000</option>
-                          <option value="£10,000+">£10,000+</option>
-                        </select>
-                      </div>
-                      <div>
-                        <p className="text-xs font-['Inter'] text-foreground/60 mb-1">Primary objective horizon</p>
-                        <select
-                          value={strategyObjectiveHorizon}
-                          onChange={(e) => setStrategyObjectiveHorizon(e.target.value)}
-                          className="w-full border border-black rounded-design px-4 py-3 bg-white font-['Inter'] text-foreground"
-                        >
-                          <option value="next_30_days">Next 30 days</option>
-                          <option value="next_quarter">Next quarter</option>
-                          <option value="next_6_months">Next 6 months</option>
-                          <option value="next_12_months">Next 12 months</option>
-                        </select>
-                      </div>
-                      <div>
-                        <p className="text-xs font-['Inter'] text-foreground/60 mb-1">Weekly marketing capacity</p>
-                        <select
-                          value={strategyMarketingCapacity}
-                          onChange={(e) => setStrategyMarketingCapacity(e.target.value)}
-                          className="w-full border border-black rounded-design px-4 py-3 bg-white font-['Inter'] text-foreground"
-                        >
-                          <option value="">Not specified</option>
-                          <option value="1-3 hours/week">1-3 hours/week</option>
-                          <option value="4-7 hours/week">4-7 hours/week</option>
-                          <option value="8-15 hours/week">8-15 hours/week</option>
-                          <option value="16+ hours/week">16+ hours/week</option>
-                        </select>
-                      </div>
-                    </div>
-                    {strategyError && (
-                      <p className="text-xs font-['Inter'] text-red-600 mt-3">
-                        {strategyError}
-                      </p>
-                    )}
-                    <div className="mt-4">
-                      <Button
-                        onClick={() =>
-                          generateStrategy({
-                            goal: strategyGoal,
-                            channel: strategyChannel || null,
-                            offerType: strategyOfferType || null,
-                            tone: strategyTone || null,
-                            businessStage: strategyBusinessStage || null,
-                            monthlyBudgetBand: strategyMonthlyBudgetBand || null,
-                            objectiveHorizon: strategyObjectiveHorizon || null,
-                            marketingCapacity: strategyMarketingCapacity || null,
-                          })
-                        }
-                        disabled={strategyGenerating || !strategyGoal}
-                        className="bg-button-green hover:bg-button-green/90 text-foreground border border-black rounded-design px-6 py-3"
-                      >
-                        {strategyGenerating ? "Generating…" : "Generate Strategy"}
-                      </Button>
-                    </div>
-                  </div>
-                )}
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="border-black rounded-design gap-2 shrink-0"
+                  disabled={!icpData.lineage_id || !id}
+                  onClick={handleBuildStrategyForPersona}
+                >
+                  <Target className="h-4 w-4" />
+                  Build a strategy for this persona
+                </Button>
               </div>
             </div>
+          </div>
         }
         footerCta={
           effectiveTier === "free" ? (

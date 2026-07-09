@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Archive,
   ChevronDown,
@@ -14,10 +14,14 @@ import DashboardShell from "../layouts/DashboardShell";
 import { Button } from "../components/ui/button";
 import { useBrand } from "../contexts/BrandContext";
 import { useICPs } from "../hooks/useICPs";
-import { useBrandAims } from "../hooks/useBrandAims";
+import { useBrandAims, type BrandAim } from "../hooks/useBrandAims";
 import { useBrandStrategies, type StrategyWithLinks } from "../hooks/useBrandStrategies";
 import { isBrandScopeReady, resolveScopedBrandId } from "../lib/brandScopedReads";
 import { compositionHasArchivedLinks } from "../lib/strategyComposition";
+import {
+  readStrategyLauncherIntent,
+  type StrategyLauncherIntent,
+} from "../lib/strategyLauncherState";
 import { StrategyAimsSection } from "../components/strategy/StrategyAimsSection";
 import { StrategyCreatePanel } from "../components/strategy/StrategyCreatePanel";
 import { StrategyRosterCard } from "../components/strategy/StrategyRosterCard";
@@ -37,7 +41,10 @@ function formatArchivedDate(iso: string): string {
 }
 
 export default function StrategyPage() {
-  const { activeBrandId, brands, loading: brandLoading } = useBrand();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { activeBrandId, brands, loading: brandLoading, setActiveBrand, activeBrand } =
+    useBrand();
   const scopedBrandId = useMemo(
     () => resolveScopedBrandId(activeBrandId, brands || []),
     [activeBrandId, brands]
@@ -65,7 +72,12 @@ export default function StrategyPage() {
     hardDeleteStrategy,
   } = useBrandStrategies(scopedBrandId || "");
 
+  const launcherIntentRef = useRef<StrategyLauncherIntent | null>(null);
+  const [launcherIntent, setLauncherIntent] = useState<StrategyLauncherIntent | null>(null);
   const [showCreate, setShowCreate] = useState(false);
+  const [createPanelKey, setCreatePanelKey] = useState(0);
+  const [initialAimLineageIds, setInitialAimLineageIds] = useState<string[]>([]);
+  const [initialIcpLineageIds, setInitialIcpLineageIds] = useState<string[]>([]);
   const [archivedOpen, setArchivedOpen] = useState(false);
   const [archivedSnapshotLineageId, setArchivedSnapshotLineageId] = useState<string | null>(null);
   const [archiveTarget, setArchiveTarget] = useState<StrategyWithLinks | null>(null);
@@ -74,9 +86,68 @@ export default function StrategyPage() {
   const [permanentDeleteTarget, setPermanentDeleteTarget] = useState<StrategyWithLinks | null>(null);
   const [isPermanentDeleting, setIsPermanentDeleting] = useState(false);
   const [restoreNudge, setRestoreNudge] = useState<string | null>(null);
+  const [launcherCreateOpened, setLauncherCreateOpened] = useState(false);
 
   const brandReady = isBrandScopeReady(brandLoading, brands || [], scopedBrandId);
   const isLoading = !brandReady || aimsLoading || strategiesLoading;
+  const hasAims = aims.length > 0;
+  const hasStrategies = strategies.length > 0;
+  const strategiesDormant = !hasAims;
+
+  useEffect(() => {
+    const intent = readStrategyLauncherIntent(location.state);
+    if (!intent) return;
+
+    launcherIntentRef.current = intent;
+    setLauncherIntent(intent);
+    if (intent.brandId) {
+      setActiveBrand(intent.brandId);
+    }
+    navigate(location.pathname, { replace: true, state: {} });
+  }, [location.pathname, location.state, navigate, setActiveBrand]);
+
+  const openCreatePanel = (selections?: {
+    aimLineageIds?: string[];
+    icpLineageIds?: string[];
+  }) => {
+    setInitialAimLineageIds(selections?.aimLineageIds ?? []);
+    setInitialIcpLineageIds(selections?.icpLineageIds ?? []);
+    setCreatePanelKey((key) => key + 1);
+    setShowCreate(true);
+  };
+
+  const closeCreatePanel = () => {
+    setShowCreate(false);
+    setInitialAimLineageIds([]);
+    setInitialIcpLineageIds([]);
+    launcherIntentRef.current = null;
+    setLauncherIntent(null);
+    setLauncherCreateOpened(false);
+  };
+
+  const handleAimCreated = (aim: BrandAim) => {
+    const intent = launcherIntentRef.current;
+    if (!intent) return;
+    openCreatePanel({
+      aimLineageIds: [aim.lineage_id],
+      icpLineageIds: [intent.icpLineageId],
+    });
+    setLauncherCreateOpened(true);
+  };
+
+  useEffect(() => {
+    const intent = launcherIntentRef.current;
+    if (!intent || launcherCreateOpened || !brandReady || aimsLoading || strategiesLoading) return;
+    if (!hasAims) return;
+    openCreatePanel({ icpLineageIds: [intent.icpLineageId] });
+    setLauncherCreateOpened(true);
+  }, [
+    brandReady,
+    aimsLoading,
+    strategiesLoading,
+    hasAims,
+    launcherCreateOpened,
+  ]);
 
   useEffect(() => {
     if (!restoreNudge) return;
@@ -122,6 +193,8 @@ export default function StrategyPage() {
     }
   };
 
+  const canStartNewStrategy = hasAims && brandIcps.length > 0;
+
   return (
     <DashboardShell contentClassName="flex-1 px-6 py-8 lg:px-12">
       <div className="mx-auto max-w-7xl space-y-8 pb-10">
@@ -137,10 +210,10 @@ export default function StrategyPage() {
               then refine through edits and version history.
             </p>
           </div>
-          {scopedBrandId && !showCreate ? (
+          {scopedBrandId && !showCreate && canStartNewStrategy ? (
             <Button
               type="button"
-              onClick={() => setShowCreate(true)}
+              onClick={() => openCreatePanel()}
               className="bg-button-green hover:bg-button-green/90 text-foreground border border-black rounded-design gap-2"
             >
               <Plus className="h-4 w-4" />
@@ -162,22 +235,38 @@ export default function StrategyPage() {
           </div>
         ) : (
           <>
-            <StrategyAimsSection brandId={scopedBrandId} />
+            <StrategyAimsSection
+              brandId={scopedBrandId}
+              launcherPersonaName={launcherIntent?.icpName ?? null}
+              autoOpenCreate={!!launcherIntent && !hasAims}
+              emphasizeEmpty={!hasAims}
+              onAimCreated={handleAimCreated}
+            />
 
-            <section className="space-y-5">
+            <section
+              className={`space-y-5 transition-opacity ${
+                strategiesDormant ? "opacity-60" : ""
+              }`}
+            >
               <div>
                 <h2 className="font-['Fraunces'] text-2xl text-[#0D1833]">Strategies</h2>
                 <p className="font-['Inter'] text-sm text-foreground/70 mt-1">
-                  Current strategies for this brand. Each shows which aims and personas it serves.
+                  {strategiesDormant
+                    ? "Strategies connect your aims to your personas. Add at least one aim above to get started."
+                    : "Current strategies for this brand. Each shows which aims and personas it serves."}
                 </p>
               </div>
 
-              {showCreate ? (
+              {showCreate && hasAims ? (
                 <StrategyCreatePanel
+                  key={createPanelKey}
                   aims={aims}
                   icps={brandIcps}
+                  brand={activeBrand}
+                  initialAimLineageIds={initialAimLineageIds}
+                  initialIcpLineageIds={initialIcpLineageIds}
                   onGenerate={createStrategy}
-                  onClose={() => setShowCreate(false)}
+                  onClose={closeCreatePanel}
                 />
               ) : null}
 
@@ -185,20 +274,35 @@ export default function StrategyPage() {
 
               {isLoading ? (
                 <p className="font-['Inter'] text-sm text-foreground/60">Loading strategies…</p>
-              ) : strategies.length === 0 ? (
+              ) : strategiesDormant ? (
+                <div className="rounded-design border border-dashed border-black/15 bg-accent-grey/10 px-4 py-5">
+                  <p className="font-['Inter'] text-sm text-foreground/60">
+                    Your strategies will appear here once you have aims to build from.
+                  </p>
+                </div>
+              ) : !hasStrategies ? (
                 <div className="rounded-design border border-black/15 bg-accent-grey/15 p-6 text-center">
-                  <p className="font-['Inter'] text-sm text-foreground/70">
-                    No strategies yet. Add aims above, then generate your first strategy.
+                  <p className="font-['Fraunces'] text-xl text-[#0D1833]">
+                    Build your first strategy
+                  </p>
+                  <p className="font-['Inter'] text-sm text-foreground/70 mt-2 max-w-md mx-auto">
+                    Pick the aims and personas this strategy should serve. marktr generates a
+                    structured plan you can refine — not endless regeneration.
                   </p>
                   {!showCreate ? (
                     <Button
                       type="button"
                       className="mt-4 bg-button-green hover:bg-button-green/90 text-foreground border border-black rounded-design"
-                      onClick={() => setShowCreate(true)}
-                      disabled={aims.length === 0 || brandIcps.length === 0}
+                      onClick={() => openCreatePanel()}
+                      disabled={!canStartNewStrategy}
                     >
-                      New strategy
+                      Build your first strategy
                     </Button>
+                  ) : null}
+                  {brandIcps.length === 0 ? (
+                    <p className="font-['Inter'] text-xs text-foreground/55 mt-3">
+                      You&apos;ll also need at least one persona — create one in the ICP pillar first.
+                    </p>
                   ) : null}
                 </div>
               ) : (

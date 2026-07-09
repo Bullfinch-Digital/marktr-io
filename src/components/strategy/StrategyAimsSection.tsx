@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Archive, ChevronDown, ChevronUp, Eye, RotateCcw, Trash2 } from "lucide-react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
@@ -39,9 +39,19 @@ const INITIAL_FORM: FormState = {
 
 type Props = {
   brandId: string;
+  launcherPersonaName?: string | null;
+  autoOpenCreate?: boolean;
+  emphasizeEmpty?: boolean;
+  onAimCreated?: (aim: BrandAim) => void;
 };
 
-export function StrategyAimsSection({ brandId }: Props) {
+export function StrategyAimsSection({
+  brandId,
+  launcherPersonaName = null,
+  autoOpenCreate = false,
+  emphasizeEmpty = false,
+  onAimCreated,
+}: Props) {
   const { user } = useAuth();
   const {
     aims,
@@ -68,6 +78,12 @@ export function StrategyAimsSection({ brandId }: Props) {
   const [permanentDeleteTarget, setPermanentDeleteTarget] = useState<BrandAim | null>(null);
   const [isPermanentDeleting, setIsPermanentDeleting] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
+
+  useEffect(() => {
+    if (autoOpenCreate && !isLoading && aims.length === 0 && !editingAimId) {
+      setShowCreateForm(true);
+    }
+  }, [autoOpenCreate, isLoading, aims.length, editingAimId]);
 
   const editingAim = useMemo(
     () => aims.find((aim) => aim.id === editingAimId) ?? null,
@@ -97,7 +113,8 @@ export function StrategyAimsSection({ brandId }: Props) {
       if (editingAimId) {
         await updateAim(editingAimId, form);
       } else {
-        await createAim(form);
+        const created = await createAim(form);
+        if (created) onAimCreated?.(created);
       }
       resetForm();
     } catch (err) {
@@ -229,9 +246,36 @@ export function StrategyAimsSection({ brandId }: Props) {
       {isLoading ? (
         <p className="font-['Inter'] text-sm text-foreground/60">Loading aims…</p>
       ) : aims.length === 0 ? (
-        <p className="font-['Inter'] text-sm text-foreground/60">
-          No current aims yet. Add your first aim to start building strategies.
-        </p>
+        <div
+          className={`rounded-design border px-4 py-5 space-y-3 ${
+            emphasizeEmpty
+              ? "border-black/20 bg-accent-grey/20"
+              : "border-black/10 bg-accent-grey/10"
+          }`}
+        >
+          {launcherPersonaName ? (
+            <p className="font-['Inter'] text-sm text-foreground/80">
+              To build a strategy for <strong>{launcherPersonaName}</strong>, start by defining what
+              you want to achieve.
+            </p>
+          ) : null}
+          <p className="font-['Fraunces'] text-lg text-[#0D1833]">
+            Strategy starts with a goal — what are you trying to achieve?
+          </p>
+          <p className="font-['Inter'] text-sm text-foreground/70">
+            Add a brand aim below. Once you have at least one aim, you can generate strategies that
+            serve your personas.
+          </p>
+          {!showCreateForm ? (
+            <Button
+              type="button"
+              className="bg-button-green hover:bg-button-green/90 text-foreground border border-black rounded-design"
+              onClick={() => setShowCreateForm(true)}
+            >
+              Create your first aim
+            </Button>
+          ) : null}
+        </div>
       ) : (
         <ul className="space-y-3">
           {aims.map((aim) => {

@@ -1,5 +1,5 @@
 import { supabase } from "../config/supabase";
-import type { ICPStrategyPayload } from "../hooks/useICPStrategy";
+import type { ICPStrategyPayload } from "../types/icpStrategyPayload";
 import type { StrategyRow } from "../hooks/useBrandStrategies";
 
 export function applyCurrentStrategyFilter<T extends { is: (col: string, val: null) => T }>(

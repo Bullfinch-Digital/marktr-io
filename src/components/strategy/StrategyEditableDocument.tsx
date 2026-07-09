@@ -1,6 +1,6 @@
 import { Pencil } from "lucide-react";
 import { Button } from "../ui/button";
-import type { ICPStrategyPayload } from "../../hooks/useICPStrategy";
+import type { ICPStrategyPayload } from "../../types/icpStrategyPayload";
 import type { StrategySectionId } from "../../lib/strategyEditPayload";
 import { StrategyContentView } from "./StrategyContentView";
 import { StrategyEditForm } from "./StrategyEditForm";

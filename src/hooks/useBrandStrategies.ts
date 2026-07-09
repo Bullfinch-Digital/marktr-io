@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "../config/supabase";
 import { useAuth } from "../contexts/AuthContext";
-import type { ICPStrategyPayload } from "./useICPStrategy";
+import type { ICPStrategyPayload } from "../types/icpStrategyPayload";
 import {
   buildCompositionLookup,
   type AimJoinRef,

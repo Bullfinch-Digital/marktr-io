@@ -1,4 +1,4 @@
-import type { ICPStrategyPayload } from "../../hooks/useICPStrategy";
+import type { ICPStrategyPayload } from "../../types/icpStrategyPayload";
 import type { StrategySectionId } from "../../lib/strategyEditPayload";
 
 type Props = {

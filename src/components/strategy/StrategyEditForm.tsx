@@ -2,7 +2,7 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Textarea } from "../ui/textarea";
 import { EditableListSection } from "../EditableListSection";
-import type { ICPStrategyPayload } from "../../hooks/useICPStrategy";
+import type { ICPStrategyPayload } from "../../types/icpStrategyPayload";
 import { createEmptyAdAssets, type StrategySectionId } from "../../lib/strategyEditPayload";
 import { EditableCampaignIdeasSection } from "./EditableCampaignIdeasSection";
 

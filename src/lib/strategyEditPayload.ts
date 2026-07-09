@@ -1,4 +1,4 @@
-import type { ICPStrategyPayload } from "../hooks/useICPStrategy";
+import type { ICPStrategyPayload } from "../types/icpStrategyPayload";
 
 export type CampaignIdea = ICPStrategyPayload["campaign_ideas"][number];
 

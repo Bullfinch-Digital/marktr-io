@@ -5,7 +5,7 @@ import DashboardShell from "../layouts/DashboardShell";
 import { Button } from "../components/ui/button";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../config/supabase";
-import type { ICPStrategyPayload } from "../hooks/useICPStrategy";
+import type { ICPStrategyPayload } from "../types/icpStrategyPayload";
 import {
   useBrandStrategies,
   type StrategyRow,

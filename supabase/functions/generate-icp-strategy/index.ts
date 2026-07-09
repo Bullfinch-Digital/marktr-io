@@ -181,6 +181,76 @@ function splitStrategyPayload(parsed: Record<string, unknown>): {
   return { generatedTitle, strategy };
 }
 
+type CampaignIdeaInput = {
+  id?: string;
+  name?: string;
+  hook?: string;
+  angle?: string;
+  cta?: string;
+};
+
+function normalizeCampaignIdeaName(name: unknown): string {
+  return typeof name === "string" ? name.trim().toLowerCase() : "";
+}
+
+function assignCampaignIdeaIds(
+  ideas: CampaignIdeaInput[],
+  existingIdeas: CampaignIdeaInput[] = []
+): Array<{ id: string; name: string; hook: string; angle: string; cta: string }> {
+  const lineageMap = new Map<string, string>();
+  for (const idea of existingIdeas) {
+    const name = normalizeCampaignIdeaName(idea.name);
+    const id = typeof idea.id === "string" ? idea.id.trim() : "";
+    if (name && id && !lineageMap.has(name)) {
+      lineageMap.set(name, id);
+    }
+  }
+
+  const assignedThisBatch = new Map<string, string>();
+
+  return ideas.map((idea) => {
+    const name = normalizeCampaignIdeaName(idea.name);
+    const existingId = typeof idea.id === "string" ? idea.id.trim() : "";
+    let id = existingId;
+
+    if (!id) {
+      if (name && lineageMap.has(name) && !assignedThisBatch.has(name)) {
+        id = lineageMap.get(name)!;
+      } else {
+        id = crypto.randomUUID();
+        if (name && !lineageMap.has(name)) {
+          lineageMap.set(name, id);
+        }
+      }
+    } else if (name && !lineageMap.has(name)) {
+      lineageMap.set(name, id);
+    }
+
+    if (name) assignedThisBatch.set(name, id);
+
+    return {
+      id,
+      name: typeof idea.name === "string" ? idea.name : "",
+      hook: typeof idea.hook === "string" ? idea.hook : "",
+      angle: typeof idea.angle === "string" ? idea.angle : "",
+      cta: typeof idea.cta === "string" ? idea.cta : "",
+    };
+  });
+}
+
+function applyCampaignIdeaIds(
+  strategy: Record<string, unknown>,
+  existingIdeas: CampaignIdeaInput[] = []
+): Record<string, unknown> {
+  const rawIdeas = Array.isArray(strategy.campaign_ideas)
+    ? (strategy.campaign_ideas as CampaignIdeaInput[])
+    : [];
+  return {
+    ...strategy,
+    campaign_ideas: assignCampaignIdeaIds(rawIdeas, existingIdeas),
+  };
+}
+
 function buildMultiPrompt(
   brand: Record<string, any> | null,
   aims: Array<Record<string, any>>,
@@ -550,9 +620,30 @@ Deno.serve(async (req) => {
         );
       }
 
-      const { generatedTitle, strategy: strategyPayload } = splitStrategyPayload(
+      const { generatedTitle, strategy: parsedStrategy } = splitStrategyPayload(
         parsed as Record<string, unknown>
       );
+
+      let priorCampaignIdeas: CampaignIdeaInput[] = [];
+      if (body.strategyId) {
+        const { data: existingRow, error: existingError } = await supabase
+          .from("strategies")
+          .select("strategy")
+          .eq("id", body.strategyId)
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        if (existingError || !existingRow) {
+          return json({ error: "Strategy not found for regeneration" }, 404);
+        }
+
+        const existingStrategy = (existingRow as { strategy?: Record<string, unknown> }).strategy;
+        priorCampaignIdeas = Array.isArray(existingStrategy?.campaign_ideas)
+          ? (existingStrategy.campaign_ideas as CampaignIdeaInput[])
+          : [];
+      }
+
+      const strategyPayload = applyCampaignIdeaIds(parsedStrategy, priorCampaignIdeas);
       const title = resolveStrategyTitle({
         userTitle: body.title,
         generatedTitle,

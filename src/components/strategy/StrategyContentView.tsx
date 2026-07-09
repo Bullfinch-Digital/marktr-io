@@ -104,9 +104,9 @@ export function StrategyContentView({ strategy, compact = false, bare = false, s
       <SectionLabel bare={bare}>Campaign ideas</SectionLabel>
       {campaigns.length > 0 ? (
         <div className={`grid gap-3 sm:grid-cols-2 ${bare ? "mt-2" : "mt-3"}`}>
-          {(campaignLimit ? campaigns.slice(0, campaignLimit) : campaigns).map((c, i) => (
+          {(campaignLimit ? campaigns.slice(0, campaignLimit) : campaigns).map((c) => (
             <div
-              key={`camp-${i}`}
+              key={c.id}
               className="rounded-design border border-black/10 bg-accent-grey/10 p-3"
             >
               <p className="font-['Inter'] text-sm font-medium text-foreground">{c.name}</p>

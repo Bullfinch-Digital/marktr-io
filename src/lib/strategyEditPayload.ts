@@ -2,12 +2,34 @@ import type { ICPStrategyPayload } from "../types/icpStrategyPayload";
 
 export type CampaignIdea = ICPStrategyPayload["campaign_ideas"][number];
 
-export const EMPTY_CAMPAIGN_IDEA: CampaignIdea = {
-  name: "",
-  hook: "",
-  angle: "",
-  cta: "",
-};
+export function mintCampaignIdeaId(): string {
+  return crypto.randomUUID();
+}
+
+export function createEmptyCampaignIdea(): CampaignIdea {
+  return {
+    id: mintCampaignIdeaId(),
+    name: "",
+    hook: "",
+    angle: "",
+    cta: "",
+  };
+}
+
+/** @deprecated Prefer createEmptyCampaignIdea() so each card gets a fresh id. */
+export const EMPTY_CAMPAIGN_IDEA: CampaignIdea = createEmptyCampaignIdea();
+
+export function ensureCampaignIdeaIds(
+  ideas: Array<Partial<CampaignIdea> & { id?: string }> | null | undefined
+): CampaignIdea[] {
+  return (ideas ?? []).map((idea) => ({
+    id: typeof idea.id === "string" && idea.id.trim() ? idea.id.trim() : mintCampaignIdeaId(),
+    name: idea.name ?? "",
+    hook: idea.hook ?? "",
+    angle: idea.angle ?? "",
+    cta: idea.cta ?? "",
+  }));
+}
 
 export function cloneStrategyPayload(strategy: ICPStrategyPayload): ICPStrategyPayload {
   return structuredClone(strategy);
@@ -25,7 +47,7 @@ export function normalizeStrategyPayload(strategy: ICPStrategyPayload): ICPStrat
     pain_to_promise: next.messaging?.pain_to_promise ?? [],
     objections_and_rebuttals: next.messaging?.objections_and_rebuttals ?? [],
   };
-  next.campaign_ideas = next.campaign_ideas ?? [];
+  next.campaign_ideas = ensureCampaignIdeaIds(next.campaign_ideas);
   next.channel_plan = {
     primary_channel: next.channel_plan?.primary_channel ?? "",
     secondary_channels: next.channel_plan?.secondary_channels ?? [],

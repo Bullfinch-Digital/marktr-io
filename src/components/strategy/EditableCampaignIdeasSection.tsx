@@ -3,7 +3,7 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Textarea } from "../ui/textarea";
 import type { CampaignIdea } from "../../lib/strategyEditPayload";
-import { EMPTY_CAMPAIGN_IDEA } from "../../lib/strategyEditPayload";
+import { createEmptyCampaignIdea } from "../../lib/strategyEditPayload";
 
 type Props = {
   ideas: CampaignIdea[];
@@ -19,7 +19,7 @@ export function EditableCampaignIdeasSection({ ideas, isLocked = false, onChange
 
   const addIdea = () => {
     if (isLocked) return;
-    onChange([...ideas, { ...EMPTY_CAMPAIGN_IDEA }]);
+    onChange([...ideas, createEmptyCampaignIdea()]);
   };
 
   const removeIdea = (index: number) => {
@@ -50,7 +50,7 @@ export function EditableCampaignIdeasSection({ ideas, isLocked = false, onChange
       <div className="space-y-4">
         {ideas.map((idea, index) => (
           <div
-            key={`campaign-edit-${index}`}
+            key={idea.id}
             className="rounded-design border border-black/15 bg-white p-4 space-y-3"
           >
             <div className="flex items-center justify-between gap-2">

@@ -11,6 +11,7 @@ export type ICPStrategyPayload = {
     objections_and_rebuttals: string[];
   };
   campaign_ideas: Array<{
+    id: string;
     name: string;
     hook: string;
     angle: string;

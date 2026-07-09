@@ -1,9 +1,16 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../config/supabase";
 import { useAuth } from "../contexts/AuthContext";
-import type { ICP } from "./useICPs";
-import type { BrandAim } from "./useBrandAims";
 import type { ICPStrategyPayload } from "./useICPStrategy";
+import {
+  fetchCompositionForLineages,
+  type CompositionAim,
+  type CompositionIcp,
+} from "../lib/strategyComposition";
+import {
+  hardDeleteStrategyLineage,
+  insertStrategyVersionRpc,
+} from "../lib/brandStrategyVersioning";
 
 export type StrategyRow = {
   id: string;
@@ -23,8 +30,8 @@ export type StrategyRow = {
 };
 
 export type StrategyWithLinks = StrategyRow & {
-  aims: BrandAim[];
-  icps: ICP[];
+  aims: CompositionAim[];
+  icps: CompositionIcp[];
 };
 
 type StrategyLinkAimRow = {
@@ -36,6 +43,49 @@ type StrategyLinkIcpRow = {
   strategy_lineage_id: string;
   icp_lineage_id: string;
 };
+
+async function attachCompositionToStrategies(
+  userId: string,
+  rows: StrategyRow[],
+  aimLink: StrategyLinkAimRow[],
+  icpLink: StrategyLinkIcpRow[]
+): Promise<StrategyWithLinks[]> {
+  const aimLineagesByStrategy = new Map<string, string[]>();
+  const icpLineagesByStrategy = new Map<string, string[]>();
+
+  for (const link of aimLink) {
+    const list = aimLineagesByStrategy.get(link.strategy_lineage_id) || [];
+    list.push(link.aim_lineage_id);
+    aimLineagesByStrategy.set(link.strategy_lineage_id, list);
+  }
+
+  for (const link of icpLink) {
+    const list = icpLineagesByStrategy.get(link.strategy_lineage_id) || [];
+    list.push(link.icp_lineage_id);
+    icpLineagesByStrategy.set(link.strategy_lineage_id, list);
+  }
+
+  const allAimLineages = Array.from(new Set(aimLink.map((r) => r.aim_lineage_id)));
+  const allIcpLineages = Array.from(new Set(icpLink.map((r) => r.icp_lineage_id)));
+  const { aims: allAims, icps: allIcps } = await fetchCompositionForLineages(
+    userId,
+    allAimLineages,
+    allIcpLineages
+  );
+
+  const aimByLineage = new Map(allAims.map((a) => [a.lineage_id, a]));
+  const icpByLineage = new Map(allIcps.map((i) => [i.lineage_id, i]));
+
+  return rows.map((row) => {
+    const aimIds = aimLineagesByStrategy.get(row.lineage_id) || [];
+    const icpIds = icpLineagesByStrategy.get(row.lineage_id) || [];
+    return {
+      ...row,
+      aims: aimIds.map((id) => aimByLineage.get(id)).filter(Boolean) as CompositionAim[],
+      icps: icpIds.map((id) => icpByLineage.get(id)).filter(Boolean) as CompositionIcp[],
+    };
+  });
+}
 
 export function useBrandStrategies(brandId: string) {
   const { user } = useAuth();
@@ -70,8 +120,8 @@ export function useBrandStrategies(brandId: string) {
 
       if (archivedError) throw archivedError;
 
-      const archivedByLineage = new Map<string, any>();
-      for (const row of archivedAllRows || []) {
+      const archivedByLineage = new Map<string, StrategyRow>();
+      for (const row of (archivedAllRows || []) as StrategyRow[]) {
         const existing = archivedByLineage.get(row.lineage_id);
         if (!existing || row.version > existing.version) {
           archivedByLineage.set(row.lineage_id, row);
@@ -79,11 +129,11 @@ export function useBrandStrategies(brandId: string) {
       }
 
       const archivedCurrent = Array.from(archivedByLineage.values()).sort(
-        (a: any, b: any) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+        (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
       );
 
-      const currentLineages = (currentRows || []).map((r: any) => r.lineage_id);
-      const archivedLineages = archivedCurrent.map((r: any) => r.lineage_id);
+      const currentLineages = (currentRows || []).map((r: StrategyRow) => r.lineage_id);
+      const archivedLineages = archivedCurrent.map((r) => r.lineage_id);
       const allLineages = Array.from(new Set([...currentLineages, ...archivedLineages]));
 
       const [aimLinkRows, icpLinkRows] = await Promise.all([
@@ -109,71 +159,19 @@ export function useBrandStrategies(brandId: string) {
       const aimLink = (aimLinkRows.data || []) as StrategyLinkAimRow[];
       const icpLink = (icpLinkRows.data || []) as StrategyLinkIcpRow[];
 
-      const aimLineages = Array.from(new Set(aimLink.map((r) => r.aim_lineage_id)));
-      const icpLineages = Array.from(new Set(icpLink.map((r) => r.icp_lineage_id)));
-
-      const [aimRows, icpRows] = await Promise.all([
-        aimLineages.length
-          ? supabase
-              .from("brand_aims")
-              .select("*")
-              .eq("user_id", user.id)
-              .is("superseded_at", null)
-              .is("deleted_at", null)
-              .in("lineage_id", aimLineages)
-          : Promise.resolve({ data: [], error: null }),
-        icpLineages.length
-          ? supabase
-              .from("icps")
-              .select("*")
-              .eq("user_id", user.id)
-              .eq("brand_id", brandId)
-              .is("superseded_at", null)
-              .is("deleted_at", null)
-              .in("lineage_id", icpLineages)
-          : Promise.resolve({ data: [], error: null }),
-      ]);
-
-      if (aimRows.error) throw aimRows.error;
-      if (icpRows.error) throw icpRows.error;
-
-      const aimByLineage = new Map<string, BrandAim>(
-        (aimRows.data || []).map((r: any) => [r.lineage_id, r as BrandAim])
+      const next = await attachCompositionToStrategies(
+        user.id,
+        (currentRows || []) as StrategyRow[],
+        aimLink,
+        icpLink
       );
 
-      const icpByLineage = new Map<string, ICP>(
-        (icpRows.data || []).map((r: any) => [r.lineage_id, r as ICP])
+      const nextArchived = await attachCompositionToStrategies(
+        user.id,
+        archivedCurrent,
+        aimLink,
+        icpLink
       );
-
-      const aimsByStrategy = new Map<string, BrandAim[]>();
-      for (const link of aimLink) {
-        const current = aimByLineage.get(link.aim_lineage_id);
-        if (!current) continue;
-        const list = aimsByStrategy.get(link.strategy_lineage_id) || [];
-        list.push(current);
-        aimsByStrategy.set(link.strategy_lineage_id, list);
-      }
-
-      const icpsByStrategy = new Map<string, ICP[]>();
-      for (const link of icpLink) {
-        const current = icpByLineage.get(link.icp_lineage_id);
-        if (!current) continue;
-        const list = icpsByStrategy.get(link.strategy_lineage_id) || [];
-        list.push(current);
-        icpsByStrategy.set(link.strategy_lineage_id, list);
-      }
-
-      const next = (currentRows || []).map((row: any) => ({
-        ...(row as StrategyRow),
-        aims: aimsByStrategy.get(row.lineage_id) || [],
-        icps: icpsByStrategy.get(row.lineage_id) || [],
-      }));
-
-      const nextArchived = archivedCurrent.map((row: any) => ({
-        ...(row as StrategyRow),
-        aims: aimsByStrategy.get(row.lineage_id) || [],
-        icps: icpsByStrategy.get(row.lineage_id) || [],
-      }));
 
       setStrategies(next);
       setArchivedStrategies(nextArchived);
@@ -233,7 +231,6 @@ export function useBrandStrategies(brandId: string) {
 
       if (invokeError) throw invokeError;
       if (!data?.record) {
-        // Strategy could have been created but record isn’t returned; treat as refresh.
         await fetchStrategies();
         return null;
       }
@@ -247,51 +244,29 @@ export function useBrandStrategies(brandId: string) {
     [brandId, fetchStrategies, user?.id]
   );
 
-  const regenerateStrategy = useCallback(
-    async (input: {
-      strategyId: string;
-      aimLineageIds: string[];
-      icpLineageIds: string[];
-      title?: string;
-      channel?: string | null;
-      tone?: string | null;
-      offerType?: string | null;
-      businessStage?: string | null;
-      monthlyBudgetBand?: string | null;
-      objectiveHorizon?: string | null;
-      marketingCapacity?: string | null;
-    }) => {
+  const updateStrategy = useCallback(
+    async (
+      strategyId: string,
+      updates: {
+        title?: string;
+        strategy?: ICPStrategyPayload;
+        channel?: string[] | null;
+      }
+    ): Promise<StrategyRow | null> => {
       if (!user?.id) return null;
-      const { data, error: invokeError } = await supabase.functions.invoke(
-        "generate-icp-strategy",
-        {
-          body: {
-            brandId,
-            strategyId: input.strategyId,
-            aimLineageIds: input.aimLineageIds,
-            icpLineageIds: input.icpLineageIds,
-            title: input.title ?? null,
-            channel: input.channel ?? null,
-            tone: input.tone ?? null,
-            offerType: input.offerType ?? null,
-            businessStage: input.businessStage ?? null,
-            monthlyBudgetBand: input.monthlyBudgetBand ?? null,
-            objectiveHorizon: input.objectiveHorizon ?? null,
-            marketingCapacity: input.marketingCapacity ?? null,
-          },
-        }
-      );
+      const payload: Record<string, unknown> = {};
+      if (updates.title !== undefined) payload.title = updates.title;
+      if (updates.strategy !== undefined) payload.strategy = updates.strategy;
+      if (updates.channel !== undefined) payload.channel = updates.channel;
 
-      if (invokeError) throw invokeError;
-
+      const next = await insertStrategyVersionRpc(strategyId, payload);
       try {
         window.dispatchEvent(new Event("strategies:changed"));
       } catch {}
       await fetchStrategies();
-
-      return data?.record as StrategyRow | undefined;
+      return next;
     },
-    [brandId, fetchStrategies, user?.id]
+    [fetchStrategies, user?.id]
   );
 
   const archiveStrategy = useCallback(
@@ -326,16 +301,29 @@ export function useBrandStrategies(brandId: string) {
     [fetchStrategies, user?.id]
   );
 
+  const hardDeleteStrategy = useCallback(
+    async (lineageId: string) => {
+      if (!lineageId) return false;
+      await hardDeleteStrategyLineage(lineageId);
+      try {
+        window.dispatchEvent(new Event("strategies:changed"));
+      } catch {}
+      await fetchStrategies();
+      return true;
+    },
+    [fetchStrategies]
+  );
+
   return {
     strategies,
-    archivedStrategies: archivedStrategies,
+    archivedStrategies,
     isLoading,
     error,
     fetchStrategies,
     createStrategy,
-    regenerateStrategy,
+    updateStrategy,
     archiveStrategy,
     restoreStrategy,
+    hardDeleteStrategy,
   };
 }
-

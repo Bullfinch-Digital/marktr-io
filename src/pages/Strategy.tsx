@@ -1,725 +1,346 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { CheckCircle2, Loader2, Target } from "lucide-react";
+import {
+  Archive,
+  ChevronDown,
+  ChevronUp,
+  Eye,
+  Plus,
+  RotateCcw,
+  Target,
+  Trash2,
+} from "lucide-react";
 import DashboardShell from "../layouts/DashboardShell";
 import { Button } from "../components/ui/button";
-import { usePaywall } from "../contexts/PaywallContext";
-import { useICPs } from "../hooks/useICPs";
-import { useBrands } from "../hooks/useBrands";
-import useSubscription from "../hooks/useSubscription";
-import { useAuth } from "../contexts/AuthContext";
 import { useBrand } from "../contexts/BrandContext";
-import { supabase } from "../config/supabase";
+import { useICPs } from "../hooks/useICPs";
+import { useBrandAims } from "../hooks/useBrandAims";
+import { useBrandStrategies, type StrategyWithLinks } from "../hooks/useBrandStrategies";
+import { isBrandScopeReady, resolveScopedBrandId } from "../lib/brandScopedReads";
+import { compositionHasArchivedLinks } from "../lib/strategyComposition";
+import { StrategyAimsSection } from "../components/strategy/StrategyAimsSection";
+import { StrategyCreatePanel } from "../components/strategy/StrategyCreatePanel";
+import { StrategyRosterCard } from "../components/strategy/StrategyRosterCard";
+import { StrategyContentView } from "../components/strategy/StrategyContentView";
+import { StrategyCompositionBanner } from "../components/strategy/StrategyCompositionBanner";
+import StrategyArchiveModal from "../components/strategy/StrategyArchiveModal";
+import StrategyPermanentDeleteModal from "../components/strategy/StrategyPermanentDeleteModal";
 
-const PLATFORMS = [
-  "Instagram",
-  "Facebook",
-  "LinkedIn",
-  "TikTok",
-  "X",
-  "YouTube",
-  "Email",
-  "Pinterest",
-] as const;
-
-const GOALS = [
-  "Grow audience",
-  "Drive leads",
-  "Increase sales",
-  "Build community",
-] as const;
-
-const STRATEGY_LOADING_ITEMS = [
-  "Reading your ICP profile",
-  "Analysing your platform",
-  "Mapping content opportunities",
-  "Building your monthly themes",
-  "Writing your strategy...",
-] as const;
-
-type StrategyTheme = {
-  name: string;
-  description: string;
-  weeklyFocus: string;
-};
-
-type StrategyFormat = {
-  type: string;
-  percentage: number;
-  rationale: string;
-};
-
-type StrategyOutput = {
-  themes: StrategyTheme[];
-  postFormats: StrategyFormat[];
-  postingFrequency: string;
-  hooks: string[];
-  openingMonth: string;
-};
-
-type ContentStrategyRow = {
-  id: string;
-  user_id: string;
-  brand_id: string | null;
-  icp_id: string | null;
-  platform: string;
-  icp_name: string | null;
-  brand_name: string | null;
-  themes: StrategyTheme[] | null;
-  post_formats: StrategyFormat[] | null;
-  posting_frequency: string | null;
-  hooks: string[] | null;
-  raw_output: string | null;
-  status: string | null;
-  created_at: string;
-  updated_at: string;
-};
-
-type StrategyView = {
-  id?: string;
-  icpId: string | null;
-  icpName: string;
-  brandId: string | null;
-  brandName: string;
-  platform: string;
-  primaryGoal: string;
-  output: StrategyOutput;
-  createdAt?: string;
-};
-
-function fmtDate(input?: string) {
-  if (!input) return "";
-  const d = new Date(input);
-  if (Number.isNaN(d.getTime())) return "";
-  return d.toLocaleDateString("en-GB", {
+function formatArchivedDate(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleDateString("en-GB", {
     day: "numeric",
     month: "short",
     year: "numeric",
   });
 }
 
-function parseRowToView(row: ContentStrategyRow): StrategyView | null {
-  let output: StrategyOutput | null = null;
-
-  if (row.raw_output) {
-    try {
-      const parsed = JSON.parse(row.raw_output) as StrategyOutput;
-      if (
-        Array.isArray(parsed?.themes) &&
-        Array.isArray(parsed?.postFormats) &&
-        typeof parsed?.postingFrequency === "string" &&
-        Array.isArray(parsed?.hooks) &&
-        typeof parsed?.openingMonth === "string"
-      ) {
-        output = parsed;
-      }
-    } catch {
-      // fall back to columns
-    }
-  }
-
-  if (!output) {
-    const themes = row.themes ?? [];
-    const postFormats = row.post_formats ?? [];
-    const hooks = row.hooks ?? [];
-    const postingFrequency = row.posting_frequency ?? "";
-    if (
-      Array.isArray(themes) &&
-      Array.isArray(postFormats) &&
-      Array.isArray(hooks) &&
-      postingFrequency
-    ) {
-      output = {
-        themes,
-        postFormats,
-        hooks,
-        postingFrequency,
-        openingMonth:
-          "A focused month of content tailored to your audience and platform.",
-      };
-    }
-  }
-
-  if (!output) return null;
-
-  return {
-    id: row.id,
-    icpId: row.icp_id,
-    icpName: row.icp_name ?? "Untitled ICP",
-    brandId: row.brand_id,
-    brandName: row.brand_name ?? "Untitled Brand",
-    platform: row.platform,
-    primaryGoal: "Grow audience",
-    output,
-    createdAt: row.created_at,
-  };
-}
-
-export default function Strategy() {
-  const { user } = useAuth();
-  const { openPaywall } = usePaywall();
-  const { icps, isLoading: icpsLoading } = useICPs();
-  const { brands } = useBrands();
-  const { activeBrand } = useBrand();
-  const { tier: userTier, trialActive } = useSubscription();
-
-  const [selectedIcpId, setSelectedIcpId] = useState("");
-  const [selectedPlatform, setSelectedPlatform] = useState("");
-  const [selectedGoal, setSelectedGoal] = useState("Grow audience");
-
-  const [completedCount, setCompletedCount] = useState(0);
-  const [isGenerating, setIsGenerating] = useState(false);
-
-  const [savedStrategies, setSavedStrategies] = useState<StrategyView[]>([]);
-  const [loadingLibrary, setLoadingLibrary] = useState(true);
-  const [libraryError, setLibraryError] = useState<string | null>(null);
-
-  const [currentStrategy, setCurrentStrategy] = useState<StrategyView | null>(
-    null
+export default function StrategyPage() {
+  const { activeBrandId, brands, loading: brandLoading } = useBrand();
+  const scopedBrandId = useMemo(
+    () => resolveScopedBrandId(activeBrandId, brands || []),
+    [activeBrandId, brands]
   );
-  const [showNewStrategy, setShowNewStrategy] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const locked = userTier === "free" && !trialActive;
-
-  const selectedIcp = useMemo(
-    () => (icps || []).find((i) => i.id === selectedIcpId) || null,
-    [icps, selectedIcpId]
+  const activeBrandName = useMemo(
+    () => (brands || []).find((b) => b.id === scopedBrandId)?.name ?? "your brand",
+    [brands, scopedBrandId]
   );
 
-  const selectedBrand = useMemo(() => {
-    if (selectedIcp?.brand_id) {
-      return (
-        (brands || []).find((b) => b.id === selectedIcp.brand_id) ||
-        activeBrand ||
-        null
-      );
-    }
-    return activeBrand;
-  }, [brands, selectedIcp, activeBrand]);
+  const { aims, isLoading: aimsLoading } = useBrandAims(scopedBrandId ?? undefined);
+  const { icps } = useICPs();
+  const brandIcps = useMemo(
+    () => (icps || []).filter((icp) => icp.brand_id === scopedBrandId),
+    [icps, scopedBrandId]
+  );
 
-  const canGenerate = Boolean(selectedIcp && selectedPlatform);
+  const {
+    strategies,
+    archivedStrategies,
+    isLoading: strategiesLoading,
+    error,
+    createStrategy,
+    archiveStrategy,
+    restoreStrategy,
+    hardDeleteStrategy,
+  } = useBrandStrategies(scopedBrandId || "");
+
+  const [showCreate, setShowCreate] = useState(false);
+  const [archivedOpen, setArchivedOpen] = useState(false);
+  const [archivedSnapshotLineageId, setArchivedSnapshotLineageId] = useState<string | null>(null);
+  const [archiveTarget, setArchiveTarget] = useState<StrategyWithLinks | null>(null);
+  const [isArchiving, setIsArchiving] = useState(false);
+  const [restoringLineageId, setRestoringLineageId] = useState<string | null>(null);
+  const [permanentDeleteTarget, setPermanentDeleteTarget] = useState<StrategyWithLinks | null>(null);
+  const [isPermanentDeleting, setIsPermanentDeleting] = useState(false);
+  const [restoreNudge, setRestoreNudge] = useState<string | null>(null);
+
+  const brandReady = isBrandScopeReady(brandLoading, brands || [], scopedBrandId);
+  const isLoading = !brandReady || aimsLoading || strategiesLoading;
 
   useEffect(() => {
-    if (!user?.id) return;
-    let cancelled = false;
+    if (!restoreNudge) return;
+    const timer = window.setTimeout(() => setRestoreNudge(null), 8000);
+    return () => window.clearTimeout(timer);
+  }, [restoreNudge]);
 
-    const run = async () => {
-      setLoadingLibrary(true);
-      setLibraryError(null);
-      try {
-        const { data, error: fetchError } = await supabase
-          .from("content_strategies")
-          .select("*")
-          .eq("user_id", user.id)
-          .order("created_at", { ascending: false });
-
-        if (fetchError) throw fetchError;
-
-        const rows = ((data as ContentStrategyRow[]) || [])
-          .map(parseRowToView)
-          .filter(Boolean) as StrategyView[];
-
-        if (!cancelled) {
-          setSavedStrategies(rows);
-          if (rows.length > 0) {
-            setCurrentStrategy(rows[0]);
-            setShowNewStrategy(false);
-          }
-        }
-      } catch (e) {
-        if (!cancelled) {
-          setLibraryError(
-            e instanceof Error ? e.message : "Failed to load saved strategies."
-          );
-        }
-      } finally {
-        if (!cancelled) setLoadingLibrary(false);
-      }
-    };
-
-    void run();
-    return () => {
-      cancelled = true;
-    };
-  }, [user?.id]);
-
-  const startNew = () => {
-    setShowNewStrategy(true);
-    setCurrentStrategy(null);
-    setError(null);
-    setCompletedCount(0);
-  };
-
-  const viewSaved = (strategy: StrategyView) => {
-    setCurrentStrategy(strategy);
-    setShowNewStrategy(false);
-    setError(null);
-  };
-
-  const generate = async () => {
-    if (!user?.id || !selectedIcp || !selectedPlatform) return;
-
-    setError(null);
-    setIsGenerating(true);
-    setCompletedCount(0);
-
-    const timers: number[] = [];
-    const checklistPromise = new Promise<void>((resolve) => {
-      for (let i = 1; i <= STRATEGY_LOADING_ITEMS.length; i += 1) {
-        timers.push(
-          window.setTimeout(() => {
-            setCompletedCount(i);
-          }, i * 300)
-        );
-      }
-      timers.push(
-        window.setTimeout(() => {
-          resolve();
-        }, STRATEGY_LOADING_ITEMS.length * 300 + 500)
-      );
-    });
-
-    const strategyPromise = (async () => {
-      const payload = {
-        icpName: selectedIcp.name || "Untitled ICP",
-        icpSummary: selectedIcp.description || "No ICP summary provided.",
-        brandName: selectedBrand?.name || "Untitled Brand",
-        brandDescription:
-          selectedBrand?.business_description ||
-          selectedBrand?.product_or_service ||
-          "No brand description provided.",
-        platform: selectedPlatform,
-        primaryGoal: selectedGoal,
-      };
-
-      const { data, error: invokeError } = await supabase.functions.invoke(
-        "generate-content-strategy",
-        { body: payload }
-      );
-
-      if (invokeError) throw invokeError;
-      if (
-        !data?.themes ||
-        !data?.postFormats ||
-        !data?.postingFrequency ||
-        !data?.hooks ||
-        !data?.openingMonth
-      ) {
-        throw new Error("Strategy response was incomplete.");
-      }
-
-      const output = data as StrategyOutput;
-
-      const rowToInsert = {
-        user_id: user.id,
-        brand_id: selectedBrand?.id ?? null,
-        icp_id: selectedIcp.id,
-        platform: selectedPlatform,
-        icp_name: selectedIcp.name ?? null,
-        brand_name: selectedBrand?.name ?? null,
-        themes: output.themes,
-        post_formats: output.postFormats,
-        posting_frequency: output.postingFrequency,
-        hooks: output.hooks,
-        raw_output: JSON.stringify(output),
-        status: "active",
-      };
-
-      const { data: inserted, error: insertError } = await supabase
-        .from("content_strategies")
-        .insert(rowToInsert)
-        .select("*")
-        .single();
-
-      if (insertError) throw insertError;
-
-      const insertedView = parseRowToView(inserted as ContentStrategyRow);
-      if (!insertedView) {
-        throw new Error("Saved strategy could not be parsed.");
-      }
-
-      return insertedView;
-    })();
-
+  const confirmArchive = async () => {
+    if (!archiveTarget) return;
+    setIsArchiving(true);
     try {
-      const [saved] = await Promise.all([strategyPromise, checklistPromise]);
-
-      setCurrentStrategy(saved);
-      setSavedStrategies((prev) => [
-        saved,
-        ...prev.filter((x) => x.id !== saved.id),
-      ]);
-      setShowNewStrategy(false);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to generate strategy.");
+      await archiveStrategy(archiveTarget.lineage_id);
+      setArchiveTarget(null);
     } finally {
-      timers.forEach((t) => window.clearTimeout(t));
-      setIsGenerating(false);
+      setIsArchiving(false);
     }
   };
 
-  const renderLocked = () => (
-    <div className="mx-auto max-w-2xl py-20 text-center">
-      <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#FDF0CC]">
-        <Target className="h-8 w-8 text-[#0D1833]" />
-      </div>
-      <h1 className="mb-4 font-['Fraunces'] text-4xl font-bold text-[#0D1833]">
-        Content Strategy
-      </h1>
-      <p className="mx-auto mb-8 max-w-lg font-['DM_Sans'] text-lg text-muted-foreground">
-        Generate a tailored 30-day content strategy for each of your ICPs — per
-        platform, per goal. Start your free trial to unlock.
-      </p>
-      <Button
-        onClick={() => openPaywall()}
-        className="rounded-full bg-primary px-8 py-4 font-['DM_Sans'] text-base font-medium text-primary-foreground hover:opacity-90"
-      >
-        Start free trial — 14 days
-      </Button>
-      <p className="mt-4 font-['DM_Sans'] text-sm text-muted-foreground">
-        No credit card required
-      </p>
-    </div>
-  );
+  const handleRestoreArchived = async (strategy: StrategyWithLinks) => {
+    setRestoringLineageId(strategy.lineage_id);
+    try {
+      await restoreStrategy(strategy.lineage_id);
+      if (compositionHasArchivedLinks(strategy.aims, strategy.icps)) {
+        setRestoreNudge(
+          `"${strategy.title}" was restored. It still targets archived aims or personas — review it when you're ready.`
+        );
+      }
+      setArchivedSnapshotLineageId(null);
+    } finally {
+      setRestoringLineageId(null);
+    }
+  };
 
-  const renderLoading = () => (
-    <section className="mx-auto flex min-h-screen w-full max-w-3xl flex-col justify-center px-6 py-12">
-      <div className="rounded-3xl border border-border bg-white p-8 shadow-sm sm:p-12">
-        <h1 className="font-['Fraunces'] text-3xl font-bold leading-tight text-[#0D1833] sm:text-4xl">
-          marktr is building your strategy...
-        </h1>
-        <div className="mt-8 space-y-4">
-          {STRATEGY_LOADING_ITEMS.map((item, index) => {
-            const done = index < completedCount;
-            const active =
-              index === completedCount &&
-              completedCount < STRATEGY_LOADING_ITEMS.length;
-            return (
-              <div key={item} className="flex items-center gap-3">
-                {done ? (
-                  <CheckCircle2 className="h-5 w-5 text-[#E8650A]" />
-                ) : active ? (
-                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                ) : (
-                  <Loader2 className="h-5 w-5 text-muted-foreground/40" />
-                )}
-                <p
-                  className={`font-['DM_Sans'] text-sm ${
-                    done
-                      ? "text-foreground"
-                      : active
-                      ? "text-muted-foreground"
-                      : "text-muted-foreground/60"
-                  }`}
-                >
-                  {item}
-                </p>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </section>
-  );
-
-  const renderLibrary = () => (
-    <section className="space-y-3">
-      <div className="flex items-center justify-between">
-        <h2 className="font-['Fraunces'] text-2xl font-bold text-[#0D1833]">
-          Strategy library
-        </h2>
-      </div>
-
-      {loadingLibrary ? (
-        <p className="font-['DM_Sans'] text-sm text-muted-foreground">
-          Loading saved strategies...
-        </p>
-      ) : savedStrategies.length === 0 ? (
-        <p className="font-['DM_Sans'] text-sm text-muted-foreground">
-          No saved strategies yet.
-        </p>
-      ) : (
-        <div className="grid gap-3">
-          {savedStrategies.map((s) => (
-            <div
-              key={s.id ?? `${s.platform}-${s.icpName}-${s.createdAt}`}
-              className="flex items-center justify-between rounded-xl border border-border bg-white p-4"
-            >
-              <div className="min-w-0">
-                <div className="mb-1 flex items-center gap-2">
-                  <span className="rounded-full border border-primary/40 px-2.5 py-1 font-['DM_Sans'] text-[11px] font-medium text-primary">
-                    {s.platform}
-                  </span>
-                </div>
-                <p className="font-['Fraunces'] text-lg text-[#0D1833]">
-                  {s.icpName}
-                </p>
-                <p className="font-['DM_Sans'] text-xs text-muted-foreground">
-                  {fmtDate(s.createdAt)}
-                </p>
-              </div>
-              <Button
-                variant="outline"
-                className="rounded-full border-black font-['DM_Sans'] text-sm"
-                onClick={() => viewSaved(s)}
-              >
-                View →
-              </Button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {libraryError && (
-        <p className="font-['DM_Sans'] text-sm text-destructive">{libraryError}</p>
-      )}
-    </section>
-  );
-
-  const renderSetup = () => (
-    <section className="mx-auto max-w-3xl space-y-8">
-      <div>
-        <h1 className="font-['Fraunces'] text-4xl font-bold text-[#0D1833]">
-          Generate a content strategy
-        </h1>
-        <p className="mt-2 font-['DM_Sans'] text-muted-foreground">
-          Choose an ICP and a platform. marktr will build a 30-day strategy
-          tailored to them.
-        </p>
-      </div>
-
-      <div className="space-y-3">
-        <p className="font-['DM_Sans'] text-sm text-[#0D1833]">
-          Who are you creating content for?
-        </p>
-
-        {(icps || []).length === 0 && !icpsLoading ? (
-          <div className="rounded-xl border border-border bg-white p-4">
-            <p className="font-['DM_Sans'] text-sm text-muted-foreground">
-              You need at least one ICP first.
-            </p>
-            <Link
-              to="/onboarding-build"
-              className="mt-2 inline-block font-['DM_Sans'] text-xs text-primary underline"
-            >
-              Generate ICPs first →
-            </Link>
-          </div>
-        ) : (
-          <div className="grid gap-3 sm:grid-cols-2">
-            {(icps || []).map((icp) => {
-              const selected = selectedIcpId === icp.id;
-              return (
-                <button
-                  type="button"
-                  key={icp.id}
-                  onClick={() => setSelectedIcpId(icp.id)}
-                  className={`rounded-xl border p-4 text-left transition-colors ${
-                    selected
-                      ? "border-primary bg-primary/5"
-                      : "border-border bg-white hover:border-primary/40"
-                  }`}
-                >
-                  <div className="flex items-start gap-3">
-                    <span
-                      className="mt-0.5 inline-block h-8 w-8 rounded-full border border-black/20"
-                      style={{ backgroundColor: icp.color || "#EDEDED" }}
-                    />
-                    <div className="min-w-0">
-                      <p className="font-['Fraunces'] text-lg text-[#0D1833]">
-                        {icp.name || "Untitled ICP"}
-                      </p>
-                      <p className="line-clamp-2 font-['DM_Sans'] text-xs text-muted-foreground">
-                        {icp.description || "No summary available."}
-                      </p>
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      <div className="space-y-3">
-        <p className="font-['DM_Sans'] text-sm text-[#0D1833]">Which platform?</p>
-        <div className="flex flex-wrap gap-2">
-          {PLATFORMS.map((platform) => {
-            const selected = selectedPlatform === platform;
-            return (
-              <button
-                type="button"
-                key={platform}
-                onClick={() => setSelectedPlatform(platform)}
-                className={`rounded-full border px-4 py-2 font-['DM_Sans'] text-sm transition-colors ${
-                  selected
-                    ? "border-primary bg-primary text-white"
-                    : "border-border bg-white text-foreground hover:border-primary/40"
-                }`}
-              >
-                {platform}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      <div className="space-y-3">
-        <p className="font-['DM_Sans'] text-sm text-[#0D1833]">
-          What&apos;s the main goal?
-        </p>
-        <div className="flex flex-wrap gap-2">
-          {GOALS.map((goal) => {
-            const selected = selectedGoal === goal;
-            return (
-              <button
-                type="button"
-                key={goal}
-                onClick={() => setSelectedGoal(goal)}
-                className={`rounded-full border px-4 py-2 font-['DM_Sans'] text-sm transition-colors ${
-                  selected
-                    ? "border-primary bg-primary text-white"
-                    : "border-border bg-white text-foreground hover:border-primary/40"
-                }`}
-              >
-                {goal}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      <div>
-        <Button
-          disabled={!canGenerate}
-          onClick={generate}
-          className="rounded-full bg-primary px-8 py-4 font-['DM_Sans'] text-base font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
-        >
-          Generate my strategy →
-        </Button>
-      </div>
-
-      {error && <p className="font-['DM_Sans'] text-sm text-destructive">{error}</p>}
-    </section>
-  );
-
-  const renderResults = (strategy: StrategyView) => (
-    <section className="mx-auto max-w-3xl space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <span className="rounded-full border border-primary/40 px-2.5 py-1 font-['DM_Sans'] text-[11px] font-medium text-primary">
-            {strategy.platform}
-          </span>
-          <span className="font-['Fraunces'] text-lg text-muted-foreground">
-            {strategy.icpName}
-          </span>
-        </div>
-        <Button
-          variant="outline"
-          onClick={startNew}
-          className="rounded-full border-black font-['DM_Sans'] text-sm"
-        >
-          Generate another →
-        </Button>
-      </div>
-
-      <div className="rounded-2xl bg-[#0D1833] p-6 text-white">
-        <p className="font-['DM_Sans'] text-[10px] uppercase tracking-widest text-white/60">
-          YOUR STRATEGY
-        </p>
-        <p className="mt-2 font-['Fraunces'] text-lg leading-relaxed text-white">
-          {strategy.output.openingMonth}
-        </p>
-        <span className="mt-4 inline-flex rounded-full bg-white/20 px-3 py-1 font-['DM_Sans'] text-xs text-white">
-          {strategy.output.postingFrequency}
-        </span>
-      </div>
-
-      <div className="rounded-2xl border border-border bg-white p-6">
-        <h2 className="font-['Fraunces'] text-2xl font-bold text-[#0D1833]">
-          Monthly themes
-        </h2>
-        <div className="mt-4 space-y-3">
-          {strategy.output.themes.map((theme, idx) => (
-            <div key={`${theme.name}-${idx}`} className="rounded-xl border border-border p-4">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-full bg-[#FDF0CC] px-2 py-0.5 font-['DM_Sans'] text-[10px] font-medium text-[#BA7517]">
-                  Week {idx + 1}
-                </span>
-                <p className="font-['DM_Sans'] text-sm font-medium text-[#0D1833]">
-                  {theme.name}
-                </p>
-              </div>
-              <p className="mt-2 font-['DM_Sans'] text-xs text-muted-foreground">
-                {theme.description}
-              </p>
-              <span className="mt-3 inline-flex rounded-full bg-primary/10 px-2 py-0.5 font-['DM_Sans'] text-[10px] text-primary">
-                {theme.weeklyFocus}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="rounded-2xl border border-border bg-white p-6">
-        <h2 className="font-['Fraunces'] text-2xl font-bold text-[#0D1833]">Content mix</h2>
-        <div className="mt-4 space-y-4">
-          {strategy.output.postFormats.map((format, idx) => {
-            const pct = Math.max(0, Math.min(100, Number(format.percentage) || 0));
-            return (
-              <div key={`${format.type}-${idx}`}>
-                <div className="mb-1 flex items-center justify-between">
-                  <p className="font-['DM_Sans'] text-sm font-medium text-[#0D1833]">
-                    {format.type}
-                  </p>
-                  <p className="font-['DM_Sans'] text-xs text-muted-foreground">{pct}%</p>
-                </div>
-                <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-                  <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
-                </div>
-                <p className="mt-2 font-['DM_Sans'] text-xs text-muted-foreground">
-                  {format.rationale}
-                </p>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      <div className="rounded-2xl bg-[#FDF0CC] p-6">
-        <h2 className="font-['Fraunces'] text-2xl font-bold text-[#0D1833]">5 opening hooks</h2>
-        <p className="mt-1 font-['DM_Sans'] text-sm text-muted-foreground">
-          Use these to open your first posts
-        </p>
-        <ol className="mt-4 space-y-3">
-          {strategy.output.hooks.map((hook, idx) => (
-            <li key={`${idx}-${hook.slice(0, 20)}`} className="flex gap-3">
-              <span className="font-['DM_Sans'] text-sm text-muted-foreground">{idx + 1}.</span>
-              <p className="font-['Fraunces'] text-base italic text-[#0D1833]">{hook}</p>
-            </li>
-          ))}
-        </ol>
-      </div>
-    </section>
-  );
+  const confirmPermanentDelete = async () => {
+    if (!permanentDeleteTarget) return;
+    setIsPermanentDeleting(true);
+    try {
+      await hardDeleteStrategy(permanentDeleteTarget.lineage_id);
+      setPermanentDeleteTarget(null);
+      setArchivedSnapshotLineageId(null);
+    } finally {
+      setIsPermanentDeleting(false);
+    }
+  };
 
   return (
     <DashboardShell contentClassName="flex-1 px-6 py-8 lg:px-12">
-      <div className="mx-auto max-w-5xl space-y-8 pb-10">
-        {locked && renderLocked()}
-        {!locked && (
+      <div className="mx-auto max-w-7xl space-y-8 pb-10">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 text-foreground/55 mb-2">
+              <Target className="h-4 w-4" />
+              <span className="font-['Inter'] text-xs uppercase tracking-wide">Strategy</span>
+            </div>
+            <h1 className="font-['Fraunces'] text-4xl font-bold text-[#0D1833]">Strategy</h1>
+            <p className="font-['Inter'] text-sm text-foreground/70 mt-2 max-w-2xl">
+              Aims and marketing strategies for <strong>{activeBrandName}</strong>. Generate once,
+              then refine through edits and version history.
+            </p>
+          </div>
+          {scopedBrandId && !showCreate ? (
+            <Button
+              type="button"
+              onClick={() => setShowCreate(true)}
+              className="bg-button-green hover:bg-button-green/90 text-foreground border border-black rounded-design gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              New strategy
+            </Button>
+          ) : null}
+        </div>
+
+        {!brandReady ? (
+          <p className="font-['Inter'] text-sm text-foreground/60">Loading brand context…</p>
+        ) : !scopedBrandId ? (
+          <div className="rounded-design border border-black/15 bg-accent-grey/20 p-6">
+            <p className="font-['Inter'] text-sm text-foreground/70">
+              Select a brand from the header to manage aims and strategies.
+            </p>
+            <Link to="/my-brands" className="inline-block mt-3 font-['Inter'] text-sm text-primary underline">
+              Go to Brands →
+            </Link>
+          </div>
+        ) : (
           <>
-            {renderLibrary()}
-            {isGenerating
-              ? renderLoading()
-              : showNewStrategy || !currentStrategy
-              ? renderSetup()
-              : renderResults(currentStrategy)}
+            <StrategyAimsSection brandId={scopedBrandId} />
+
+            <section className="space-y-5">
+              <div>
+                <h2 className="font-['Fraunces'] text-2xl text-[#0D1833]">Strategies</h2>
+                <p className="font-['Inter'] text-sm text-foreground/70 mt-1">
+                  Current strategies for this brand. Each shows which aims and personas it serves.
+                </p>
+              </div>
+
+              {showCreate ? (
+                <StrategyCreatePanel
+                  aims={aims}
+                  icps={brandIcps}
+                  onGenerate={createStrategy}
+                  onClose={() => setShowCreate(false)}
+                />
+              ) : null}
+
+              {error ? <p className="font-['Inter'] text-sm text-red-700">{error}</p> : null}
+
+              {isLoading ? (
+                <p className="font-['Inter'] text-sm text-foreground/60">Loading strategies…</p>
+              ) : strategies.length === 0 ? (
+                <div className="rounded-design border border-black/15 bg-accent-grey/15 p-6 text-center">
+                  <p className="font-['Inter'] text-sm text-foreground/70">
+                    No strategies yet. Add aims above, then generate your first strategy.
+                  </p>
+                  {!showCreate ? (
+                    <Button
+                      type="button"
+                      className="mt-4 bg-button-green hover:bg-button-green/90 text-foreground border border-black rounded-design"
+                      onClick={() => setShowCreate(true)}
+                      disabled={aims.length === 0 || brandIcps.length === 0}
+                    >
+                      New strategy
+                    </Button>
+                  ) : null}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                  {strategies.map((strategy) => (
+                    <StrategyRosterCard
+                      key={strategy.id}
+                      strategy={strategy}
+                      onArchive={() => setArchiveTarget(strategy)}
+                    />
+                  ))}
+                </div>
+              )}
+
+              <div className="border-t border-black/10 pt-6">
+                <button
+                  type="button"
+                  onClick={() => setArchivedOpen((open) => !open)}
+                  className="inline-flex items-center gap-1.5 font-['Inter'] text-xs text-foreground/55 hover:text-foreground/80 transition-colors"
+                >
+                  <Archive className="h-3.5 w-3.5" />
+                  Archived
+                  {archivedStrategies.length > 0 ? ` (${archivedStrategies.length})` : ""}
+                  {archivedOpen ? (
+                    <ChevronUp className="h-3.5 w-3.5" />
+                  ) : (
+                    <ChevronDown className="h-3.5 w-3.5" />
+                  )}
+                </button>
+
+                {restoreNudge ? (
+                  <p className="mt-3 font-['Inter'] text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-design px-3 py-2 max-w-2xl">
+                    {restoreNudge}
+                  </p>
+                ) : null}
+
+                {archivedOpen ? (
+                  <div className="mt-4 rounded-design border border-black/15 bg-accent-grey/20 px-4 py-3">
+                    {archivedStrategies.length === 0 ? (
+                      <p className="font-['Inter'] text-xs text-foreground/50">Nothing archived.</p>
+                    ) : (
+                      <ul className="space-y-4">
+                        {archivedStrategies.map((strategy) => {
+                          const snapshotOpen = archivedSnapshotLineageId === strategy.lineage_id;
+                          return (
+                            <li
+                              key={strategy.lineage_id}
+                              className="border-b border-black/10 pb-4 last:border-0 last:pb-0"
+                            >
+                              <div className="flex flex-wrap items-center justify-between gap-3">
+                                <div className="min-w-0">
+                                  <p className="font-['Inter'] text-sm text-foreground truncate">
+                                    {strategy.title}
+                                  </p>
+                                  {strategy.deleted_at ? (
+                                    <p className="font-['Inter'] text-xs text-foreground/50">
+                                      Archived {formatArchivedDate(strategy.deleted_at)}
+                                    </p>
+                                  ) : null}
+                                </div>
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="border-black rounded-design font-['Inter'] text-xs h-8"
+                                    onClick={() =>
+                                      setArchivedSnapshotLineageId(
+                                        snapshotOpen ? null : strategy.lineage_id
+                                      )
+                                    }
+                                  >
+                                    <Eye className="h-3.5 w-3.5 mr-1" />
+                                    {snapshotOpen ? "Hide" : "View"}
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    disabled={
+                                      restoringLineageId === strategy.lineage_id || isPermanentDeleting
+                                    }
+                                    onClick={() => void handleRestoreArchived(strategy)}
+                                    className="border-black rounded-design font-['Inter'] text-xs h-8"
+                                  >
+                                    <RotateCcw className="h-3.5 w-3.5 mr-1" />
+                                    {restoringLineageId === strategy.lineage_id
+                                      ? "Restoring…"
+                                      : "Restore"}
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    disabled={
+                                      restoringLineageId === strategy.lineage_id || isPermanentDeleting
+                                    }
+                                    onClick={() => setPermanentDeleteTarget(strategy)}
+                                    className="border-red-300 text-red-700 hover:bg-red-50 rounded-design font-['Inter'] text-xs h-8"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5 mr-1" />
+                                    Delete permanently
+                                  </Button>
+                                </div>
+                              </div>
+
+                              {snapshotOpen ? (
+                                <div className="mt-4 space-y-4 rounded-design border border-black/10 bg-white/80 p-4">
+                                  <StrategyContentView strategy={strategy.strategy} />
+                                  <StrategyCompositionBanner
+                                    aims={strategy.aims}
+                                    icps={strategy.icps}
+                                  />
+                                </div>
+                              ) : null}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
+                  </div>
+                ) : null}
+              </div>
+            </section>
           </>
         )}
       </div>
+
+      <StrategyArchiveModal
+        isOpen={!!archiveTarget}
+        isArchiving={isArchiving}
+        onClose={() => setArchiveTarget(null)}
+        onConfirm={() => void confirmArchive()}
+      />
+
+      <StrategyPermanentDeleteModal
+        isOpen={!!permanentDeleteTarget}
+        strategyTitle={permanentDeleteTarget?.title ?? ""}
+        isDeleting={isPermanentDeleting}
+        onClose={() => setPermanentDeleteTarget(null)}
+        onConfirm={() => void confirmPermanentDelete()}
+      />
     </DashboardShell>
   );
 }
-

@@ -30,6 +30,7 @@ import Admin from "./pages/Admin";
 import Pricing from "./pages/Pricing";
 import TeamSettings from "./pages/TeamSettings";
 import Strategy from "./pages/Strategy";
+import StrategyEditor from "./pages/StrategyEditor";
 import ResetPassword from "./pages/ResetPassword";
 import Logout from "./pages/Logout";
 import AuthCallback from "./pages/AuthCallback";
@@ -234,6 +235,11 @@ export default function App() {
             <Route path="/strategy" element={
               <ProtectedRoute>
                 <Strategy />
+              </ProtectedRoute>
+            } />
+            <Route path="/strategy/:id" element={
+              <ProtectedRoute>
+                <StrategyEditor />
               </ProtectedRoute>
             } />
             <Route path="/content" element={

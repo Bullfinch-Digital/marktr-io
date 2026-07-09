@@ -8,6 +8,7 @@ import {
   applyCurrentBrandAimFilter,
   BRAND_AIM_TYPE_OPTIONS,
   BrandAimType,
+  hardDeleteBrandAimLineage,
   insertBrandAimVersionRpc,
   restoreBrandAimLineage,
   softDeleteBrandAimLineage,
@@ -213,6 +214,19 @@ export function useBrandAims(preferredBrandId?: string | null) {
     [fetchAims]
   );
 
+  const hardDeleteAim = useCallback(
+    async (lineageId: string): Promise<boolean> => {
+      if (!lineageId) return false;
+      await hardDeleteBrandAimLineage(lineageId);
+      await fetchAims();
+      try {
+        window.dispatchEvent(new Event("brand-aims:changed"));
+      } catch {}
+      return true;
+    },
+    [fetchAims]
+  );
+
   return {
     aims,
     archivedAims,
@@ -224,5 +238,6 @@ export function useBrandAims(preferredBrandId?: string | null) {
     updateAim,
     archiveAim,
     restoreAim,
+    hardDeleteAim,
   };
 }

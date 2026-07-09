@@ -66,3 +66,53 @@ export async function hardDeleteBrandAimLineage(lineageId: string): Promise<void
     throw error;
   }
 }
+
+export type BrandAimVersionRow = {
+  id: string;
+  lineage_id: string;
+  brand_id: string;
+  user_id: string;
+  title: string;
+  aim_type: BrandAimType;
+  description?: string | null;
+  version?: number | null;
+  superseded_at?: string | null;
+  deleted_at?: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export async function fetchBrandAimVersionsForLineage(
+  userId: string,
+  lineageId: string
+): Promise<BrandAimVersionRow[]> {
+  const { data, error } = await supabase
+    .from("brand_aims")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("lineage_id", lineageId)
+    .order("version", { ascending: false });
+
+  if (error) {
+    console.error("[brandAimVersioning] fetchBrandAimVersionsForLineage failed", error);
+    throw error;
+  }
+
+  return (data || []) as BrandAimVersionRow[];
+}
+
+export function brandAimVersionRowToRestorePayload(row: BrandAimVersionRow): Record<string, unknown> {
+  return {
+    title: row.title,
+    aim_type: row.aim_type,
+    description: row.description ?? null,
+    brand_id: row.brand_id,
+  };
+}
+
+export async function restoreBrandAimVersionFromRow(
+  currentAimId: string,
+  sourceVersionRow: BrandAimVersionRow
+) {
+  return insertBrandAimVersionRpc(currentAimId, brandAimVersionRowToRestorePayload(sourceVersionRow));
+}

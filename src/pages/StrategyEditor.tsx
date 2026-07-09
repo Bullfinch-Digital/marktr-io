@@ -1,10 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Trash2 } from "lucide-react";
 import DashboardShell from "../layouts/DashboardShell";
 import { Button } from "../components/ui/button";
-import { Input } from "../components/ui/input";
-import { Textarea } from "../components/ui/textarea";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../config/supabase";
 import type { ICPStrategyPayload } from "../hooks/useICPStrategy";
@@ -19,12 +17,18 @@ import {
   type CompositionIcp,
 } from "../lib/strategyComposition";
 import { subscribeStrategyCompositionStale } from "../lib/strategyEvents";
+import {
+  normalizeStrategyPayload,
+  serializeStrategyDraft,
+} from "../lib/strategyEditPayload";
 import { StrategyCompositionBanner } from "../components/strategy/StrategyCompositionBanner";
 import { StrategyContentView } from "../components/strategy/StrategyContentView";
+import { StrategyEditForm } from "../components/strategy/StrategyEditForm";
 import { StrategyVersionHistorySection } from "../components/strategy/StrategyVersionHistorySection";
 import StrategyArchiveModal from "../components/strategy/StrategyArchiveModal";
 import StrategyPermanentDeleteModal from "../components/strategy/StrategyPermanentDeleteModal";
 import { ArchiveActionTooltip } from "../components/ArchiveActionTooltip";
+import "../styles/Modal.css";
 
 type StrategyDetail = StrategyRow & {
   aims: CompositionAim[];
@@ -46,9 +50,7 @@ async function loadStrategyDetail(
   if (!row) return null;
 
   const strategyRow = row as StrategyRow;
-
   const { aims, icps } = await fetchCompositionForStrategyLineage(userId, strategyRow.lineage_id);
-
   return { ...strategyRow, aims, icps };
 }
 
@@ -61,19 +63,28 @@ export default function StrategyEditor() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
+  const [draftTitle, setDraftTitle] = useState("");
+  const [draftStrategy, setDraftStrategy] = useState<ICPStrategyPayload | null>(null);
+  const [isDirty, setIsDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [isArchiving, setIsArchiving] = useState(false);
   const [permanentDeleteOpen, setPermanentDeleteOpen] = useState(false);
   const [isPermanentDeleting, setIsPermanentDeleting] = useState(false);
-
-  const [editTitle, setEditTitle] = useState("");
-  const [editOneLiner, setEditOneLiner] = useState("");
-  const [editWhyUs, setEditWhyUs] = useState("");
-  const [editValueProps, setEditValueProps] = useState("");
+  const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
+  const pendingNavRef = useRef<string | null>(null);
+  const editBaselineRef = useRef<string | null>(null);
 
   const brandId = strategy?.brand_id ?? "";
   const { updateStrategy, archiveStrategy, hardDeleteStrategy } = useBrandStrategies(brandId);
+
+  const resetEditDraft = useCallback((detail: StrategyDetail) => {
+    const normalized = normalizeStrategyPayload(detail.strategy);
+    setDraftTitle(detail.title);
+    setDraftStrategy(normalized);
+    editBaselineRef.current = serializeStrategyDraft(detail.title, normalized);
+    setIsDirty(false);
+  }, []);
 
   const load = useCallback(async () => {
     if (!user?.id || !id) return;
@@ -115,6 +126,11 @@ export default function StrategyEditor() {
   }, [load]);
 
   useEffect(() => {
+    if (!strategy || editing) return;
+    resetEditDraft(strategy);
+  }, [strategy?.id, strategy?.version, editing, resetEditDraft, strategy]);
+
+  useEffect(() => {
     if (!user?.id || !strategy?.lineage_id) return;
     const lineageId = strategy.lineage_id;
 
@@ -132,54 +148,106 @@ export default function StrategyEditor() {
     return subscribeStrategyCompositionStale(() => void refreshComposition());
   }, [user?.id, strategy?.lineage_id]);
 
+  useEffect(() => {
+    if (!editing || !draftStrategy || !editBaselineRef.current) {
+      setIsDirty(false);
+      return;
+    }
+    const current = serializeStrategyDraft(draftTitle, draftStrategy);
+    setIsDirty(current !== editBaselineRef.current);
+  }, [editing, draftTitle, draftStrategy]);
+
+  useEffect(() => {
+    const handler = (event: BeforeUnloadEvent) => {
+      if (!editing || !isDirty) return;
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [editing, isDirty]);
+
+  useEffect(() => {
+    if (!editing || !isDirty) return;
+
+    const onClickCapture = (e: MouseEvent) => {
+      if (!editing || !isDirty) return;
+      if (e.defaultPrevented) return;
+      if (e.button !== 0) return;
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+      if (target.closest("[data-allow-navigation='true']")) return;
+
+      const anchor = target.closest("a[href]") as HTMLAnchorElement | null;
+      if (!anchor) return;
+
+      const href = anchor.getAttribute("href");
+      if (!href || href.startsWith("#") || anchor.target === "_blank") return;
+
+      const url = new URL(href, window.location.origin);
+      if (url.origin !== window.location.origin) return;
+
+      const nextPath = `${url.pathname}${url.search}${url.hash}`;
+      const currentPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+      if (nextPath === currentPath) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+      pendingNavRef.current = nextPath;
+      setLeaveDialogOpen(true);
+    };
+
+    document.addEventListener("click", onClickCapture, true);
+    return () => document.removeEventListener("click", onClickCapture, true);
+  }, [editing, isDirty]);
+
   const isArchived = !!strategy?.deleted_at;
   const readOnly = isArchived;
 
   const startEdit = () => {
-    if (!strategy) return;
-    setEditTitle(strategy.title);
-    setEditOneLiner(strategy.strategy?.positioning?.one_liner ?? "");
-    setEditWhyUs(strategy.strategy?.positioning?.why_us ?? "");
-    setEditValueProps((strategy.strategy?.messaging?.value_props ?? []).join("\n"));
+    if (!strategy || readOnly) return;
+    resetEditDraft(strategy);
     setEditing(true);
   };
 
-  const buildUpdatedPayload = (): ICPStrategyPayload => {
-    if (!strategy) return strategy!.strategy;
-    const next = structuredClone(strategy.strategy);
-    next.positioning = {
-      ...next.positioning,
-      one_liner: editOneLiner.trim(),
-      why_us: editWhyUs.trim(),
-    };
-    next.messaging = {
-      ...next.messaging,
-      value_props: editValueProps
-        .split("\n")
-        .map((line) => line.trim())
-        .filter(Boolean),
-    };
-    return next;
+  const cancelEdit = () => {
+    if (strategy) {
+      resetEditDraft(strategy);
+    }
+    setEditing(false);
+    setLeaveDialogOpen(false);
+    pendingNavRef.current = null;
   };
 
-  const handleSave = async () => {
-    if (!strategy || readOnly) return;
+  const handleSave = async (): Promise<boolean> => {
+    if (!strategy || !draftStrategy || readOnly) return false;
     setSaving(true);
+    setError(null);
     try {
+      const payload = normalizeStrategyPayload(draftStrategy);
       const updated = await updateStrategy(strategy.id, {
-        title: editTitle.trim() || strategy.title,
-        strategy: buildUpdatedPayload(),
+        title: draftTitle.trim() || strategy.title,
+        strategy: payload,
       });
       if (updated) {
-        await load();
+        const reloaded = await loadStrategyDetail(user!.id, updated.id);
+        if (reloaded) {
+          setStrategy(reloaded);
+          resetEditDraft(reloaded);
+        }
+        setEditing(false);
         if (updated.id !== strategy.id) {
           navigate(`/strategy/${updated.id}`, { replace: true });
         }
+        return true;
       }
-      setEditing(false);
+      return false;
     } catch (err) {
       console.error("[StrategyEditor] save failed", err);
       setError("Could not save changes.");
+      return false;
     } finally {
       setSaving(false);
     }
@@ -210,6 +278,7 @@ export default function StrategyEditor() {
   };
 
   const handleVersionRestored = (row: StrategyRow) => {
+    setEditing(false);
     if (row.id !== strategy?.id) {
       navigate(`/strategy/${row.id}`, { replace: true });
     } else {
@@ -217,21 +286,99 @@ export default function StrategyEditor() {
     }
   };
 
+  const performPendingNavigation = (path: string | null) => {
+    if (!path) return;
+    pendingNavRef.current = null;
+    navigate(path);
+  };
+
+  const handleLeaveWithoutSaving = () => {
+    setLeaveDialogOpen(false);
+    setEditing(false);
+    if (strategy) resetEditDraft(strategy);
+    performPendingNavigation(pendingNavRef.current);
+  };
+
+  const handleSaveAndLeave = async () => {
+    const ok = await handleSave();
+    if (!ok) return;
+    setLeaveDialogOpen(false);
+    performPendingNavigation(pendingNavRef.current);
+  };
+
   const rosterStrategy: StrategyWithLinks | null = useMemo(() => {
     if (!strategy) return null;
     return strategy as StrategyWithLinks;
   }, [strategy]);
 
+  const displayTitle = editing ? draftTitle : strategy?.title ?? "";
+
   return (
     <DashboardShell contentClassName="flex-1 px-6 py-8 lg:px-12">
-      <div className="mx-auto max-w-4xl space-y-6 pb-10">
-        <Link
-          to="/strategy"
-          className="inline-flex items-center gap-2 font-['Inter'] text-sm text-foreground/70 hover:text-foreground"
+      {leaveDialogOpen ? (
+        <div
+          className="modal-overlay"
+          onClick={() => {
+            pendingNavRef.current = null;
+            setLeaveDialogOpen(false);
+          }}
+          role="presentation"
         >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Strategy
-        </Link>
+          <div
+            className="modal-content modal-content-wide"
+            role="dialog"
+            aria-modal="true"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="modal-close"
+              onClick={() => {
+                pendingNavRef.current = null;
+                setLeaveDialogOpen(false);
+              }}
+              aria-label="Close"
+            >
+              ×
+            </button>
+            <h2>Save changes before leaving?</h2>
+            <p className="font-['Inter'] text-sm text-foreground/80">
+              You have unsaved edits to this strategy. Save as a new version, or discard your
+              changes.
+            </p>
+            <div className="modal-buttons">
+              <button type="button" className="modal-cancel" onClick={handleLeaveWithoutSaving}>
+                Discard changes
+              </button>
+              <button
+                type="button"
+                className="modal-save"
+                disabled={saving}
+                onClick={() => void handleSaveAndLeave()}
+              >
+                {saving ? "Saving…" : "Save as new version"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      <div className="mx-auto max-w-4xl space-y-6 pb-10">
+        <div className="flex flex-wrap items-center gap-3">
+          <Link
+            to="/strategy"
+            data-allow-navigation={editing && isDirty ? undefined : "true"}
+            className="inline-flex items-center gap-2 font-['Inter'] text-sm text-foreground/70 hover:text-foreground"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Strategy
+          </Link>
+          {editing && isDirty ? (
+            <span className="text-sm text-amber-700 bg-amber-100 border border-amber-300 rounded-full px-3 py-1 font-['Inter']">
+              Unsaved changes
+            </span>
+          ) : null}
+        </div>
 
         {loading ? (
           <p className="font-['Inter'] text-sm text-foreground/60">Loading strategy…</p>
@@ -248,7 +395,11 @@ export default function StrategyEditor() {
                     Archived (read-only)
                   </span>
                 ) : null}
-                <h1 className="font-['Fraunces'] text-3xl lg:text-4xl text-[#0D1833]">{strategy.title}</h1>
+                {!editing ? (
+                  <h1 className="font-['Fraunces'] text-3xl lg:text-4xl text-[#0D1833]">
+                    {displayTitle}
+                  </h1>
+                ) : null}
                 <p className="font-['Inter'] text-xs text-foreground/55 mt-2">
                   Version {strategy.version}
                 </p>
@@ -259,7 +410,7 @@ export default function StrategyEditor() {
                     <>
                       <Button
                         type="button"
-                        disabled={saving}
+                        disabled={saving || !isDirty}
                         onClick={() => void handleSave()}
                         className="bg-button-green hover:bg-button-green/90 text-foreground border border-black rounded-design"
                       >
@@ -269,7 +420,8 @@ export default function StrategyEditor() {
                         type="button"
                         variant="outline"
                         className="border-black rounded-design"
-                        onClick={() => setEditing(false)}
+                        disabled={saving}
+                        onClick={cancelEdit}
                       >
                         Cancel
                       </Button>
@@ -315,54 +467,18 @@ export default function StrategyEditor() {
               <StrategyCompositionBanner aims={rosterStrategy.aims} icps={rosterStrategy.icps} />
             ) : null}
 
-            {editing && !readOnly ? (
-              <div className="rounded-design border border-black/15 bg-accent-grey/15 p-5 space-y-4">
-                <p className="font-['Inter'] text-sm font-medium text-foreground">
-                  Refine key fields (saves as a new version)
-                </p>
-                <div className="space-y-2">
-                  <label className="font-['Inter'] text-sm text-foreground/70">Title</label>
-                  <Input
-                    value={editTitle}
-                    onChange={(e) => setEditTitle(e.target.value)}
-                    className="border-black rounded-design"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="font-['Inter'] text-sm text-foreground/70">Positioning one-liner</label>
-                  <Textarea
-                    value={editOneLiner}
-                    onChange={(e) => setEditOneLiner(e.target.value)}
-                    className="border-black rounded-design resize-none"
-                    rows={2}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="font-['Inter'] text-sm text-foreground/70">Why us</label>
-                  <Textarea
-                    value={editWhyUs}
-                    onChange={(e) => setEditWhyUs(e.target.value)}
-                    className="border-black rounded-design resize-none"
-                    rows={4}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="font-['Inter'] text-sm text-foreground/70">
-                    Value props (one per line)
-                  </label>
-                  <Textarea
-                    value={editValueProps}
-                    onChange={(e) => setEditValueProps(e.target.value)}
-                    className="border-black rounded-design resize-none"
-                    rows={4}
-                  />
-                </div>
-              </div>
+            {editing && draftStrategy ? (
+              <StrategyEditForm
+                title={draftTitle}
+                strategy={draftStrategy}
+                onTitleChange={setDraftTitle}
+                onStrategyChange={setDraftStrategy}
+              />
             ) : (
               <StrategyContentView strategy={strategy.strategy} />
             )}
 
-            {user?.id && !readOnly ? (
+            {user?.id && !readOnly && !editing ? (
               <StrategyVersionHistorySection
                 lineageId={strategy.lineage_id}
                 currentStrategyId={strategy.id}

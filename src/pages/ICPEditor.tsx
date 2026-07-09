@@ -17,6 +17,7 @@ import { IcpVersionHistorySection } from "../components/icp/IcpVersionHistorySec
 import ICPColorModal from "../components/ICPColorModal";
 import ICPAvatarModal from "../components/ICPAvatarModal";
 import IcpArchiveModal from "../components/IcpArchiveModal";
+import { ARCHIVE_ACTION_TOOLTIP } from "../components/ArchiveActionTooltip";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -888,6 +889,7 @@ export default function ICPEditor() {
                         <DropdownMenuItem
                           className="text-sm"
                           aria-label="Archive customer profile"
+                          title={ARCHIVE_ACTION_TOOLTIP}
                           onSelect={(e) => {
                             e.preventDefault();
                             (e as any).stopPropagation?.();

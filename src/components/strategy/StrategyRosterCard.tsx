@@ -5,6 +5,7 @@ import type { StrategyWithLinks } from "../../hooks/useBrandStrategies";
 import { StrategyCompositionBanner } from "./StrategyCompositionBanner";
 import { StrategyContentView } from "./StrategyContentView";
 import { Button } from "../ui/button";
+import { ArchiveActionTooltip } from "../ArchiveActionTooltip";
 
 function formatDate(iso: string): string {
   const d = new Date(iso);
@@ -53,15 +54,17 @@ export function StrategyRosterCard({ strategy, onArchive, readOnly = false }: Pr
               View & edit
             </Button>
             {onArchive ? (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="border-black rounded-design"
-                onClick={onArchive}
-              >
-                Archive
-              </Button>
+              <ArchiveActionTooltip>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="border-black rounded-design"
+                  onClick={onArchive}
+                >
+                  Archive
+                </Button>
+              </ArchiveActionTooltip>
             ) : null}
           </div>
         ) : null}

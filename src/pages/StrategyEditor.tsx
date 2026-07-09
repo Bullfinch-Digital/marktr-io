@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Trash2 } from "lucide-react";
 import DashboardShell from "../layouts/DashboardShell";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -23,6 +23,8 @@ import { StrategyCompositionBanner } from "../components/strategy/StrategyCompos
 import { StrategyContentView } from "../components/strategy/StrategyContentView";
 import { StrategyVersionHistorySection } from "../components/strategy/StrategyVersionHistorySection";
 import StrategyArchiveModal from "../components/strategy/StrategyArchiveModal";
+import StrategyPermanentDeleteModal from "../components/strategy/StrategyPermanentDeleteModal";
+import { ArchiveActionTooltip } from "../components/ArchiveActionTooltip";
 
 type StrategyDetail = StrategyRow & {
   aims: CompositionAim[];
@@ -62,6 +64,8 @@ export default function StrategyEditor() {
   const [saving, setSaving] = useState(false);
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [isArchiving, setIsArchiving] = useState(false);
+  const [permanentDeleteOpen, setPermanentDeleteOpen] = useState(false);
+  const [isPermanentDeleting, setIsPermanentDeleting] = useState(false);
 
   const [editTitle, setEditTitle] = useState("");
   const [editOneLiner, setEditOneLiner] = useState("");
@@ -69,7 +73,7 @@ export default function StrategyEditor() {
   const [editValueProps, setEditValueProps] = useState("");
 
   const brandId = strategy?.brand_id ?? "";
-  const { updateStrategy, archiveStrategy } = useBrandStrategies(brandId);
+  const { updateStrategy, archiveStrategy, hardDeleteStrategy } = useBrandStrategies(brandId);
 
   const load = useCallback(async () => {
     if (!user?.id || !id) return;
@@ -193,6 +197,18 @@ export default function StrategyEditor() {
     }
   };
 
+  const confirmPermanentDelete = async () => {
+    if (!strategy) return;
+    setIsPermanentDeleting(true);
+    try {
+      await hardDeleteStrategy(strategy.lineage_id);
+      setPermanentDeleteOpen(false);
+      navigate("/strategy");
+    } finally {
+      setIsPermanentDeleting(false);
+    }
+  };
+
   const handleVersionRestored = (row: StrategyRow) => {
     if (row.id !== strategy?.id) {
       navigate(`/strategy/${row.id}`, { replace: true });
@@ -268,18 +284,31 @@ export default function StrategyEditor() {
                       >
                         Edit
                       </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="border-black rounded-design"
-                        onClick={() => setArchiveOpen(true)}
-                      >
-                        Archive
-                      </Button>
+                      <ArchiveActionTooltip>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="border-black rounded-design"
+                          onClick={() => setArchiveOpen(true)}
+                        >
+                          Archive
+                        </Button>
+                      </ArchiveActionTooltip>
                     </>
                   )}
                 </div>
-              ) : null}
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={isPermanentDeleting}
+                  onClick={() => setPermanentDeleteOpen(true)}
+                  className="border-red-300 text-red-700 hover:bg-red-50 rounded-design font-['Inter'] text-sm gap-1.5"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Delete permanently
+                </Button>
+              )}
             </div>
 
             {rosterStrategy ? (
@@ -350,6 +379,14 @@ export default function StrategyEditor() {
         isArchiving={isArchiving}
         onClose={() => setArchiveOpen(false)}
         onConfirm={() => void confirmArchive()}
+      />
+
+      <StrategyPermanentDeleteModal
+        isOpen={permanentDeleteOpen}
+        strategyTitle={strategy?.title ?? ""}
+        isDeleting={isPermanentDeleting}
+        onClose={() => setPermanentDeleteOpen(false)}
+        onConfirm={() => void confirmPermanentDelete()}
       />
     </DashboardShell>
   );

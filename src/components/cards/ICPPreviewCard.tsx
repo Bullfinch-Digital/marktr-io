@@ -37,6 +37,7 @@ import useSubscription from "../../hooks/useSubscription";
 import { resolveBrandIdForIcpWrite } from "../../lib/icpBrandAttach";
 import { softDeleteIcpById } from "../../lib/icpVersioning";
 import IcpArchiveModal from "../IcpArchiveModal";
+import { ARCHIVE_ACTION_TOOLTIP } from "../ArchiveActionTooltip";
 
 // EXACT same helper pattern as CollectionCard
 const stop = (e: React.MouseEvent | Event) => {
@@ -573,6 +574,7 @@ export function ICPPreviewCard(props: ICPPreviewCardProps) {
                   data-no-card-click="true"
                   className="text-sm"
                   aria-label="Archive customer profile"
+                  title={ARCHIVE_ACTION_TOOLTIP}
                   onSelect={(e) => {
                     stop(e);
                     handleAction("archive");

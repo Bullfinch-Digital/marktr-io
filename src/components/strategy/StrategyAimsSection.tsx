@@ -13,6 +13,7 @@ import { BrandAimVersionHistorySection } from "./BrandAimVersionHistorySection";
 import { AIM_TYPE_LABELS } from "./StrategyCompositionBanner";
 import AimArchiveModal from "./AimArchiveModal";
 import AimPermanentDeleteModal from "./AimPermanentDeleteModal";
+import { ArchiveActionTooltip } from "../ArchiveActionTooltip";
 
 function formatDate(iso: string): string {
   const date = new Date(iso);
@@ -276,15 +277,17 @@ export function StrategyAimsSection({ brandId }: Props) {
                     >
                       Edit
                     </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="border-black rounded-design"
-                      onClick={() => setArchiveTarget(aim)}
-                    >
-                      Archive
-                    </Button>
+                    <ArchiveActionTooltip>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="border-black rounded-design"
+                        onClick={() => setArchiveTarget(aim)}
+                      >
+                        Archive
+                      </Button>
+                    </ArchiveActionTooltip>
                   </div>
                 </div>
 

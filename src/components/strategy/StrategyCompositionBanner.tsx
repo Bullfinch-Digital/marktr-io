@@ -113,7 +113,7 @@ export function StrategyCompositionBanner({
       </div>
 
       {hasArchived ? (
-        <p className="font-['Inter'] text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-design px-3 py-2 max-w-2xl">
+        <p className="font-['Inter'] text-xs text-red-900 bg-red-50 border border-red-200 rounded-design px-3 py-2 max-w-2xl">
           This strategy targets an archived aim or persona — review it before acting on it.
         </p>
       ) : null}

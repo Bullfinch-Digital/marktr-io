@@ -250,9 +250,12 @@ export default function StrategyPage() {
                             >
                               <div className="flex flex-wrap items-center justify-between gap-3">
                                 <div className="min-w-0">
-                                  <p className="font-['Inter'] text-sm text-foreground truncate">
+                                  <Link
+                                    to={`/strategy/${strategy.id}`}
+                                    className="font-['Inter'] text-sm text-foreground truncate hover:underline block"
+                                  >
                                     {strategy.title}
-                                  </p>
+                                  </Link>
                                   {strategy.deleted_at ? (
                                     <p className="font-['Inter'] text-xs text-foreground/50">
                                       Archived {formatArchivedDate(strategy.deleted_at)}

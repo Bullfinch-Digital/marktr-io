@@ -6,6 +6,7 @@ import {
   restoreIcpVersionFromRow,
   type IcpVersionRow,
 } from "../../lib/icpVersioning";
+import { useVersionHistoryPagination } from "../../hooks/useVersionHistoryPagination";
 
 function formatVersionDate(iso: string): string {
   const date = new Date(iso);
@@ -63,6 +64,8 @@ export function IcpVersionHistorySection({
     void loadVersions();
   }, [loadVersions]);
 
+  const { visibleItems, hasMore, showMore, remaining } = useVersionHistoryPagination(versions);
+
   if (!loading && versions.length <= 1) {
     return null;
   }
@@ -106,7 +109,7 @@ export function IcpVersionHistorySection({
             <p className="font-['Inter'] text-xs text-foreground/50">Loading version history…</p>
           ) : (
             <ul className="space-y-3">
-              {versions.map((row) => {
+              {visibleItems.map((row) => {
                 const isCurrent = !row.superseded_at && !row.deleted_at;
                 const isExpanded = expandedId === row.id;
                 const dateLabel = formatVersionDate(row.updated_at || row.created_at);
@@ -171,6 +174,17 @@ export function IcpVersionHistorySection({
                   </li>
                 );
               })}
+              {hasMore ? (
+                <li className="pt-1">
+                  <button
+                    type="button"
+                    onClick={showMore}
+                    className="font-['Inter'] text-xs text-foreground/55 hover:text-foreground/80 underline-offset-2 hover:underline"
+                  >
+                    Show more ({remaining} older version{remaining === 1 ? "" : "s"})
+                  </button>
+                </li>
+              ) : null}
             </ul>
           )}
         </div>

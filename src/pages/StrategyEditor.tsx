@@ -14,10 +14,11 @@ import {
   type StrategyWithLinks,
 } from "../hooks/useBrandStrategies";
 import {
-  fetchCompositionForLineages,
+  fetchCompositionForStrategyLineage,
   type CompositionAim,
   type CompositionIcp,
 } from "../lib/strategyComposition";
+import { subscribeStrategyCompositionStale } from "../lib/strategyEvents";
 import { StrategyCompositionBanner } from "../components/strategy/StrategyCompositionBanner";
 import { StrategyContentView } from "../components/strategy/StrategyContentView";
 import { StrategyVersionHistorySection } from "../components/strategy/StrategyVersionHistorySection";
@@ -44,25 +45,7 @@ async function loadStrategyDetail(
 
   const strategyRow = row as StrategyRow;
 
-  const [aimLinks, icpLinks] = await Promise.all([
-    supabase
-      .from("strategy_aims")
-      .select("aim_lineage_id")
-      .eq("user_id", userId)
-      .eq("strategy_lineage_id", strategyRow.lineage_id),
-    supabase
-      .from("strategy_targets")
-      .select("icp_lineage_id")
-      .eq("user_id", userId)
-      .eq("strategy_lineage_id", strategyRow.lineage_id),
-  ]);
-
-  if (aimLinks.error) throw aimLinks.error;
-  if (icpLinks.error) throw icpLinks.error;
-
-  const aimLineageIds = (aimLinks.data || []).map((r: any) => r.aim_lineage_id);
-  const icpLineageIds = (icpLinks.data || []).map((r: any) => r.icp_lineage_id);
-  const { aims, icps } = await fetchCompositionForLineages(userId, aimLineageIds, icpLineageIds);
+  const { aims, icps } = await fetchCompositionForStrategyLineage(userId, strategyRow.lineage_id);
 
   return { ...strategyRow, aims, icps };
 }
@@ -126,6 +109,24 @@ export default function StrategyEditor() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    if (!user?.id || !strategy?.lineage_id) return;
+    const lineageId = strategy.lineage_id;
+
+    const refreshComposition = async () => {
+      try {
+        const { aims, icps } = await fetchCompositionForStrategyLineage(user.id, lineageId);
+        setStrategy((prev) =>
+          prev && prev.lineage_id === lineageId ? { ...prev, aims, icps } : prev
+        );
+      } catch (err) {
+        console.error("[StrategyEditor] composition refresh failed", err);
+      }
+    };
+
+    return subscribeStrategyCompositionStale(() => void refreshComposition());
+  }, [user?.id, strategy?.lineage_id]);
 
   const isArchived = !!strategy?.deleted_at;
   const readOnly = isArchived;

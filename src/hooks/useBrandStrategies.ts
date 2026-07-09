@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "../config/supabase";
 import { useAuth } from "../contexts/AuthContext";
 import type { ICPStrategyPayload } from "./useICPStrategy";
@@ -11,6 +11,7 @@ import {
   hardDeleteStrategyLineage,
   insertStrategyVersionRpc,
 } from "../lib/brandStrategyVersioning";
+import { subscribeStrategyCompositionStale } from "../lib/strategyEvents";
 
 export type StrategyRow = {
   id: string;
@@ -42,6 +43,13 @@ type StrategyLinkAimRow = {
 type StrategyLinkIcpRow = {
   strategy_lineage_id: string;
   icp_lineage_id: string;
+};
+
+type StrategyFetchCache = {
+  currentRows: StrategyRow[];
+  archivedRows: StrategyRow[];
+  aimLink: StrategyLinkAimRow[];
+  icpLink: StrategyLinkIcpRow[];
 };
 
 async function attachCompositionToStrategies(
@@ -93,6 +101,12 @@ export function useBrandStrategies(brandId: string) {
   const [archivedStrategies, setArchivedStrategies] = useState<StrategyWithLinks[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const fetchCacheRef = useRef<StrategyFetchCache>({
+    currentRows: [],
+    archivedRows: [],
+    aimLink: [],
+    icpLink: [],
+  });
 
   const fetchStrategies = useCallback(async () => {
     if (!user?.id || !brandId) return;
@@ -159,9 +173,18 @@ export function useBrandStrategies(brandId: string) {
       const aimLink = (aimLinkRows.data || []) as StrategyLinkAimRow[];
       const icpLink = (icpLinkRows.data || []) as StrategyLinkIcpRow[];
 
+      const currentStrategyRows = (currentRows || []) as StrategyRow[];
+
+      fetchCacheRef.current = {
+        currentRows: currentStrategyRows,
+        archivedRows: archivedCurrent,
+        aimLink,
+        icpLink,
+      };
+
       const next = await attachCompositionToStrategies(
         user.id,
-        (currentRows || []) as StrategyRow[],
+        currentStrategyRows,
         aimLink,
         icpLink
       );
@@ -185,6 +208,23 @@ export function useBrandStrategies(brandId: string) {
     }
   }, [user?.id, brandId]);
 
+  const refreshComposition = useCallback(async () => {
+    if (!user?.id) return;
+    const { currentRows, archivedRows, aimLink, icpLink } = fetchCacheRef.current;
+    if (!currentRows.length && !archivedRows.length) return;
+
+    try {
+      const [next, nextArchived] = await Promise.all([
+        attachCompositionToStrategies(user.id, currentRows, aimLink, icpLink),
+        attachCompositionToStrategies(user.id, archivedRows, aimLink, icpLink),
+      ]);
+      setStrategies(next);
+      setArchivedStrategies(nextArchived);
+    } catch (err) {
+      console.error("[useBrandStrategies] composition refresh failed", err);
+    }
+  }, [user?.id]);
+
   useEffect(() => {
     if (!user?.id) return;
     void fetchStrategies();
@@ -195,6 +235,8 @@ export function useBrandStrategies(brandId: string) {
     window.addEventListener("strategies:changed", onChanged);
     return () => window.removeEventListener("strategies:changed", onChanged);
   }, [fetchStrategies]);
+
+  useEffect(() => subscribeStrategyCompositionStale(() => void refreshComposition()), [refreshComposition]);
 
   const createStrategy = useCallback(
     async (input: {

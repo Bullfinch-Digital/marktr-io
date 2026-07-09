@@ -127,34 +127,63 @@ export async function fetchCompositionForLineages(
 
   const aims: CompositionAim[] = uniqueAimIds
     .map((lineageId) => {
+      const current = currentAimByLineage.get(lineageId);
       const row = aimByLineage.get(lineageId);
-      if (!row || !isValidAimType(row.aim_type)) return null;
-      const isArchived = !!row.deleted_at || !!row.superseded_at;
+      if (!row && !current) return null;
+      const aimType = current?.aim_type ?? row?.aim_type;
+      if (!isValidAimType(aimType)) return null;
       return {
         lineage_id: lineageId,
-        title: row.title,
-        aim_type: row.aim_type,
-        isArchived,
-        currentRow: currentAimByLineage.get(lineageId) ?? null,
+        title: current?.title ?? row?.title ?? "Unknown aim",
+        aim_type: aimType,
+        isArchived: !current,
+        currentRow: current ?? null,
       };
     })
     .filter(Boolean) as CompositionAim[];
 
   const icps: CompositionIcp[] = uniqueIcpIds
     .map((lineageId) => {
+      const current = currentIcpByLineage.get(lineageId);
       const row = icpByLineage.get(lineageId);
-      if (!row) return null;
-      const isArchived = !!row.deleted_at || !!row.superseded_at;
+      if (!row && !current) return null;
       return {
         lineage_id: lineageId,
-        name: row.name || "Untitled profile",
-        isArchived,
-        currentRow: currentIcpByLineage.get(lineageId) ?? null,
+        name: current?.name ?? row?.name ?? "Untitled profile",
+        isArchived: !current,
+        currentRow: current ?? null,
       };
     })
     .filter(Boolean) as CompositionIcp[];
 
   return { aims, icps };
+}
+
+/** Resolve composition for a strategy lineage (join rows + aim/ICP archived state). */
+export async function fetchCompositionForStrategyLineage(
+  userId: string,
+  strategyLineageId: string
+): Promise<{ aims: CompositionAim[]; icps: CompositionIcp[] }> {
+  const [aimLinks, icpLinks] = await Promise.all([
+    supabase
+      .from("strategy_aims")
+      .select("aim_lineage_id")
+      .eq("user_id", userId)
+      .eq("strategy_lineage_id", strategyLineageId),
+    supabase
+      .from("strategy_targets")
+      .select("icp_lineage_id")
+      .eq("user_id", userId)
+      .eq("strategy_lineage_id", strategyLineageId),
+  ]);
+
+  if (aimLinks.error) throw aimLinks.error;
+  if (icpLinks.error) throw icpLinks.error;
+
+  const aimLineageIds = (aimLinks.data || []).map((r: { aim_lineage_id: string }) => r.aim_lineage_id);
+  const icpLineageIds = (icpLinks.data || []).map((r: { icp_lineage_id: string }) => r.icp_lineage_id);
+
+  return fetchCompositionForLineages(userId, aimLineageIds, icpLineageIds);
 }
 
 export function compositionHasArchivedLinks(aims: CompositionAim[], icps: CompositionIcp[]): boolean {

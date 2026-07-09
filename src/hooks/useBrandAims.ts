@@ -4,6 +4,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { useBrand } from "../contexts/BrandContext";
 import { isBrandScopeReady, resolveScopedBrandId } from "../lib/brandScopedReads";
 import { resolveBrandIdForAimWrite } from "../lib/brandAimBrandAttach";
+import { dispatchAimsChanged } from "../lib/strategyEvents";
 import {
   applyCurrentBrandAimFilter,
   BRAND_AIM_TYPE_OPTIONS,
@@ -154,9 +155,7 @@ export function useBrandAims(preferredBrandId?: string | null) {
       if (createError) throw createError;
       const created = data as BrandAim;
       await fetchAims();
-      try {
-        window.dispatchEvent(new Event("brand-aims:changed"));
-      } catch {}
+      dispatchAimsChanged();
       return created;
     },
     [user?.id, scopedBrandId, fetchAims]
@@ -180,9 +179,7 @@ export function useBrandAims(preferredBrandId?: string | null) {
       };
       const next = (await insertBrandAimVersionRpc(id, payload)) as BrandAim;
       await fetchAims();
-      try {
-        window.dispatchEvent(new Event("brand-aims:changed"));
-      } catch {}
+      dispatchAimsChanged();
       return next;
     },
     [user?.id, scopedBrandId, fetchAims]
@@ -193,9 +190,7 @@ export function useBrandAims(preferredBrandId?: string | null) {
       if (!lineageId) return false;
       await softDeleteBrandAimLineage(lineageId);
       await fetchAims();
-      try {
-        window.dispatchEvent(new Event("brand-aims:changed"));
-      } catch {}
+      dispatchAimsChanged();
       return true;
     },
     [fetchAims]
@@ -206,9 +201,7 @@ export function useBrandAims(preferredBrandId?: string | null) {
       if (!lineageId) return false;
       await restoreBrandAimLineage(lineageId);
       await fetchAims();
-      try {
-        window.dispatchEvent(new Event("brand-aims:changed"));
-      } catch {}
+      dispatchAimsChanged();
       return true;
     },
     [fetchAims]
@@ -219,9 +212,7 @@ export function useBrandAims(preferredBrandId?: string | null) {
       if (!lineageId) return false;
       await hardDeleteBrandAimLineage(lineageId);
       await fetchAims();
-      try {
-        window.dispatchEvent(new Event("brand-aims:changed"));
-      } catch {}
+      dispatchAimsChanged();
       return true;
     },
     [fetchAims]

@@ -711,6 +711,9 @@ export function useICPs() {
 
       await restoreIcpLineage(lineageId);
       await fetchICPs();
+      try {
+        window.dispatchEvent(new Event("icps:changed"));
+      } catch {}
       return { ok: true, nudge };
     } catch (err) {
       console.error("Error restoring ICP lineage:", err);

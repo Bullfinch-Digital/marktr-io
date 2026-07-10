@@ -7,9 +7,21 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const MULTI_PROMPT_VERSION = "strategy_v2_generated_title";
+const MULTI_PROMPT_VERSION = "strategy_v3_suggested_content";
 const MODEL = "gpt-5.5";
 const MAX_TITLE_LENGTH = 60;
+const MAX_SUGGESTED_CONTENT = 3;
+
+const SUGGESTED_CONTENT_TYPES = [
+  "ig_single",
+  "ig_carousel",
+  "ig_story",
+  "reel_brief",
+  "email",
+  "landing_page",
+] as const;
+
+type SuggestedContentType = (typeof SUGGESTED_CONTENT_TYPES)[number];
 
 type GenerateInput = {
   channel?: string | null;
@@ -251,6 +263,84 @@ function applyCampaignIdeaIds(
   };
 }
 
+type SuggestedContentInput = {
+  campaign_idea_index?: number | null;
+  type?: string;
+  rationale?: string;
+};
+
+function isSuggestedContentType(value: unknown): value is SuggestedContentType {
+  return (
+    typeof value === "string" &&
+    (SUGGESTED_CONTENT_TYPES as readonly string[]).includes(value)
+  );
+}
+
+/**
+ * Mint suggested_content ids and resolve campaign_idea_index (1-based) against
+ * the already-minted campaign_ideas array. Invalid indexes become strategy-level
+ * (campaign_idea_id null) rather than dropping the suggestion.
+ */
+function applySuggestedContent(
+  strategy: Record<string, unknown>
+): Record<string, unknown> {
+  const campaignIdeas = Array.isArray(strategy.campaign_ideas)
+    ? (strategy.campaign_ideas as Array<{ id?: string; name?: string }>)
+    : [];
+  const raw = Array.isArray(strategy.suggested_content)
+    ? (strategy.suggested_content as SuggestedContentInput[])
+    : [];
+
+  const next = [];
+  for (const item of raw.slice(0, MAX_SUGGESTED_CONTENT)) {
+    if (!isSuggestedContentType(item?.type)) {
+      console.warn(
+        "[generate-icp-strategy] dropping suggested_content with invalid type",
+        item?.type
+      );
+      continue;
+    }
+
+    let campaign_idea_id: string | null = null;
+    let campaign_idea_name_snapshot: string | null = null;
+    const index = item.campaign_idea_index;
+
+    if (index === null || index === undefined) {
+      // Strategy-level piece — intentional.
+    } else if (typeof index === "number" && Number.isInteger(index) && index >= 1) {
+      const idea = campaignIdeas[index - 1];
+      if (idea?.id) {
+        campaign_idea_id = idea.id;
+        campaign_idea_name_snapshot =
+          typeof idea.name === "string" && idea.name.trim() ? idea.name.trim() : null;
+      } else {
+        console.warn(
+          "[generate-icp-strategy] suggested_content campaign_idea_index out of range; treating as strategy-level",
+          { campaign_idea_index: index, campaign_ideas_length: campaignIdeas.length }
+        );
+      }
+    } else {
+      console.warn(
+        "[generate-icp-strategy] suggested_content campaign_idea_index invalid; treating as strategy-level",
+        { campaign_idea_index: index }
+      );
+    }
+
+    next.push({
+      id: crypto.randomUUID(),
+      campaign_idea_id,
+      campaign_idea_name_snapshot,
+      type: item.type,
+      rationale: typeof item.rationale === "string" ? item.rationale.trim() : "",
+    });
+  }
+
+  return {
+    ...strategy,
+    suggested_content: next,
+  };
+}
+
 function buildMultiPrompt(
   brand: Record<string, any> | null,
   aims: Array<Record<string, any>>,
@@ -346,6 +436,19 @@ Title field (required in JSON):
 - Under ${MAX_TITLE_LENGTH} characters.
 - Do NOT prefix with the brand name — the strategy already lives inside its brand.
 - Never generic ("Growth Strategy", "Q4 Campaign", "Marketing Plan", "[Brand] strategy").
+
+suggested_content field (required in JSON — 1 to ${MAX_SUGGESTED_CONTENT} items, hard maximum ${MAX_SUGGESTED_CONTENT}):
+- This is the machine-readable brief for what content to make. PRIORITISE — choose only the pieces that matter most.
+- Choose the ${MAX_SUGGESTED_CONTENT} (or fewer) pieces that are:
+  (a) most directly in service of the aim,
+  (b) suited to the PRIMARY channel from the channel plan,
+  (c) ACHIEVABLE by a small team or a solo founder.
+- Prefer achievable over impressive. Do NOT suggest paid campaigns, retargeting sequences, or multi-asset productions when an organic post, an email and a reel would move the aim. The user is a craft business owner, not an agency.
+- Each item:
+  - type: one of ig_single | ig_carousel | ig_story | reel_brief | email | landing_page
+  - campaign_idea_index: 1-based index into the campaign_ideas array you emit in THIS same response (1 = first idea). Use null when the piece serves the whole strategy (e.g. a landing page for the promotion), not a specific idea.
+  - rationale: ONE line — why this piece serves the aim for this idea/channel. Do NOT restate the channel plan.
+- Do not invent more than ${MAX_SUGGESTED_CONTENT} items.
 `;
 }
 
@@ -434,6 +537,31 @@ const RESPONSE_SCHEMA = {
         },
         required: ["kpis", "targets"],
       },
+      suggested_content: {
+        type: "array",
+        items: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            campaign_idea_index: {
+              anyOf: [{ type: "integer" }, { type: "null" }],
+            },
+            type: {
+              type: "string",
+              enum: [
+                "ig_single",
+                "ig_carousel",
+                "ig_story",
+                "reel_brief",
+                "email",
+                "landing_page",
+              ],
+            },
+            rationale: { type: "string" },
+          },
+          required: ["campaign_idea_index", "type", "rationale"],
+        },
+      },
     },
     required: [
       "title",
@@ -444,6 +572,7 @@ const RESPONSE_SCHEMA = {
       "offer",
       "ad_assets",
       "success_metrics",
+      "suggested_content",
     ],
   },
   strict: true,
@@ -643,7 +772,8 @@ Deno.serve(async (req) => {
           : [];
       }
 
-      const strategyPayload = applyCampaignIdeaIds(parsedStrategy, priorCampaignIdeas);
+      const strategyWithIdeaIds = applyCampaignIdeaIds(parsedStrategy, priorCampaignIdeas);
+      const strategyPayload = applySuggestedContent(strategyWithIdeaIds);
       const title = resolveStrategyTitle({
         userTitle: body.title,
         generatedTitle,

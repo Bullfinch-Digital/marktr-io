@@ -1,8 +1,18 @@
-import type { ICPStrategyPayload } from "../types/icpStrategyPayload";
+import type {
+  ICPStrategyPayload,
+  SuggestedContentItem,
+  SuggestedContentType,
+} from "../types/icpStrategyPayload";
+import { SUGGESTED_CONTENT_TYPES } from "../types/icpStrategyPayload";
 
 export type CampaignIdea = ICPStrategyPayload["campaign_ideas"][number];
+export type { SuggestedContentItem, SuggestedContentType };
 
 export function mintCampaignIdeaId(): string {
+  return crypto.randomUUID();
+}
+
+export function mintSuggestedContentId(): string {
   return crypto.randomUUID();
 }
 
@@ -31,6 +41,53 @@ export function ensureCampaignIdeaIds(
   }));
 }
 
+function isSuggestedContentType(value: unknown): value is SuggestedContentType {
+  return (
+    typeof value === "string" &&
+    (SUGGESTED_CONTENT_TYPES as readonly string[]).includes(value)
+  );
+}
+
+/**
+ * Load-time safety net. Does NOT invent suggestions for legacy rows (defaults to []).
+ * Does NOT strip orphaned campaign_idea_id links — orphan resolution is render-time.
+ */
+export function ensureSuggestedContent(
+  items: Array<Partial<SuggestedContentItem>> | null | undefined
+): SuggestedContentItem[] {
+  const source = Array.isArray(items) ? items : [];
+  const next: SuggestedContentItem[] = [];
+
+  for (const item of source) {
+    if (!isSuggestedContentType(item?.type)) {
+      console.warn(
+        "[strategyEditPayload] dropping suggested_content item with invalid type",
+        item?.type
+      );
+      continue;
+    }
+
+    next.push({
+      id:
+        typeof item.id === "string" && item.id.trim()
+          ? item.id.trim()
+          : mintSuggestedContentId(),
+      campaign_idea_id:
+        typeof item.campaign_idea_id === "string" && item.campaign_idea_id.trim()
+          ? item.campaign_idea_id.trim()
+          : null,
+      campaign_idea_name_snapshot:
+        typeof item.campaign_idea_name_snapshot === "string"
+          ? item.campaign_idea_name_snapshot
+          : null,
+      type: item.type,
+      rationale: typeof item.rationale === "string" ? item.rationale : "",
+    });
+  }
+
+  return next;
+}
+
 export function cloneStrategyPayload(strategy: ICPStrategyPayload): ICPStrategyPayload {
   return structuredClone(strategy);
 }
@@ -48,6 +105,7 @@ export function normalizeStrategyPayload(strategy: ICPStrategyPayload): ICPStrat
     objections_and_rebuttals: next.messaging?.objections_and_rebuttals ?? [],
   };
   next.campaign_ideas = ensureCampaignIdeaIds(next.campaign_ideas);
+  next.suggested_content = ensureSuggestedContent(next.suggested_content);
   next.channel_plan = {
     primary_channel: next.channel_plan?.primary_channel ?? "",
     secondary_channels: next.channel_plan?.secondary_channels ?? [],

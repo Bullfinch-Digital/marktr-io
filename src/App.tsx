@@ -31,6 +31,8 @@ import Pricing from "./pages/Pricing";
 import TeamSettings from "./pages/TeamSettings";
 import Strategy from "./pages/Strategy";
 import StrategyEditor from "./pages/StrategyEditor";
+import Content from "./pages/Content";
+import ContentEditor from "./pages/ContentEditor";
 import ResetPassword from "./pages/ResetPassword";
 import Logout from "./pages/Logout";
 import AuthCallback from "./pages/AuthCallback";
@@ -244,7 +246,12 @@ export default function App() {
             } />
             <Route path="/content" element={
               <ProtectedRoute>
-                <PlaceholderPage title="Content Library" />
+                <Content />
+              </ProtectedRoute>
+            } />
+            <Route path="/content/:id" element={
+              <ProtectedRoute>
+                <ContentEditor />
               </ProtectedRoute>
             } />
             <Route path="/scheduling" element={

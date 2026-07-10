@@ -7,7 +7,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const PROMPT_VERSION = "content_v1_iphone_constraint";
+const PROMPT_VERSION = "content_v1_1_distinct_titles";
 const MODEL = "gpt-5.5";
 const MAX_TITLE_LENGTH = 60;
 
@@ -360,9 +360,13 @@ Content type to generate: ${type}
 ${typeShapeGuidance(type)}
 
 Title field (required):
-- Short roster label for this piece. Specific. Under ${MAX_TITLE_LENGTH} characters.
-- No brand-name prefix. Never generic ("Instagram Post", "Email", "Content Piece").
-- Campaign-flavoured — how the founder would refer to it out loud.
+- Short roster label for THIS PIECE — not a restatement of the campaign idea or hook.
+- Identify the piece's nature so a roster of items for the same campaign stays navigable
+  (e.g. a carousel title should read differently from an email or reel title).
+- Include the type's nature where it helps: "Guest Serve 5-slide carousel", "Pour-over Reel",
+  "Hosting launch email", "Seasonal serve landing page".
+- Specific, under ${MAX_TITLE_LENGTH} characters. No brand-name prefix.
+- Never generic ("Instagram Post", "Email", "Content Piece") and never just the campaign hook alone.
 `;
 }
 
@@ -450,7 +454,7 @@ function deriveTitleFallback(
     landing_page: "Landing page",
   };
   const base = campaignIdeaName
-    ? `${campaignIdeaName} · ${typeLabel[type]}`
+    ? `${typeLabel[type]} · ${campaignIdeaName}`
     : `${typeLabel[type]} · ${icpName}`;
   return base.slice(0, MAX_TITLE_LENGTH);
 }

@@ -31,6 +31,7 @@ import { StrategyEditableDocument } from "../components/strategy/StrategyEditabl
 import { StrategyVersionHistorySection } from "../components/strategy/StrategyVersionHistorySection";
 import StrategyArchiveModal from "../components/strategy/StrategyArchiveModal";
 import StrategyPermanentDeleteModal from "../components/strategy/StrategyPermanentDeleteModal";
+import { StrategySuggestedContentChecklist } from "../components/strategy/StrategySuggestedContentChecklist";
 import { ArchiveActionTooltip } from "../components/ArchiveActionTooltip";
 import "../styles/Modal.css";
 
@@ -485,6 +486,16 @@ export default function StrategyEditor() {
 
             {rosterStrategy ? (
               <StrategyCompositionBanner aims={rosterStrategy.aims} icps={rosterStrategy.icps} />
+            ) : null}
+
+            {!readOnly && strategy ? (
+              <StrategySuggestedContentChecklist
+                brandId={strategy.brand_id}
+                strategyLineageId={strategy.lineage_id}
+                strategyTitle={strategy.title}
+                strategy={draftStrategy ?? strategy.strategy}
+                icps={rosterStrategy?.icps ?? []}
+              />
             ) : null}
 
             {draftStrategy ? (

@@ -1,31 +1,35 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
-import { Button } from "../components/ui/button";
+import { Activity, BookOpen, ChevronRight, Users } from "lucide-react";
 import { ICPPreviewCard } from "../components/cards/ICPPreviewCard";
-import { CollectionCard as DashboardCollectionCard } from "../components/cards/DashboardCollectionCard";
-import { BrandCard } from "../components/cards/BrandCard";
+import { MarktrStepCard } from "../components/dashboard/MarktrStepCard";
+import { HealthScoreHero } from "../components/dashboard/HealthScoreHero";
+import { BrandStorySummaryCard } from "../components/dashboard/BrandStorySummaryCard";
 import { useICPs } from "../hooks/useICPs";
 import { useBrands } from "../hooks/useBrands";
-import { useCollections, type Collection } from "../hooks/useCollections";
+import { useCollections, fetchCollectionNamesByLineageIds } from "../hooks/useCollections";
+import { useBrandStrategies } from "../hooks/useBrandStrategies";
+import { useContentItems } from "../hooks/useContentItems";
 import useSubscription from "../hooks/useSubscription";
 import useProfile from "../hooks/useProfile";
-import { useOutboxSync } from "../hooks/useOutboxSync";
 import { useAuth } from "../contexts/AuthContext";
 import { useBrand } from "../contexts/BrandContext";
 import { usePaywall } from "../contexts/PaywallContext";
 import { useAuthModal } from "../contexts/AuthModalContext";
-import { WifiOff, AlertCircle, ChevronRight, Plus } from "lucide-react";
-import { exportBrandAsPDF } from "../utils/exportBrand";
-import CollectionColorModal from "../components/CollectionColorModal";
 import ICPColorModal from "../components/ICPColorModal";
 import ICPAvatarModal from "../components/ICPAvatarModal";
-import CollectionRenameModal from "../components/CollectionRenameModal";
-import CollectionDeleteModal from "../components/CollectionDeleteModal";
-import { canCreateICP, canCreateCollection, canViewICP, canCreateBrand, canExportBrand } from "../config/accessRules";
+import { CollectionPickerModal } from "../components/modals/CollectionPickerModal";
+import { canCreateICP, canViewICP } from "../config/accessRules";
 import { supabase } from "../config/supabase";
 import { retryGuestICPFlushIfNeeded } from "../lib/guestICP";
 import { attachOrphanIcpsToBrand } from "../lib/icpBrandAttach";
 import { isBrandScopeReady, resolveScopedBrandId, scopeQueryToActiveBrand } from "../lib/brandScopedReads";
+import {
+  storyOutputFromRow,
+  type BrandStoryRow as PersistedBrandStoryRow,
+} from "../lib/brandStoryPersistence";
+import { CONTENT_TYPE_LABELS } from "../lib/contentTypeLabels";
+import type { ContentItemType } from "../types/contentItemPayload";
 import DashboardShell from "../layouts/DashboardShell";
 
 type HealthCheckRow = {
@@ -37,6 +41,13 @@ type HealthCheckRow = {
 type BrandStoryRow = {
   id: string;
   story_data: unknown;
+};
+
+type NextAction = {
+  label: string;
+  tag: string;
+  desc: string;
+  href: string;
 };
 
 function readDimensionScore(
@@ -53,6 +64,87 @@ function readDimensionScore(
   return "—";
 }
 
+function formatDate(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+}
+
+function deriveNextAction(input: {
+  hasBrandStory: boolean;
+  hasIcps: boolean;
+  hasHealthCheck: boolean;
+  scores: Record<string, unknown> | null | undefined;
+}): NextAction | null {
+  if (!input.hasBrandStory) {
+    return {
+      label: "Build your brand story",
+      tag: "STORY",
+      desc: "Capture positioning and purpose so Strategy and Content speak with one voice.",
+      href: "/story",
+    };
+  }
+
+  if (!input.hasIcps) {
+    return {
+      label: "Define your ideal customer",
+      tag: "ICP",
+      desc: "Every strategy starts with knowing exactly who you serve.",
+      href: "/onboarding-build",
+    };
+  }
+
+  if (!input.hasHealthCheck) {
+    return {
+      label: "Run your digital health check",
+      tag: "HEALTH",
+      desc: "Score Website, Brand Story, Content, and Social so you know where to focus.",
+      href: "/health-check",
+    };
+  }
+
+  const pillars: Array<{ key: string; label: string; href: string; score: number | "—" }> = [
+    {
+      key: "websiteClarity",
+      label: "Website Clarity",
+      href: "/health-check",
+      score: readDimensionScore(input.scores, "websiteClarity"),
+    },
+    {
+      key: "brandStory",
+      label: "Brand Story",
+      href: "/story-report",
+      score: readDimensionScore(input.scores, "brandStory"),
+    },
+    {
+      key: "contentConsistency",
+      label: "Content Consistency",
+      href: "/health-check",
+      score: readDimensionScore(input.scores, "contentConsistency"),
+    },
+    {
+      key: "socialPresence",
+      label: "Social Presence",
+      href: "/health-check",
+      score: readDimensionScore(input.scores, "socialPresence"),
+    },
+  ];
+
+  const numeric = pillars.filter((p): p is typeof p & { score: number } => typeof p.score === "number");
+  if (numeric.length === 0) return null;
+
+  const lowest = numeric.reduce((min, p) => (p.score < min.score ? p : min));
+  // Only surface when there's a real gap — perfect scores aren't actionable.
+  if (lowest.score >= 90) return null;
+
+  return {
+    label: `Improve ${lowest.label}`,
+    tag: "HEALTH",
+    desc: `This is your lowest pillar at ${lowest.score}/100. Focus here next.`,
+    href: lowest.href,
+  };
+}
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -60,74 +152,49 @@ export default function Dashboard() {
   const { openSignIn } = useAuthModal();
   const finishPromptedRef = useRef(false);
 
-  // Fetch data from Supabase
   const { user, loading: authLoading } = useAuth();
-  const { activeBrand, activeBrandId, loading: brandLoading, brands } = useBrand();
+  const { activeBrandId, loading: brandLoading, brands } = useBrand();
   const { profile } = useProfile(user?.id ?? null);
   const [healthCheck, setHealthCheck] = useState<HealthCheckRow | null>(null);
   const [brandStory, setBrandStory] = useState<BrandStoryRow | null>(null);
+
+  const scopedBrandId = resolveScopedBrandId(activeBrandId, brands) || "";
+
   const {
     icps: rawICPs,
     isLoading: icpsLoading,
-    isOffline: icpsOffline,
     fetchICPs,
     updateICP,
     hasLoadedOnce,
   } = useICPs();
-  const {
-    isLoading: brandsLoading,
-    createBrand,
-    deleteBrand,
-    refetch: refetchBrands,
-  } = useBrands();
-  const {
-    collections,
-    isLoading: collectionsLoading,
-    isOffline: collectionsOffline,
-    refetch: refetchCollections,
-  } = useCollections();
-  const {
-    tier: userTier,
-    trialActive,
-    ready: subReady,
-    loading: subLoading,
-    isPro,
-  } = useSubscription();
-  const { isSyncing, pendingCount } = useOutboxSync();
-  const [editingCollection, setEditingCollection] = useState<Collection | null>(null);
-  const [showColorModal, setShowColorModal] = useState(false);
-  const [showRenameModal, setShowRenameModal] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [creatingBrand, setCreatingBrand] = useState(false);
-  const getUniqueBrandName = (baseInput: string, suffixWord: string, existingNames: string[]) => {
-    const existing = new Set(existingNames.map((n) => (n || "").trim().toLowerCase()));
-    const stripSuffix = (name: string) => {
-      let candidate = name.trim();
-      const re = new RegExp(`\\s\\(${suffixWord}(?:\\s\\d+)?\\)$`, "i");
-      while (re.test(candidate)) {
-        candidate = candidate.replace(re, "").trim();
-      }
-      return candidate;
-    };
-    const base = stripSuffix(baseInput || "Untitled Brand") || "Untitled Brand";
-    if (!existing.has(base.toLowerCase())) return base;
-    let i = 1;
-    while (true) {
-      const candidate = `${base} (${suffixWord}${i === 1 ? "" : ` ${i}`})`;
-      if (!existing.has(candidate.toLowerCase())) return candidate;
-      i += 1;
-    }
-  };
+  const { refetch: refetchBrands } = useBrands();
+  const { addICPToCollection, createCollection } = useCollections();
+  const { strategies, isLoading: strategiesLoading } = useBrandStrategies(scopedBrandId);
+  const { items: contentItems, isLoading: contentLoading } = useContentItems(scopedBrandId);
+
+  const { ready: subReady, isPro } = useSubscription();
+
+  const [collectionNamesByLineage, setCollectionNamesByLineage] = useState<
+    Record<string, string[]>
+  >({});
+  const [addToCollectionLineageId, setAddToCollectionLineageId] = useState<string | null>(null);
   const [icpColorModal, setIcpColorModal] = useState({
     open: false,
     id: null as string | null,
     currentColor: null as string | null,
   });
+  const [icpAvatarModal, setIcpAvatarModal] = useState({
+    open: false,
+    id: null as string | null,
+    currentAvatarKey: null as string | null,
+    gender: null as string | null,
+    ageRange: null as string | null,
+  });
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const checkout = params.get("checkout");
-    const isAnonymous = Boolean((user as any)?.is_anonymous);
+    const isAnonymous = Boolean((user as { is_anonymous?: boolean })?.is_anonymous);
     if (checkout === "success" && !finishPromptedRef.current) {
       finishPromptedRef.current = true;
       if (isAnonymous) {
@@ -148,7 +215,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (finishPromptedRef.current) return;
-    const isAnonymous = Boolean((user as any)?.is_anonymous);
+    const isAnonymous = Boolean((user as { is_anonymous?: boolean })?.is_anonymous);
     if (isAnonymous && isPro) {
       finishPromptedRef.current = true;
       openSignIn({
@@ -159,15 +226,6 @@ export default function Dashboard() {
     }
   }, [user, isPro, openSignIn]);
 
-  const [icpAvatarModal, setIcpAvatarModal] = useState({
-    open: false,
-    id: null as string | null,
-    currentAvatarKey: null as string | null,
-    gender: null as string | null,
-    ageRange: null as string | null,
-  });
-
-  // Transform ICP data to match component expectations
   const effectiveTier = subReady ? (isPro ? "pro" : "free") : "free";
 
   const icps = useMemo(() => {
@@ -175,15 +233,16 @@ export default function Dashboard() {
       ...icp,
       _index: icp._index ?? index,
       tags: icp.tags || [],
-      isLocked: subReady ? !canViewICP(effectiveTier as any, icp._index ?? index) : false,
-      gender: (icp as any).gender ?? (icp as any).avatar_gender ?? null,
-      age_range: (icp as any).age_range ?? (icp as any).avatar_age_range ?? null,
+      isLocked: subReady ? !canViewICP(effectiveTier as "free" | "pro", icp._index ?? index) : false,
+      gender: (icp as { gender?: string | null }).gender ?? (icp as { avatar_gender?: string | null }).avatar_gender ?? null,
+      age_range:
+        (icp as { age_range?: string | null }).age_range ??
+        (icp as { avatar_age_range?: string | null }).avatar_age_range ??
+        null,
     }));
-  }, [rawICPs, subReady, userTier, trialActive, effectiveTier, isPro]);
+  }, [rawICPs, subReady, effectiveTier]);
 
-  const canCreateICPFlag = canCreateICP(icps.length, effectiveTier as any);
-  const canCreateCollectionFlag = canCreateCollection(collections.length, effectiveTier as any);
-  const canCreateBrandFlag = canCreateBrand(brands.length, effectiveTier as any);
+  const canCreateICPFlag = canCreateICP(icps.length, effectiveTier as "free" | "pro");
 
   const handleCreateNew = () => {
     if (!canCreateICPFlag) {
@@ -195,52 +254,6 @@ export default function Dashboard() {
 
   const handleUpgrade = () => {
     openPaywall();
-  };
-
-  const handleCreateBrand = async () => {
-    if (!canCreateBrandFlag) {
-      openPaywall();
-      return;
-    }
-    if (!createBrand) {
-      navigate("/my-brands");
-      return;
-    }
-    setCreatingBrand(true);
-    try {
-      const uniqueName = getUniqueBrandName(
-        "Untitled Brand",
-        "New",
-        (brands || []).map((b: any) => b?.name || "")
-      );
-      const created = await createBrand({ name: uniqueName } as any);
-      await refetchBrands();
-      if (created?.id) {
-        navigate(`/my-brands/${created.id}`);
-      } else {
-        navigate("/my-brands");
-      }
-    } catch (err) {
-      console.error("Dashboard: create brand error", err);
-      navigate("/my-brands");
-    } finally {
-      setCreatingBrand(false);
-    }
-  };
-
-  const handleOpenColorModal = (collection: Collection) => {
-    setEditingCollection(collection);
-    setShowColorModal(true);
-  };
-
-  const handleOpenRenameModal = (collection: Collection) => {
-    setEditingCollection(collection);
-    setShowRenameModal(true);
-  };
-
-  const handleOpenDeleteModal = (collection: Collection) => {
-    setEditingCollection(collection);
-    setShowDeleteModal(true);
   };
 
   const handleOpenIcpColorModal = (id: string, currentColor?: string | null) => {
@@ -267,13 +280,14 @@ export default function Dashboard() {
   };
 
   const handleMoveIcpToBrand = async (icpId: string, brandId: string | null) => {
-    await updateICP(icpId, { brand_id: brandId } as any);
+    await updateICP(icpId, { brand_id: brandId } as { brand_id: string | null });
     try {
       window.dispatchEvent(new Event("icps:changed"));
-    } catch {}
+    } catch {
+      // ignore
+    }
   };
 
-  // Retry guest ICP flush / attach orphan ICPs when brand resolves.
   useEffect(() => {
     if (!user?.id || authLoading || brandLoading || !activeBrandId) return;
 
@@ -288,7 +302,6 @@ export default function Dashboard() {
     })();
   }, [user?.id, authLoading, brandLoading, activeBrandId, fetchICPs]);
 
-  // Refetch on global change events
   useEffect(() => {
     const onIcpsChanged = () => {
       void fetchICPs();
@@ -311,8 +324,8 @@ export default function Dashboard() {
       return;
     }
 
-    const scopedBrandId = resolveScopedBrandId(activeBrandId, brands);
-    if (!isBrandScopeReady(brandLoading, brands, scopedBrandId)) {
+    const brandId = resolveScopedBrandId(activeBrandId, brands);
+    if (!isBrandScopeReady(brandLoading, brands, brandId)) {
       return;
     }
 
@@ -323,13 +336,13 @@ export default function Dashboard() {
         .from("health_check_results")
         .select("id, overall_score, scores")
         .eq("user_id", user.id);
-      healthQuery = scopeQueryToActiveBrand(healthQuery, scopedBrandId);
+      healthQuery = scopeQueryToActiveBrand(healthQuery, brandId);
 
       let storyQuery = supabase
         .from("brand_story_results")
         .select("id, story_data")
         .eq("user_id", user.id);
-      storyQuery = scopeQueryToActiveBrand(storyQuery, scopedBrandId);
+      storyQuery = scopeQueryToActiveBrand(storyQuery, brandId);
 
       const [{ data: healthData }, { data: storyData }] = await Promise.all([
         healthQuery.order("created_at", { ascending: false }).limit(1).maybeSingle(),
@@ -354,9 +367,95 @@ export default function Dashboard() {
     };
   }, [user?.id, activeBrandId, brandLoading, brands]);
 
-  const isLoading = authLoading || brandLoading || icpsLoading || collectionsLoading;
-  const showEmptyIcps = hasLoadedOnce && !icpsLoading && rawICPs.length === 0;
-  const showIcpPlaceholder = !hasLoadedOnce || icpsLoading;
+  const loadCollectionMemberships = useCallback(async () => {
+    if (!user?.id) {
+      setCollectionNamesByLineage({});
+      return;
+    }
+    const lineageIds = [
+      ...new Set(
+        icps
+          .map((icp) => icp.lineage_id)
+          .filter((lineageId): lineageId is string => Boolean(lineageId))
+      ),
+    ];
+    if (!lineageIds.length) {
+      setCollectionNamesByLineage({});
+      return;
+    }
+    try {
+      const map = await fetchCollectionNamesByLineageIds(user.id, lineageIds);
+      setCollectionNamesByLineage(map);
+    } catch (err) {
+      console.error("[Dashboard] collection membership fetch failed", err);
+    }
+  }, [user?.id, icps]);
+
+  useEffect(() => {
+    void loadCollectionMemberships();
+    const onChanged = () => void loadCollectionMemberships();
+    window.addEventListener("collections:changed", onChanged);
+    return () => window.removeEventListener("collections:changed", onChanged);
+  }, [loadCollectionMemberships]);
+
+  const storyOutput = useMemo(
+    () =>
+      storyOutputFromRow(
+        brandStory
+          ? ({
+              id: brandStory.id,
+              user_id: user?.id ?? "",
+              brand_id: scopedBrandId || null,
+              story_data: brandStory.story_data as PersistedBrandStoryRow["story_data"],
+              created_at: "",
+            } as PersistedBrandStoryRow)
+          : null
+      ),
+    [brandStory, user?.id, scopedBrandId]
+  );
+
+  const hasHealth = Boolean(healthCheck?.scores);
+  const hasStory = Boolean(storyOutput);
+  const hasICPs = icps.length > 0;
+
+  const healthScores = healthCheck?.scores as Record<string, unknown> | null | undefined;
+  const websiteScore = readDimensionScore(healthScores, "websiteClarity");
+  const brandStoryScore = readDimensionScore(healthScores, "brandStory");
+  const contentScore = readDimensionScore(healthScores, "contentConsistency");
+  const socialScore = readDimensionScore(healthScores, "socialPresence");
+  const overallScore =
+    typeof healthCheck?.overall_score === "number"
+      ? healthCheck.overall_score
+      : readDimensionScore(healthScores, "overall");
+
+  const latestStrategy = strategies[0] ?? null;
+  const campaignIdeaCount = latestStrategy?.strategy?.campaign_ideas?.length ?? 0;
+
+  const draftItems = useMemo(
+    () => contentItems.filter((item) => item.status === "draft"),
+    [contentItems]
+  );
+
+  const draftCountsByType = useMemo(() => {
+    const counts: Partial<Record<ContentItemType, number>> = {};
+    for (const item of draftItems) {
+      counts[item.type] = (counts[item.type] ?? 0) + 1;
+    }
+    return Object.entries(counts) as Array<[ContentItemType, number]>;
+  }, [draftItems]);
+
+  const recentDrafts = draftItems.slice(0, 3);
+
+  const nextAction = useMemo(
+    () =>
+      deriveNextAction({
+        hasBrandStory: hasStory,
+        hasIcps: hasICPs,
+        hasHealthCheck: hasHealth,
+        scores: healthScores,
+      }),
+    [hasStory, hasICPs, hasHealth, healthScores]
+  );
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -369,149 +468,11 @@ export default function Dashboard() {
     profile?.name?.split(" ")[0] ||
     user?.email?.split("@")[0] ||
     "";
-
   const greetingName = firstName ? `, ${firstName}` : "";
 
-  const healthScores = healthCheck?.scores as Record<string, unknown> | null | undefined;
+  const previewIcps = icps.slice(0, 3);
+  const showIcpPlaceholder = !hasLoadedOnce || icpsLoading;
 
-  const metricCards = [
-    {
-      label: "Website",
-      value: readDimensionScore(healthScores, "websiteClarity"),
-      href: "/health-check",
-    },
-    {
-      label: "Brand Story",
-      value: readDimensionScore(healthScores, "brandStory"),
-      href: brandStory ? "/story-report" : "/story",
-    },
-    {
-      label: "Content",
-      value: readDimensionScore(healthScores, "contentConsistency"),
-      href: "/health-check",
-    },
-    {
-      label: "Social",
-      value: readDimensionScore(healthScores, "socialPresence"),
-      href: "/scheduling",
-    },
-  ];
-
-  const setupProgress = useMemo(() => {
-    let score = 0;
-    if (activeBrand) {
-      score += 20; // brand exists
-      if (activeBrand.founding_story?.trim()) score += 15;
-      if (activeBrand.voice_adjectives?.length) score += 10;
-      if (activeBrand.primary_goal?.trim()) score += 5;
-    }
-    if (icps && icps.length > 0) score += 30;
-    if (icps && icps.length >= 2) score += 20;
-    return Math.min(score, 100);
-  }, [activeBrand, icps]);
-
-  const nextActions = useMemo(() => {
-    const actions: {
-      label: string;
-      tag: string;
-      desc: string;
-      href: string;
-    }[] = [];
-
-    if (!healthCheck) {
-      actions.push({
-        label: "Check your digital health",
-        tag: "HEALTH",
-        desc: "See how your website and social presence scores today.",
-        href: "/health-check",
-      });
-    }
-
-    if (healthCheck && !brandStory) {
-      actions.push({
-        label: "Build your brand story",
-        tag: "STORY",
-        desc: "Turn your health check findings into a clear brand narrative.",
-        href: "/story",
-      });
-    }
-
-    if (!icps || icps.length === 0) {
-      actions.push({
-        label: "Define your ideal customer",
-        tag: "ICP",
-        desc: "Every strategy starts with knowing exactly who you serve.",
-        href: "/onboarding-build",
-      });
-    }
-
-    actions.push({
-      label: "Connect Instagram",
-      tag: "CONNECT",
-      desc: "Link your account to enable real engagement data.",
-      href: "/scheduling",
-    });
-
-    return actions.slice(0, 3);
-  }, [healthCheck, brandStory, icps]);
-
-  void [
-    Button,
-    ICPPreviewCard,
-    DashboardCollectionCard,
-    BrandCard,
-    WifiOff,
-    AlertCircle,
-    exportBrandAsPDF,
-    canExportBrand,
-    icpsOffline,
-    brandsLoading,
-    deleteBrand,
-    collectionsOffline,
-    isSyncing,
-    pendingCount,
-    creatingBrand,
-    canCreateCollectionFlag,
-    handleUpgrade,
-    handleCreateBrand,
-    handleOpenColorModal,
-    handleOpenRenameModal,
-    handleOpenDeleteModal,
-    handleOpenIcpColorModal,
-    handleOpenIcpAvatarModal,
-    handleMoveIcpToBrand,
-    isLoading,
-    showEmptyIcps,
-    showIcpPlaceholder,
-  ];
-
-  // Debug logging and error display
-  useEffect(() => {
-    if (authLoading || icpsLoading || collectionsLoading || subLoading) {
-      console.log("Dashboard loading states:", {
-        authLoading,
-        icpsLoading,
-        collectionsLoading,
-        subscriptionLoading: subLoading,
-        hasUser: !!user,
-        userId: user?.id,
-        subReady,
-      });
-    }
-  }, [authLoading, icpsLoading, collectionsLoading, subLoading, subReady, user]);
-
-  console.log("Dashboard loading states:", {
-    authLoading,
-    icpsLoading,
-    collectionsLoading,
-    subscriptionLoading: subLoading,
-    subReady,
-    hasUser: !!user,
-    hasICPs: icps.length > 0,
-    hasCollections: collections.length > 0,
-  });
-
-  // Only block on auth loading or missing user; other data can be empty/fail softly.
   if (authLoading || !user) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -526,182 +487,307 @@ export default function Dashboard() {
   return (
     <>
       <DashboardShell onCreateNew={handleCreateNew}>
-        <div className="max-w-5xl space-y-8">
-          {/* GREETING HEADER */}
-          <div className="flex items-start justify-between gap-6">
-            <div>
-              <h1 className="font-['Fraunces'] text-4xl font-bold leading-tight text-[#0D1833]">
-                {getGreeting()}
-                {greetingName}.
-              </h1>
-              <p className="mt-1 font-['DM_Sans'] text-base text-muted-foreground">
-                Here's where things stand today.
-              </p>
-            </div>
-            <div className="hidden min-w-[180px] flex-col items-end gap-2 lg:flex">
-              <span className="font-['DM_Sans'] text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
-                Setup progress
-              </span>
-              <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-                <div
-                  className="h-full rounded-full bg-primary transition-all duration-500"
-                  style={{ width: setupProgress + "%" }}
-                />
-              </div>
-              <span className="font-['DM_Sans'] text-sm font-medium text-primary">{setupProgress}%</span>
-            </div>
-          </div>
-
-          {/* METRIC CARDS */}
-          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-            {metricCards.map((card) => (
-              <button
-                key={card.label}
-                type="button"
-                onClick={() => navigate(healthCheck ? card.href : "/health-check")}
-                className="rounded-xl border border-border bg-white p-5 text-left transition-colors hover:border-primary/40"
-              >
-                <p className="mb-2 font-['DM_Sans'] text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
-                  {card.label}
-                </p>
-                <p className="font-['Fraunces'] text-4xl font-bold leading-none text-primary">
-                  {healthCheck ? card.value : "—"}
-                </p>
-                {healthCheck ? (
-                  <p className="mt-1.5 font-['DM_Sans'] text-xs text-muted-foreground">score / 100</p>
-                ) : (
-                  <p className="mt-1.5 font-['DM_Sans'] text-xs text-primary">
-                    Run health check →
-                  </p>
-                )}
-              </button>
-            ))}
-          </div>
-
-          {healthCheck && (
-            <div className="rounded-xl border border-border bg-white p-6">
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div>
-                  <p className="font-['DM_Sans'] text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
-                    Your Digital Health Score
-                  </p>
-                  <p className="mt-2 font-['Fraunces'] text-4xl font-bold text-primary">
-                    {healthCheck.overall_score ?? "—"}
-                    <span className="text-xl font-medium text-muted-foreground">/100</span>
-                  </p>
-                </div>
-                <Link
-                  to="/health-report"
-                  className="font-['DM_Sans'] text-sm text-primary hover:underline"
-                >
-                  View full report →
-                </Link>
-              </div>
-              <div className="mt-4 flex flex-wrap gap-2">
-                {metricCards.map((chip) => (
-                  <button
-                    key={chip.label}
-                    type="button"
-                    onClick={() => navigate(chip.href)}
-                    className="rounded-full border border-primary/20 bg-primary/5 px-3 py-1.5 font-['DM_Sans'] text-xs text-primary transition-colors hover:border-primary/40"
-                  >
-                    {chip.label}: {chip.value}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* WHAT TO DO NEXT */}
-          <div>
-            <p className="mb-4 font-['DM_Sans'] text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
-              What to do next
+        <div className="max-w-5xl space-y-10">
+          <header>
+            <h1 className="font-['Fraunces'] text-4xl font-bold leading-tight text-[#0D1833]">
+              {getGreeting()}
+              {greetingName}.
+            </h1>
+            <p className="mt-1 font-['DM_Sans'] text-base text-muted-foreground">
+              Your brand cockpit — health, story, customers, strategy, and content.
             </p>
-            <div className="space-y-3">
-              {nextActions.map((action, i) => (
-                <button
-                  key={action.label}
-                  type="button"
-                  onClick={() => navigate(action.href)}
-                  className="group flex w-full items-center gap-4 rounded-xl border border-border bg-white p-5 text-left transition-colors hover:border-primary/40"
-                >
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-primary font-['DM_Sans'] text-sm font-medium text-primary">
-                    {i + 1}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="mb-0.5 flex items-center gap-2">
-                      <span className="font-['DM_Sans'] text-sm font-medium text-[#0D1833]">{action.label}</span>
-                      <span className="rounded-full border border-primary/30 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-primary">
-                        {action.tag}
-                      </span>
-                    </div>
-                    <p className="font-['DM_Sans'] text-xs leading-relaxed text-muted-foreground">{action.desc}</p>
-                  </div>
-                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-primary" />
-                </button>
-              ))}
-            </div>
-          </div>
+          </header>
 
-          {/* ICP STRIP */}
-          <div>
-            <div className="mb-4 flex items-center justify-between">
-              <p className="font-['DM_Sans'] text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
-                Your ICPs
-              </p>
-              <button
-                type="button"
-                onClick={() => navigate("/icps")}
-                className="font-['DM_Sans'] text-sm text-primary hover:underline"
-              >
-                View all →
-              </button>
-            </div>
-            <div className="relative">
-              <div className="flex gap-4 overflow-x-auto pb-3 scroll-smooth">
-                {icps?.slice(0, 3).map((icp) => (
-                  <div
-                    key={icp.id}
-                    className="min-w-[200px] flex-shrink-0 cursor-pointer rounded-xl border border-border bg-white p-4 transition-colors hover:border-primary/40"
-                    onClick={() => navigate("/icp/" + icp.id)}
-                  >
-                    <div
-                      className="mb-3 flex h-10 w-10 items-center justify-center rounded-full font-['DM_Sans'] text-sm font-bold text-white"
-                      style={{ background: icp.color ?? "#E8650A" }}
+          {/* 1. Health score hero — step chain + 4-pillar breakdown */}
+          <section className="space-y-6">
+            <div className="grid gap-6 lg:grid-cols-3">
+              <MarktrStepCard
+                step={1}
+                title="Digital health check"
+                complete={hasHealth}
+                onClick={() => navigate(hasHealth ? "/health-report" : "/health-check")}
+                summary={
+                  <div className="mt-2 flex items-center gap-2">
+                    <Activity
+                      className={`h-5 w-5 shrink-0 ${hasHealth ? "text-[#2D7A5F]" : "text-muted-foreground"}`}
+                      aria-hidden
+                    />
+                    {hasHealth ? (
+                      <p className="font-['DM_Sans'] text-sm text-[#2D7A5F]">
+                        Overall score{" "}
+                        <span className="font-['Fraunces'] text-xl font-bold">{overallScore}</span>
+                        /100
+                      </p>
+                    ) : (
+                      <p className="font-['DM_Sans'] text-sm text-muted-foreground">Not started yet</p>
+                    )}
+                  </div>
+                }
+              />
+              <MarktrStepCard
+                step={2}
+                title="Brand story"
+                complete={hasStory}
+                onClick={() => navigate(hasStory ? "/story-report" : "/story")}
+                summary={
+                  <div className="mt-2 flex items-center gap-2">
+                    <BookOpen
+                      className={`h-5 w-5 shrink-0 ${hasStory ? "text-[#E8650A]" : "text-muted-foreground"}`}
+                      aria-hidden
+                    />
+                    <p
+                      className={`font-['DM_Sans'] text-sm ${hasStory ? "text-[#E8650A]" : "text-muted-foreground"}`}
                     >
-                      {icp.name?.slice(0, 2).toUpperCase()}
-                    </div>
-                    <p className="line-clamp-2 font-['DM_Sans'] text-sm font-medium leading-snug text-[#0D1833]">
-                      {icp.name}
+                      {hasStory ? "Brand story ready" : "Not started yet"}
                     </p>
                   </div>
-                ))}
-                {(!icps || icps.length === 0) && (
-                  <div
-                    onClick={() => navigate("/onboarding-build")}
-                    className="flex min-w-[200px] flex-shrink-0 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-white p-4 text-center transition-colors hover:border-primary/40"
-                  >
-                    <Plus className="h-6 w-6 text-muted-foreground" />
-                    <p className="font-['DM_Sans'] text-xs text-muted-foreground">Create your first ICP</p>
+                }
+              />
+              <MarktrStepCard
+                step={3}
+                title="Know your customer"
+                complete={hasICPs}
+                onClick={() => navigate(hasICPs ? "/icps" : "/onboarding-build")}
+                summary={
+                  <div className="mt-2 flex items-center gap-2">
+                    <Users
+                      className={`h-5 w-5 shrink-0 ${hasICPs ? "text-[#E8650A]" : "text-muted-foreground"}`}
+                      aria-hidden
+                    />
+                    <p
+                      className={`font-['DM_Sans'] text-sm ${hasICPs ? "text-[#D4871A]" : "text-muted-foreground"}`}
+                    >
+                      {hasICPs ? `${icps.length} profiles` : "Not started yet"}
+                    </p>
                   </div>
-                )}
-              </div>
-              <div className="pointer-events-none absolute right-0 top-0 bottom-3 w-16 bg-gradient-to-l from-background to-transparent" />
+                }
+              />
             </div>
-          </div>
+
+            <HealthScoreHero
+              empty={!hasHealth}
+              overall={overallScore}
+              reportHref="/health-report"
+              onStartHealthCheck={() => navigate("/health-check")}
+              dimensions={[
+                {
+                  key: "websiteClarity",
+                  label: "Website Clarity",
+                  score: websiteScore,
+                  rerunHref: "/health-check",
+                },
+                {
+                  key: "brandStory",
+                  label: "Brand Story",
+                  score: brandStoryScore,
+                },
+                {
+                  key: "contentConsistency",
+                  label: "Content Consistency",
+                  score: contentScore,
+                  rerunHref: "/health-check",
+                },
+                {
+                  key: "socialPresence",
+                  label: "Social Presence",
+                  score: socialScore,
+                  rerunHref: "/health-check",
+                },
+              ]}
+            />
+          </section>
+
+          {/* 2. Brand story summary */}
+          <BrandStorySummaryCard story={storyOutput} />
+
+          {/* 3. ICPs — same card as My ICPs */}
+          <section>
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <h2 className="font-['Fraunces'] text-2xl font-bold text-[#0D1833]">Your ICPs</h2>
+              <Link
+                to="/icps"
+                className="font-['DM_Sans'] text-sm font-medium text-primary hover:underline"
+              >
+                View all →
+              </Link>
+            </div>
+
+            {showIcpPlaceholder ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {[0, 1, 2].map((i) => (
+                  <div
+                    key={i}
+                    className="h-64 animate-pulse rounded-design border border-black/10 bg-muted/30"
+                  />
+                ))}
+              </div>
+            ) : previewIcps.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-border bg-white p-8 text-center">
+                <p className="font-['DM_Sans'] text-sm text-muted-foreground">
+                  No customer profiles yet.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleCreateNew}
+                  className="mt-3 font-['DM_Sans'] text-sm font-semibold text-primary hover:underline"
+                >
+                  Create your first ICP →
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {previewIcps.map((icp) => (
+                  <ICPPreviewCard
+                    key={icp.id}
+                    icp={icp}
+                    userTier={effectiveTier}
+                    onUpgrade={handleUpgrade}
+                    isLocked={!canViewICP(effectiveTier as "free" | "pro", icp._index ?? 0)}
+                    collectionNames={
+                      icp.lineage_id ? collectionNamesByLineage[icp.lineage_id] || [] : []
+                    }
+                    onChangeColor={handleOpenIcpColorModal}
+                    onChangeAvatar={handleOpenIcpAvatarModal}
+                    brands={brands?.map((b) => ({ id: b.id, name: b.name })) || []}
+                    onMoveToBrand={handleMoveIcpToBrand}
+                    onDelete={() => void fetchICPs()}
+                    onAddToCollection={() => {
+                      if (icp.lineage_id) setAddToCollectionLineageId(icp.lineage_id);
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+          </section>
+
+          {/* 4. Latest strategy */}
+          <section className="rounded-2xl border border-border bg-white p-6">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <h2 className="font-['Fraunces'] text-2xl font-bold text-[#0D1833]">Latest strategy</h2>
+              <Link
+                to="/strategy"
+                className="font-['DM_Sans'] text-sm font-medium text-primary hover:underline"
+              >
+                View all →
+              </Link>
+            </div>
+            {strategiesLoading ? (
+              <p className="mt-4 font-['DM_Sans'] text-sm text-muted-foreground">Loading…</p>
+            ) : latestStrategy ? (
+              <button
+                type="button"
+                onClick={() => navigate(`/strategy/${latestStrategy.id}`)}
+                className="mt-4 w-full rounded-xl border border-border bg-background p-4 text-left transition-colors hover:border-primary/40"
+              >
+                <p className="font-['Fraunces'] text-lg font-bold text-[#0D1833] truncate">
+                  {latestStrategy.title}
+                </p>
+                <p className="mt-1 font-['DM_Sans'] text-xs text-muted-foreground">
+                  v{latestStrategy.version} · updated {formatDate(latestStrategy.updated_at)} ·{" "}
+                  {campaignIdeaCount} campaign idea{campaignIdeaCount === 1 ? "" : "s"}
+                </p>
+              </button>
+            ) : (
+              <div className="mt-4">
+                <p className="font-['DM_Sans'] text-sm text-muted-foreground">
+                  No strategy versions yet.
+                </p>
+                <Link
+                  to="/strategy"
+                  className="mt-2 inline-block font-['DM_Sans'] text-sm font-semibold text-primary hover:underline"
+                >
+                  Create a strategy →
+                </Link>
+              </div>
+            )}
+          </section>
+
+          {/* 5. Content in draft */}
+          <section className="rounded-2xl border border-border bg-white p-6">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <h2 className="font-['Fraunces'] text-2xl font-bold text-[#0D1833]">Content in draft</h2>
+              <Link
+                to="/content"
+                className="font-['DM_Sans'] text-sm font-medium text-primary hover:underline"
+              >
+                Open Content →
+              </Link>
+            </div>
+            {contentLoading ? (
+              <p className="mt-4 font-['DM_Sans'] text-sm text-muted-foreground">Loading…</p>
+            ) : draftItems.length === 0 ? (
+              <p className="mt-4 font-['DM_Sans'] text-sm text-muted-foreground">
+                No draft content yet.
+              </p>
+            ) : (
+              <>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {draftCountsByType.map(([type, count]) => (
+                    <span
+                      key={type}
+                      className="rounded-full border border-border bg-background px-3 py-1 font-['DM_Sans'] text-xs text-[#0D1833]"
+                    >
+                      {CONTENT_TYPE_LABELS[type]}: {count}
+                    </span>
+                  ))}
+                </div>
+                <ul className="mt-4 space-y-2">
+                  {recentDrafts.map((item) => (
+                    <li key={item.id}>
+                      <Link
+                        to={`/content/${item.id}`}
+                        className="flex items-center justify-between gap-3 rounded-xl border border-border bg-background px-4 py-3 transition-colors hover:border-primary/40"
+                      >
+                        <span className="min-w-0 truncate font-['DM_Sans'] text-sm text-[#0D1833]">
+                          {CONTENT_TYPE_LABELS[item.type]}
+                          {item.composition?.persona?.name
+                            ? ` · ${item.composition.persona.name}`
+                            : ""}
+                        </span>
+                        <span className="shrink-0 font-['DM_Sans'] text-xs text-muted-foreground">
+                          {formatDate(item.updated_at)}
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </section>
+
+          {/* 6. Next action — single derived card, omitted when nothing actionable */}
+          {nextAction ? (
+            <section>
+              <p className="mb-4 font-['DM_Sans'] text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                What to do next
+              </p>
+              <button
+                type="button"
+                onClick={() => navigate(nextAction.href)}
+                className="group flex w-full items-center gap-4 rounded-xl border border-border bg-white p-5 text-left transition-colors hover:border-primary/40"
+              >
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-primary font-['DM_Sans'] text-sm font-medium text-primary">
+                  1
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="mb-0.5 flex items-center gap-2">
+                    <span className="font-['DM_Sans'] text-sm font-medium text-[#0D1833]">
+                      {nextAction.label}
+                    </span>
+                    <span className="rounded-full border border-primary/30 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-primary">
+                      {nextAction.tag}
+                    </span>
+                  </div>
+                  <p className="font-['DM_Sans'] text-xs leading-relaxed text-muted-foreground">
+                    {nextAction.desc}
+                  </p>
+                </div>
+                <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-primary" />
+              </button>
+            </section>
+          ) : null}
         </div>
       </DashboardShell>
-
-      <CollectionColorModal
-        open={showColorModal}
-        id={editingCollection?.id ?? null}
-        currentColor={editingCollection?.color ?? null}
-        onClose={() => setShowColorModal(false)}
-        onSaved={async () => {
-          setShowColorModal(false);
-          await refetchCollections();
-        }}
-      />
 
       <ICPColorModal
         isOpen={icpColorModal.open}
@@ -734,39 +820,21 @@ export default function Dashboard() {
         }}
       />
 
-      <CollectionRenameModal
-        isOpen={showRenameModal}
-        initialName={editingCollection?.name || ""}
-        onClose={() => setShowRenameModal(false)}
-        onConfirm={async (newName) => {
-          if (!editingCollection?.id) return;
-          const { error } = await supabase
-            .from("collections")
-            .update({ name: newName })
-            .eq("id", editingCollection.id);
-
-          if (error) {
-            console.error("Dashboard: Rename failed", error);
-          } else {
-            await refetchCollections();
+      <CollectionPickerModal
+        isOpen={!!addToCollectionLineageId}
+        onClose={() => setAddToCollectionLineageId(null)}
+        onSelectCollection={async (collectionId) => {
+          if (!addToCollectionLineageId) return false;
+          const ok = await addICPToCollection(collectionId, addToCollectionLineageId);
+          if (ok) {
+            setAddToCollectionLineageId(null);
+            void loadCollectionMemberships();
           }
-          setShowRenameModal(false);
+          return ok;
         }}
-      />
-
-      <CollectionDeleteModal
-        isOpen={showDeleteModal}
-        collectionName={editingCollection?.name || ""}
-        onClose={() => setShowDeleteModal(false)}
-        onConfirm={async () => {
-          if (!editingCollection?.id) return;
-          const { error } = await supabase.from("collections").delete().eq("id", editingCollection.id);
-          if (error) {
-            console.error("Dashboard: Failed to delete collection", error);
-          } else {
-            await refetchCollections();
-          }
-          setShowDeleteModal(false);
+        onCreateCollection={async (data) => {
+          const created = await createCollection(data);
+          return created?.id ?? null;
         }}
       />
     </>

@@ -1,8 +1,10 @@
-import { useEffect, useMemo, useRef, type ReactNode } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Activity, BookOpen, Check, Users } from "lucide-react";
+import { Activity, BookOpen, Users } from "lucide-react";
 import { GuestAllCompleteTrialBanner } from "../components/guest/GuestAllCompleteTrialBanner";
 import { GuestICPCard } from "../components/cards/GuestICPCard";
+import { MarktrStepCard } from "../components/dashboard/MarktrStepCard";
+import { HealthScoreHero } from "../components/dashboard/HealthScoreHero";
 import { usePaywall } from "../contexts/PaywallContext";
 import { useAuth } from "../contexts/AuthContext";
 import { isRealUser } from "../utils/isRealUser";
@@ -10,55 +12,6 @@ import { getGuestICPs } from "../lib/guestICP";
 import { getGuestBrandSeed } from "../lib/guestBrandSeed";
 import { getGuestStory } from "../lib/guestStory";
 import { getGuestHealthCheck } from "../lib/guestHealthCheck";
-
-type StepCardProps = {
-  step: number;
-  title: string;
-  complete: boolean;
-  summary?: ReactNode;
-  onClick: () => void;
-};
-
-function StepCard({ step, title, complete, summary, onClick }: StepCardProps) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`w-full rounded-2xl border p-6 text-left transition-colors hover:border-primary/40 ${
-        complete
-          ? "border-[#2D7A5F]/40 bg-[#D4EDE8]/50 hover:bg-[#D4EDE8]"
-          : "border-border bg-white hover:bg-muted/20"
-      }`}
-    >
-      <div className="flex items-start gap-4">
-        {complete ? (
-          <div
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#2D7A5F] text-white"
-            aria-hidden
-          >
-            <Check className="h-5 w-5 stroke-[3]" />
-          </div>
-        ) : (
-          <div
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-muted-foreground/20 bg-muted/30 font-['DM_Sans'] text-sm font-semibold text-muted-foreground"
-            aria-hidden
-          >
-            {step}
-          </div>
-        )}
-        <div className="min-w-0 flex-1">
-          <h3 className="font-['Fraunces'] text-lg font-bold text-[#0D1833]">
-            Step {step} — {title}
-          </h3>
-          {summary}
-          <p className="mt-3 font-['DM_Sans'] text-sm font-semibold text-primary">
-            {complete ? "View results →" : "Start →"}
-          </p>
-        </div>
-      </div>
-    </button>
-  );
-}
 
 export default function GuestDashboardPreview() {
   const navigate = useNavigate();
@@ -160,7 +113,7 @@ export default function GuestDashboardPreview() {
         </header>
 
         <section className="grid gap-6 lg:grid-cols-3">
-          <StepCard
+          <MarktrStepCard
             step={1}
             title="Digital health check"
             complete={hasHealth}
@@ -184,7 +137,7 @@ export default function GuestDashboardPreview() {
             }
           />
 
-          <StepCard
+          <MarktrStepCard
             step={2}
             title="Brand story"
             complete={hasStory}
@@ -204,7 +157,7 @@ export default function GuestDashboardPreview() {
             }
           />
 
-          <StepCard
+          <MarktrStepCard
             step={3}
             title="Know your customer"
             complete={hasICPs}
@@ -225,47 +178,23 @@ export default function GuestDashboardPreview() {
           />
         </section>
 
-        {hasHealth && guestHealth?.scores && (
-          <div className="space-y-4 rounded-2xl border border-border bg-white p-6">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <h2 className="font-['Fraunces'] text-2xl font-bold text-[#0D1833]">Your digital health scores</h2>
-              <Link
-                to="/health-preview"
-                className="font-['DM_Sans'] text-sm font-medium text-primary hover:underline"
-              >
-                View your findings →
-              </Link>
-            </div>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              {(
-                [
-                  { label: "Website Clarity", score: guestHealth.scores.websiteClarity },
-                  { label: "Brand Story", score: guestHealth.scores.brandStory },
-                  { label: "Content Consistency", score: guestHealth.scores.contentConsistency },
-                  { label: "Social Presence", score: guestHealth.scores.socialPresence },
-                ] as const
-              ).map(({ label, score }) => (
-                <div key={label} className="rounded-xl border border-border bg-background p-4 text-center">
-                  <p
-                    className={`font-['Fraunces'] text-3xl font-bold leading-none ${
-                      score >= 70 ? "text-[#2D7A5F]" : score >= 40 ? "text-[#BA7517]" : "text-[#E24B4A]"
-                    }`}
-                  >
-                    {score}
-                  </p>
-                  <p className="mt-2 font-['DM_Sans'] text-[10px] leading-tight text-muted-foreground">{label}</p>
-                </div>
-              ))}
-            </div>
-            <div className="pt-2 text-center">
-              <p className="font-['Fraunces'] text-4xl font-bold text-[#0D1833]">
-                {guestHealth.scores.overall}
-                <span className="font-['DM_Sans'] text-lg font-normal text-muted-foreground">/100</span>
-              </p>
-              <p className="font-['DM_Sans'] text-sm text-muted-foreground">Overall digital health</p>
-            </div>
-          </div>
-        )}
+        {hasHealth && guestHealth?.scores ? (
+          <HealthScoreHero
+            overall={guestHealth.scores.overall}
+            reportHref="/health-preview"
+            reportLinkLabel="View your findings →"
+            dimensions={[
+              { key: "websiteClarity", label: "Website Clarity", score: guestHealth.scores.websiteClarity },
+              { key: "brandStory", label: "Brand Story", score: guestHealth.scores.brandStory },
+              {
+                key: "contentConsistency",
+                label: "Content Consistency",
+                score: guestHealth.scores.contentConsistency,
+              },
+              { key: "socialPresence", label: "Social Presence", score: guestHealth.scores.socialPresence },
+            ]}
+          />
+        ) : null}
 
         {hasStory && guestStory?.output && (
           <div className="space-y-4 rounded-2xl border border-border bg-white p-6">

@@ -75,9 +75,18 @@ export const IdentityCapture = forwardRef<IdentityCaptureHandle, IdentityCapture
 
     const localNameRef = useRef(localName);
     const localEmailRef = useRef(localEmail);
+    const nameInputRef = useRef<HTMLInputElement | null>(null);
+    const emailInputRef = useRef<HTMLInputElement | null>(null);
     localNameRef.current = localName;
     localEmailRef.current = localEmail;
     leadTokenRef.current = leadToken;
+
+    /** Prefer live DOM values so browser autofill is visible to submit on the first click. */
+    const readDraftFromDom = useCallback(() => {
+      const name = (nameInputRef.current?.value ?? localNameRef.current).trim();
+      const email = (emailInputRef.current?.value ?? localEmailRef.current).trim();
+      return { name, email };
+    }, []);
 
     const turnstileConfigured = isTurnstileConfigured();
     const showTurnstile =
@@ -123,20 +132,25 @@ export const IdentityCapture = forwardRef<IdentityCaptureHandle, IdentityCapture
     );
 
     const commitName = useCallback(() => {
-      const value = localName.trim();
+      const value = (nameInputRef.current?.value ?? localName).trim();
+      if (value !== localName) setLocalName(value);
+      localNameRef.current = value;
       onNameCommit(value);
       return value;
     }, [localName, onNameCommit]);
 
     const commitEmail = useCallback(() => {
-      const value = localEmail.trim();
+      const value = (emailInputRef.current?.value ?? localEmail).trim();
+      if (value !== localEmail) setLocalEmail(value);
+      localEmailRef.current = value;
       onEmailCommit(value);
       return value;
     }, [localEmail, onEmailCommit]);
 
     const tryLeadCapture = useCallback(() => {
-      void attemptLeadCapture(localEmail, localName, leadTokenRef.current);
-    }, [localEmail, localName, attemptLeadCapture]);
+      const { name, email } = readDraftFromDom();
+      void attemptLeadCapture(email, name, leadTokenRef.current);
+    }, [readDraftFromDom, attemptLeadCapture]);
 
     useImperativeHandle(
       ref,
@@ -147,12 +161,9 @@ export const IdentityCapture = forwardRef<IdentityCaptureHandle, IdentityCapture
           void attemptLeadCapture(email, name, leadTokenRef.current);
           return { name, email };
         },
-        getDraft: () => ({
-          name: localNameRef.current.trim(),
-          email: localEmailRef.current.trim(),
-        }),
+        getDraft: () => readDraftFromDom(),
       }),
-      [commitName, commitEmail, attemptLeadCapture]
+      [commitName, commitEmail, attemptLeadCapture, readDraftFromDom]
     );
 
     useEffect(() => {
@@ -271,13 +282,21 @@ export const IdentityCapture = forwardRef<IdentityCaptureHandle, IdentityCapture
               What should we call you?
             </Label>
             <Input
+              ref={nameInputRef}
               id="guest-identity-name"
               type="text"
+              name="name"
+              autoComplete="name"
               value={localName}
               onChange={(e) => {
                 const next = e.target.value;
                 setLocalName(next);
-                notifyDraft(next, localEmail);
+                notifyDraft(next, localEmailRef.current);
+              }}
+              onInput={(e) => {
+                const next = (e.target as HTMLInputElement).value;
+                setLocalName(next);
+                notifyDraft(next, emailInputRef.current?.value ?? localEmailRef.current);
               }}
               onBlur={commitName}
               placeholder="Your first name"
@@ -292,13 +311,21 @@ export const IdentityCapture = forwardRef<IdentityCaptureHandle, IdentityCapture
               Where should we send your results?
             </Label>
             <Input
+              ref={emailInputRef}
               id="guest-identity-email"
               type="email"
+              name="email"
+              autoComplete="email"
               value={localEmail}
               onChange={(e) => {
                 const next = e.target.value;
                 setLocalEmail(next);
-                notifyDraft(localName, next);
+                notifyDraft(localNameRef.current, next);
+              }}
+              onInput={(e) => {
+                const next = (e.target as HTMLInputElement).value;
+                setLocalEmail(next);
+                notifyDraft(nameInputRef.current?.value ?? localNameRef.current, next);
               }}
               onBlur={() => {
                 commitEmail();

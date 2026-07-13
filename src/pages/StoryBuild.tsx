@@ -358,16 +358,14 @@ export default function StoryBuild() {
 
   const canContinueEmail = useMemo(() => {
     if (isLoggedIn || hasGuestIdentity()) return true;
-    const e = email.trim() || getGuestIdentityEmail() || "";
-    const n = identityName.trim() || getGuestIdentityName() || "";
-    if (!e.length || !e.includes("@") || !n.length) return false;
+    // Autofill may leave React state empty until first interaction — validate on click.
     const needsTurnstile =
       Boolean(emailStepFields?.showEmail) &&
       isTurnstileConfigured() &&
       !isGuestLeadCaptured();
     if (needsTurnstile && !leadToken) return false;
     return true;
-  }, [email, identityName, isLoggedIn, leadToken, emailStepFields?.showEmail]);
+  }, [isLoggedIn, leadToken, emailStepFields?.showEmail]);
 
   const goBack = () => {
     if (step === "q4" && (isLoggedIn || hasGuestIdentity())) {
@@ -586,10 +584,16 @@ export default function StoryBuild() {
         <Button
           type="button"
           disabled={!canContinueEmail}
+          onMouseDown={(e) => {
+            e.preventDefault();
+          }}
           onClick={() => {
             const committed = identityCaptureRef.current?.commitAll();
             const nameToSave = committed?.name || identityName.trim() || getGuestIdentityName() || undefined;
             const emailToSave = committed?.email || email.trim() || getGuestIdentityEmail() || undefined;
+            if (!isLoggedIn && (!nameToSave?.length || !emailToSave?.length || !emailToSave.includes("@"))) {
+              return;
+            }
             updateGuestContext({
               identity: {
                 name: nameToSave,

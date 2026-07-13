@@ -152,6 +152,7 @@ export function EmailCaptureScreen({
             type="email"
             value={email}
             onChange={(e) => onEmailChange(e.target.value)}
+            onInput={(e) => onEmailChange((e.target as HTMLInputElement).value)}
             onBlur={() => onEmailCommit?.(email.trim())}
             onKeyDown={handleKeyDown}
             placeholder="your@email.com"

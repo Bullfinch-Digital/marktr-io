@@ -73,15 +73,23 @@ export function LoginModal({
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!localEmail.trim()) return;
+  const performSignIn = async (resolvedEmail: string, resolvedPassword: string) => {
+    if (!resolvedEmail) {
+      setError("Enter your email to continue.");
+      return;
+    }
+    if (!resolvedPassword) {
+      setError("Enter your password to continue.");
+      return;
+    }
+    if (resolvedEmail !== localEmail) setLocalEmail(resolvedEmail);
+    if (resolvedPassword !== password) setPassword(resolvedPassword);
     setLoading(true);
     setError(null);
     try {
       const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: localEmail.trim(),
-        password,
+        email: resolvedEmail,
+        password: resolvedPassword,
       });
       if (signInError) {
         setError(signInError.message);
@@ -91,7 +99,7 @@ export function LoginModal({
 
       const pending = getPendingGuestLink();
       const hasExplicitIds = Boolean(guestRef || sessionId);
-      const normalizedEmail = localEmail.trim() || null;
+      const normalizedEmail = resolvedEmail || null;
 
       if (hasExplicitIds || pending) {
         setPendingGuestLink({
@@ -121,6 +129,27 @@ export function LoginModal({
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+    const emailFromForm = String(formData.get("email") ?? "").trim();
+    const passwordFromForm = String(formData.get("password") ?? "");
+    await performSignIn(
+      emailFromForm || localEmail.trim(),
+      passwordFromForm || password
+    );
+  };
+
+  const handleSubmitClick = async () => {
+    const emailEl = document.getElementById("login-email") as HTMLInputElement | null;
+    const passwordEl = document.getElementById("login-password") as HTMLInputElement | null;
+    await performSignIn(
+      (emailEl?.value ?? localEmail).trim(),
+      passwordEl?.value ?? password
+    );
   };
 
   return (
@@ -173,9 +202,13 @@ export function LoginModal({
           <Input
             id="login-email"
             type="email"
+            name="email"
+            autoComplete="email"
             value={localEmail}
             onChange={(e) => setLocalEmail(e.target.value)}
+            onInput={(e) => setLocalEmail((e.target as HTMLInputElement).value)}
             readOnly={Boolean(email)}
+            required
             className="border border-black rounded-design px-4 py-3 bg-white"
           />
           </div>
@@ -187,8 +220,11 @@ export function LoginModal({
             <Input
               id="login-password"
               type="password"
+              name="password"
+              autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              onInput={(e) => setPassword((e.target as HTMLInputElement).value)}
               className="border border-black rounded-design px-4 py-3 bg-white"
               required
             />
@@ -199,8 +235,13 @@ export function LoginModal({
           )}
 
           <Button
-            type="submit"
+            type="button"
             disabled={loading}
+            onMouseDown={(e) => {
+              // Avoid blur/autofill sync swallowing the first submit click.
+              e.preventDefault();
+            }}
+            onClick={() => void handleSubmitClick()}
             className="w-full bg-button-green text-text-dark hover:bg-button-green/90 border border-black rounded-design px-6 py-4 font-['Fraunces']"
           >
             {loading ? "Signing in..." : "Log in"}

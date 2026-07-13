@@ -208,18 +208,9 @@ export default function HealthCheck() {
 
   const canAnalyse = useMemo(() => {
     if (isLoggedIn) return Boolean(user?.email?.trim());
-    const draft = identityCaptureRef.current?.getDraft();
-    const guestName =
-      draft?.name ||
-      identityName.trim() ||
-      getGuestIdentityName() ||
-      "";
-    const guestEmail =
-      draft?.email ||
-      formData.email.trim() ||
-      getGuestIdentityEmail() ||
-      "";
-    if (!guestEmail.length || !guestName.length) return false;
+    // Don't gate on React email/name state — browser autofill often fills the DOM
+    // without firing onChange until the first click. Validate in the click handler
+    // via IdentityCapture.getDraft() / commitAll() instead.
     const needsTurnstile =
       showIdentityEmail && turnstileConfigured && !isGuestLeadCaptured();
     if (needsTurnstile && !leadToken) return false;
@@ -227,8 +218,6 @@ export default function HealthCheck() {
   }, [
     isLoggedIn,
     user?.email,
-    identityName,
-    formData.email,
     showIdentityEmail,
     turnstileConfigured,
     leadToken,
@@ -690,6 +679,12 @@ export default function HealthCheck() {
           </Button>
 
           <Button
+            type="button"
+            onMouseDown={(e) => {
+              // Keep focus from leaving the email field before click fires — otherwise
+              // blur/autofill sync can swallow the first Submit and require a second click.
+              e.preventDefault();
+            }}
             onClick={flushGuestIdentityAndProceed}
             disabled={!canAnalyse}
             className="rounded-full bg-primary px-8 py-6 font-['DM_Sans'] text-base font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"

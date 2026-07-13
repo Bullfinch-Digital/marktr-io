@@ -304,6 +304,33 @@ async function fetchAbsoluteHtml(url: string): Promise<string> {
 
 const INSTAGRAM_FETCH_ATTEMPTS = 3;
 
+/**
+ * Apify often returns HTTP 200 with a truthy stub for unknown usernames
+ * (e.g. `{ username, error }` or an object with no followersCount).
+ * Those must NOT be treated as found — that caused phantom Social/Content scores.
+ */
+function isUsableInstagramProfile(profile: unknown): profile is Record<string, unknown> {
+  if (!profile || typeof profile !== "object") return false;
+  const p = profile as Record<string, unknown>;
+
+  if (typeof p.error === "string" && p.error.trim()) return false;
+  if (p.exists === false) return false;
+
+  const followers = p.followersCount;
+  if (typeof followers === "number" && Number.isFinite(followers) && followers >= 0) {
+    return true;
+  }
+  if (
+    typeof followers === "string" &&
+    followers.trim() !== "" &&
+    Number.isFinite(Number(followers))
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
 async function fetchInstagramOnce(username: string, apiToken: string): Promise<InstagramFetchResult | null> {
   const emptyIncomplete: InstagramFetchResult = {
     signals: "",
@@ -344,9 +371,23 @@ async function fetchInstagramOnce(username: string, apiToken: string): Promise<I
     const items = await res.json();
     const profile = Array.isArray(items) ? items[0] : null;
 
-    // HTTP 200 with empty/missing profile is NOT confident absence (live flake:
-    // miss then find). Treat as incomplete; never band as genuine absent.
-    if (!profile) return emptyIncomplete;
+    // HTTP 200 empty OR stub/error object → incomplete (not genuine absent).
+    if (!isUsableInstagramProfile(profile)) {
+      console.warn(
+        "Apify Instagram unusable profile (treating as incomplete):",
+        JSON.stringify(
+          profile && typeof profile === "object"
+            ? {
+                keys: Object.keys(profile as object),
+                error: (profile as Record<string, unknown>).error ?? null,
+                followersCount: (profile as Record<string, unknown>).followersCount ?? null,
+                username: (profile as Record<string, unknown>).username ?? null,
+              }
+            : profile
+        )
+      );
+      return emptyIncomplete;
+    }
 
     const followers = profile.followersCount?.toString() ?? "";
     const following = profile.followingCount?.toString() ?? "";
@@ -361,7 +402,7 @@ async function fetchInstagramOnce(username: string, apiToken: string): Promise<I
     const latestPosts = profile.latestPosts ?? [];
     let avgLikes = 0;
     let avgComments = 0;
-    if (latestPosts.length > 0) {
+    if (Array.isArray(latestPosts) && latestPosts.length > 0) {
       avgLikes = Math.round(
         latestPosts.reduce(
           (sum: number, p: { likesCount?: number }) => sum + (p.likesCount ?? 0),

@@ -199,9 +199,10 @@ export function EditableListSection({
             onClick={addItem}
             size="sm"
             variant="outline"
-            className="border-black rounded-design px-3"
+            className="border-black rounded-design gap-1.5 px-3"
           >
             <Plus className="w-4 h-4" />
+            Add
           </Button>
         </div>
       ) : null}

@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, Plus } from "lucide-react";
 import type { StrategyWithLinks } from "../../hooks/useBrandStrategies";
 import { StrategyCompositionBanner } from "./StrategyCompositionBanner";
 import { StrategyContentView } from "./StrategyContentView";
@@ -48,10 +48,11 @@ export function StrategyRosterCard({ strategy, onArchive, readOnly = false }: Pr
               type="button"
               variant="outline"
               size="sm"
-              className="border-black rounded-design"
+              className="border-black rounded-design gap-1.5"
               onClick={() => navigate(`/strategy/${strategy.id}`)}
             >
-              View & edit
+              <Plus className="h-3.5 w-3.5" />
+              Edit
             </Button>
             {onArchive ? (
               <ArchiveActionTooltip>

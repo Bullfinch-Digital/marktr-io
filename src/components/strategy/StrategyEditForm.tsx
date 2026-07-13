@@ -1,6 +1,7 @@
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Textarea } from "../ui/textarea";
+import { Plus } from "lucide-react";
 import { EditableListSection } from "../EditableListSection";
 import type { ICPStrategyPayload } from "../../types/icpStrategyPayload";
 import { createEmptyAdAssets, type StrategySectionId } from "../../lib/strategyEditPayload";
@@ -233,9 +234,10 @@ export function StrategyEditForm({
             <Button
               type="button"
               variant="outline"
-              className="border-black rounded-design"
+              className="border-black rounded-design gap-1.5"
               onClick={() => patch({ ad_assets: createEmptyAdAssets() })}
             >
+              <Plus className="h-4 w-4" />
               Add ad assets
             </Button>
           ) : null}

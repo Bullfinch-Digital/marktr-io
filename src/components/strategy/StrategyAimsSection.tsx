@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Archive, ChevronDown, ChevronUp, Eye, RotateCcw, Trash2 } from "lucide-react";
+import { Archive, ChevronDown, ChevronUp, Eye, Plus, RotateCcw, Trash2 } from "lucide-react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Textarea } from "../ui/textarea";
@@ -170,9 +170,10 @@ export function StrategyAimsSection({
           <Button
             type="button"
             variant="outline"
-            className="border-black rounded-design"
+            className="border-black rounded-design gap-1.5"
             onClick={() => setShowCreateForm(true)}
           >
+            <Plus className="h-4 w-4" />
             Add aim
           </Button>
         ) : null}
@@ -316,9 +317,10 @@ export function StrategyAimsSection({
                       type="button"
                       variant="outline"
                       size="sm"
-                      className="border-black rounded-design"
+                      className="border-black rounded-design gap-1.5"
                       onClick={() => startEdit(aim)}
                     >
+                      <Plus className="h-3.5 w-3.5" />
                       Edit
                     </Button>
                     <ArchiveActionTooltip>

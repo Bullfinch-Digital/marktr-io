@@ -1,4 +1,4 @@
-import { Pencil } from "lucide-react";
+import { Plus } from "lucide-react";
 import { Button } from "../ui/button";
 import type { ICPStrategyPayload } from "../../types/icpStrategyPayload";
 import type { StrategySectionId } from "../../lib/strategyEditPayload";
@@ -111,7 +111,7 @@ function SectionShell({
                 onClick={onStartEdit}
                 className="inline-flex items-center gap-1.5 font-['Inter'] text-xs text-foreground/60 hover:text-foreground transition-colors px-2 py-1 rounded hover:bg-accent-grey/30"
               >
-                <Pencil className="h-3 w-3" />
+                <Plus className="h-3 w-3" />
                 Edit
               </button>
             ) : null}

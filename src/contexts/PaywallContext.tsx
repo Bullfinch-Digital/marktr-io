@@ -208,14 +208,11 @@ export function PaywallProvider({ children }: { children: React.ReactNode }) {
       <PaywallModal
         isOpen={showPaywall}
         onClose={closePaywall}
-        // Normalise in case PaywallModal passes "yearly"
+        // Normalise in case callers still pass "yearly"
         onUpgrade={(plan, force) =>
           startCheckout(normalisePlan(plan) as Plan, force)
         }
         onContinueFree={closePaywall}
-        selectedPlan={selectedPlan}
-        // Normalise in case PaywallModal passes "yearly"
-        onSelectPlan={(plan) => setSelectedPlan(normalisePlan(plan))}
         isStartingCheckout={isStartingCheckout}
       />
 

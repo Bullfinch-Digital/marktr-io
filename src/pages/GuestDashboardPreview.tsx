@@ -15,7 +15,7 @@ import { getGuestHealthCheck } from "../lib/guestHealthCheck";
 
 export default function GuestDashboardPreview() {
   const navigate = useNavigate();
-  const { startCheckout } = usePaywall();
+  const { openPaywall } = usePaywall();
   const { user } = useAuth();
   const icpProfilesRef = useRef<HTMLElement>(null);
 
@@ -114,7 +114,7 @@ export default function GuestDashboardPreview() {
       </div>
 
       {allComplete && (
-        <GuestAllCompleteTrialBanner onStartTrial={() => void startCheckout("annual")} />
+        <GuestAllCompleteTrialBanner onStartTrial={() => openPaywall("annual")} />
       )}
 
       <div className="container mx-auto max-w-7xl space-y-10 px-6 pb-12 pt-8 lg:px-12">
@@ -288,7 +288,7 @@ export default function GuestDashboardPreview() {
         {allComplete && (
           <GuestAllCompleteTrialBanner
             variant="contained"
-            onStartTrial={() => void startCheckout("annual")}
+            onStartTrial={() => openPaywall("annual")}
           />
         )}
       </div>

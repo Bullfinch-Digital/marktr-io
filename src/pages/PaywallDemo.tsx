@@ -45,23 +45,19 @@ export default function PaywallDemo() {
           <ol className="space-y-2 font-['Inter'] text-sm">
             <li className="flex gap-3">
               <span className="font-bold">1.</span>
-              <span>User sees Paywall Modal with feature comparison and pricing</span>
+              <span>User sees Paywall Modal with annual Marktr Pro plan and trial terms</span>
             </li>
             <li className="flex gap-3">
               <span className="font-bold">2.</span>
-              <span>User selects a plan (Annual or Monthly)</span>
+              <span>User starts checkout (signs in first if needed)</span>
             </li>
             <li className="flex gap-3">
               <span className="font-bold">3.</span>
-              <span>Checkout Modal opens with payment form</span>
+              <span>Stripe Checkout opens for the annual plan</span>
             </li>
             <li className="flex gap-3">
               <span className="font-bold">4.</span>
-              <span>Payment processes (simulated with 2s delay)</span>
-            </li>
-            <li className="flex gap-3">
-              <span className="font-bold">5.</span>
-              <span>Success page shows with next renewal date</span>
+              <span>Success page shows after payment / trial start</span>
             </li>
           </ol>
         </div>

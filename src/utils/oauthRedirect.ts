@@ -1,31 +1,60 @@
 const STORAGE_KEY = "marktr_oauth_next";
 
-export function setOAuthNext(path: string) {
+function writeOAuthNext(path: string) {
   try {
-    if (path.startsWith("/")) {
-      sessionStorage.setItem(STORAGE_KEY, path);
-    }
+    sessionStorage.setItem(STORAGE_KEY, path);
+  } catch {
+    // ignore
+  }
+  try {
+    // localStorage backup: sessionStorage can be unavailable across some OAuth hops
+    localStorage.setItem(STORAGE_KEY, path);
   } catch {
     // ignore
   }
 }
 
-export function getOAuthNext(): string | null {
+function readOAuthNext(): string | null {
   try {
-    const value = sessionStorage.getItem(STORAGE_KEY);
-    if (value && value.startsWith("/")) return value;
-    return null;
+    const fromSession = sessionStorage.getItem(STORAGE_KEY);
+    if (fromSession && fromSession.startsWith("/")) return fromSession;
   } catch {
-    return null;
+    // ignore
   }
+  try {
+    const fromLocal = localStorage.getItem(STORAGE_KEY);
+    if (fromLocal && fromLocal.startsWith("/")) return fromLocal;
+  } catch {
+    // ignore
+  }
+  return null;
 }
 
-export function clearOAuthNext() {
+function removeOAuthNext() {
   try {
     sessionStorage.removeItem(STORAGE_KEY);
   } catch {
     // ignore
   }
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    // ignore
+  }
+}
+
+export function setOAuthNext(path: string) {
+  if (path.startsWith("/")) {
+    writeOAuthNext(path);
+  }
+}
+
+export function getOAuthNext(): string | null {
+  return readOAuthNext();
+}
+
+export function clearOAuthNext() {
+  removeOAuthNext();
 }
 
 export function resolveOAuthNext(search: string): string {

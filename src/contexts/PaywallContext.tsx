@@ -39,7 +39,7 @@ type AlreadySubscribedState = {
 const PaywallContext = createContext<PaywallContextValue | undefined>(undefined);
 
 export function PaywallProvider({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth();
+  const { user, session, loading: authLoading } = useAuth();
   const { openSignIn } = useAuthModal();
   const resumeCheckoutRef = useRef(false);
   const [showPaywall, setShowPaywall] = useState(false);
@@ -147,27 +147,40 @@ export function PaywallProvider({ children }: { children: React.ReactNode }) {
   );
 
   useEffect(() => {
-    if (!user || (user as any).is_anonymous) return;
+    // AuthCallback owns the post-OAuth checkout handoff — avoid a double Stripe session.
+    if (window.location.pathname === "/auth/callback") return;
+    if (authLoading) return;
+    if (!user || (user as { is_anonymous?: boolean }).is_anonymous) return;
 
     const pendingPlan = getPendingCheckoutPlan();
     if (!pendingPlan) return;
     if (resumeCheckoutRef.current) return;
+
+    // Prefer AuthContext session; fall back to getSession for the OAuth race where
+    // `user` flips before the access token is readable.
+    const sessionReady = Boolean(
+      session?.access_token &&
+        session.user &&
+        !(session.user as { is_anonymous?: boolean }).is_anonymous
+    );
 
     resumeCheckoutRef.current = true;
     console.log("[paywall] resuming pending checkout after auth", { plan: pendingPlan });
 
     void (async () => {
       try {
-        const { data: sessionData } = await supabase.auth.getSession();
-        const sessionUser = sessionData?.session?.user ?? null;
-        if (
-          !sessionData?.session?.access_token ||
-          !sessionUser ||
-          (sessionUser as { is_anonymous?: boolean }).is_anonymous
-        ) {
-          console.warn("[paywall] pending checkout resume deferred — session not ready");
-          resumeCheckoutRef.current = false;
-          return;
+        if (!sessionReady) {
+          const { data: sessionData } = await supabase.auth.getSession();
+          const sessionUser = sessionData?.session?.user ?? null;
+          if (
+            !sessionData?.session?.access_token ||
+            !sessionUser ||
+            (sessionUser as { is_anonymous?: boolean }).is_anonymous
+          ) {
+            console.warn("[paywall] pending checkout resume deferred — session not ready");
+            resumeCheckoutRef.current = false;
+            return;
+          }
         }
 
         await proceedToStripe(pendingPlan);
@@ -176,7 +189,7 @@ export function PaywallProvider({ children }: { children: React.ReactNode }) {
         resumeCheckoutRef.current = false;
       }
     })();
-  }, [user, proceedToStripe]);
+  }, [user, session, authLoading, proceedToStripe]);
 
   const value = useMemo(
     () => ({

@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
+import { getPendingCheckoutPlan } from "../../utils/pendingCheckout";
 import {
   clearOAuthNext,
   getOAuthNext,
@@ -16,7 +17,7 @@ import {
 export function OAuthReturnHandler() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, loading } = useAuth();
+  const { user, session, loading } = useAuth();
 
   useEffect(() => {
     if (location.pathname === "/auth/callback") return;
@@ -43,17 +44,45 @@ export function OAuthReturnHandler() {
       return;
     }
 
-    if (loading || !user || (user as any).is_anonymous) return;
+    if (loading || !user || (user as { is_anonymous?: boolean }).is_anonymous) return;
 
-    const pending = getOAuthNext();
-    if (!pending || location.pathname === pending) {
-      if (pending && location.pathname === pending) clearOAuthNext();
+    // Session token may lag briefly behind `user` after OAuth — wait for it so we
+    // don't clear oauth_next and bounce before the handoff can complete.
+    if (!session?.access_token) return;
+
+    const pendingNext = getOAuthNext();
+    const pendingCheckout = getPendingCheckoutPlan();
+    const strandedOnPublicHome =
+      location.pathname === "/" && Boolean(pendingNext || pendingCheckout);
+
+    // Mid-signup OAuth often lands on Site URL (/) with a session but no code left
+    // in the URL (detectSessionInUrl already consumed it). Send through AuthCallback
+    // so checkout resume + post-auth pipeline still run.
+    if (strandedOnPublicHome) {
+      const next = pendingNext ?? resolveOAuthNext(location.search);
+      clearOAuthNext();
+      window.location.replace(
+        `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`
+      );
+      return;
+    }
+
+    if (!pendingNext || location.pathname === pendingNext) {
+      if (pendingNext && location.pathname === pendingNext) clearOAuthNext();
       return;
     }
 
     clearOAuthNext();
-    window.location.replace(pending);
-  }, [location.pathname, location.search, location.hash, navigate, user, loading]);
+    window.location.replace(pendingNext);
+  }, [
+    location.pathname,
+    location.search,
+    location.hash,
+    navigate,
+    user,
+    session,
+    loading,
+  ]);
 
   return null;
 }

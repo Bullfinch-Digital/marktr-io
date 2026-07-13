@@ -175,7 +175,7 @@ export default function HealthReport() {
 
     const websiteScoreForDisplay = applyFindingsToWebsiteScore(
       baseWebsiteScore ?? {
-        score: preview.websiteClarity.score,
+        score: preview.websiteClarity.score ?? 0,
         observation: preview.websiteClarity.observation,
       },
       findings

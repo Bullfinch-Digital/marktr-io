@@ -5,7 +5,7 @@ export type HealthCheckWebsiteScore = NonNullable<HealthCheckInput["websiteScore
 
 export type HealthDimensionFinding = {
   dimension: string;
-  score: number;
+  score: number | null;
   finding: string;
 };
 
@@ -74,9 +74,12 @@ function isStaticObservation(finding: string): boolean {
 function deltaContext(
   dimension: string,
   priorScore: number,
-  currentScore: number,
+  currentScore: number | null,
   priorRun: HealthCheckPriorRunPayload
 ): string {
+  if (currentScore === null) {
+    return "This dimension wasn’t measured on this run.";
+  }
   if (dimension === "Brand Story" && priorScore < 40 && currentScore >= 70) {
     const hadMissing = (priorRun.missingElements?.length ?? 0) > 0;
     return hadMissing
@@ -101,7 +104,14 @@ function deltaContext(
   return "What’s live now is weaker than on your last check.";
 }
 
-function continuityLead(dimension: string, priorScore: number, currentScore: number): string {
+function continuityLead(
+  dimension: string,
+  priorScore: number,
+  currentScore: number | null
+): string {
+  if (currentScore === null) {
+    return `${dimension} wasn’t measured this run.`;
+  }
   if (priorScore === currentScore) {
     return `Still ${currentScore}/100 since your last check.`;
   }
@@ -201,13 +211,19 @@ export function mergeHealthFindings(
 export function parseApiFindings(raw: unknown): HealthDimensionFinding[] {
   if (!Array.isArray(raw)) return [];
   return raw
-    .map((item) => {
+    .map((item): HealthDimensionFinding | null => {
       if (!item || typeof item !== "object") return null;
       const row = item as Record<string, unknown>;
       const dimension = typeof row.dimension === "string" ? row.dimension.trim() : "";
-      const score = Number(row.score);
       const finding = typeof row.finding === "string" ? row.finding.trim() : "";
-      if (!dimension || !finding || Number.isNaN(score)) return null;
+      if (!dimension || !finding) return null;
+      const score =
+        row.score === null || row.score === undefined
+          ? null
+          : typeof row.score === "number"
+            ? row.score
+            : Number(row.score);
+      if (score !== null && Number.isNaN(score)) return null;
       return { dimension, score, finding };
     })
     .filter((item): item is HealthDimensionFinding => item !== null);

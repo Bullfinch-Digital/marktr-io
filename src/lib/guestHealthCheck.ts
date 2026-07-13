@@ -9,10 +9,10 @@ export type GuestHealthCheck = {
     email: string;
   };
   scores: {
-    websiteClarity: number;
-    brandStory: number;
-    contentConsistency: number;
-    socialPresence: number;
+    websiteClarity: number | null;
+    brandStory: number | null;
+    contentConsistency: number | null;
+    socialPresence: number | null;
     overall: number;
     lowestDimension: string;
     lowestScore: number;

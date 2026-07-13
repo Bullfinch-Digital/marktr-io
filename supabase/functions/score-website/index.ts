@@ -66,6 +66,7 @@ type HealthCheckFacts = {
 type ApifySocialMetrics = {
   instagramFound: boolean;
   facebookFound: boolean;
+  instagramFetchStatus: "not_provided" | "found" | "incomplete";
   followers: number;
   avgLikes: number;
   avgComments: number;
@@ -79,6 +80,8 @@ type ApifySocialMetrics = {
 type InstagramFetchResult = {
   signals: string;
   found: boolean;
+  /** not_provided | found | incomplete — incomplete means handle given but scrape failed. */
+  status: "not_provided" | "found" | "incomplete";
   followers: string;
   postCount: string;
   avgLikes: number;
@@ -233,6 +236,7 @@ function toApifyMetrics(
   return {
     instagramFound: instagram.found,
     facebookFound: facebook.found,
+    instagramFetchStatus: instagram.status,
     followers: instagram.found ? Number(instagram.followers) || 0 : 0,
     avgLikes: instagram.avgLikes,
     avgComments: instagram.avgComments,
@@ -298,10 +302,13 @@ async function fetchAbsoluteHtml(url: string): Promise<string> {
   }
 }
 
-async function fetchInstagramPublic(handle: string): Promise<InstagramFetchResult> {
-  const empty: InstagramFetchResult = {
+const INSTAGRAM_FETCH_ATTEMPTS = 3;
+
+async function fetchInstagramOnce(username: string, apiToken: string): Promise<InstagramFetchResult | null> {
+  const emptyIncomplete: InstagramFetchResult = {
     signals: "",
     found: false,
+    status: "incomplete",
     followers: "",
     postCount: "",
     avgLikes: 0,
@@ -312,15 +319,6 @@ async function fetchInstagramPublic(handle: string): Promise<InstagramFetchResul
     hasExternalUrl: false,
     hasFullName: false,
   };
-
-  const username = handle.replace("@", "").trim().toLowerCase();
-  if (!username) return empty;
-
-  const apiToken = Deno.env.get("APIFY_API_TOKEN");
-  if (!apiToken) {
-    console.error("APIFY_API_TOKEN not set");
-    return empty;
-  }
 
   try {
     const res = await fetch(
@@ -340,13 +338,15 @@ async function fetchInstagramPublic(handle: string): Promise<InstagramFetchResul
 
     if (!res.ok) {
       console.error("Apify API error:", res.status, await res.text());
-      return empty;
+      return emptyIncomplete;
     }
 
     const items = await res.json();
     const profile = Array.isArray(items) ? items[0] : null;
 
-    if (!profile) return empty;
+    // HTTP 200 with empty/missing profile is NOT confident absence (live flake:
+    // miss then find). Treat as incomplete; never band as genuine absent.
+    if (!profile) return emptyIncomplete;
 
     const followers = profile.followersCount?.toString() ?? "";
     const following = profile.followingCount?.toString() ?? "";
@@ -415,6 +415,7 @@ async function fetchInstagramPublic(handle: string): Promise<InstagramFetchResul
     return {
       signals,
       found: true,
+      status: "found",
       followers,
       postCount: posts,
       avgLikes,
@@ -427,8 +428,53 @@ async function fetchInstagramPublic(handle: string): Promise<InstagramFetchResul
     };
   } catch (err) {
     console.error("Apify fetch error:", err);
-    return empty;
+    return emptyIncomplete;
   }
+}
+
+async function fetchInstagramPublic(handle: string): Promise<InstagramFetchResult> {
+  const notProvided: InstagramFetchResult = {
+    signals: "",
+    found: false,
+    status: "not_provided",
+    followers: "",
+    postCount: "",
+    avgLikes: 0,
+    avgComments: 0,
+    latestPostDaysAgo: null,
+    postsPerWeek: null,
+    bio: "",
+    hasExternalUrl: false,
+    hasFullName: false,
+  };
+
+  const username = handle.replace("@", "").trim().toLowerCase();
+  if (!username) return notProvided;
+
+  const apiToken = Deno.env.get("APIFY_API_TOKEN");
+  if (!apiToken) {
+    console.error("APIFY_API_TOKEN not set");
+    return { ...notProvided, status: "incomplete" };
+  }
+
+  let last: InstagramFetchResult | null = null;
+  for (let attempt = 1; attempt <= INSTAGRAM_FETCH_ATTEMPTS; attempt++) {
+    last = await fetchInstagramOnce(username, apiToken);
+    if (last?.found) return last;
+    console.warn(
+      `Apify Instagram attempt ${attempt}/${INSTAGRAM_FETCH_ATTEMPTS} incomplete for @${username}`
+    );
+    if (attempt < INSTAGRAM_FETCH_ATTEMPTS) {
+      await new Promise((r) => setTimeout(r, 400 * attempt));
+    }
+  }
+
+  return (
+    last ?? {
+      ...notProvided,
+      status: "incomplete",
+    }
+  );
 }
 
 async function fetchFacebookPublic(facebookUrl: string): Promise<FacebookFetchResult> {
@@ -629,10 +675,15 @@ const FINDINGS_SYSTEM_PROMPT = `You write advisory findings for a digital health
 }
 
 RULES:
-- You receive CURRENT dimension scores (already computed from the live site). Each finding's "score" MUST exactly match the provided score for that dimension. Never invent or adjust scores.
-- Write 2–3 sentences per finding: direct, founder-friendly, specific to what you see in the scrape.
-- strengths: 1–3 items for Website Clarity only (what is working).
-- gaps: 1–3 priority gaps for Website Clarity only (what to fix next).
+- You receive CURRENT dimension scores (already computed from the live site). Each finding's "score" MUST exactly match the provided score for that dimension. Never invent or adjust scores. For unmeasured dimensions (null / socialIncomplete), omit that finding row entirely.
+- Write 2–3 sentences per finding: direct, founder-friendly, specific to what you see in the scrape. Stay STRICTLY within that dimension — never put social or content advice under Website Clarity, etc.
+- strengths: 1–3 items for Website Clarity only (what is working). If Website Clarity is at raw max (100) or display-capped, return an empty strengths array.
+- gaps: 1–3 priority gaps for Website Clarity only — ONLY from website facts that scored below their top band. If Website Clarity is at raw max (100) or display-capped (dimensionCapped true), return an EMPTY gaps array. Never invent gaps. Never mention posting frequency, bios, or social platforms in Website Clarity gaps.
+
+WHEN socialIncomplete IS TRUE:
+- Only write findings for Website Clarity and Brand Story.
+- Do NOT invent Content or Social scores or advice. Mention briefly that social could not be read this run and the overall covers website + story only.
+- strengths/gaps still follow the Website Clarity rules above.
 
 WHEN priorRun IS PROVIDED (follow-up check):
 - Acknowledge progress: if a prior gap or finding is now addressed on the live site, say so briefly and move to the next priority — do NOT re-list a resolved gap.
@@ -751,12 +802,51 @@ async function generateFindingsProse(
       "Social Presence": scores.social,
       overall: scores.overall,
     },
+    dimensionMeta: {
+      "Website Clarity": {
+        raw: scores.website,
+        displayCap: 95,
+        capped: scores.website > 95,
+        atRawMax: scores.website >= 100,
+      },
+      "Brand Story": {
+        raw: scores.brandStory,
+        displayCap: 95,
+        capped: scores.brandStory > 95,
+        atRawMax: scores.brandStory >= 100,
+      },
+      "Content Consistency":
+        scores.content === null
+          ? { unmeasured: true }
+          : {
+              raw: scores.content,
+              displayCap: 95,
+              capped: scores.content > 95,
+              atRawMax: scores.content >= 100,
+            },
+      "Social Presence":
+        scores.social === null
+          ? { unmeasured: true }
+          : {
+              raw: scores.social,
+              displayCap: 95,
+              capped: scores.social > 95,
+              atRawMax: scores.social >= 100,
+            },
+    },
+    socialIncomplete: scores.socialIncomplete,
     scoreDeltas: priorRun
       ? {
           website: scores.website - priorRun.scores.website,
           brandStory: scores.brandStory - priorRun.scores.brandStory,
-          content: scores.content - priorRun.scores.content,
-          social: scores.social - priorRun.scores.social,
+          content:
+            scores.content === null || priorRun.scores.content == null
+              ? null
+              : scores.content - priorRun.scores.content,
+          social:
+            scores.social === null || priorRun.scores.social == null
+              ? null
+              : scores.social - priorRun.scores.social,
           overall: scores.overall - priorRun.scores.overall,
         }
       : null,
@@ -764,6 +854,7 @@ async function generateFindingsProse(
     socialMetrics: {
       instagramFound: apifyMetrics.instagramFound,
       facebookFound: apifyMetrics.facebookFound,
+      instagramFetchStatus: apifyMetrics.instagramFetchStatus,
       followers: apifyMetrics.followers,
       latestPostDaysAgo: apifyMetrics.latestPostDaysAgo,
       postsPerWeek: apifyMetrics.postsPerWeek,
@@ -838,6 +929,7 @@ Deno.serve(async (req) => {
     let instagramFetch: InstagramFetchResult = {
       signals: "",
       found: false,
+      status: "not_provided",
       followers: "",
       postCount: "",
       avgLikes: 0,
@@ -854,6 +946,7 @@ Deno.serve(async (req) => {
       const emptyInstagram: InstagramFetchResult = {
         signals: "",
         found: false,
+        status: "not_provided",
         followers: "",
         postCount: "",
         avgLikes: 0,
@@ -1026,13 +1119,22 @@ Deno.serve(async (req) => {
         apifyMetrics,
         modelVersion: HEALTH_CHECK_MODEL_VERSION,
         scrapeOk: true,
-        observation: "Analysis complete",
+        observation: deterministicScores.socialIncomplete
+          ? "Couldn't read your social this time — this score covers Website Clarity and Brand Story only."
+          : "Analysis complete",
         findings: findingsPayload?.findings,
-        strengths: findingsPayload?.strengths,
-        gaps: findingsPayload?.gaps,
+        strengths:
+          deterministicScores.website >= 100 || deterministicScores.website > 95
+            ? []
+            : findingsPayload?.strengths,
+        gaps:
+          deterministicScores.website >= 100 || deterministicScores.website > 95
+            ? []
+            : findingsPayload?.gaps,
         overall: deterministicScores.overall,
         overallRaw: deterministicScores.overallRaw,
         capped: deterministicScores.capped,
+        socialIncomplete: deterministicScores.socialIncomplete,
         overallSummary: deterministicScores.capped
           ? OVERALL_CAP_FRAMING_COPY
           : undefined,

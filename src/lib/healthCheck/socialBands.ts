@@ -23,10 +23,20 @@ export type AudienceSizeBand = "under_500" | "500_2k" | "2k_10k" | "10k_plus";
 
 export type CrossPlatformBand = "both" | "one" | "none";
 
+/**
+ * Instagram scrape outcome.
+ * - not_provided: user gave no handle → genuine absent bands
+ * - found: profile retrieved
+ * - incomplete: handle provided but fetch failed/empty after retries — NOT absent
+ */
+export type InstagramFetchStatus = "not_provided" | "found" | "incomplete";
+
 /** Raw Apify / scrape integers — banded before rules (§5). */
 export type ApifySocialMetrics = {
   instagramFound: boolean;
   facebookFound: boolean;
+  /** Distinguishes genuine absence from a failed Apify read. */
+  instagramFetchStatus: InstagramFetchStatus;
   followers: number;
   avgLikes: number;
   avgComments: number;
@@ -54,6 +64,7 @@ export function absentApifyMetrics(): ApifySocialMetrics {
   return {
     instagramFound: false,
     facebookFound: false,
+    instagramFetchStatus: "not_provided",
     followers: 0,
     avgLikes: 0,
     avgComments: 0,
@@ -65,12 +76,28 @@ export function absentApifyMetrics(): ApifySocialMetrics {
   };
 }
 
+function normalizeInstagramFetchStatus(
+  raw: unknown,
+  instagramFound: boolean
+): InstagramFetchStatus {
+  if (raw === "not_provided" || raw === "found" || raw === "incomplete") {
+    return raw;
+  }
+  // Legacy rows (pre-1.0.2): derive from found flag only.
+  return instagramFound ? "found" : "not_provided";
+}
+
 export function normalizeApifyMetrics(raw: unknown): ApifySocialMetrics {
   if (!raw || typeof raw !== "object") return absentApifyMetrics();
   const m = raw as Record<string, unknown>;
+  const instagramFound = Boolean(m.instagramFound);
   return {
-    instagramFound: Boolean(m.instagramFound),
+    instagramFound,
     facebookFound: Boolean(m.facebookFound),
+    instagramFetchStatus: normalizeInstagramFetchStatus(
+      m.instagramFetchStatus,
+      instagramFound
+    ),
     followers: Math.max(0, Number(m.followers) || 0),
     avgLikes: Math.max(0, Number(m.avgLikes) || 0),
     avgComments: Math.max(0, Number(m.avgComments) || 0),

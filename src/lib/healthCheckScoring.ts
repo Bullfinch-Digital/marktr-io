@@ -1,5 +1,11 @@
 import type { DeterministicHealthCheckRun } from "./healthCheck";
-import { buildAbsentHealthCheckRun } from "./healthCheck";
+import {
+  applyDimensionDisplayCap,
+  buildAbsentHealthCheckRun,
+  DIMENSION_CAP_FRAMING_COPY,
+  shouldSuppressDimensionGaps,
+  SOCIAL_INCOMPLETE_COPY,
+} from "./healthCheck";
 
 export interface StoryAssessment {
   hasFounderStory: boolean;
@@ -36,14 +42,19 @@ export interface HealthCheckInput {
     gaps?: string[];
     storyAssessment?: StoryAssessment | null;
     socialScores?: SocialScores | null;
-    findings?: Array<{ dimension: string; score: number; finding: string }>;
+    findings?: Array<{ dimension: string; score: number | null; finding: string }>;
     deterministic?: DeterministicHealthCheckRun | null;
   } | null;
 }
 
 export interface DimensionScore {
   name: string;
-  score: number;
+  /** Displayed score (capped). Null when unmeasured this run. */
+  score: number | null;
+  /** Uncapped raw points. Null when unmeasured. */
+  scoreRaw?: number | null;
+  dimensionCapped?: boolean;
+  unmeasured?: boolean;
   observation: string;
   strengths?: string[];
   gaps?: string[];
@@ -59,6 +70,8 @@ export interface HealthCheckScores {
   overallRaw?: number;
   capped?: boolean;
   overallSummary?: string;
+  socialIncomplete?: boolean;
+  socialIncompleteSummary?: string;
   lowestDimension: string;
   lowestScore: number;
   deterministic?: DeterministicHealthCheckRun;
@@ -116,37 +129,36 @@ function scoresFromDeterministicRun(
   run: DeterministicHealthCheckRun,
   input: HealthCheckInput
 ): HealthCheckScores {
-  const { scores } = run;
-  const instagramNotFound =
-    Boolean(input.instagramHandle?.trim()) && !run.apifyMetrics.instagramFound;
+  const dims = run.dimensions;
+  const socialIncomplete = run.socialIncomplete;
 
   const websiteObservation = obs(
-    scores.websiteClarity,
+    dims.websiteClarity.raw ?? 0,
     "Your homepage communicates clearly",
     "Your value proposition could be sharper",
     "Visitors may struggle to understand what you do"
   );
 
   const storyObservation = obs(
-    scores.brandStory,
+    dims.brandStory.raw ?? 0,
     "Strong brand story with clear positioning",
     "Basic story present but missing key elements",
     "Brand story needs significant development"
   );
 
-  const consistencyObservation = instagramNotFound
-    ? "We could not verify your Instagram profile — social activity scored as absent"
+  const consistencyObservation = socialIncomplete
+    ? SOCIAL_INCOMPLETE_COPY
     : obs(
-        scores.contentConsistency,
+        dims.contentConsistency.raw ?? 0,
         "You're maintaining a consistent presence",
         "Some gaps in your content schedule",
         "Irregular posting is limiting your reach"
       );
 
-  const socialObservation = instagramNotFound
-    ? "Instagram handle provided but profile not found — social checks scored as absent"
+  const socialObservation = socialIncomplete
+    ? SOCIAL_INCOMPLETE_COPY
     : obs(
-        scores.socialPresence,
+        dims.socialPresence.raw ?? 0,
         "Strong social presence reaching the right audience",
         "Social presence is building but has room to grow",
         "Limited social presence restricting your reach"
@@ -154,42 +166,73 @@ function scoresFromDeterministicRun(
 
   const storyAssessment = storyAssessmentFromFacts(run);
 
-  return {
-    websiteClarity: {
-      name: "Website Clarity",
-      score: scores.websiteClarity,
-      observation: findingObservation(
+  const suppressWebsiteGaps = shouldSuppressDimensionGaps(dims.websiteClarity);
+  const websiteObservationFinal = suppressWebsiteGaps
+    ? DIMENSION_CAP_FRAMING_COPY
+    : findingObservation(
         "Website Clarity",
         input.websiteScore?.observation || websiteObservation,
         input.websiteScore
-      ),
-      strengths: input.websiteScore?.strengths,
-      gaps: input.websiteScore?.gaps,
+      );
+
+  const brandObservationFinal = shouldSuppressDimensionGaps(dims.brandStory)
+    ? DIMENSION_CAP_FRAMING_COPY
+    : findingObservation("Brand Story", storyObservation, input.websiteScore);
+
+  return {
+    websiteClarity: {
+      name: "Website Clarity",
+      score: dims.websiteClarity.score,
+      scoreRaw: dims.websiteClarity.raw,
+      dimensionCapped: dims.websiteClarity.capped,
+      unmeasured: false,
+      observation: websiteObservationFinal,
+      strengths: suppressWebsiteGaps ? undefined : input.websiteScore?.strengths,
+      gaps: suppressWebsiteGaps ? undefined : input.websiteScore?.gaps,
     },
     brandStory: {
       name: "Brand Story",
-      score: scores.brandStory,
-      observation: findingObservation("Brand Story", storyObservation, input.websiteScore),
+      score: dims.brandStory.score,
+      scoreRaw: dims.brandStory.raw,
+      dimensionCapped: dims.brandStory.capped,
+      unmeasured: false,
+      observation: brandObservationFinal,
       storyAssessment,
     },
     contentConsistency: {
       name: "Content Consistency",
-      score: scores.contentConsistency,
-      observation: findingObservation(
-        "Content Consistency",
-        consistencyObservation,
-        input.websiteScore
-      ),
+      score: dims.contentConsistency.score,
+      scoreRaw: dims.contentConsistency.raw,
+      dimensionCapped: dims.contentConsistency.capped,
+      unmeasured: dims.contentConsistency.unmeasured,
+      observation: socialIncomplete
+        ? SOCIAL_INCOMPLETE_COPY
+        : shouldSuppressDimensionGaps(dims.contentConsistency)
+          ? DIMENSION_CAP_FRAMING_COPY
+          : findingObservation(
+              "Content Consistency",
+              consistencyObservation,
+              input.websiteScore
+            ),
     },
     socialPresence: {
       name: "Social Presence",
-      score: scores.socialPresence,
-      observation: findingObservation("Social Presence", socialObservation, input.websiteScore),
+      score: dims.socialPresence.score,
+      scoreRaw: dims.socialPresence.raw,
+      dimensionCapped: dims.socialPresence.capped,
+      unmeasured: dims.socialPresence.unmeasured,
+      observation: socialIncomplete
+        ? SOCIAL_INCOMPLETE_COPY
+        : shouldSuppressDimensionGaps(dims.socialPresence)
+          ? DIMENSION_CAP_FRAMING_COPY
+          : findingObservation("Social Presence", socialObservation, input.websiteScore),
     },
-    overall: scores.overall,
-    overallRaw: scores.overallRaw,
-    capped: scores.capped,
+    overall: run.scores.overall,
+    overallRaw: run.scores.overallRaw,
+    capped: run.scores.capped,
     overallSummary: run.overallSummary,
+    socialIncomplete,
+    socialIncompleteSummary: run.socialIncompleteSummary,
     lowestDimension: run.lowestDimension,
     lowestScore: run.lowestScore,
     deterministic: run,
@@ -199,6 +242,25 @@ function scoresFromDeterministicRun(
 export function calculateScores(input: HealthCheckInput): HealthCheckScores {
   const deterministic = input.websiteScore?.deterministic;
   if (deterministic) {
+    // Back-compat: older stored runs may lack dimensions/socialIncomplete.
+    if (!deterministic.dimensions) {
+      const legacyScores = deterministic.scores;
+      const patched: DeterministicHealthCheckRun = {
+        ...deterministic,
+        socialIncomplete: deterministic.socialIncomplete ?? false,
+        dimensions: {
+          websiteClarity: applyDimensionDisplayCap(legacyScores.websiteClarity),
+          brandStory: applyDimensionDisplayCap(legacyScores.brandStory),
+          contentConsistency: applyDimensionDisplayCap(
+            legacyScores.contentConsistency ?? 0
+          ),
+          socialPresence: applyDimensionDisplayCap(
+            legacyScores.socialPresence ?? 0
+          ),
+        },
+      };
+      return scoresFromDeterministicRun(patched, input);
+    }
     return scoresFromDeterministicRun(deterministic, input);
   }
 

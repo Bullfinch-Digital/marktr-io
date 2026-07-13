@@ -20,9 +20,12 @@ type HealthCheckFacts = {
   bioOnMessage: "complete" | "thin" | "absent";
 };
 
+type InstagramFetchStatus = "not_provided" | "found" | "incomplete";
+
 type ApifySocialMetrics = {
   instagramFound: boolean;
   facebookFound: boolean;
+  instagramFetchStatus: InstagramFetchStatus;
   followers: number;
   avgLikes: number;
   avgComments: number;
@@ -47,10 +50,13 @@ const DIMENSION_WEIGHTS = {
   socialPresence: 0.15,
 } as const;
 
-/** Keep in sync with src/lib/healthCheck/constants.ts OVERALL_CAP */
+const SOCIAL_INCOMPLETE_WEIGHTS = {
+  websiteClarity: 0.5,
+  brandStory: 0.5,
+} as const;
+
 const OVERALL_CAP = 92;
 
-/** Keep in sync with src/lib/healthCheck/constants.ts OVERALL_CAP_FRAMING_COPY */
 const OVERALL_CAP_FRAMING_COPY =
   "Your scores are genuinely strong across the board — we cap the automated overall at 92 because the last few points are the kind of thing that benefits from a human eye, not a scraper.";
 
@@ -120,15 +126,14 @@ function followerTier(followers: number): "nano" | "mid" | "large" {
   return "nano";
 }
 
-function computeEngagementRatePercent(followers: number, avgLikes: number, avgComments: number): number {
-  if (followers <= 0) return 0;
-  return ((avgLikes + avgComments) / followers) * 100;
-}
-
-function bandEngagementForSize(metrics: ApifySocialMetrics): EngagementBand {
-  const rate = computeEngagementRatePercent(metrics.followers, metrics.avgLikes, metrics.avgComments);
-  const tier = followerTier(metrics.followers);
-  if (!metrics.instagramFound) return "absent";
+function bandEngagement(
+  followers: number,
+  avgLikes: number,
+  avgComments: number
+): EngagementBand {
+  if (followers <= 0) return "absent";
+  const rate = ((avgLikes + avgComments) / followers) * 100;
+  const tier = followerTier(followers);
   if (tier === "nano") {
     if (rate >= 4.0) return "good";
     if (rate >= 1.5) return "partial";
@@ -187,7 +192,9 @@ function bandSocialSignals(metrics: ApifySocialMetrics) {
         : "none";
 
   return {
-    engagement: bandEngagementForSize(metrics),
+    engagement: metrics.instagramFound
+      ? bandEngagement(metrics.followers, metrics.avgLikes, metrics.avgComments)
+      : ("absent" as EngagementBand),
     postingRecency,
     postingRegularity,
     profileCompleteness,
@@ -203,18 +210,26 @@ function namesCustomerPoints(facts: HealthCheckFacts): number {
   return 0;
 }
 
-function weightedOverallScore(scores: {
-  websiteClarity: number;
-  brandStory: number;
-  contentConsistency: number;
-  socialPresence: number;
-}): { overall: number; overallRaw: number; capped: boolean } {
-  const overallRaw = Math.round(
-    scores.websiteClarity * DIMENSION_WEIGHTS.websiteClarity +
-      scores.brandStory * DIMENSION_WEIGHTS.brandStory +
-      scores.contentConsistency * DIMENSION_WEIGHTS.contentConsistency +
-      scores.socialPresence * DIMENSION_WEIGHTS.socialPresence
-  );
+function weightedOverallScore(
+  scores: {
+    websiteClarity: number;
+    brandStory: number;
+    contentConsistency: number;
+    socialPresence: number;
+  },
+  socialIncomplete: boolean
+): { overall: number; overallRaw: number; capped: boolean } {
+  const overallRaw = socialIncomplete
+    ? Math.round(
+        scores.websiteClarity * SOCIAL_INCOMPLETE_WEIGHTS.websiteClarity +
+          scores.brandStory * SOCIAL_INCOMPLETE_WEIGHTS.brandStory
+      )
+    : Math.round(
+        scores.websiteClarity * DIMENSION_WEIGHTS.websiteClarity +
+          scores.brandStory * DIMENSION_WEIGHTS.brandStory +
+          scores.contentConsistency * DIMENSION_WEIGHTS.contentConsistency +
+          scores.socialPresence * DIMENSION_WEIGHTS.socialPresence
+      );
   const capped = overallRaw > OVERALL_CAP;
   return {
     overallRaw,
@@ -231,12 +246,14 @@ export function computeDeterministicScores(
 ): {
   website: number;
   brandStory: number;
-  content: number;
-  social: number;
+  content: number | null;
+  social: number | null;
   overall: number;
   overallRaw: number;
   capped: boolean;
+  socialIncomplete: boolean;
 } {
+  const socialIncomplete = apifyMetrics.instagramFetchStatus === "incomplete";
   const scoredFacts = sanitizeFactsForScoring(facts, apifyMetrics);
   const socialBands = bandSocialSignals(apifyMetrics);
   const hasSocialProfile = hasAnySocialProfile(apifyMetrics);
@@ -254,29 +271,36 @@ export function computeDeterministicScores(
     POV_PTS[scoredFacts.pointOfView] +
     VALUES_PTS[scoredFacts.valuesMission];
 
-  const content =
+  const contentMeasured =
     RECENCY_PTS[socialBands.postingRecency] +
     REGULARITY_PTS[socialBands.postingRegularity] +
     SOCIAL_REFLECTS_PTS[scoredFacts.socialReflectsStory] +
     BIO_PTS[scoredFacts.bioOnMessage];
 
-  const social = hasSocialProfile
+  const socialMeasured = hasSocialProfile
     ? PROFILE_PTS[socialBands.profileCompleteness] +
       (apifyMetrics.instagramFound ? ENGAGEMENT_PTS[socialBands.engagement] : 0) +
       (apifyMetrics.instagramFound ? AUDIENCE_PTS[socialBands.audienceSize] : 0) +
       CROSS_PLATFORM_PTS[socialBands.crossPlatform]
     : 0;
 
+  const content = socialIncomplete ? null : contentMeasured;
+  const social = socialIncomplete ? null : socialMeasured;
+
   return {
     website,
     brandStory,
     content,
     social,
-    ...weightedOverallScore({
-      websiteClarity: website,
-      brandStory,
-      contentConsistency: content,
-      socialPresence: social,
-    }),
+    socialIncomplete,
+    ...weightedOverallScore(
+      {
+        websiteClarity: website,
+        brandStory,
+        contentConsistency: content ?? 0,
+        socialPresence: social ?? 0,
+      },
+      socialIncomplete
+    ),
   };
 }

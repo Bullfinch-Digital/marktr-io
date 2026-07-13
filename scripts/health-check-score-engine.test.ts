@@ -39,6 +39,7 @@ function testIdenticalRuns() {
 
   const apify = {
     instagramFound: true,
+    instagramFetchStatus: "found",
     facebookFound: true,
     followers: 3500,
     avgLikes: 180,
@@ -73,7 +74,7 @@ function testIdenticalRuns() {
     },
   });
 
-  assert.equal(run1.scorerVersion, "1.0.1");
+  assert.equal(run1.scorerVersion, "1.0.2");
   assert.deepEqual(run1.scores, run2.scores);
   assert.equal(run1.scores.overall, run2.scores.overall);
   console.log("✓ identical runs produce identical scores", run1.scores);
@@ -85,6 +86,7 @@ function testUsesSecondPersonBump() {
     { ...base, namesCustomer: "hinted", usesSecondPerson: false },
     {
       instagramFound: false,
+      instagramFetchStatus: "not_provided",
       facebookFound: false,
       followers: 0,
       avgLikes: 0,
@@ -100,6 +102,7 @@ function testUsesSecondPersonBump() {
     { ...base, namesCustomer: "hinted", usesSecondPerson: true },
     {
       instagramFound: false,
+      instagramFetchStatus: "not_provided",
       facebookFound: false,
       followers: 0,
       avgLikes: 0,
@@ -162,6 +165,7 @@ function testOverallCapHighScores() {
   };
   const apify = {
     instagramFound: true,
+    instagramFetchStatus: "found",
     facebookFound: true,
     followers: 50_000,
     avgLikes: 2000,
@@ -251,6 +255,7 @@ function testEngagementBands() {
 function testSingleDimensionChange() {
   const apify = {
     instagramFound: true,
+    instagramFetchStatus: "found",
     facebookFound: false,
     followers: 2000,
     avgLikes: 50,
@@ -297,6 +302,7 @@ function testSingleDimensionChange() {
 function testAugmentFindingsBrandStoryDelta() {
   const apify = {
     instagramFound: false,
+      instagramFetchStatus: "not_provided",
     facebookFound: false,
     followers: 0,
     avgLikes: 0,
@@ -374,12 +380,105 @@ function testNoSocialHallucinationScoresZero() {
     },
   });
 
-  assert.equal(run.scorerVersion, "1.0.1");
+  assert.equal(run.scorerVersion, "1.0.2");
   assert.equal(run.scores.socialPresence, 0);
   assert.equal(run.scores.contentConsistency, 0);
   assert.equal(run.points.content.socialReflectsStory, 0);
   assert.equal(run.points.content.bioOnMessage, 0);
   console.log("✓ no social profile → social facts forced absent, Social/Content social-derived = 0");
+}
+
+function testSocialIncompleteRenormalises() {
+  const facts = {
+    ...absentHealthCheckFacts(),
+    valueProp: "clear" as const,
+    namesCustomer: "clear" as const,
+    usesSecondPerson: true,
+    primaryCTA: "single" as const,
+    proofOnPage: "real" as const,
+    pathToBuyContact: "clear" as const,
+    founderStory: "present" as const,
+    storySpecific: "specific" as const,
+    storyNamesConcrete: true,
+    pointOfView: "distinct" as const,
+    valuesMission: "concrete" as const,
+  };
+
+  const run = scoreFromFacts(facts, {
+    instagramFound: false,
+    facebookFound: false,
+    instagramFetchStatus: "incomplete",
+    followers: 0,
+    avgLikes: 0,
+    avgComments: 0,
+    latestPostDaysAgo: null,
+    postsPerWeek: null,
+    bioLength: 0,
+    hasExternalUrl: false,
+    hasFullName: false,
+  });
+
+  assert.equal(run.socialIncomplete, true);
+  assert.equal(run.scores.contentConsistency, null);
+  assert.equal(run.scores.socialPresence, null);
+  assert.equal(run.scores.websiteClarity, 100);
+  assert.equal(run.scores.brandStory, 100);
+  // 100*0.5 + 100*0.5 = 100 → overall display capped at 92
+  assert.equal(run.scores.overallRaw, 100);
+  assert.equal(run.scores.overall, OVERALL_CAP);
+  assert.equal(run.dimensions.websiteClarity.score, 95);
+  assert.equal(run.dimensions.websiteClarity.capped, true);
+  assert.equal(run.dimensions.contentConsistency.unmeasured, true);
+  console.log("✓ social-incomplete → Website+Story only, 50/50, display cap 95");
+}
+
+function testDimensionDisplayCapDoesNotDoubleCapOverall() {
+  const facts: HealthCheckFacts = {
+    valueProp: "clear",
+    namesCustomer: "clear",
+    usesSecondPerson: true,
+    primaryCTA: "single",
+    proofOnPage: "real",
+    pathToBuyContact: "clear",
+    founderStory: "present",
+    storySpecific: "specific",
+    storyNamesConcrete: true,
+    pointOfView: "distinct",
+    valuesMission: "concrete",
+    socialReflectsStory: "expresses",
+    igProfileComplete: "complete",
+    bioOnMessage: "complete",
+  };
+
+  const run = scoreFromFacts(facts, {
+    instagramFound: true,
+    facebookFound: false,
+    instagramFetchStatus: "found",
+    followers: 605,
+    avgLikes: 110,
+    avgComments: 15,
+    latestPostDaysAgo: 30,
+    postsPerWeek: 0.05,
+    bioLength: 47,
+    hasExternalUrl: false,
+    hasFullName: true,
+  });
+
+  // Website/Story raw 100 → display 95; overall uses RAW then overall cap
+  assert.equal(run.scores.websiteClarity, 100);
+  assert.equal(run.dimensions.websiteClarity.score, 95);
+  assert.ok(run.scores.overallRaw <= 100);
+  // overallRaw must NOT be computed from display-capped 95s
+  const fromDisplayCaps = Math.round(95 * 0.3 + 95 * 0.3 + (run.scores.contentConsistency ?? 0) * 0.25 + (run.scores.socialPresence ?? 0) * 0.15);
+  const fromRaws = Math.round(
+    100 * 0.3 +
+      100 * 0.3 +
+      (run.scores.contentConsistency ?? 0) * 0.25 +
+      (run.scores.socialPresence ?? 0) * 0.15
+  );
+  assert.equal(run.scores.overallRaw, fromRaws);
+  assert.notEqual(run.scores.overallRaw, fromDisplayCaps);
+  console.log("✓ dimension display cap does not double-cap overall", run.scores);
 }
 
 testIdenticalRuns();
@@ -391,4 +490,7 @@ testEngagementBands();
 testSingleDimensionChange();
 testAugmentFindingsBrandStoryDelta();
 testNoSocialHallucinationScoresZero();
+testSocialIncompleteRenormalises();
+testDimensionDisplayCapDoesNotDoubleCapOverall();
+console.log("\nAll health-check score engine tests passed.");
 console.log("\nAll score engine tests passed.");

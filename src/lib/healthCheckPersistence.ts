@@ -296,9 +296,9 @@ export function summarizeHealthCheckRow(row: HealthCheckRow): HealthCheckDimensi
   }
   return {
     overall: parsed.scores.overall,
-    website: parsed.scores.websiteClarity.score,
-    brandStory: parsed.scores.brandStory.score,
-    content: parsed.scores.contentConsistency.score,
-    social: parsed.scores.socialPresence.score,
+    website: parsed.scores.websiteClarity.score ?? 0,
+    brandStory: parsed.scores.brandStory.score ?? 0,
+    content: parsed.scores.contentConsistency.score ?? 0,
+    social: parsed.scores.socialPresence.score ?? 0,
   };
 }

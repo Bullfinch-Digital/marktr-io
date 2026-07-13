@@ -1,8 +1,12 @@
 import {
+  DIMENSION_DISPLAY_CAP,
+  DIMENSION_RAW_MAX,
   DIMENSION_WEIGHTS,
   HEALTH_CHECK_SCORER_VERSION,
   OVERALL_CAP,
   OVERALL_CAP_FRAMING_COPY,
+  SOCIAL_INCOMPLETE_COPY,
+  SOCIAL_INCOMPLETE_WEIGHTS,
 } from "./constants";
 import type { HealthCheckFacts } from "./factsSchema";
 import { absentHealthCheckFacts } from "./factsSchema";
@@ -54,6 +58,15 @@ export type HealthCheckPointBreakdown = {
   };
 };
 
+export type DimensionScoreFields = {
+  /** Uncapped point total — feeds overallRaw. Null when unmeasured. */
+  raw: number | null;
+  /** Displayed score = min(raw, DIMENSION_DISPLAY_CAP). Null when unmeasured. */
+  score: number | null;
+  capped: boolean;
+  unmeasured: boolean;
+};
+
 export type DeterministicHealthCheckRun = {
   scorerVersion: string;
   modelVersion: string;
@@ -67,17 +80,29 @@ export type DeterministicHealthCheckRun = {
   apifyMetrics: ApifySocialMetrics;
   socialBands: BandedSocialSignals;
   points: HealthCheckPointBreakdown;
+  /** Handle provided but Apify incomplete after retries — Content + Social excluded. */
+  socialIncomplete: boolean;
   scores: {
     websiteClarity: number;
     brandStory: number;
-    contentConsistency: number;
-    socialPresence: number;
+    /** Null when socialIncomplete (unmeasured). */
+    contentConsistency: number | null;
+    /** Null when socialIncomplete (unmeasured). */
+    socialPresence: number | null;
     overall: number;
     overallRaw: number;
     capped: boolean;
   };
-  /** Present only when capped — human-eye disclaimer for the overall summary. */
+  dimensions: {
+    websiteClarity: DimensionScoreFields;
+    brandStory: DimensionScoreFields;
+    contentConsistency: DimensionScoreFields;
+    socialPresence: DimensionScoreFields;
+  };
+  /** Present only when overall capped — human-eye disclaimer. */
   overallSummary?: string;
+  /** Present when socialIncomplete. */
+  socialIncompleteSummary?: string;
   lowestDimension: string;
   lowestScore: number;
 };
@@ -130,6 +155,30 @@ function namesCustomerPoints(facts: HealthCheckFacts): number {
   if (facts.namesCustomer === "hinted" && facts.usesSecondPerson) return 20;
   if (facts.namesCustomer === "hinted") return 10;
   return 0;
+}
+
+export function isSocialIncomplete(apifyMetrics: ApifySocialMetrics): boolean {
+  return apifyMetrics.instagramFetchStatus === "incomplete";
+}
+
+export function applyDimensionDisplayCap(raw: number): DimensionScoreFields {
+  const capped = raw > DIMENSION_DISPLAY_CAP;
+  return {
+    raw,
+    score: capped ? DIMENSION_DISPLAY_CAP : raw,
+    capped,
+    unmeasured: false,
+  };
+}
+
+export function unmeasuredDimension(): DimensionScoreFields {
+  return { raw: null, score: null, capped: false, unmeasured: true };
+}
+
+/** True when Key gaps must be suppressed (display-capped or raw max). */
+export function shouldSuppressDimensionGaps(dim: DimensionScoreFields): boolean {
+  if (dim.unmeasured || dim.raw === null) return true;
+  return dim.capped || dim.raw >= DIMENSION_RAW_MAX;
 }
 
 export function scorePointsFromFacts(
@@ -209,18 +258,26 @@ export function scorePointsFromFacts(
   return { website, story, content, social };
 }
 
-export function weightedOverallScore(scores: {
-  websiteClarity: number;
-  brandStory: number;
-  contentConsistency: number;
-  socialPresence: number;
-}): { overall: number; overallRaw: number; capped: boolean } {
-  const overallRaw = Math.round(
-    scores.websiteClarity * DIMENSION_WEIGHTS.websiteClarity +
-      scores.brandStory * DIMENSION_WEIGHTS.brandStory +
-      scores.contentConsistency * DIMENSION_WEIGHTS.contentConsistency +
-      scores.socialPresence * DIMENSION_WEIGHTS.socialPresence
-  );
+export function weightedOverallScore(
+  scores: {
+    websiteClarity: number;
+    brandStory: number;
+    contentConsistency: number;
+    socialPresence: number;
+  },
+  opts?: { socialIncomplete?: boolean }
+): { overall: number; overallRaw: number; capped: boolean } {
+  const overallRaw = opts?.socialIncomplete
+    ? Math.round(
+        scores.websiteClarity * SOCIAL_INCOMPLETE_WEIGHTS.websiteClarity +
+          scores.brandStory * SOCIAL_INCOMPLETE_WEIGHTS.brandStory
+      )
+    : Math.round(
+        scores.websiteClarity * DIMENSION_WEIGHTS.websiteClarity +
+          scores.brandStory * DIMENSION_WEIGHTS.brandStory +
+          scores.contentConsistency * DIMENSION_WEIGHTS.contentConsistency +
+          scores.socialPresence * DIMENSION_WEIGHTS.socialPresence
+      );
   const capped = overallRaw > OVERALL_CAP;
   return {
     overallRaw,
@@ -240,27 +297,50 @@ export function scoreFromFacts(
   facts: HealthCheckFacts,
   apifyMetrics: ApifySocialMetrics
 ): DeterministicHealthCheckRun {
+  const socialIncomplete = isSocialIncomplete(apifyMetrics);
   const socialBands = bandSocialSignals(apifyMetrics);
   const scoredFacts = sanitizeFactsForScoring(facts, apifyMetrics);
   const points = scorePointsFromFacts(scoredFacts, socialBands, apifyMetrics);
 
-  const dimensionScores = {
-    websiteClarity: points.website.total,
-    brandStory: points.story.total,
-    contentConsistency: points.content.total,
-    socialPresence: points.social.total,
-  };
-  const overallResult = weightedOverallScore(dimensionScores);
-  const scores = {
-    ...dimensionScores,
-    ...overallResult,
+  const websiteRaw = points.website.total;
+  const storyRaw = points.story.total;
+  const contentRaw = socialIncomplete ? null : points.content.total;
+  const socialRaw = socialIncomplete ? null : points.social.total;
+
+  const overallResult = weightedOverallScore(
+    {
+      websiteClarity: websiteRaw,
+      brandStory: storyRaw,
+      contentConsistency: contentRaw ?? 0,
+      socialPresence: socialRaw ?? 0,
+    },
+    { socialIncomplete }
+  );
+
+  const dimensions = {
+    websiteClarity: applyDimensionDisplayCap(websiteRaw),
+    brandStory: applyDimensionDisplayCap(storyRaw),
+    contentConsistency: socialIncomplete
+      ? unmeasuredDimension()
+      : applyDimensionDisplayCap(contentRaw!),
+    socialPresence: socialIncomplete
+      ? unmeasuredDimension()
+      : applyDimensionDisplayCap(socialRaw!),
   };
 
-  const entries = Object.entries(dimensionScores) as [
-    keyof typeof DIMENSION_WEIGHTS,
-    number,
-  ][];
-  const [lowestKey, lowestVal] = entries.reduce((a, b) =>
+  const measuredForLowest: Array<[keyof typeof DIMENSION_WEIGHTS, number]> =
+    socialIncomplete
+      ? [
+          ["websiteClarity", websiteRaw],
+          ["brandStory", storyRaw],
+        ]
+      : [
+          ["websiteClarity", websiteRaw],
+          ["brandStory", storyRaw],
+          ["contentConsistency", contentRaw!],
+          ["socialPresence", socialRaw!],
+        ];
+  const [lowestKey, lowestVal] = measuredForLowest.reduce((a, b) =>
     b[1] < a[1] ? b : a
   );
 
@@ -277,8 +357,17 @@ export function scoreFromFacts(
     apifyMetrics,
     socialBands,
     points,
-    scores,
-    overallSummary: scores.capped ? OVERALL_CAP_FRAMING_COPY : undefined,
+    socialIncomplete,
+    scores: {
+      websiteClarity: websiteRaw,
+      brandStory: storyRaw,
+      contentConsistency: contentRaw,
+      socialPresence: socialRaw,
+      ...overallResult,
+    },
+    dimensions,
+    overallSummary: overallResult.capped ? OVERALL_CAP_FRAMING_COPY : undefined,
+    socialIncompleteSummary: socialIncomplete ? SOCIAL_INCOMPLETE_COPY : undefined,
     lowestDimension: DIMENSION_LABELS[lowestKey],
     lowestScore: lowestVal,
   };

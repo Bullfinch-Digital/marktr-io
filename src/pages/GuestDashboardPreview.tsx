@@ -184,14 +184,26 @@ export default function GuestDashboardPreview() {
             reportHref="/health-preview"
             reportLinkLabel="View your findings →"
             dimensions={[
-              { key: "websiteClarity", label: "Website Clarity", score: guestHealth.scores.websiteClarity },
-              { key: "brandStory", label: "Brand Story", score: guestHealth.scores.brandStory },
+              {
+                key: "websiteClarity",
+                label: "Website Clarity",
+                score: guestHealth.scores.websiteClarity ?? "—",
+              },
+              {
+                key: "brandStory",
+                label: "Brand Story",
+                score: guestHealth.scores.brandStory ?? "—",
+              },
               {
                 key: "contentConsistency",
                 label: "Content Consistency",
-                score: guestHealth.scores.contentConsistency,
+                score: guestHealth.scores.contentConsistency ?? "—",
               },
-              { key: "socialPresence", label: "Social Presence", score: guestHealth.scores.socialPresence },
+              {
+                key: "socialPresence",
+                label: "Social Presence",
+                score: guestHealth.scores.socialPresence ?? "—",
+              },
             ]}
           />
         ) : null}

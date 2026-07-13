@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { GuestResultsNextStepsCta } from "../guest/GuestResultsNextStepsCta";
 import { getLlmFindingForDimension } from "../../lib/healthCheckFindings";
+import { DIMENSION_CAP_FRAMING_COPY } from "../../lib/healthCheck";
 import type {
   DimensionScore,
   HealthCheckInput,
@@ -8,13 +9,15 @@ import type {
   StoryAssessment,
 } from "../../lib/healthCheckScoring";
 
-export function getScoreColor(score: number) {
+export function getScoreColor(score: number | null) {
+  if (score === null) return "text-muted-foreground";
   if (score >= 70) return "text-[#2D7A5F]";
   if (score >= 40) return "text-[#BA7517]";
   return "text-[#E24B4A]";
 }
 
-export function getBarColor(score: number) {
+export function getBarColor(score: number | null) {
+  if (score === null) return "bg-muted";
   if (score >= 70) return "bg-[#2D7A5F]";
   if (score >= 40) return "bg-[#BA7517]";
   return "bg-[#E24B4A]";
@@ -229,20 +232,40 @@ function ScoreCard({
   llmFinding?: string;
 }) {
   const detail = DIMENSION_DETAIL[dimension.name];
+  const displayScore = dimension.score;
   const tier =
-    dimension.score >= 70 ? "high" : dimension.score >= 40 ? "mid" : "low";
-  const detailTier = detail?.[tier];
+    displayScore === null
+      ? null
+      : displayScore >= 70
+        ? "high"
+        : displayScore >= 40
+          ? "mid"
+          : "low";
+  const detailTier = tier ? detail?.[tier] : undefined;
   const sa =
     dimension.name === "Brand Story" ? dimension.storyAssessment : null;
-  const useLlmNarrative = Boolean(llmFinding?.trim());
-  const headline = llmFinding?.trim() || dimension.observation;
+  const suppressGaps =
+    dimension.unmeasured ||
+    dimension.dimensionCapped ||
+    (typeof dimension.scoreRaw === "number" && dimension.scoreRaw >= 100) ||
+    !dimension.gaps?.length;
+  const showCapFraming =
+    !dimension.unmeasured &&
+    (dimension.dimensionCapped ||
+      (typeof dimension.scoreRaw === "number" && dimension.scoreRaw >= 100));
+  const useLlmNarrative = Boolean(llmFinding?.trim()) && !showCapFraming;
+  const headline = showCapFraming
+    ? DIMENSION_CAP_FRAMING_COPY
+    : llmFinding?.trim() || dimension.observation;
 
   const socialNote =
     dimension.name === "Social Presence"
-      ? instagramFound
-        ? "Bio targeting, follower reach and active platforms were used to score this."
-        : "Connect your Instagram and Facebook for a complete picture."
-      : dimension.name === "Content Consistency" && instagramFound
+      ? dimension.unmeasured
+        ? undefined
+        : instagramFound
+          ? "Bio targeting, follower reach and active platforms were used to score this."
+          : "Connect your Instagram and Facebook for a complete picture."
+      : dimension.name === "Content Consistency" && instagramFound && !dimension.unmeasured
         ? detail?.socialNote
         : undefined;
 
@@ -255,20 +278,20 @@ function ScoreCard({
         Assessed: {dataSourceLabel}
       </p>
       <p
-        className={`font-['Fraunces'] text-4xl font-bold leading-none ${getScoreColor(dimension.score)}`}
+        className={`font-['Fraunces'] text-4xl font-bold leading-none ${getScoreColor(displayScore)}`}
       >
-        {dimension.score}
+        {displayScore === null ? "—" : displayScore}
       </p>
       <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-muted">
         <div
-          className={`h-full rounded-full ${getBarColor(dimension.score)}`}
-          style={{ width: `${dimension.score}%` }}
+          className={`h-full rounded-full ${getBarColor(displayScore)}`}
+          style={{ width: `${displayScore ?? 0}%` }}
         />
       </div>
       <p className="mt-3 font-['DM_Sans'] text-sm font-medium leading-relaxed text-[#0D1833]">
         {headline}
       </p>
-      {detailTier && !useLlmNarrative && (
+      {detailTier && !useLlmNarrative && !showCapFraming && !dimension.unmeasured && (
         <>
           <p className="mt-2 font-['DM_Sans'] text-xs leading-relaxed text-muted-foreground">
             {detailTier.meaning}
@@ -288,7 +311,9 @@ function ScoreCard({
           )}
         </>
       )}
-      {dimension.name === "Website Clarity" && dimension.strengths?.length ? (
+      {dimension.name === "Website Clarity" &&
+      dimension.strengths?.length &&
+      !showCapFraming ? (
         <div className="mt-3 space-y-2">
           <p className="font-['DM_Sans'] text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
             What&apos;s working
@@ -299,7 +324,7 @@ function ScoreCard({
               <p className="font-['DM_Sans'] text-xs leading-relaxed text-[#0D1833]">{s}</p>
             </div>
           ))}
-          {dimension.gaps?.length ? (
+          {!suppressGaps && dimension.gaps?.length ? (
             <>
               <p className="mt-3 font-['DM_Sans'] text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
                 Key gaps
@@ -326,7 +351,7 @@ function ScoreOverviewChip({
   featured = false,
 }: {
   shortName: string;
-  score: number;
+  score: number | null;
   href?: string;
   featured?: boolean;
 }) {
@@ -344,8 +369,8 @@ function ScoreOverviewChip({
           featured ? "text-3xl" : "text-2xl"
         }`}
       >
-        {score}
-        {featured && (
+        {score === null ? "—" : score}
+        {featured && score !== null && (
           <span className="ml-0.5 font-['DM_Sans'] text-sm font-medium text-muted-foreground">
             /100
           </span>
@@ -442,6 +467,12 @@ export function HealthCheckReportView({
           />
         ))}
       </div>
+
+      {scores.socialIncompleteSummary ? (
+        <p className="mt-4 rounded-xl border border-[#BA7517]/30 bg-[#FDF0CC] px-4 py-3 font-['DM_Sans'] text-sm text-[#0D1833]">
+          {scores.socialIncompleteSummary}
+        </p>
+      ) : null}
 
       {scores.overallSummary ? (
         <p className="mt-4 font-['DM_Sans'] text-sm leading-relaxed text-muted-foreground">

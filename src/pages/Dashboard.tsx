@@ -60,6 +60,7 @@ function readDimensionScore(
   if (entry && typeof entry === "object" && "score" in entry) {
     const score = (entry as { score?: unknown }).score;
     if (typeof score === "number") return score;
+    if (score === null) return "—";
   }
   return "—";
 }

@@ -21,7 +21,21 @@ function normalizeDimension(
 ): DimensionScore {
   if (raw && typeof raw === "object") {
     const entry = raw as Record<string, unknown>;
-    const score = typeof entry.score === "number" ? entry.score : 0;
+    const unmeasured = entry.unmeasured === true || entry.score === null;
+    const score =
+      unmeasured
+        ? null
+        : typeof entry.score === "number"
+          ? entry.score
+          : 0;
+    const scoreRaw =
+      entry.scoreRaw === null
+        ? null
+        : typeof entry.scoreRaw === "number"
+          ? entry.scoreRaw
+          : typeof score === "number"
+            ? score
+            : null;
     const observation =
       typeof entry.observation === "string" && entry.observation.trim()
         ? entry.observation
@@ -30,6 +44,9 @@ function normalizeDimension(
     return {
       name,
       score,
+      scoreRaw,
+      dimensionCapped: entry.dimensionCapped === true,
+      unmeasured,
       observation,
       strengths: Array.isArray(entry.strengths)
         ? entry.strengths.map((s) => String(s))
@@ -40,10 +57,20 @@ function normalizeDimension(
   }
 
   if (typeof raw === "number") {
-    return { name, score: raw, observation: HEALTH_CHECK_DETAIL_FALLBACK };
+    return { name, score: raw, scoreRaw: raw, observation: HEALTH_CHECK_DETAIL_FALLBACK };
   }
 
-  return { name, score: 0, observation: HEALTH_CHECK_DETAIL_FALLBACK };
+  if (raw === null) {
+    return {
+      name,
+      score: null,
+      scoreRaw: null,
+      unmeasured: true,
+      observation: HEALTH_CHECK_DETAIL_FALLBACK,
+    };
+  }
+
+  return { name, score: 0, scoreRaw: 0, observation: HEALTH_CHECK_DETAIL_FALLBACK };
 }
 
 export function serializeScoresForDb(
@@ -88,36 +115,35 @@ export function parseStoredScores(raw: unknown): {
   );
   const socialPresence = normalizeDimension("Social Presence", data.socialPresence);
 
+  const measurable = [
+    websiteClarity,
+    brandStory,
+    contentConsistency,
+    socialPresence,
+  ].filter((d): d is DimensionScore & { score: number } => typeof d.score === "number");
+
   const overall =
     typeof data.overall === "number"
       ? data.overall
-      : Math.round(
-          (websiteClarity.score +
-            brandStory.score +
-            contentConsistency.score +
-            socialPresence.score) /
-            4
-        );
+      : measurable.length
+        ? Math.round(
+            measurable.reduce((sum, d) => sum + d.score, 0) / measurable.length
+          )
+        : 0;
 
   const lowestDimension =
     typeof data.lowestDimension === "string"
       ? data.lowestDimension
-      : [
-          websiteClarity,
-          brandStory,
-          contentConsistency,
-          socialPresence,
-        ].reduce((a, b) => (b.score < a.score ? b : a)).name;
+      : measurable.length
+        ? measurable.reduce((a, b) => (b.score < a.score ? b : a)).name
+        : websiteClarity.name;
 
   const lowestScore =
     typeof data.lowestScore === "number"
       ? data.lowestScore
-      : Math.min(
-          websiteClarity.score,
-          brandStory.score,
-          contentConsistency.score,
-          socialPresence.score
-        );
+      : measurable.length
+        ? Math.min(...measurable.map((d) => d.score))
+        : 0;
 
   return {
     scores: {

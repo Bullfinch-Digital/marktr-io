@@ -15,6 +15,8 @@ import { Button } from "../components/ui/button";
 import { useBrand } from "../contexts/BrandContext";
 import { useContentItems, type ContentItemWithComposition } from "../hooks/useContentItems";
 import { useBrandStrategies } from "../hooks/useBrandStrategies";
+import { useBrandAims } from "../hooks/useBrandAims";
+import { useICPs } from "../hooks/useICPs";
 import { isBrandScopeReady, resolveScopedBrandId } from "../lib/brandScopedReads";
 import {
   readContentLauncherIntent,
@@ -45,7 +47,7 @@ function formatArchivedDate(iso: string): string {
 export default function ContentPage() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { activeBrandId, brands, loading: brandLoading, setActiveBrand } = useBrand();
+  const { activeBrandId, brands, loading: brandLoading, setActiveBrand, activeBrand } = useBrand();
   const scopedBrandId = useMemo(
     () => resolveScopedBrandId(activeBrandId, brands || []),
     [activeBrandId, brands]
@@ -62,7 +64,13 @@ export default function ContentPage() {
     hardDeleteContent,
   } = useContentItems(scopedBrandId || "");
 
-  const { strategies } = useBrandStrategies(scopedBrandId || "");
+  const { strategies, createStrategy, updateStrategy } = useBrandStrategies(scopedBrandId || "");
+  const { aims } = useBrandAims(scopedBrandId ?? undefined);
+  const { icps } = useICPs();
+  const brandIcps = useMemo(
+    () => (icps || []).filter((icp) => icp.brand_id === scopedBrandId),
+    [icps, scopedBrandId]
+  );
 
   const launcherIntentRef = useRef<ContentLauncherIntent | null>(null);
   const [launcherIntent, setLauncherIntent] = useState<ContentLauncherIntent | null>(null);
@@ -117,6 +125,7 @@ export default function ContentPage() {
   const strategyOptions: ContentCreateStrategyOption[] = useMemo(
     () =>
       strategies.map((s) => ({
+        id: s.id,
         lineage_id: s.lineage_id,
         title: s.title,
         strategy: s.strategy,
@@ -246,6 +255,19 @@ export default function ContentPage() {
               closeCreate();
               if (record?.id) navigate(`/content/${record.id}`);
             }}
+            strategyCreate={
+              aims.length > 0 && brandIcps.length > 0
+                ? {
+                    aims,
+                    icps: brandIcps,
+                    brand: activeBrand,
+                    onGenerate: createStrategy,
+                  }
+                : null
+            }
+            onAddCampaignIdea={async (strategyId, nextStrategy) =>
+              updateStrategy(strategyId, { strategy: nextStrategy })
+            }
           />
         ) : null}
 

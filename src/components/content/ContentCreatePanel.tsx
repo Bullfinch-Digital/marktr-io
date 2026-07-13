@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { CheckCircle2, Loader2 } from "lucide-react";
+import { Link } from "react-router-dom";
+import { CheckCircle2, Loader2, Plus } from "lucide-react";
 import { Button } from "../ui/button";
+import { Input } from "../ui/input";
+import { Textarea } from "../ui/textarea";
 import type { ContentItemRow, ContentItemType } from "../../types/contentItemPayload";
 import { CONTENT_ITEM_TYPES } from "../../types/contentItemPayload";
 import type { ICPStrategyPayload } from "../../types/icpStrategyPayload";
@@ -8,6 +11,12 @@ import type { ContentLauncherIntent } from "../../lib/contentLauncherState";
 import { isContentItemType } from "../../lib/contentItemPayload";
 import { CONTENT_TYPE_LABELS } from "../../lib/contentTypeLabels";
 import type { CompositionIcp } from "../../lib/strategyComposition";
+import { createEmptyCampaignIdea } from "../../lib/strategyEditPayload";
+import { StrategyCreatePanel } from "../strategy/StrategyCreatePanel";
+import type { Brand } from "../../hooks/useBrands";
+import type { BrandAim } from "../../hooks/useBrandAims";
+import type { ICP } from "../../hooks/useICPs";
+import type { StrategyRow } from "../../hooks/useBrandStrategies";
 
 const GENERATION_LOADING_ITEMS = [
   "Reading your strategy",
@@ -19,6 +28,7 @@ const GENERATION_LOADING_ITEMS = [
 ] as const;
 
 export type ContentCreateStrategyOption = {
+  id: string;
   lineage_id: string;
   title: string;
   strategy: ICPStrategyPayload;
@@ -40,6 +50,24 @@ type Props = {
   onGenerate: (input: ContentGenerateInput) => Promise<ContentItemRow | null>;
   onClose: () => void;
   onGenerated?: (record: ContentItemRow) => void;
+  /** When set, enables inline strategy creation (reuse StrategyCreatePanel). */
+  strategyCreate?: {
+    aims: BrandAim[];
+    icps: ICP[];
+    brand?: Brand | null;
+    onGenerate: (input: {
+      aimLineageIds: string[];
+      icpLineageIds: string[];
+      title?: string;
+      channel?: string | null;
+      tone?: string | null;
+    }) => Promise<StrategyRow | null | unknown>;
+  } | null;
+  /** Persist a new campaign idea onto the selected strategy. */
+  onAddCampaignIdea?: (
+    strategyId: string,
+    nextStrategy: ICPStrategyPayload
+  ) => Promise<StrategyRow | null | unknown>;
 };
 
 export function ContentCreatePanel({
@@ -49,6 +77,8 @@ export function ContentCreatePanel({
   onGenerate,
   onClose,
   onGenerated,
+  strategyCreate = null,
+  onAddCampaignIdea,
 }: Props) {
   const suggestionMode = Boolean(initialIntent?.strategyLineageId && initialIntent?.type);
 
@@ -60,6 +90,12 @@ export function ContentCreatePanel({
   const [generating, setGenerating] = useState(false);
   const [completedCount, setCompletedCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
+
+  const [showStrategyCreate, setShowStrategyCreate] = useState(false);
+  const [showIdeaForm, setShowIdeaForm] = useState(false);
+  const [ideaName, setIdeaName] = useState("");
+  const [ideaHook, setIdeaHook] = useState("");
+  const [savingIdea, setSavingIdea] = useState(false);
 
   useEffect(() => {
     if (!initialIntent) return;
@@ -98,9 +134,13 @@ export function ContentCreatePanel({
         : []
     : personas;
 
+  const singlePersona =
+    availablePersonas.length === 1 ? availablePersonas[0] : null;
+  const showPersonaPicker = availablePersonas.length > 1;
+  const showInlineStrategyCreate = !suggestionMode && strategies.length <= 1;
+
   useEffect(() => {
     if (!selectedStrategy) return;
-    // Clear campaign idea if it no longer exists on the selected strategy
     if (
       campaignIdeaId &&
       !campaignIdeas.some((idea) => idea.id === campaignIdeaId) &&
@@ -117,12 +157,18 @@ export function ContentCreatePanel({
   ]);
 
   useEffect(() => {
+    if (singlePersona) {
+      if (icpLineageId !== singlePersona.lineage_id) {
+        setIcpLineageId(singlePersona.lineage_id);
+      }
+      return;
+    }
     if (!icpLineageId) return;
     const stillValid = availablePersonas.some((p) => p.lineage_id === icpLineageId);
     if (!stillValid && !suggestionMode) {
       setIcpLineageId("");
     }
-  }, [availablePersonas, icpLineageId, suggestionMode]);
+  }, [availablePersonas, icpLineageId, suggestionMode, singlePersona]);
 
   const canGenerate =
     !!brandId &&
@@ -166,6 +212,37 @@ export function ContentCreatePanel({
       timers.forEach((t) => window.clearTimeout(t));
       setGenerating(false);
       setCompletedCount(0);
+    }
+  };
+
+  const handleSaveCampaignIdea = async () => {
+    if (!selectedStrategy || !onAddCampaignIdea) return;
+    const name = ideaName.trim();
+    if (!name) {
+      setError("Give the campaign idea a name.");
+      return;
+    }
+    setSavingIdea(true);
+    setError(null);
+    try {
+      const nextIdea = {
+        ...createEmptyCampaignIdea(),
+        name,
+        hook: ideaHook.trim(),
+      };
+      const nextStrategy: ICPStrategyPayload = {
+        ...selectedStrategy.strategy,
+        campaign_ideas: [...(selectedStrategy.strategy.campaign_ideas ?? []), nextIdea],
+      };
+      await onAddCampaignIdea(selectedStrategy.id, nextStrategy);
+      setCampaignIdeaId(nextIdea.id);
+      setIdeaName("");
+      setIdeaHook("");
+      setShowIdeaForm(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to add campaign idea.");
+    } finally {
+      setSavingIdea(false);
     }
   };
 
@@ -259,7 +336,29 @@ export function ContentCreatePanel({
       ) : (
         <>
           <div className="space-y-2">
-            <p className="font-['Inter'] text-sm text-foreground">Strategy</p>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="font-['Inter'] text-sm text-foreground">Strategy</p>
+              {showInlineStrategyCreate && !showStrategyCreate ? (
+                strategyCreate ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowStrategyCreate(true)}
+                    className="inline-flex items-center gap-1 font-['Inter'] text-xs text-primary hover:underline"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    Create a new strategy
+                  </button>
+                ) : (
+                  <Link
+                    to="/strategy"
+                    className="inline-flex items-center gap-1 font-['Inter'] text-xs text-primary hover:underline"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    Create a new strategy
+                  </Link>
+                )
+              ) : null}
+            </div>
             <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
               {strategies.length ? (
                 strategies.map((strategy) => {
@@ -281,6 +380,7 @@ export function ContentCreatePanel({
                           setStrategyLineageId(strategy.lineage_id);
                           setCampaignIdeaId(null);
                           setIcpLineageId("");
+                          setShowIdeaForm(false);
                         }}
                         className="mt-1"
                       />
@@ -292,15 +392,51 @@ export function ContentCreatePanel({
                 })
               ) : (
                 <p className="font-['Inter'] text-xs text-foreground/50">
-                  Create a strategy first, then generate content from it.
+                  {showInlineStrategyCreate
+                    ? "No strategies yet — create one below to generate content."
+                    : "Create a strategy first, then generate content from it."}
                 </p>
               )}
             </div>
+
+            {showInlineStrategyCreate && showStrategyCreate && strategyCreate ? (
+              <div className="pt-2">
+                <StrategyCreatePanel
+                  aims={strategyCreate.aims}
+                  icps={strategyCreate.icps}
+                  brand={strategyCreate.brand}
+                  onGenerate={async (input) => {
+                    const record = await strategyCreate.onGenerate(input);
+                    const created = record as StrategyRow | null;
+                    if (created?.lineage_id) {
+                      setStrategyLineageId(created.lineage_id);
+                      setCampaignIdeaId(null);
+                      setIcpLineageId("");
+                    }
+                    setShowStrategyCreate(false);
+                    return record;
+                  }}
+                  onClose={() => setShowStrategyCreate(false)}
+                />
+              </div>
+            ) : null}
           </div>
 
           {selectedStrategy ? (
             <div className="space-y-2">
-              <p className="font-['Inter'] text-sm text-foreground">Campaign idea</p>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="font-['Inter'] text-sm text-foreground">Campaign idea</p>
+                {onAddCampaignIdea && !showIdeaForm ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowIdeaForm(true)}
+                    className="inline-flex items-center gap-1 font-['Inter'] text-xs text-primary hover:underline"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    Add a campaign idea
+                  </button>
+                ) : null}
+              </div>
               <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
                 <label
                   className={`flex items-start gap-2 rounded-design border px-3 py-2 cursor-pointer ${
@@ -352,6 +488,47 @@ export function ContentCreatePanel({
                   );
                 })}
               </div>
+
+              {showIdeaForm && onAddCampaignIdea ? (
+                <div className="rounded-design border border-black/15 bg-white p-4 space-y-3">
+                  <p className="font-['Inter'] text-sm text-foreground">New campaign idea</p>
+                  <Input
+                    value={ideaName}
+                    onChange={(e) => setIdeaName(e.target.value)}
+                    placeholder="Idea name"
+                    className="border border-black rounded-design"
+                  />
+                  <Textarea
+                    value={ideaHook}
+                    onChange={(e) => setIdeaHook(e.target.value)}
+                    placeholder="Hook (optional)"
+                    className="border border-black rounded-design min-h-[72px]"
+                  />
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      disabled={savingIdea}
+                      onClick={() => void handleSaveCampaignIdea()}
+                      className="bg-button-green hover:bg-button-green/90 text-foreground border border-black rounded-design"
+                    >
+                      {savingIdea ? "Saving…" : "Save idea"}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={savingIdea}
+                      className="border-black rounded-design"
+                      onClick={() => {
+                        setShowIdeaForm(false);
+                        setIdeaName("");
+                        setIdeaHook("");
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
             </div>
           ) : null}
 
@@ -387,47 +564,66 @@ export function ContentCreatePanel({
       )}
 
       <div className="space-y-2">
-        <div className="flex items-center justify-between gap-2">
-          <p className="font-['Inter'] text-sm text-foreground">Persona (exactly 1)</p>
-          <p className="font-['Inter'] text-xs text-foreground/50">
-            {icpLineageId ? "1/1 selected" : "0/1 selected"}
-          </p>
-        </div>
-        <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
-          {availablePersonas.length ? (
-            availablePersonas.map((icp) => {
-              const selected = icp.lineage_id === icpLineageId;
-              return (
-                <label
-                  key={icp.lineage_id}
-                  className={`flex items-start gap-2 rounded-design border px-3 py-2 cursor-pointer ${
-                    selected
-                      ? "border-primary bg-primary/5"
-                      : "border-black/10 bg-white hover:border-primary/30"
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="content-persona"
-                    checked={selected}
-                    onChange={() => setIcpLineageId(icp.lineage_id)}
-                    className="mt-1"
-                  />
-                  <span className="font-['Inter'] text-sm text-foreground truncate">{icp.name}</span>
-                </label>
-              );
-            })
-          ) : (
-            <p className="font-['Inter'] text-xs text-foreground/50">
-              {selectedStrategy || suggestionMode
-                ? "This strategy has no live persona targets."
-                : "Select a strategy to choose a persona."}
+        {singlePersona ? (
+          <div className="rounded-design border border-black/10 bg-white px-4 py-3">
+            <p className="font-['Inter'] text-sm text-foreground">
+              <span className="text-foreground/55">Targeting:</span> {singlePersona.name}
             </p>
-          )}
-        </div>
-        {!icpLineageId ? (
-          <p className="font-['Inter'] text-xs text-red-700">Select exactly one persona.</p>
-        ) : null}
+            <p className="font-['Inter'] text-xs text-foreground/55 mt-1">
+              Inherited from this strategy
+            </p>
+          </div>
+        ) : (
+          <>
+            <div className="flex items-center justify-between gap-2">
+              <p className="font-['Inter'] text-sm text-foreground">
+                {showPersonaPicker ? "Persona (exactly 1)" : "Persona"}
+              </p>
+              {showPersonaPicker ? (
+                <p className="font-['Inter'] text-xs text-foreground/50">
+                  {icpLineageId ? "1/1 selected" : "0/1 selected"}
+                </p>
+              ) : null}
+            </div>
+            <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+              {showPersonaPicker ? (
+                availablePersonas.map((icp) => {
+                  const selected = icp.lineage_id === icpLineageId;
+                  return (
+                    <label
+                      key={icp.lineage_id}
+                      className={`flex items-start gap-2 rounded-design border px-3 py-2 cursor-pointer ${
+                        selected
+                          ? "border-primary bg-primary/5"
+                          : "border-black/10 bg-white hover:border-primary/30"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="content-persona"
+                        checked={selected}
+                        onChange={() => setIcpLineageId(icp.lineage_id)}
+                        className="mt-1"
+                      />
+                      <span className="font-['Inter'] text-sm text-foreground truncate">
+                        {icp.name}
+                      </span>
+                    </label>
+                  );
+                })
+              ) : (
+                <p className="font-['Inter'] text-xs text-foreground/50">
+                  {selectedStrategy || suggestionMode
+                    ? "This strategy has no live persona targets."
+                    : "Select a strategy to choose a persona."}
+                </p>
+              )}
+            </div>
+            {showPersonaPicker && !icpLineageId ? (
+              <p className="font-['Inter'] text-xs text-red-700">Select exactly one persona.</p>
+            ) : null}
+          </>
+        )}
       </div>
 
       <div className="flex flex-wrap items-center gap-3">

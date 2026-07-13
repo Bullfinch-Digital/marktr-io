@@ -4,6 +4,7 @@ import { CONTENT_TYPE_LABELS } from "../../lib/contentTypeLabels";
 import { Button } from "../ui/button";
 import { ArchiveActionTooltip } from "../ArchiveActionTooltip";
 import { ContentCompositionBanner } from "./ContentCompositionBanner";
+import { exportContentAsPDF } from "../../utils/exportContent";
 
 type Props = {
   item: ContentItemWithComposition;
@@ -62,6 +63,15 @@ export function ContentRosterCard({
             >
               View & edit
             </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="border-black rounded-design"
+              onClick={() => exportContentAsPDF(item)}
+            >
+              Export
+            </Button>
             {onDuplicate ? (
               <Button
                 type="button"
@@ -88,7 +98,17 @@ export function ContentRosterCard({
               </ArchiveActionTooltip>
             ) : null}
           </div>
-        ) : null}
+        ) : (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="border-black rounded-design"
+            onClick={() => exportContentAsPDF(item)}
+          >
+            Export
+          </Button>
+        )}
       </div>
 
       <div className="mt-3">

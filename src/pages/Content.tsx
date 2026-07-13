@@ -33,6 +33,7 @@ import {
   ContentCreatePanel,
   type ContentCreateStrategyOption,
 } from "../components/content/ContentCreatePanel";
+import { exportContentListAsCSV } from "../utils/exportContent";
 
 function formatArchivedDate(iso: string): string {
   const date = new Date(iso);
@@ -314,7 +315,8 @@ export default function ContentPage() {
           </div>
         ) : items.length > 0 ? (
           <>
-            <div className="flex flex-wrap gap-2 items-end">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div className="flex flex-wrap gap-2 items-end">
               <label className="space-y-1">
                 <span className="font-['Inter'] text-[10px] uppercase tracking-wide text-foreground/45">
                   Strategy
@@ -380,6 +382,17 @@ export default function ContentPage() {
                   <option value="approved">Approved</option>
                 </select>
               </label>
+              </div>
+              {filteredItems.length > 0 ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="border-black rounded-design h-9"
+                  onClick={() => exportContentListAsCSV(filteredItems)}
+                >
+                  Export CSV
+                </Button>
+              ) : null}
             </div>
 
             <div className="grid gap-4">

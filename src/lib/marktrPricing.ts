@@ -31,8 +31,8 @@ export const MARKTR_MONEY_BACK_GUARANTEE = `${MARKTR_MONEY_BACK_DAYS}-day money-
 
 /**
  * Pro feature-benefit list — single source for PaywallModal + Pricing.
- * Only ship claims that are actually built. ICP + Brand export are real;
- * Strategy/Content/Health PDF export and Meta/social integrations are not.
+ * Only ship claims that are actually built. ICP, Brand, Strategy, and Content
+ * export are real; Health PDF export and Meta/social integrations are not.
  */
 export type MarktrProBenefit = {
   id: string;
@@ -88,8 +88,8 @@ export const MARKTR_PRO_BENEFITS: readonly MarktrProBenefit[] = [
   },
   {
     id: "export-icp-brand",
-    label: "Export and share your ICPs and brand story.",
-    compareLabel: "Export ICPs and brand stories as PDFs",
+    label: "Export and share your ICPs, brand stories, strategies, and content.",
+    compareLabel: "Export ICPs, brand stories, strategies & content",
     free: false,
     pro: true,
   },

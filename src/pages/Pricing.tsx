@@ -67,7 +67,8 @@ export default function Pricing() {
           </h1>
           <p className="font-['Inter'] text-lg sm:text-xl text-foreground/70 max-w-2xl mx-auto">
             Start free. Upgrade for the full Brand Story System, unlimited ICPs, your complete
-            health report, content strategy, and exportable ICPs and brand stories.
+            health report, content strategy, and exportable ICPs, brand stories, strategies, and
+            content.
           </p>
         </div>
       </section>

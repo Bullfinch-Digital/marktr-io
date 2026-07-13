@@ -33,6 +33,7 @@ import StrategyArchiveModal from "../components/strategy/StrategyArchiveModal";
 import StrategyPermanentDeleteModal from "../components/strategy/StrategyPermanentDeleteModal";
 import { StrategySuggestedContentChecklist } from "../components/strategy/StrategySuggestedContentChecklist";
 import { ArchiveActionTooltip } from "../components/ArchiveActionTooltip";
+import { exportStrategyAsPDF } from "../utils/exportStrategy";
 import "../styles/Modal.css";
 
 type StrategyDetail = StrategyRow & {
@@ -459,29 +460,41 @@ export default function StrategyEditor() {
                   Version {strategy.version}
                 </p>
               </div>
-              {!readOnly ? (
-                <ArchiveActionTooltip>
+              <div className="flex flex-wrap items-center gap-2">
+                {rosterStrategy ? (
                   <Button
                     type="button"
                     variant="outline"
                     className="border-black rounded-design"
-                    onClick={() => setArchiveOpen(true)}
+                    onClick={() => exportStrategyAsPDF(rosterStrategy)}
                   >
-                    Archive
+                    Export
                   </Button>
-                </ArchiveActionTooltip>
-              ) : (
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={isPermanentDeleting}
-                  onClick={() => setPermanentDeleteOpen(true)}
-                  className="border-red-300 text-red-700 hover:bg-red-50 rounded-design font-['Inter'] text-sm gap-1.5"
-                >
-                  <Trash2 className="h-4 w-4" />
-                  Delete permanently
-                </Button>
-              )}
+                ) : null}
+                {!readOnly ? (
+                  <ArchiveActionTooltip>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="border-black rounded-design"
+                      onClick={() => setArchiveOpen(true)}
+                    >
+                      Archive
+                    </Button>
+                  </ArchiveActionTooltip>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={isPermanentDeleting}
+                    onClick={() => setPermanentDeleteOpen(true)}
+                    className="border-red-300 text-red-700 hover:bg-red-50 rounded-design font-['Inter'] text-sm gap-1.5"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Delete permanently
+                  </Button>
+                )}
+              </div>
             </div>
 
             {rosterStrategy ? (

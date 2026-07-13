@@ -6,6 +6,7 @@ import { StrategyCompositionBanner } from "./StrategyCompositionBanner";
 import { StrategyContentView } from "./StrategyContentView";
 import { Button } from "../ui/button";
 import { ArchiveActionTooltip } from "../ArchiveActionTooltip";
+import { exportStrategyAsPDF } from "../../utils/exportStrategy";
 
 function formatDate(iso: string): string {
   const d = new Date(iso);
@@ -54,6 +55,15 @@ export function StrategyRosterCard({ strategy, onArchive, readOnly = false }: Pr
               <Plus className="h-3.5 w-3.5" />
               Edit
             </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="border-black rounded-design"
+              onClick={() => exportStrategyAsPDF(strategy)}
+            >
+              Export
+            </Button>
             {onArchive ? (
               <ArchiveActionTooltip>
                 <Button
@@ -68,7 +78,17 @@ export function StrategyRosterCard({ strategy, onArchive, readOnly = false }: Pr
               </ArchiveActionTooltip>
             ) : null}
           </div>
-        ) : null}
+        ) : (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="border-black rounded-design"
+            onClick={() => exportStrategyAsPDF(strategy)}
+          >
+            Export
+          </Button>
+        )}
       </div>
 
       <div className="mt-3">

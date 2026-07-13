@@ -29,6 +29,7 @@ import { ContentVersionHistorySection } from "../components/content/ContentVersi
 import ContentArchiveModal from "../components/content/ContentArchiveModal";
 import ContentPermanentDeleteModal from "../components/content/ContentPermanentDeleteModal";
 import { ArchiveActionTooltip } from "../components/ArchiveActionTooltip";
+import { exportContentAsPDF } from "../utils/exportContent";
 import "../styles/Modal.css";
 
 type ContentDetail = ContentItemRow & { composition: ContentComposition };
@@ -424,6 +425,15 @@ export default function ContentEditor() {
                 {item.status === "approved" ? "Approved" : "Draft"}
               </span>
             )}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="border-black rounded-design"
+              onClick={() => exportContentAsPDF(item)}
+            >
+              Export
+            </Button>
             {isArchived ? (
               <Button
                 type="button"

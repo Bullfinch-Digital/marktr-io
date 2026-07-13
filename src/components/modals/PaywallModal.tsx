@@ -4,6 +4,7 @@ import { X, Check } from "lucide-react";
 import {
   MARKTR_DEFAULT_CHECKOUT_PLAN,
   MARKTR_MONEY_BACK_GUARANTEE,
+  MARKTR_PRO_BENEFITS,
   MARKTR_PRO_BILLING_LINE,
   MARKTR_PRO_CARD_SUBTITLE,
   MARKTR_PRO_PLAN_NAME,
@@ -31,17 +32,6 @@ export function PaywallModal({
   if (!isOpen) return null;
 
   const [showExitConfirm, setShowExitConfirm] = useState(false);
-
-  const trialFeatures = [
-    "Know Your Customer — full ICP profile unlocked",
-    "Digital Health Check — complete score breakdown",
-    "Brand Story System — your story, fully built",
-    "Content strategy and campaign ideas",
-    "Connect Instagram and Facebook for real engagement data",
-    "Save and manage multiple brands",
-    "Export and share your results",
-    "Step-by-step plan to improve every score",
-  ];
 
   const handleAttemptContinueFree = () => {
     setShowExitConfirm(true);
@@ -108,12 +98,12 @@ export function PaywallModal({
             <h3 className="font-['Fraunces'] text-xl mb-4">What full access includes</h3>
             <div className="bg-gradient-to-br from-button-green/10 to-[#BBA0E5]/10 border border-black rounded-design p-6">
               <ul className="grid sm:grid-cols-2 gap-3">
-                {trialFeatures.map((feature, index) => (
-                  <li key={index} className="flex items-start gap-3">
+                {MARKTR_PRO_BENEFITS.map((feature) => (
+                  <li key={feature.id} className="flex items-start gap-3">
                     <div className="w-5 h-5 bg-button-green rounded-full border border-black flex items-center justify-center flex-shrink-0 mt-0.5">
                       <Check className="w-3 h-3" />
                     </div>
-                    <span className="font-['Inter'] text-sm">{feature}</span>
+                    <span className="font-['Inter'] text-sm">{feature.label}</span>
                   </li>
                 ))}
               </ul>

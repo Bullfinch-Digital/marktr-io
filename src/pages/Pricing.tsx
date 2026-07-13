@@ -6,6 +6,7 @@ import {
   MARKTR_MONEY_BACK_DAYS,
   MARKTR_MONEY_BACK_GUARANTEE,
   MARKTR_PRO_ANNUAL_TOTAL_GBP,
+  MARKTR_PRO_BENEFITS,
   MARKTR_PRO_BILLING_LINE,
   MARKTR_PRO_CARD_SUBTITLE,
   MARKTR_PRO_MONTHLY_EQUIVALENT_GBP,
@@ -15,6 +16,18 @@ import {
   MARKTR_TRIAL_FINE_PRINT,
   MARKTR_TRIAL_LEGAL_STRIP,
 } from "../lib/marktrPricing";
+
+function CompareCell({ value }: { value: boolean | string }) {
+  if (value === true) {
+    return (
+      <Check className="w-5 h-5 mx-auto" strokeWidth={3} style={{ color: "#4A9D3C" }} />
+    );
+  }
+  if (value === false) {
+    return <span>—</span>;
+  }
+  return <>{value}</>;
+}
 
 export default function Pricing() {
   const { openPaywall, isStartingCheckout } = usePaywall();
@@ -45,15 +58,6 @@ export default function Pricing() {
     },
   ];
 
-  const proFeatures = [
-    "All ICP features unlocked",
-    "Unlimited edits",
-    "Content strategy tools",
-    "Meta lookalike exports",
-    "Create collections",
-    "Cancel anytime during trial",
-  ];
-
   return (
     <div className="min-h-screen bg-background">
       <section className="pt-24 pb-16 px-4 sm:px-6 lg:px-8">
@@ -62,8 +66,8 @@ export default function Pricing() {
             Plans built to help you target smarter & grow faster
           </h1>
           <p className="font-['Inter'] text-lg sm:text-xl text-foreground/70 max-w-2xl mx-auto">
-            Start free. Upgrade to access full ICPs, strategic insights, and export-ready Meta
-            targeting data.
+            Start free. Upgrade for the full Brand Story System, unlimited ICPs, your complete
+            health report, content strategy, and exportable ICPs and brand stories.
           </p>
         </div>
       </section>
@@ -82,10 +86,10 @@ export default function Pricing() {
             </div>
 
             <ul className="space-y-3 mb-8 flex-grow">
-              {proFeatures.map((feature) => (
-                <li key={feature} className="flex items-start gap-2">
+              {MARKTR_PRO_BENEFITS.map((feature) => (
+                <li key={feature.id} className="flex items-start gap-2">
                   <Check className="w-5 h-5 text-button-green shrink-0 mt-0.5" />
-                  <span className="font-['Inter'] text-sm">{feature}</span>
+                  <span className="font-['Inter'] text-sm">{feature.label}</span>
                 </li>
               ))}
             </ul>
@@ -148,49 +152,24 @@ export default function Pricing() {
                 </tr>
               </thead>
               <tbody className="font-['Inter'] text-sm">
-                {(
-                  [
-                    ["Structured ICP framework (goals, pains, segments)", true, true],
-                    ["ICPs included", "3 ICP previews (read-only)", "Unlimited ICPs"],
-                    ["Save ICPs to your account", false, true],
-                    ["Edit & regenerate ICPs", false, true],
-                    ["Build brand pages", false, true],
-                    ["Generate marketing strategies", false, true],
-                    ["Create & manage ICP collections", false, true],
-                    ["Export ICPs & strategies as PDFs", false, true],
-                    ["Faster ICP generation", false, true],
-                    ["Early access to new features", false, true],
-                    [`${MARKTR_MONEY_BACK_DAYS}-day money-back guarantee`, false, true],
-                  ] as const
-                ).map(([label, free, pro]) => (
-                  <tr key={String(label)} className="border-b border-warm-grey last:border-b-0">
-                    <td className="p-4 sm:p-6">{label}</td>
+                {MARKTR_PRO_BENEFITS.map((feature) => (
+                  <tr key={feature.id} className="border-b border-warm-grey">
+                    <td className="p-4 sm:p-6">{feature.compareLabel}</td>
                     <td className="text-center p-4 sm:p-6 text-foreground/60">
-                      {free === true ? (
-                        <Check
-                          className="w-5 h-5 mx-auto"
-                          strokeWidth={3}
-                          style={{ color: "#4A9D3C" }}
-                        />
-                      ) : free === false ? (
-                        "—"
-                      ) : (
-                        free
-                      )}
+                      <CompareCell value={feature.free} />
                     </td>
                     <td className="text-center p-4 sm:p-6 bg-button-green/5">
-                      {pro === true ? (
-                        <Check
-                          className="w-5 h-5 mx-auto"
-                          strokeWidth={3}
-                          style={{ color: "#4A9D3C" }}
-                        />
-                      ) : (
-                        pro
-                      )}
+                      <CompareCell value={feature.pro} />
                     </td>
                   </tr>
                 ))}
+                <tr>
+                  <td className="p-4 sm:p-6">{MARKTR_MONEY_BACK_DAYS}-day money-back guarantee</td>
+                  <td className="text-center p-4 sm:p-6 text-foreground/60">—</td>
+                  <td className="text-center p-4 sm:p-6 bg-button-green/5">
+                    <CompareCell value={true} />
+                  </td>
+                </tr>
               </tbody>
             </table>
           </div>

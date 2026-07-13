@@ -63,6 +63,19 @@ export default function GuestDashboardPreview() {
 
   const completedCount = [hasHealth, hasStory, hasICPs].filter(Boolean).length;
 
+  /** Same completion flags as the step-chain cards — next incomplete step for inline nudges. */
+  const nextAfterHealth = !hasStory
+    ? { to: "/story", label: "Next: Complete your brand story →" }
+    : !hasICPs
+      ? { to: "/onboarding-build", label: "Next: Know your customer →" }
+      : null;
+  const nextAfterStory = !hasICPs
+    ? { to: "/onboarding-build", label: "Next: Know your customer →" }
+    : null;
+
+  const nextStepLinkClassName =
+    "inline-block font-['DM_Sans'] text-sm font-semibold text-primary hover:underline";
+
   const headerTitle = (() => {
     if (completedCount === 3) return "Your full marketing picture is ready.";
     if (hasHealth && !hasStory && !hasICPs) return "Your digital health scores are in.";
@@ -179,65 +192,79 @@ export default function GuestDashboardPreview() {
         </section>
 
         {hasHealth && guestHealth?.scores ? (
-          <HealthScoreHero
-            overall={guestHealth.scores.overall}
-            reportHref="/health-preview"
-            reportLinkLabel="View your findings →"
-            dimensions={[
-              {
-                key: "websiteClarity",
-                label: "Website Clarity",
-                score: guestHealth.scores.websiteClarity ?? "—",
-              },
-              {
-                key: "brandStory",
-                label: "Brand Story",
-                score: guestHealth.scores.brandStory ?? "—",
-              },
-              {
-                key: "contentConsistency",
-                label: "Content Consistency",
-                score: guestHealth.scores.contentConsistency ?? "—",
-              },
-              {
-                key: "socialPresence",
-                label: "Social Presence",
-                score: guestHealth.scores.socialPresence ?? "—",
-              },
-            ]}
-          />
+          <div className="space-y-3">
+            <HealthScoreHero
+              overall={guestHealth.scores.overall}
+              reportHref="/health-preview"
+              reportLinkLabel="View your findings →"
+              dimensions={[
+                {
+                  key: "websiteClarity",
+                  label: "Website Clarity",
+                  score: guestHealth.scores.websiteClarity ?? "—",
+                },
+                {
+                  key: "brandStory",
+                  label: "Brand Story",
+                  score: guestHealth.scores.brandStory ?? "—",
+                },
+                {
+                  key: "contentConsistency",
+                  label: "Content Consistency",
+                  score: guestHealth.scores.contentConsistency ?? "—",
+                },
+                {
+                  key: "socialPresence",
+                  label: "Social Presence",
+                  score: guestHealth.scores.socialPresence ?? "—",
+                },
+              ]}
+            />
+            {nextAfterHealth ? (
+              <Link to={nextAfterHealth.to} className={nextStepLinkClassName}>
+                {nextAfterHealth.label}
+              </Link>
+            ) : null}
+          </div>
         ) : null}
 
-        {hasStory && guestStory?.output && (
-          <div className="space-y-4 rounded-2xl border border-border bg-white p-6">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <h2 className="font-['Fraunces'] text-2xl font-bold text-[#0D1833]">Your brand story</h2>
-              <Link
-                to="/story/results"
-                className="font-['DM_Sans'] text-sm font-medium text-primary hover:underline"
-              >
-                View full story →
+        {hasStory && guestStory?.output ? (
+          <div className="space-y-3">
+            <div className="space-y-4 rounded-2xl border border-border bg-white p-6">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <h2 className="font-['Fraunces'] text-2xl font-bold text-[#0D1833]">Your brand story</h2>
+                <Link
+                  to="/story/results"
+                  className="font-['DM_Sans'] text-sm font-medium text-primary hover:underline"
+                >
+                  View full story →
+                </Link>
+              </div>
+              <div className="space-y-3">
+                {(
+                  [
+                    { label: "FOUNDING STORY", body: guestStory.output.foundingStory },
+                    { label: "YOUR POINT OF VIEW", body: guestStory.output.pointOfView },
+                    { label: "POSITIONING", body: guestStory.output.positioningStatement },
+                    { label: "YOUR PURPOSE", body: guestStory.output.brandPurpose },
+                  ] as const
+                ).map(({ label, body }) => (
+                  <div key={label} className="rounded-xl border border-border p-4">
+                    <p className="mb-2 font-['DM_Sans'] text-[10px] uppercase tracking-widest text-muted-foreground">
+                      {label}
+                    </p>
+                    <p className="font-['Fraunces'] text-base leading-relaxed text-[#0D1833]">{body}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+            {nextAfterStory ? (
+              <Link to={nextAfterStory.to} className={nextStepLinkClassName}>
+                {nextAfterStory.label}
               </Link>
-            </div>
-            <div className="space-y-3">
-              {(
-                [
-                  { label: "FOUNDING STORY", body: guestStory.output.foundingStory },
-                  { label: "YOUR POINT OF VIEW", body: guestStory.output.pointOfView },
-                  { label: "POSITIONING", body: guestStory.output.positioningStatement },
-                  { label: "YOUR PURPOSE", body: guestStory.output.brandPurpose },
-                ] as const
-              ).map(({ label, body }) => (
-                <div key={label} className="rounded-xl border border-border p-4">
-                  <p className="mb-2 font-['DM_Sans'] text-[10px] uppercase tracking-widest text-muted-foreground">
-                    {label}
-                  </p>
-                  <p className="font-['Fraunces'] text-base leading-relaxed text-[#0D1833]">{body}</p>
-                </div>
-              ))}
-            </div>
+            ) : null}
           </div>
-        )}
+        ) : null}
 
         {hasICPs && (
           <section ref={icpProfilesRef} id="guest-icp-profiles" className="scroll-mt-8">

@@ -3,6 +3,7 @@ import {
   applyDimensionDisplayCap,
   buildAbsentHealthCheckRun,
   DIMENSION_CAP_FRAMING_COPY,
+  DIMENSION_DISPLAY_CAP,
   shouldSuppressDimensionGaps,
   SOCIAL_INCOMPLETE_COPY,
 } from "./healthCheck";
@@ -14,6 +15,11 @@ export interface StoryAssessment {
   hasDistinctivePositioning: boolean;
   hasEmotionalHook: boolean;
   missingElements: string[];
+  /**
+   * Story System CTA — only set when Brand Story has a real weakness.
+   * Null/undefined when strong/capped/maxed (do not pitch "find your story").
+   */
+  storySystemSignpost?: { copy: string } | null;
 }
 
 export interface SocialScores {
@@ -94,10 +100,58 @@ function findingObservation(
   return finding || fallback;
 }
 
+function formatGapList(gaps: string[]): string {
+  if (gaps.length === 1) return gaps[0];
+  if (gaps.length === 2) return `${gaps[0]} and ${gaps[1]}`;
+  return `${gaps.slice(0, -1).join(", ")}, and ${gaps[gaps.length - 1]}`;
+}
+
+/**
+ * Story-dimension weaknesses only (not Website Clarity facts like namesCustomer).
+ * Used for missing-element chips and the Story System signpost.
+ */
+export function storyGapsFromFacts(facts: {
+  founderStory: "present" | "partial" | "absent";
+  storySpecific: "specific" | "mixed" | "boilerplate";
+  pointOfView: "distinct" | "implied" | "absent";
+  valuesMission: "concrete" | "generic" | "absent";
+}): string[] {
+  const gaps: string[] = [];
+  if (facts.founderStory === "absent") gaps.push("your founding story");
+  else if (facts.founderStory === "partial") gaps.push("a fuller founding story");
+  if (facts.storySpecific === "boilerplate") gaps.push("specific, concrete story detail");
+  else if (facts.storySpecific === "mixed") gaps.push("sharper story specificity");
+  if (facts.pointOfView === "absent") gaps.push("a clear point of view / purpose");
+  else if (facts.pointOfView === "implied") gaps.push("what makes you different");
+  if (facts.valuesMission === "absent") gaps.push("concrete values or purpose");
+  else if (facts.valuesMission === "generic") gaps.push("more concrete values or purpose");
+  return gaps;
+}
+
+function storySystemSignpostFromGaps(
+  gaps: string[],
+  brandStoryRaw: number | null | undefined
+): { copy: string } | null {
+  // Strong / maxed / display-capped stories: never pitch.
+  if (
+    brandStoryRaw === null ||
+    brandStoryRaw === undefined ||
+    brandStoryRaw >= DIMENSION_DISPLAY_CAP
+  ) {
+    return null;
+  }
+  if (gaps.length === 0) return null;
+
+  return {
+    copy: `marktr's Story System can help you find and articulate ${formatGapList(gaps)} — free in under 5 minutes.`,
+  };
+}
+
 function storyAssessmentFromFacts(
   run: DeterministicHealthCheckRun
 ): StoryAssessment {
   const { facts } = run;
+  const brandStoryRaw = run.dimensions?.brandStory?.raw ?? run.scores.brandStory;
   const hasFounderStory = facts.founderStory !== "absent";
   let founderStoryQuality: StoryAssessment["founderStoryQuality"] = "none";
   if (facts.founderStory === "present") {
@@ -107,13 +161,17 @@ function storyAssessmentFromFacts(
     founderStoryQuality = "basic";
   }
 
+  const storyGaps = storyGapsFromFacts(facts);
+  // Chip labels stay short; signpost copy uses the fuller gap phrases.
   const missingElements: string[] = [];
   if (!hasFounderStory) missingElements.push("founding moment");
+  else if (facts.founderStory === "partial") missingElements.push("fuller founding story");
+  if (facts.storySpecific === "boilerplate") missingElements.push("specific story detail");
+  else if (facts.storySpecific === "mixed") missingElements.push("sharper story specificity");
   if (facts.pointOfView === "absent") missingElements.push("clear why/purpose");
-  if (facts.namesCustomer === "absent")
-    missingElements.push("specific customer named");
-  if (facts.pointOfView !== "distinct")
-    missingElements.push("what makes us different");
+  else if (facts.pointOfView === "implied") missingElements.push("what makes us different");
+  if (facts.valuesMission === "absent") missingElements.push("concrete values/purpose");
+  else if (facts.valuesMission === "generic") missingElements.push("more concrete values");
 
   return {
     hasFounderStory,
@@ -122,6 +180,7 @@ function storyAssessmentFromFacts(
     hasDistinctivePositioning: facts.pointOfView === "distinct",
     hasEmotionalHook: facts.storyNamesConcrete || facts.storySpecific === "specific",
     missingElements,
+    storySystemSignpost: storySystemSignpostFromGaps(storyGaps, brandStoryRaw),
   };
 }
 

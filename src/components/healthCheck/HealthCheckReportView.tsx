@@ -157,6 +157,8 @@ export function getDataSourceLabel(
 }
 
 function BrandStoryPanel({ sa }: { sa: StoryAssessment }) {
+  const signpost = sa.storySystemSignpost;
+
   return (
     <div className="mt-4 rounded-xl border border-[#D4871A]/20 bg-[#FDF0CC] p-4">
       <p className="mb-3 font-['DM_Sans'] text-[10px] font-medium uppercase tracking-widest text-[#BA7517]">
@@ -203,18 +205,19 @@ function BrandStoryPanel({ sa }: { sa: StoryAssessment }) {
         </div>
       )}
 
-      <div className="mt-3 border-t border-[#D4871A]/20 pt-3">
-        <p className="font-['DM_Sans'] text-xs leading-relaxed text-[#0D1833]">
-          marktr&apos;s Story System can help you find and articulate the missing elements — free in
-          under 5 minutes.
-        </p>
-        <Link
-          to="/story"
-          className="mt-2 inline-flex font-['DM_Sans'] text-xs font-medium text-primary underline underline-offset-2"
-        >
-          Find your brand story →
-        </Link>
-      </div>
+      {signpost ? (
+        <div className="mt-3 border-t border-[#D4871A]/20 pt-3">
+          <p className="font-['DM_Sans'] text-xs leading-relaxed text-[#0D1833]">
+            {signpost.copy}
+          </p>
+          <Link
+            to="/story"
+            className="mt-2 inline-flex font-['DM_Sans'] text-xs font-medium text-primary underline underline-offset-2"
+          >
+            Find your brand story →
+          </Link>
+        </div>
+      ) : null}
     </div>
   );
 }

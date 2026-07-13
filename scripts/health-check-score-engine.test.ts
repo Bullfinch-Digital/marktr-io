@@ -481,6 +481,110 @@ function testDimensionDisplayCapDoesNotDoubleCapOverall() {
   console.log("✓ dimension display cap does not double-cap overall", run.scores);
 }
 
+function testStorySystemSignpostGating() {
+  const strongFacts: HealthCheckFacts = {
+    valueProp: "clear",
+    namesCustomer: "clear",
+    usesSecondPerson: true,
+    primaryCTA: "single",
+    proofOnPage: "real",
+    pathToBuyContact: "clear",
+    founderStory: "present",
+    storySpecific: "specific",
+    storyNamesConcrete: true,
+    pointOfView: "distinct",
+    valuesMission: "concrete",
+    socialReflectsStory: "expresses",
+    igProfileComplete: "complete",
+    bioOnMessage: "complete",
+  };
+
+  const strong = buildHealthCheckRun({
+    facts: strongFacts,
+    apifyMetrics: {
+      instagramFound: true,
+      facebookFound: false,
+      instagramFetchStatus: "found",
+      followers: 600,
+      avgLikes: 50,
+      avgComments: 5,
+      latestPostDaysAgo: 10,
+      postsPerWeek: 1.2,
+      bioLength: 40,
+      hasExternalUrl: false,
+      hasFullName: true,
+    },
+    modelVersion: "test",
+    inputs: {
+      websiteUrl: "https://apostlecoffee.com",
+      instagramHandle: "apostlecoffee",
+      facebookUrl: "",
+      domain: "apostlecoffee.com",
+    },
+  });
+
+  const strongScores = calculateScores({
+    email: "test@example.com",
+    websiteUrl: "https://apostlecoffee.com",
+    websiteScore: { score: 95, observation: "ok", deterministic: strong },
+  });
+  assert.equal(strongScores.brandStory.score, 95);
+  assert.equal(strongScores.brandStory.storyAssessment?.storySystemSignpost, null);
+  assert.equal(strongScores.brandStory.storyAssessment?.missingElements.length, 0);
+  console.log("✓ strong Brand Story (95) suppresses Story System signpost");
+
+  const weakFacts: HealthCheckFacts = {
+    ...absentHealthCheckFacts(),
+    valueProp: "clear",
+    namesCustomer: "clear",
+    usesSecondPerson: true,
+    primaryCTA: "single",
+    proofOnPage: "real",
+    pathToBuyContact: "clear",
+    founderStory: "absent",
+    storySpecific: "boilerplate",
+    storyNamesConcrete: false,
+    pointOfView: "absent",
+    valuesMission: "absent",
+  };
+
+  const weak = buildHealthCheckRun({
+    facts: weakFacts,
+    apifyMetrics: {
+      instagramFound: false,
+      facebookFound: false,
+      instagramFetchStatus: "not_provided",
+      followers: 0,
+      avgLikes: 0,
+      avgComments: 0,
+      latestPostDaysAgo: null,
+      postsPerWeek: null,
+      bioLength: 0,
+      hasExternalUrl: false,
+      hasFullName: false,
+    },
+    modelVersion: "test",
+    inputs: {
+      websiteUrl: "https://example.com",
+      instagramHandle: "",
+      facebookUrl: "",
+      domain: "example.com",
+    },
+  });
+
+  const weakScores = calculateScores({
+    email: "test@example.com",
+    websiteUrl: "https://example.com",
+    websiteScore: { score: 0, observation: "ok", deterministic: weak },
+  });
+  assert.ok((weakScores.brandStory.scoreRaw ?? 0) < 95);
+  const cta = weakScores.brandStory.storyAssessment?.storySystemSignpost;
+  assert.ok(cta?.copy);
+  assert.match(cta!.copy, /founding story/i);
+  assert.doesNotMatch(cta!.copy, /the missing elements/i);
+  console.log("✓ weak Brand Story shows Story System signpost with real gap copy");
+}
+
 testIdenticalRuns();
 testUsesSecondPersonBump();
 testWeightedOverall();
@@ -492,5 +596,6 @@ testAugmentFindingsBrandStoryDelta();
 testNoSocialHallucinationScoresZero();
 testSocialIncompleteRenormalises();
 testDimensionDisplayCapDoesNotDoubleCapOverall();
+testStorySystemSignpostGating();
 console.log("\nAll health-check score engine tests passed.");
 console.log("\nAll score engine tests passed.");

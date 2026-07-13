@@ -59,6 +59,7 @@ export default function ContentPage() {
     isLoading,
     error,
     createContent,
+    duplicateContent,
     archiveContent,
     restoreContent,
     hardDeleteContent,
@@ -85,6 +86,7 @@ export default function ContentPage() {
   const [archivedOpen, setArchivedOpen] = useState(false);
   const [archiveTarget, setArchiveTarget] = useState<ContentItemWithComposition | null>(null);
   const [isArchiving, setIsArchiving] = useState(false);
+  const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
   const [permanentDeleteTarget, setPermanentDeleteTarget] =
     useState<ContentItemWithComposition | null>(null);
   const [isPermanentDeleting, setIsPermanentDeleting] = useState(false);
@@ -176,6 +178,18 @@ export default function ContentPage() {
       setArchiveTarget(null);
     } finally {
       setIsArchiving(false);
+    }
+  };
+
+  const handleDuplicate = async (item: ContentItemWithComposition) => {
+    setDuplicatingId(item.id);
+    try {
+      const created = await duplicateContent(item.id);
+      if (created?.id) navigate(`/content/${created.id}`);
+    } catch (err) {
+      console.error("[Content] duplicate failed", err);
+    } finally {
+      setDuplicatingId(null);
     }
   };
 
@@ -374,6 +388,8 @@ export default function ContentPage() {
                   key={item.id}
                   item={item}
                   onArchive={() => setArchiveTarget(item)}
+                  onDuplicate={() => void handleDuplicate(item)}
+                  duplicating={duplicatingId === item.id}
                 />
               ))}
               {filteredItems.length === 0 ? (

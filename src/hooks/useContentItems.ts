@@ -121,6 +121,55 @@ export function useContentItems(brandId: string) {
     [brandId, fetchItems, user?.id]
   );
 
+  const duplicateContent = useCallback(
+    async (itemId: string): Promise<ContentItemRow | null> => {
+      if (!user?.id || !brandId) return null;
+
+      const { data: source, error: fetchError } = await supabase
+        .from("content_items")
+        .select("*")
+        .eq("id", itemId)
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (fetchError) throw fetchError;
+      if (!source) return null;
+
+      const baseTitle = String(source.title || "Untitled").trim() || "Untitled";
+      const copyTitle = /\(copy\)$/i.test(baseTitle) ? baseTitle : `${baseTitle} (copy)`;
+
+      const { data: saved, error: insertError } = await supabase
+        .from("content_items")
+        .insert({
+          brand_id: source.brand_id,
+          user_id: user.id,
+          strategy_lineage_id: source.strategy_lineage_id,
+          campaign_idea_id: source.campaign_idea_id,
+          campaign_idea_name_snapshot: source.campaign_idea_name_snapshot,
+          icp_lineage_id: source.icp_lineage_id,
+          icp_name_snapshot: source.icp_name_snapshot,
+          suggested_content_id: null,
+          type: source.type,
+          title: copyTitle,
+          content: source.content,
+          status: "draft",
+          prompt_version: source.prompt_version,
+          model: source.model,
+        })
+        .select()
+        .single();
+
+      if (insertError) throw insertError;
+
+      try {
+        window.dispatchEvent(new Event("content-items:changed"));
+      } catch {}
+      await fetchItems();
+      return saved as ContentItemRow;
+    },
+    [brandId, fetchItems, user?.id]
+  );
+
   const updateContent = useCallback(
     async (
       itemId: string,
@@ -208,6 +257,7 @@ export function useContentItems(brandId: string) {
     error,
     fetchItems,
     createContent,
+    duplicateContent,
     updateContent,
     setContentStatus,
     archiveContent,

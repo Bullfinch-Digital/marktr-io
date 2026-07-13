@@ -8,10 +8,18 @@ import { ContentCompositionBanner } from "./ContentCompositionBanner";
 type Props = {
   item: ContentItemWithComposition;
   onArchive?: () => void;
+  onDuplicate?: () => void;
+  duplicating?: boolean;
   readOnly?: boolean;
 };
 
-export function ContentRosterCard({ item, onArchive, readOnly = false }: Props) {
+export function ContentRosterCard({
+  item,
+  onArchive,
+  onDuplicate,
+  duplicating = false,
+  readOnly = false,
+}: Props) {
   const navigate = useNavigate();
   const typeLabel = CONTENT_TYPE_LABELS[item.type] ?? item.type;
   const statusLabel = item.status === "approved" ? "Approved" : "Draft";
@@ -54,6 +62,18 @@ export function ContentRosterCard({ item, onArchive, readOnly = false }: Props) 
             >
               View & edit
             </Button>
+            {onDuplicate ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={duplicating}
+                className="border-black rounded-design"
+                onClick={onDuplicate}
+              >
+                {duplicating ? "Duplicating…" : "Duplicate"}
+              </Button>
+            ) : null}
             {onArchive ? (
               <ArchiveActionTooltip>
                 <Button

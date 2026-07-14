@@ -353,7 +353,7 @@ export default function StrategyEditor() {
   }, [strategy]);
 
   return (
-    <DashboardShell contentClassName="flex-1 px-6 py-8 lg:px-12">
+    <DashboardShell requirePro contentClassName="flex-1 px-6 py-8 lg:px-12">
       {leaveDialogOpen ? (
         <div
           className="modal-overlay"

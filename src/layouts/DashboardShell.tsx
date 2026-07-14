@@ -24,6 +24,12 @@ type DashboardShellProps = {
    */
   guestMode?: boolean;
   onGuestAction?: () => void;
+  /**
+   * When true, lock this shell unless the user has Pro
+   * (`effectiveTier === "pro"` / latest stripe status trialing|active).
+   * Used for Strategy and Content — independent of the global trial-expired overlay.
+   */
+  requirePro?: boolean;
 };
 
 export default function DashboardShell({
@@ -32,13 +38,24 @@ export default function DashboardShell({
   contentClassName,
   guestMode = false,
   onGuestAction,
+  requirePro = false,
 }: DashboardShellProps) {
   const { user } = useAuth();
-  const { tier: userTier, trialActive, trialExpired, isLoading: subscriptionLoading } = useSubscription();
+  const {
+    tier: userTier,
+    trialActive,
+    trialExpired,
+    isPro,
+    ready: subscriptionReady,
+    isLoading: subscriptionLoading,
+  } = useSubscription();
   const { openPaywall } = usePaywall();
   const navigate = useNavigate();
 
   const showTrialOverlay = !guestMode && trialExpired && userTier === "free" && !trialActive;
+  const showProGateOverlay =
+    !guestMode && requirePro && subscriptionReady && !isPro;
+  const showAccessOverlay = showTrialOverlay || showProGateOverlay;
 
   const handleUpgrade = () => {
     if (guestMode) {
@@ -50,7 +67,7 @@ export default function DashboardShell({
 
   const shellBody = (
     <>
-      <div className={`flex w-full ${showTrialOverlay ? "pointer-events-none opacity-40" : ""}`}>
+      <div className={`flex w-full ${showAccessOverlay ? "pointer-events-none opacity-40" : ""}`}>
         <DashboardSidebar
           userTier={userTier === "free" && !trialActive ? "free" : "paid"}
           onUpgrade={handleUpgrade}
@@ -81,13 +98,17 @@ export default function DashboardShell({
     <div className="min-h-screen bg-background flex relative" key={user?.id ?? "guest"}>
       {shellBody}
 
-      {showTrialOverlay && (
+      {showAccessOverlay && (
         <div className="absolute inset-0 z-50 flex items-center justify-center p-6">
           <div className="absolute inset-0 bg-background/80" />
           <div className="relative w-full max-w-lg bg-background border border-black rounded-design shadow-xl p-8 text-center">
-            <h2 className="font-['Fraunces'] text-2xl mb-2">Your trial has ended</h2>
+            <h2 className="font-['Fraunces'] text-2xl mb-2">
+              {showTrialOverlay ? "Your trial has ended" : "This feature requires Marktr Pro"}
+            </h2>
             <p className="font-['Inter'] text-foreground/70 mb-6">
-              Upgrade to keep editing, exporting, and creating unlimited ICPs.
+              {showTrialOverlay
+                ? "Upgrade to keep editing, exporting, and creating unlimited ICPs."
+                : "Strategy and content tools are included with Marktr Pro. Upgrade to unlock them — your data stays saved if you already have any."}
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Button

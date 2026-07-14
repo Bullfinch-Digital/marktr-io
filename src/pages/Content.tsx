@@ -207,7 +207,7 @@ export default function ContentPage() {
 
   if (!brandReady) {
     return (
-      <DashboardShell contentClassName="flex-1 px-6 py-8 lg:px-12">
+      <DashboardShell requirePro contentClassName="flex-1 px-6 py-8 lg:px-12">
         <p className="font-['Inter'] text-sm text-foreground/60">Loading…</p>
       </DashboardShell>
     );
@@ -215,7 +215,7 @@ export default function ContentPage() {
 
   if (!scopedBrandId) {
     return (
-      <DashboardShell contentClassName="flex-1 px-6 py-8 lg:px-12">
+      <DashboardShell requirePro contentClassName="flex-1 px-6 py-8 lg:px-12">
         <div className="max-w-xl">
           <h1 className="font-['Fraunces'] text-3xl text-[#0D1833]">Content</h1>
           <p className="font-['Inter'] text-sm text-foreground/70 mt-3">
@@ -230,7 +230,7 @@ export default function ContentPage() {
   }
 
   return (
-    <DashboardShell contentClassName="flex-1 px-6 py-8 lg:px-12">
+    <DashboardShell requirePro contentClassName="flex-1 px-6 py-8 lg:px-12">
       <div className="max-w-5xl mx-auto space-y-8">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>

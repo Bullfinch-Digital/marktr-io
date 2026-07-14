@@ -494,6 +494,18 @@ Deno.serve(async (req) => {
       return json({ error: "Unauthenticated" }, 401);
     }
 
+    // Same Pro definition as public.user_has_pro_access / src/lib/proAccess.ts
+    const { data: hasProAccess, error: proError } = await supabase.rpc(
+      "user_has_pro_access"
+    );
+    if (proError) {
+      console.error("[generate-content] user_has_pro_access failed", proError);
+      return json({ error: "Unable to verify subscription" }, 500);
+    }
+    if (!hasProAccess) {
+      return json({ error: "Pro subscription required" }, 403);
+    }
+
     const body = (await req.json()) as Partial<GenerateInput>;
 
     if (!body.strategyLineageId) {

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "../config/supabase";
 import { useAuth } from "../contexts/AuthContext";
+import { isProSubscriptionStatus } from "../lib/proAccess";
 
 function parseSupabaseTimestamptz(input: string | null | undefined): number | null {
   if (!input) return null;
@@ -74,8 +75,8 @@ export default function useSubscription() {
       const ends = parseSupabaseTimestamptz(endsRaw);
       const now = Date.now();
       const isTrialing = status === "trialing";
-      const isActive = status === "active";
-      const isPro = isTrialing || isActive;
+      // Same Pro rule as public.user_has_pro_access / src/lib/proAccess.ts
+      const isPro = isProSubscriptionStatus(status);
       const isExpired = !isPro && ends !== null && ends <= now;
 
       if (!activeRef.current) return;

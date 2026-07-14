@@ -312,7 +312,7 @@ export default function ContentEditor() {
 
   if (loading) {
     return (
-      <DashboardShell contentClassName="flex-1 px-6 py-8 lg:px-12">
+      <DashboardShell requirePro contentClassName="flex-1 px-6 py-8 lg:px-12">
         <p className="font-['Inter'] text-sm text-foreground/60">Loading content…</p>
       </DashboardShell>
     );
@@ -320,7 +320,7 @@ export default function ContentEditor() {
 
   if (!item || !draft) {
     return (
-      <DashboardShell contentClassName="flex-1 px-6 py-8 lg:px-12">
+      <DashboardShell requirePro contentClassName="flex-1 px-6 py-8 lg:px-12">
         <p className="font-['Inter'] text-sm text-red-700">{error || "Content not found."}</p>
         <Link to="/content" className="font-['Inter'] text-sm underline mt-3 inline-block">
           Back to Content
@@ -330,7 +330,7 @@ export default function ContentEditor() {
   }
 
   return (
-    <DashboardShell contentClassName={`flex-1 px-6 py-8 lg:px-12 ${isDirty ? "pb-24" : ""}`}>
+    <DashboardShell requirePro contentClassName={`flex-1 px-6 py-8 lg:px-12 ${isDirty ? "pb-24" : ""}`}>
       {leaveDialogOpen ? (
         <div
           className="modal-overlay"

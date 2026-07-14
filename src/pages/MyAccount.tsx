@@ -74,6 +74,18 @@ export default function MyAccount() {
     | undefined;
 
   const isLoading = authLoading || profileLoading || !localReady;
+  const hasPasswordIdentity = useMemo(() => {
+    const identities = (user as { identities?: Array<{ provider?: string }> } | null)?.identities;
+    if (Array.isArray(identities) && identities.some((i) => i.provider === "email")) {
+      return true;
+    }
+    const meta = (user as { app_metadata?: { provider?: string; providers?: string[] } } | null)
+      ?.app_metadata;
+    if (Array.isArray(meta?.providers) && meta.providers.includes("email")) {
+      return true;
+    }
+    return meta?.provider === "email";
+  }, [user]);
   const emailInputChanged =
     email.trim().length > 0 &&
     email.trim().toLowerCase() !== (user?.email || "").trim().toLowerCase();
@@ -447,6 +459,11 @@ export default function MyAccount() {
     setPasswordMessage(null);
     setPasswordError(null);
 
+    if (!hasPasswordIdentity) {
+      setPasswordError("This account signs in with Google and has no Marktr password to update.");
+      return;
+    }
+
     if (!newPassword || newPassword.length < 8) {
       setPasswordError("Password must be at least 8 characters long.");
       return;
@@ -635,49 +652,57 @@ export default function MyAccount() {
             <div className="flex-1">
               <h2 className="font-['Fraunces'] text-2xl mb-1">Security</h2>
               <p className="font-['Inter'] text-sm text-foreground/70">
-                Update your password.
+                {hasPasswordIdentity
+                  ? "Update your password."
+                  : "How you sign in to Marktr."}
               </p>
             </div>
           </div>
 
-          <div className="space-y-4 max-w-md">
-            <div className="space-y-2">
-              <Label htmlFor="new-password" className="font-['Inter'] text-sm">
-                New password
-              </Label>
-              <Input
-                id="new-password"
-                type="password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                className="border-black rounded-design font-['Inter']"
-              />
+          {hasPasswordIdentity ? (
+            <div className="space-y-4 max-w-md">
+              <div className="space-y-2">
+                <Label htmlFor="new-password" className="font-['Inter'] text-sm">
+                  New password
+                </Label>
+                <Input
+                  id="new-password"
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="border-black rounded-design font-['Inter']"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="confirm-password" className="font-['Inter'] text-sm">
+                  Confirm new password
+                </Label>
+                <Input
+                  id="confirm-password"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="border-black rounded-design font-['Inter']"
+                />
+              </div>
+
+              {passwordError && <p className="text-sm text-red-600">{passwordError}</p>}
+              {passwordMessage && <p className="text-sm text-foreground/80">{passwordMessage}</p>}
+
+              <Button
+                onClick={handleChangePassword}
+                disabled={passwordSaving}
+                className="bg-background hover:bg-foreground/5 text-foreground border border-black rounded-design font-['Inter'] disabled:opacity-60"
+              >
+                {passwordSaving ? "Saving..." : "Update password"}
+              </Button>
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="confirm-password" className="font-['Inter'] text-sm">
-                Confirm new password
-              </Label>
-              <Input
-                id="confirm-password"
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="border-black rounded-design font-['Inter']"
-              />
-            </div>
-
-            {passwordError && <p className="text-sm text-red-600">{passwordError}</p>}
-            {passwordMessage && <p className="text-sm text-foreground/80">{passwordMessage}</p>}
-
-            <Button
-              onClick={handleChangePassword}
-              disabled={passwordSaving}
-              className="bg-background hover:bg-foreground/5 text-foreground border border-black rounded-design font-['Inter'] disabled:opacity-60"
-            >
-              {passwordSaving ? "Saving..." : "Update password"}
-            </Button>
-          </div>
+          ) : (
+            <p className="font-['Inter'] text-sm text-foreground/80 max-w-lg">
+              You&apos;re signed in with Google. Manage your password through your Google account.
+            </p>
+          )}
         </div>
 
         <div className="bg-gradient-to-br from-button-green/20 to-[#BBA0E5]/10 border border-black rounded-design p-8">

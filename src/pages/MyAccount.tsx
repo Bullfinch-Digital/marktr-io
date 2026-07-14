@@ -74,18 +74,20 @@ export default function MyAccount() {
     | undefined;
 
   const isLoading = authLoading || profileLoading || !localReady;
-  const hasPasswordIdentity = useMemo(() => {
-    const identities = (user as { identities?: Array<{ provider?: string }> } | null)?.identities;
-    if (Array.isArray(identities) && identities.some((i) => i.provider === "email")) {
-      return true;
-    }
-    const meta = (user as { app_metadata?: { provider?: string; providers?: string[] } } | null)
-      ?.app_metadata;
-    if (Array.isArray(meta?.providers) && meta.providers.includes("email")) {
-      return true;
-    }
-    return meta?.provider === "email";
-  }, [user]);
+  /**
+   * Password form visibility must not rely on AuthContext's session user alone —
+   * getSession()/onAuthStateChange often omit or stale-cache `identities`.
+   * Resolve from a fresh auth.getUser() (network) when the account page mounts.
+   */
+  const [identityProviders, setIdentityProviders] = useState<string[] | null>(null);
+  const hasPasswordIdentity = Array.isArray(identityProviders)
+    ? identityProviders.includes("email")
+    : false;
+  const identityCheckReady = identityProviders !== null;
+  const oauthOnlyProviders = useMemo(() => {
+    if (!identityCheckReady) return [];
+    return identityProviders.filter((p) => p !== "email");
+  }, [identityCheckReady, identityProviders]);
   const emailInputChanged =
     email.trim().length > 0 &&
     email.trim().toLowerCase() !== (user?.email || "").trim().toLowerCase();
@@ -281,6 +283,62 @@ export default function MyAccount() {
     }
     setLocalReady(true);
   }, [authLoading, profileLoading, profile, user]);
+
+  // Fresh identities from Auth server (not session storage JWT user)
+  useEffect(() => {
+    if (!user?.id) {
+      setIdentityProviders(null);
+      return;
+    }
+
+    let cancelled = false;
+    setIdentityProviders(null);
+
+    void (async () => {
+      try {
+        const { data, error } = await supabase.auth.getUser();
+        if (cancelled) return;
+
+        if (error || !data.user) {
+          console.warn("MyAccount: getUser for identities failed", error);
+          setIdentityProviders([]);
+          return;
+        }
+
+        const fresh = data.user;
+        const fromIdentities = (fresh.identities ?? [])
+          .map((i) => i.provider)
+          .filter((p): p is string => typeof p === "string" && p.length > 0);
+
+        if (fromIdentities.length > 0) {
+          setIdentityProviders(Array.from(new Set(fromIdentities)));
+          return;
+        }
+
+        const meta = fresh.app_metadata as
+          | { provider?: string; providers?: string[] }
+          | undefined;
+        if (Array.isArray(meta?.providers) && meta.providers.length > 0) {
+          setIdentityProviders(Array.from(new Set(meta.providers)));
+          return;
+        }
+        if (typeof meta?.provider === "string" && meta.provider.length > 0) {
+          setIdentityProviders([meta.provider]);
+          return;
+        }
+
+        setIdentityProviders([]);
+      } catch (err) {
+        if (cancelled) return;
+        console.warn("MyAccount: unexpected getUser identities error", err);
+        setIdentityProviders([]);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
 
   useEffect(() => {
     return () => {
@@ -652,14 +710,18 @@ export default function MyAccount() {
             <div className="flex-1">
               <h2 className="font-['Fraunces'] text-2xl mb-1">Security</h2>
               <p className="font-['Inter'] text-sm text-foreground/70">
-                {hasPasswordIdentity
-                  ? "Update your password."
-                  : "How you sign in to Marktr."}
+                {!identityCheckReady
+                  ? "Checking how you sign in…"
+                  : hasPasswordIdentity
+                    ? "Update your password."
+                    : "How you sign in to Marktr."}
               </p>
             </div>
           </div>
 
-          {hasPasswordIdentity ? (
+          {!identityCheckReady ? (
+            <p className="font-['Inter'] text-sm text-foreground/60">Loading…</p>
+          ) : hasPasswordIdentity ? (
             <div className="space-y-4 max-w-md">
               <div className="space-y-2">
                 <Label htmlFor="new-password" className="font-['Inter'] text-sm">
@@ -700,7 +762,11 @@ export default function MyAccount() {
             </div>
           ) : (
             <p className="font-['Inter'] text-sm text-foreground/80 max-w-lg">
-              You&apos;re signed in with Google. Manage your password through your Google account.
+              {oauthOnlyProviders.includes("google")
+                ? "You're signed in with Google. Manage your password through your Google account."
+                : oauthOnlyProviders.length > 0
+                  ? `You're signed in with ${oauthOnlyProviders.join(", ")}. Manage your password through that account.`
+                  : "This account doesn't have a Marktr password to change. Sign in with Google (or another linked provider) to manage credentials there."}
             </p>
           )}
         </div>

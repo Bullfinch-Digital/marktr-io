@@ -56,6 +56,12 @@ export default function DashboardShell({
   const showProGateOverlay =
     !guestMode && requirePro && subscriptionReady && !isPro;
   const showAccessOverlay = showTrialOverlay || showProGateOverlay;
+  // requirePro pages: do not mount page content (and its data hooks) while gated
+  // or while subscription is still resolving — avoids brands/ICPs side-effect writes.
+  const suppressPageContent =
+    !guestMode &&
+    requirePro &&
+    (!subscriptionReady || !isPro || showTrialOverlay);
 
   const handleUpgrade = () => {
     if (guestMode) {
@@ -85,7 +91,7 @@ export default function DashboardShell({
 
           <div className="flex-1 flex flex-col">
             <main className={`${contentClassName ?? "flex-1 px-6 py-8 lg:px-12"} pb-24 lg:pb-8`}>
-              {children}
+              {suppressPageContent ? null : children}
             </main>
             <Footer />
           </div>

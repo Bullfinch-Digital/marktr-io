@@ -57,6 +57,14 @@ async function loadContentDetail(
 }
 
 export default function ContentEditor() {
+  return (
+    <DashboardShell requirePro contentClassName="flex-1 px-6 py-8 lg:px-12 pb-24">
+      <ContentEditorBody />
+    </DashboardShell>
+  );
+}
+
+function ContentEditorBody() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -311,26 +319,22 @@ export default function ContentEditor() {
   };
 
   if (loading) {
-    return (
-      <DashboardShell requirePro contentClassName="flex-1 px-6 py-8 lg:px-12">
-        <p className="font-['Inter'] text-sm text-foreground/60">Loading content…</p>
-      </DashboardShell>
-    );
+    return <p className="font-['Inter'] text-sm text-foreground/60">Loading content…</p>;
   }
 
   if (!item || !draft) {
     return (
-      <DashboardShell requirePro contentClassName="flex-1 px-6 py-8 lg:px-12">
+      <>
         <p className="font-['Inter'] text-sm text-red-700">{error || "Content not found."}</p>
         <Link to="/content" className="font-['Inter'] text-sm underline mt-3 inline-block">
           Back to Content
         </Link>
-      </DashboardShell>
+      </>
     );
   }
 
   return (
-    <DashboardShell requirePro contentClassName={`flex-1 px-6 py-8 lg:px-12 ${isDirty ? "pb-24" : ""}`}>
+      <>
       {leaveDialogOpen ? (
         <div
           className="modal-overlay"
@@ -538,6 +542,6 @@ export default function ContentEditor() {
         onClose={() => setPermanentDeleteOpen(false)}
         onConfirm={() => void confirmPermanentDelete()}
       />
-    </DashboardShell>
+    </>
   );
 }

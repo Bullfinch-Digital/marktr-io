@@ -41,6 +41,14 @@ function formatArchivedDate(iso: string): string {
 }
 
 export default function StrategyPage() {
+  return (
+    <DashboardShell requirePro contentClassName="flex-1 px-6 py-8 lg:px-12">
+      <StrategyPageBody />
+    </DashboardShell>
+  );
+}
+
+function StrategyPageBody() {
   const location = useLocation();
   const navigate = useNavigate();
   const { activeBrandId, brands, loading: brandLoading, setActiveBrand, activeBrand } =
@@ -196,7 +204,7 @@ export default function StrategyPage() {
   const canStartNewStrategy = hasAims && brandIcps.length > 0;
 
   return (
-    <DashboardShell requirePro contentClassName="flex-1 px-6 py-8 lg:px-12">
+    <>
       <div className="mx-auto max-w-7xl space-y-8 pb-10">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
@@ -448,6 +456,6 @@ export default function StrategyPage() {
         onClose={() => setPermanentDeleteTarget(null)}
         onConfirm={() => void confirmPermanentDelete()}
       />
-    </DashboardShell>
+    </>
   );
 }

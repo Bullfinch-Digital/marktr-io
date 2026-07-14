@@ -46,6 +46,14 @@ function formatArchivedDate(iso: string): string {
 }
 
 export default function ContentPage() {
+  return (
+    <DashboardShell requirePro contentClassName="flex-1 px-6 py-8 lg:px-12">
+      <ContentPageBody />
+    </DashboardShell>
+  );
+}
+
+function ContentPageBody() {
   const location = useLocation();
   const navigate = useNavigate();
   const { activeBrandId, brands, loading: brandLoading, setActiveBrand, activeBrand } = useBrand();
@@ -206,31 +214,25 @@ export default function ContentPage() {
   };
 
   if (!brandReady) {
-    return (
-      <DashboardShell requirePro contentClassName="flex-1 px-6 py-8 lg:px-12">
-        <p className="font-['Inter'] text-sm text-foreground/60">Loading…</p>
-      </DashboardShell>
-    );
+    return <p className="font-['Inter'] text-sm text-foreground/60">Loading…</p>;
   }
 
   if (!scopedBrandId) {
     return (
-      <DashboardShell requirePro contentClassName="flex-1 px-6 py-8 lg:px-12">
-        <div className="max-w-xl">
-          <h1 className="font-['Fraunces'] text-3xl text-[#0D1833]">Content</h1>
-          <p className="font-['Inter'] text-sm text-foreground/70 mt-3">
-            Choose a brand to manage content.{" "}
-            <Link to="/my-brands" className="underline underline-offset-2">
-              Go to brands
-            </Link>
-          </p>
-        </div>
-      </DashboardShell>
+      <div className="max-w-xl">
+        <h1 className="font-['Fraunces'] text-3xl text-[#0D1833]">Content</h1>
+        <p className="font-['Inter'] text-sm text-foreground/70 mt-3">
+          Choose a brand to manage content.{" "}
+          <Link to="/my-brands" className="underline underline-offset-2">
+            Go to brands
+          </Link>
+        </p>
+      </div>
     );
   }
 
   return (
-    <DashboardShell requirePro contentClassName="flex-1 px-6 py-8 lg:px-12">
+    <>
       <div className="max-w-5xl mx-auto space-y-8">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
@@ -507,6 +509,6 @@ export default function ContentPage() {
         onClose={() => setPermanentDeleteTarget(null)}
         onConfirm={() => void confirmPermanentDelete()}
       />
-    </DashboardShell>
+    </>
   );
 }

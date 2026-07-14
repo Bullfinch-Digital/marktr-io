@@ -61,6 +61,14 @@ async function loadStrategyDetail(
 }
 
 export default function StrategyEditor() {
+  return (
+    <DashboardShell requirePro contentClassName="flex-1 px-6 py-8 lg:px-12">
+      <StrategyEditorBody />
+    </DashboardShell>
+  );
+}
+
+function StrategyEditorBody() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -353,7 +361,7 @@ export default function StrategyEditor() {
   }, [strategy]);
 
   return (
-    <DashboardShell requirePro contentClassName="flex-1 px-6 py-8 lg:px-12">
+      <>
       {leaveDialogOpen ? (
         <div
           className="modal-overlay"
@@ -552,6 +560,6 @@ export default function StrategyEditor() {
         onClose={() => setPermanentDeleteOpen(false)}
         onConfirm={() => void confirmPermanentDelete()}
       />
-    </DashboardShell>
+      </>
   );
 }

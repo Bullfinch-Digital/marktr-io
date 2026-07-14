@@ -8,19 +8,25 @@ import { supabase } from "../config/supabase";
 import useProfile from "../hooks/useProfile";
 import useSubscription from "../hooks/useSubscription";
 import { usePaywall } from "../contexts/PaywallContext";
+import DashboardShell from "../layouts/DashboardShell";
+import {
+  MARKTR_SUPPORT_EMAIL,
+  MARKTR_SUPPORT_MAILTO,
+  MARKTR_TRIAL_DAYS,
+} from "../lib/marktrPricing";
 import {
   User,
   CheckCircle2,
   Crown,
   Calendar,
-  ChevronLeft,
   AlertTriangle,
   Lock,
+  Mail,
 } from "lucide-react";
 
 export default function MyAccount() {
   const navigate = useNavigate();
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, signOut } = useAuth();
   const { profile, loading: profileLoading } = useProfile(user?.id ?? null);
   const { isPro } = useSubscription();
   const { openPaywall } = usePaywall();
@@ -40,6 +46,8 @@ export default function MyAccount() {
   const [passwordMessage, setPasswordMessage] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [isManagingBilling, setIsManagingBilling] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   // Stripe subscription display (from DB)
   type StripeSubscriptionRow = {
@@ -496,33 +504,57 @@ export default function MyAccount() {
     }
   };
 
+  const handleDeleteAccount = async () => {
+    const confirmed = window.confirm(
+      "Delete your Marktr account permanently?\n\nThis cancels any active or trial subscription and permanently deletes your brands, strategies, content, health checks, brand stories, ICPs, and collections.\n\nThis cannot be undone."
+    );
+    if (!confirmed) return;
+
+    setIsDeletingAccount(true);
+    setDeleteError(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("delete-account", {
+        body: {},
+      });
+      if (error) throw error;
+      if (data?.error) {
+        throw new Error(String(data.error));
+      }
+      try {
+        await signOut();
+      } catch {
+        // User may already be invalidated after delete.
+      }
+      navigate("/", { replace: true });
+    } catch (err) {
+      console.error("MyAccount: delete account failed", err);
+      setDeleteError(
+        err instanceof Error
+          ? err.message
+          : "Unable to delete account. Please contact support."
+      );
+    } finally {
+      setIsDeletingAccount(false);
+    }
+  };
+
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center">
-          <div className="w-16 h-16 mx-auto mb-4 border-4 border-button-green border-t-transparent rounded-full animate-spin" />
-          <p className="text-foreground/70">Loading account...</p>
+      <DashboardShell contentClassName="flex-1 px-6 py-8 lg:px-12">
+        <div className="min-h-[40vh] flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-16 h-16 mx-auto mb-4 border-4 border-button-green border-t-transparent rounded-full animate-spin" />
+            <p className="text-foreground/70">Loading account...</p>
+          </div>
         </div>
-      </div>
+      </DashboardShell>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="border-b border-warm-grey bg-background sticky top-0 z-10">
-        <div className="max-w-5xl mx-auto px-6 py-4">
-          <button
-            onClick={() => navigate("/dashboard")}
-            className="inline-flex items-center gap-2 font-['Inter'] text-sm text-foreground/70 hover:text-foreground transition-colors"
-          >
-            <ChevronLeft className="w-4 h-4" />
-            Back to Dashboard
-          </button>
-        </div>
-      </div>
-
-      <div className="max-w-5xl mx-auto px-6 py-12 space-y-8">
-        <div className="mb-8">
+    <DashboardShell contentClassName="flex-1 px-6 py-8 lg:px-12">
+      <div className="max-w-5xl mx-auto space-y-8 pb-10">
+        <div className="mb-2">
           <h1 className="font-['Fraunces'] text-4xl mb-2">My Account</h1>
           <p className="font-['Inter'] text-foreground/70">
             Manage your profile, subscription, and settings.
@@ -718,7 +750,7 @@ export default function MyAccount() {
                 onClick={() => openPaywall()}
                 className="bg-button-green hover:bg-button-green/90 text-foreground border border-black rounded-design font-['Inter']"
               >
-                Start 7-day trial
+                Start {MARKTR_TRIAL_DAYS}-day trial
               </Button>
             )}
             {isPro && (
@@ -734,6 +766,25 @@ export default function MyAccount() {
           </div>
         </div>
 
+        <div className="bg-background border border-black rounded-design p-8">
+          <div className="flex items-start gap-6 mb-4">
+            <Mail className="w-5 h-5 mt-1" />
+            <div className="flex-1">
+              <h2 className="font-['Fraunces'] text-2xl mb-1">Support</h2>
+              <p className="font-['Inter'] text-sm text-foreground/70">
+                Need help with billing, your account, or anything else? Email us and we&apos;ll get
+                back to you.
+              </p>
+            </div>
+          </div>
+          <a
+            href={MARKTR_SUPPORT_MAILTO}
+            className="inline-flex font-['Inter'] text-sm text-foreground underline underline-offset-2 hover:text-foreground/80"
+          >
+            {MARKTR_SUPPORT_EMAIL}
+          </a>
+        </div>
+
         <div className="bg-[#FFE5E5]/30 border-l-4 border-l-[#FF6B6B] border-t border-r border-b border-black rounded-design p-8">
           <div className="flex items-start gap-6 mb-6">
             <AlertTriangle className="w-5 h-5 mt-1 text-[#FF6B6B]" />
@@ -747,17 +798,23 @@ export default function MyAccount() {
 
           <div className="space-y-4">
             <p className="font-['Inter'] text-sm text-foreground/80">
-              This action cannot be undone. All ICPs and collections will be permanently deleted.
+              Deleting your account permanently removes your brands, strategies, content briefs,
+              health checks, brand stories, ICPs, and collections. Any active or trial
+              subscription is cancelled so you won&apos;t be billed again. This cannot be undone.
             </p>
+            {deleteError ? (
+              <p className="font-['Inter'] text-sm text-[#FF6B6B]">{deleteError}</p>
+            ) : null}
             <Button
-              onClick={() => window.confirm("Are you sure?")}
-              className="bg-background hover:bg-[#FF6B6B]/10 text-[#FF6B6B] border border-[#FF6B6B] rounded-design font-['Inter']"
+              onClick={() => void handleDeleteAccount()}
+              disabled={isDeletingAccount}
+              className="bg-background hover:bg-[#FF6B6B]/10 text-[#FF6B6B] border border-[#FF6B6B] rounded-design font-['Inter'] disabled:opacity-50"
             >
-              Delete Account
+              {isDeletingAccount ? "Deleting…" : "Delete Account"}
             </Button>
           </div>
         </div>
       </div>
-    </div>
+    </DashboardShell>
   );
 }

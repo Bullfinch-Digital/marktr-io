@@ -10,6 +10,10 @@ export const MARKTR_MONEY_BACK_DAYS = 30;
 
 export const MARKTR_PRO_PLAN_NAME = "Marktr Pro";
 
+/** Existing support channel used on marketing/legal pages — reuse, don't invent a new one. */
+export const MARKTR_SUPPORT_EMAIL = "hello@bullfinchdigital.com";
+export const MARKTR_SUPPORT_MAILTO = `mailto:${MARKTR_SUPPORT_EMAIL}`;
+
 export const MARKTR_PRO_PRICE_HEADLINE = `£${MARKTR_PRO_MONTHLY_EQUIVALENT_GBP}/month`;
 
 export const MARKTR_PRO_BILLING_LINE = `billed annually (£${MARKTR_PRO_ANNUAL_TOTAL_GBP}/year)`;

@@ -36,7 +36,7 @@ export default function Pricing() {
     {
       question: "What happens if I cancel?",
       answer:
-        "You keep access to your Pro features until the end of your billing period. After that, your account reverts to the Free plan.",
+        "You keep full access until the end of your billing period. After that, your data isn't deleted, but the dashboard is locked behind an upgrade prompt until you resubscribe — you can still get to your account and billing at any time.",
     },
     {
       question: "Do unused ICPs roll over?",
@@ -146,9 +146,9 @@ export default function Pricing() {
               <thead>
                 <tr className="border-b border-warm-grey">
                   <th className="text-left p-4 sm:p-6 font-['Fraunces'] text-lg">Features</th>
-                  <th className="text-center p-4 sm:p-6 font-['Fraunces'] text-lg">Free (Guest)</th>
+                  <th className="text-center p-4 sm:p-6 font-['Fraunces'] text-lg">Before you sign up</th>
                   <th className="text-center p-4 sm:p-6 font-['Fraunces'] text-lg bg-button-green/10">
-                    {MARKTR_PRO_PLAN_NAME}
+                    Marktr Pro — {MARKTR_TRIAL_DAYS}-day free trial
                   </th>
                 </tr>
               </thead>

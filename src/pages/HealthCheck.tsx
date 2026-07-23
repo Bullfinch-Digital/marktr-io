@@ -4,7 +4,7 @@ import { ArrowLeft, CheckCircle2, Loader2 } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
-import { WhisperButton } from "../components/ui/WhisperButton";
+import { VoiceInput } from "../components/ui/VoiceInput";
 import { AlreadyCompletedPrompt } from "../components/AlreadyCompletedPrompt";
 import { useAuth } from "../contexts/AuthContext";
 import { useBrand } from "../contexts/BrandContext";
@@ -526,7 +526,7 @@ export default function HealthCheck() {
               <span className="font-['DM_Sans'] text-xs text-muted-foreground">optional</span>
             </div>
             <div className="flex items-start gap-2">
-              <Input
+              <VoiceInput
                 id="websiteUrl"
                 type="url"
                 value={formData.websiteUrl}
@@ -535,21 +535,17 @@ export default function HealthCheck() {
                   setFormData((prev) => ({ ...prev, websiteUrl }));
                   updateGuestContext({ business: { websiteUrl: websiteUrl.trim() || undefined } });
                 }}
+                onTranscript={(trimmed) => {
+                  setFormData((prev) => {
+                    const websiteUrl = prev.websiteUrl.trim()
+                      ? `${prev.websiteUrl.trim()} ${trimmed}`
+                      : trimmed;
+                    updateGuestContext({ business: { websiteUrl: websiteUrl.trim() || undefined } });
+                    return { ...prev, websiteUrl };
+                  });
+                }}
                 placeholder="https://yourbusiness.com"
                 className="border border-black rounded-design bg-white px-4 py-6 text-foreground placeholder:text-foreground/40"
-              />
-              <WhisperButton
-                onTranscript={(text) => {
-                  const trimmed = text.trim();
-                  if (!trimmed) return;
-                  setFormData((prev) => ({
-                    ...prev,
-                    websiteUrl: prev.websiteUrl.trim()
-                      ? `${prev.websiteUrl.trim()} ${trimmed}`
-                      : trimmed,
-                  }));
-                }}
-                className="pt-1"
               />
             </div>
           </div>
@@ -562,7 +558,7 @@ export default function HealthCheck() {
               <span className="font-['DM_Sans'] text-xs text-muted-foreground">optional</span>
             </div>
             <div className="flex items-start gap-2">
-              <Input
+              <VoiceInput
                 id="instagramHandle"
                 type="text"
                 value={formData.instagramHandle}
@@ -577,21 +573,20 @@ export default function HealthCheck() {
                   }));
                   updateGuestContext({ business: { instagramHandle: val.trim() || undefined } });
                 }}
+                onTranscript={(trimmed) => {
+                  setFormData((prev) => {
+                    let val = prev.instagramHandle.trim()
+                      ? `${prev.instagramHandle.trim()} ${trimmed}`
+                      : trimmed;
+                    if (val.length > 0 && !val.startsWith("@") && !val.startsWith("http")) {
+                      val = "@" + val;
+                    }
+                    updateGuestContext({ business: { instagramHandle: val.trim() || undefined } });
+                    return { ...prev, instagramHandle: val };
+                  });
+                }}
                 placeholder="marktr.io (or @marktr.io)"
                 className="border border-black rounded-design bg-white px-4 py-6 text-foreground placeholder:text-foreground/40"
-              />
-              <WhisperButton
-                onTranscript={(text) => {
-                  const trimmed = text.trim();
-                  if (!trimmed) return;
-                  setFormData((prev) => ({
-                    ...prev,
-                    instagramHandle: prev.instagramHandle.trim()
-                      ? `${prev.instagramHandle.trim()} ${trimmed}`
-                      : trimmed,
-                  }));
-                }}
-                className="pt-1"
               />
             </div>
             <p className="font-['DM_Sans'] text-xs text-muted-foreground">Public profile only</p>
@@ -605,7 +600,7 @@ export default function HealthCheck() {
               <span className="font-['DM_Sans'] text-xs text-muted-foreground">optional</span>
             </div>
             <div className="flex items-start gap-2">
-              <Input
+              <VoiceInput
                 id="facebookUrl"
                 type="text"
                 value={formData.facebookUrl}
@@ -617,21 +612,19 @@ export default function HealthCheck() {
                   }));
                   updateGuestContext({ business: { facebookUrl: facebookUrl.trim() || undefined } });
                 }}
+                onTranscript={(trimmed) => {
+                  setFormData((prev) => {
+                    const facebookUrl = prev.facebookUrl.trim()
+                      ? `${prev.facebookUrl.trim()} ${trimmed}`
+                      : formatFacebookInput(trimmed);
+                    updateGuestContext({
+                      business: { facebookUrl: facebookUrl.trim() || undefined },
+                    });
+                    return { ...prev, facebookUrl };
+                  });
+                }}
                 placeholder="yourbusiness (or full URL)"
                 className="border border-black rounded-design bg-white px-4 py-6 text-foreground placeholder:text-foreground/40"
-              />
-              <WhisperButton
-                onTranscript={(text) => {
-                  const trimmed = text.trim();
-                  if (!trimmed) return;
-                  setFormData((prev) => ({
-                    ...prev,
-                    facebookUrl: prev.facebookUrl.trim()
-                      ? `${prev.facebookUrl.trim()} ${trimmed}`
-                      : formatFacebookInput(trimmed),
-                  }));
-                }}
-                className="pt-1"
               />
             </div>
           </div>

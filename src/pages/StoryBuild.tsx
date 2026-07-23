@@ -2,8 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, CheckCircle2, Loader2 } from "lucide-react";
 import { Button } from "../components/ui/button";
-import { Textarea } from "../components/ui/textarea";
-import { WhisperButton } from "../components/ui/WhisperButton";
+import { VoiceTextarea } from "../components/ui/VoiceTextarea";
 import { AlreadyCompletedPrompt } from "../components/AlreadyCompletedPrompt";
 import { useAuth } from "../contexts/AuthContext";
 import { useBrand } from "../contexts/BrandContext";
@@ -485,8 +484,8 @@ export default function StoryBuild() {
           </h1>
           <p className="mt-4 max-w-lg font-['DM_Sans'] text-base text-muted-foreground">{q.subtext}</p>
 
-          <div className="mt-8 flex items-start gap-2">
-            <Textarea
+          <div className="mt-8">
+            <VoiceTextarea
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               onBlur={() => {
@@ -494,16 +493,7 @@ export default function StoryBuild() {
                   commitStoryAnswerToGuestContext(questionIndex, draft);
                 }
               }}
-              placeholder="Type your answer…"
               className="min-h-[140px] resize-none border border-black rounded-design bg-white px-4 py-4 font-['DM_Sans'] text-foreground placeholder:text-foreground/40"
-            />
-            <WhisperButton
-              onTranscript={(text) => {
-                const t = text.trim();
-                if (!t) return;
-                setDraft((prev) => (prev.trim() ? `${prev.trim()} ${t}` : t));
-              }}
-              className="pt-1"
             />
           </div>
 

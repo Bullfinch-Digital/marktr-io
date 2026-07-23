@@ -9,7 +9,7 @@ import { useBrands, Brand } from "../hooks/useBrands";
 import "../styles/Modal.css";
 import { ArrowLeft, Save, MoreVertical, Trash2, Palette, Copy, FileText } from "lucide-react";
 import { TagInput } from "../components/ui/tag-input";
-import { WhisperButton } from "../components/ui/WhisperButton";
+import { VoiceTextarea } from "../components/ui/VoiceTextarea";
 import useSubscription from "../hooks/useSubscription";
 import { usePaywall } from "../contexts/PaywallContext";
 import { useICPs } from "../hooks/useICPs";
@@ -911,83 +911,38 @@ export default function BrandEditor() {
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <label className="font-['DM_Sans'] text-sm text-[#0D1833]">Founding story</label>
-                    <div className="flex items-start gap-2">
-                      <Textarea
-                        value={brandData.founding_story ?? ""}
-                        onChange={(e) =>
-                          setBrandData((prev) => ({ ...prev, founding_story: e.target.value }))
-                        }
-                        placeholder="Why did you start this business? What was the moment that made it inevitable?"
-                        className="min-h-[120px] resize-none border border-black rounded-design"
-                      />
-                      <WhisperButton
-                        onTranscript={(t) => {
-                          const trimmed = t.trim();
-                          if (!trimmed) return;
-                          setBrandData((prev) => ({
-                            ...prev,
-                            founding_story: prev.founding_story?.trim()
-                              ? `${prev.founding_story.trim()} ${trimmed}`
-                              : trimmed,
-                          }));
-                        }}
-                        className="pt-1"
-                      />
-                    </div>
+                    <VoiceTextarea
+                      value={brandData.founding_story ?? ""}
+                      onChange={(e) =>
+                        setBrandData((prev) => ({ ...prev, founding_story: e.target.value }))
+                      }
+                      placeholder="Why did you start this business? What was the moment that made it inevitable?. Or tap the mic to speak."
+                      className="min-h-[120px] resize-none border border-black rounded-design"
+                    />
                   </div>
                   <div className="space-y-2">
                     <label className="font-['DM_Sans'] text-sm text-[#0D1833]">What do you want to be known for?</label>
-                    <div className="flex items-start gap-2">
-                      <Textarea
-                        value={brandData.want_known_for ?? ""}
-                        onChange={(e) =>
-                          setBrandData((prev) => ({ ...prev, want_known_for: e.target.value }))
-                        }
-                        placeholder="The thing you'd most want a customer to say about you"
-                        className="min-h-[80px] resize-none border border-black rounded-design"
-                      />
-                      <WhisperButton
-                        onTranscript={(t) => {
-                          const trimmed = t.trim();
-                          if (!trimmed) return;
-                          setBrandData((prev) => ({
-                            ...prev,
-                            want_known_for: prev.want_known_for?.trim()
-                              ? `${prev.want_known_for.trim()} ${trimmed}`
-                              : trimmed,
-                          }));
-                        }}
-                        className="pt-1"
-                      />
-                    </div>
+                    <VoiceTextarea
+                      value={brandData.want_known_for ?? ""}
+                      onChange={(e) =>
+                        setBrandData((prev) => ({ ...prev, want_known_for: e.target.value }))
+                      }
+                      placeholder="The thing you'd most want a customer to say about you. Or tap the mic to speak."
+                      className="min-h-[80px] resize-none border border-black rounded-design"
+                    />
                   </div>
                   <div className="space-y-2">
                     <label className="font-['DM_Sans'] text-sm text-[#0D1833]">
                       What do you never want to be associated with?
                     </label>
-                    <div className="flex items-start gap-2">
-                      <Textarea
-                        value={brandData.never_associated_with ?? ""}
-                        onChange={(e) =>
-                          setBrandData((prev) => ({ ...prev, never_associated_with: e.target.value }))
-                        }
-                        placeholder="Values, approaches or associations to avoid entirely"
-                        className="min-h-[80px] resize-none border border-black rounded-design"
-                      />
-                      <WhisperButton
-                        onTranscript={(t) => {
-                          const trimmed = t.trim();
-                          if (!trimmed) return;
-                          setBrandData((prev) => ({
-                            ...prev,
-                            never_associated_with: prev.never_associated_with?.trim()
-                              ? `${prev.never_associated_with.trim()} ${trimmed}`
-                              : trimmed,
-                          }));
-                        }}
-                        className="pt-1"
-                      />
-                    </div>
+                    <VoiceTextarea
+                      value={brandData.never_associated_with ?? ""}
+                      onChange={(e) =>
+                        setBrandData((prev) => ({ ...prev, never_associated_with: e.target.value }))
+                      }
+                      placeholder="Values, approaches or associations to avoid entirely. Or tap the mic to speak."
+                      className="min-h-[80px] resize-none border border-black rounded-design"
+                    />
                   </div>
                 </div>
               </div>
@@ -1016,29 +971,14 @@ export default function BrandEditor() {
                   </div>
                   <div className="space-y-2">
                     <label className="font-['DM_Sans'] text-sm text-[#0D1833]">Brands or creators you admire</label>
-                    <div className="flex items-start gap-2">
-                      <Textarea
-                        value={brandData.admired_brands ?? ""}
-                        onChange={(e) =>
-                          setBrandData((prev) => ({ ...prev, admired_brands: e.target.value }))
-                        }
-                        placeholder="Brands or people whose communication style you admire and why"
-                        className="min-h-[80px] resize-none border border-black rounded-design"
-                      />
-                      <WhisperButton
-                        onTranscript={(t) => {
-                          const trimmed = t.trim();
-                          if (!trimmed) return;
-                          setBrandData((prev) => ({
-                            ...prev,
-                            admired_brands: prev.admired_brands?.trim()
-                              ? `${prev.admired_brands.trim()} ${trimmed}`
-                              : trimmed,
-                          }));
-                        }}
-                        className="pt-1"
-                      />
-                    </div>
+                    <VoiceTextarea
+                      value={brandData.admired_brands ?? ""}
+                      onChange={(e) =>
+                        setBrandData((prev) => ({ ...prev, admired_brands: e.target.value }))
+                      }
+                      placeholder="Brands or people whose communication style you admire and why. Or tap the mic to speak."
+                      className="min-h-[80px] resize-none border border-black rounded-design"
+                    />
                   </div>
                 </div>
               </div>

@@ -7,6 +7,8 @@ export interface UseWhisperInput {
   error: string | null;
   startRecording: () => Promise<void>;
   stopAndTranscribe: () => Promise<string | null>;
+  /** Stop without sending audio for transcription. */
+  cancelRecording: () => void;
 }
 
 const MIC_PERMISSION_ERROR =
@@ -99,6 +101,25 @@ export function useWhisperInput(): UseWhisperInput {
     }
   }, [cleanupStream]);
 
+  const cancelRecording = useCallback(() => {
+    const recorder = recorderRef.current;
+    chunksRef.current = [];
+    setError(null);
+    setRecording(false);
+    setTranscribing(false);
+
+    if (recorder && recorder.state !== "inactive") {
+      try {
+        recorder.stop();
+      } catch {
+        // ignore — stream cleanup still runs below
+      }
+    }
+
+    recorderRef.current = null;
+    cleanupStream();
+  }, [cleanupStream]);
+
   const stopAndTranscribe = useCallback(async (): Promise<string | null> => {
     setError(null);
 
@@ -165,5 +186,6 @@ export function useWhisperInput(): UseWhisperInput {
     error,
     startRecording,
     stopAndTranscribe,
+    cancelRecording,
   };
 }

@@ -48,7 +48,7 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import OnboardingLayout from "./layouts/OnboardingLayout";
 
-const GA_MEASUREMENT_ID = "G-9E3B7RFKGH";
+const GA_MEASUREMENT_ID = "G-0EFXQPEYY6";
 let lastTrackedPath: string | null = null;
 
 function GA4RouteTracker() {

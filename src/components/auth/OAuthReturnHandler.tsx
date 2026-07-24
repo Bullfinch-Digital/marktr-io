@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
-import { getPendingCheckoutPlan } from "../../utils/pendingCheckout";
+import { getResumablePendingCheckoutPlan } from "../../utils/pendingCheckout";
 import {
   clearOAuthNext,
   getOAuthNext,
@@ -51,7 +51,9 @@ export function OAuthReturnHandler() {
     if (!session?.access_token) return;
 
     const pendingNext = getOAuthNext();
-    const pendingCheckout = getPendingCheckoutPlan();
+    const pendingCheckout = getResumablePendingCheckoutPlan(
+      pendingNext ?? location.search
+    );
     const strandedOnPublicHome =
       location.pathname === "/" && Boolean(pendingNext || pendingCheckout);
 

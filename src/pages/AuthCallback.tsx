@@ -4,7 +4,10 @@ import { supabase } from "../config/supabase";
 import { useAuth } from "../contexts/AuthContext";
 import { runPostAuthPipelineWithTimeout } from "../lib/postAuthPipeline";
 import { redirectToStripeCheckout } from "../lib/stripeCheckout";
-import { getPendingCheckoutPlan } from "../utils/pendingCheckout";
+import {
+  clearPendingCheckoutPlan,
+  getResumablePendingCheckoutPlan,
+} from "../utils/pendingCheckout";
 import {
   clearOAuthNext,
   hasOAuthCallbackParams,
@@ -12,7 +15,15 @@ import {
 } from "../utils/oauthRedirect";
 
 function navigateAfterAuth(next: string) {
-  const safeNext = next.startsWith("/") ? next : "/dashboard";
+  // Strip resumeCheckout from the landing URL so bookmarks/share don't re-trigger paywall.
+  let safeNext = next.startsWith("/") ? next : "/dashboard";
+  try {
+    const url = new URL(safeNext, window.location.origin);
+    url.searchParams.delete("resumeCheckout");
+    safeNext = `${url.pathname}${url.search}${url.hash}` || "/dashboard";
+  } catch {
+    // keep safeNext
+  }
   clearOAuthNext();
   if (window.location.pathname + window.location.search === safeNext) return;
   window.location.replace(safeNext);
@@ -21,7 +32,9 @@ function navigateAfterAuth(next: string) {
 async function completeOAuthHandoff(userId: string, email: string | null, next: string) {
   await runPostAuthPipelineWithTimeout(userId, email);
 
-  const pendingPlan = getPendingCheckoutPlan();
+  // Only resume Stripe when this auth was part of an explicit Start-trial click
+  // (session intent and/or ?resumeCheckout= on next). Ignore bare localStorage leftovers.
+  const pendingPlan = getResumablePendingCheckoutPlan(next);
   if (pendingPlan) {
     const checkout = await redirectToStripeCheckout(pendingPlan);
     if (checkout.status === "redirect") {
@@ -29,6 +42,7 @@ async function completeOAuthHandoff(userId: string, email: string | null, next: 
     }
     if (checkout.status === "error") {
       console.warn("[AuthCallback] checkout resume failed", checkout.message);
+      clearPendingCheckoutPlan();
     }
   }
 

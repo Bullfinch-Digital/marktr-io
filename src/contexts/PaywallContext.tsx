@@ -5,7 +5,8 @@ import { supabase } from "../config/supabase";
 import { useAuth } from "./AuthContext";
 import { useAuthModal } from "./AuthModalContext";
 import {
-  getPendingCheckoutPlan,
+  checkoutResumePath,
+  getResumablePendingCheckoutPlan,
   setPendingCheckoutPlan,
 } from "../utils/pendingCheckout";
 import {
@@ -134,7 +135,8 @@ export function PaywallProvider({ children }: { children: React.ReactNode }) {
         setPendingCheckoutPlan(nextPlan);
         setShowPaywall(false);
         openSignIn({
-          redirectPath: "/dashboard",
+          // Embed plan in next URL so OAuth can resume even if sessionStorage drops.
+          redirectPath: checkoutResumePath(nextPlan, "/dashboard"),
           heading: "Sign in to start your trial",
           subheading: "Takes 10 seconds. Your results are saved.",
         });
@@ -152,7 +154,8 @@ export function PaywallProvider({ children }: { children: React.ReactNode }) {
     if (authLoading) return;
     if (!user || (user as { is_anonymous?: boolean }).is_anonymous) return;
 
-    const pendingPlan = getPendingCheckoutPlan();
+    // Require explicit trial intent — never resume from leftover localStorage alone.
+    const pendingPlan = getResumablePendingCheckoutPlan(window.location.search);
     if (!pendingPlan) return;
     if (resumeCheckoutRef.current) return;
 

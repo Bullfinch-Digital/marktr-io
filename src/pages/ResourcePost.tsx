@@ -10,7 +10,7 @@ export default function ResourcePost() {
   useEffect(() => {
     if (!post) return;
 
-    const siteUrl = "https://icpgenerator.io";
+    const siteUrl = "https://marktr.io";
     const pageUrl = `${siteUrl}/resources/${post.slug}`;
     const title = post.seoTitle ?? post.title;
     const description = post.metaDescription ?? post.description;
@@ -41,11 +41,11 @@ export default function ResourcePost() {
       inLanguage: "en-GB",
       author: {
         "@type": "Organization",
-        name: "ICP Generator",
+        name: "marktr",
       },
       publisher: {
         "@type": "Organization",
-        name: "ICP Generator",
+        name: "marktr",
       },
     };
 

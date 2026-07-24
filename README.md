@@ -19,7 +19,7 @@ AI-powered Ideal Customer Profile generation for your business.
 - `VITE_BYPASS_PAYWALL` (if used)
 - `VITE_OPENAI_API_KEY` (note: should not be exposed client-side; planned to move server-side later)
 
-**Supabase Auth:** set **Site URL** to `https://icpgenerator.io` and allow redirect URL `https://icpgenerator.io/auth/callback` (and optionally `https://icpgenerator.io/*` during development).
+**Supabase Auth:** set **Site URL** to `https://marktr.io` and allow redirect URL `https://marktr.io/auth/callback` (and optionally `http://localhost:5173/**` for local development).
 
 
 ## Tech Stack

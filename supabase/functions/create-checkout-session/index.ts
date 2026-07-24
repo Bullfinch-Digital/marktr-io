@@ -351,7 +351,9 @@ Deno.serve(async (req) => {
         price_id: body.priceId,
         ...userMetadata,
       },
-      payment_method_collection: "always",
+      // Promo field on Checkout; skip card when a 100%-off forever coupon zeroes the total.
+      allow_promotion_codes: true,
+      payment_method_collection: "if_required",
       success_url: successUrl,
       cancel_url: body.cancelUrl,
     });

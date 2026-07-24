@@ -17,7 +17,7 @@ import {
 interface PaywallModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onUpgrade: (plan: "monthly" | "annual", force?: boolean) => void;
+  onUpgrade: (plan: "annual", force?: boolean) => void;
   onContinueFree: () => void;
   isStartingCheckout?: boolean;
 }

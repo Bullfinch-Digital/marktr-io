@@ -9,7 +9,7 @@ export default function PaymentSuccess() {
   const { user } = useAuth();
   const dashboardPath = isRealUser(user) ? "/dashboard" : "/guest-dashboard";
 
-  // Calculate renewal date (30 days from now for monthly, 365 for annual)
+  // Renewal date assumes annual billing
   const getRenewalDate = () => {
     const date = new Date();
     date.setDate(date.getDate() + 365); // Assuming annual for demo

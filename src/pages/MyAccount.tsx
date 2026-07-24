@@ -66,9 +66,6 @@ export default function MyAccount() {
 
   const [stripeSub, setStripeSub] = useState<StripeSubscriptionRow | null>(null);
 
-  const PRICE_MONTHLY = import.meta.env.VITE_STRIPE_PRICE_MONTHLY as
-    | string
-    | undefined;
   const PRICE_ANNUAL = import.meta.env.VITE_STRIPE_PRICE_ANNUAL as
     | string
     | undefined;
@@ -191,14 +188,13 @@ export default function MyAccount() {
   const isProFromStripe =
     stripeSub?.status === "trialing" || stripeSub?.status === "active";
 
-  const plan = useMemo<"free" | "monthly" | "annual" | "pro">(() => {
+  const plan = useMemo<"free" | "annual" | "pro">(() => {
     if (!isPro && !isProFromStripe) return "free";
     const priceId = stripeSub?.price_id ?? null;
     if (priceId && PRICE_ANNUAL && priceId === PRICE_ANNUAL) return "annual";
-    if (priceId && PRICE_MONTHLY && priceId === PRICE_MONTHLY) return "monthly";
     // fallback if price_id missing/unknown
     return "pro";
-  }, [isPro, isProFromStripe, stripeSub?.price_id, PRICE_ANNUAL, PRICE_MONTHLY]);
+  }, [isPro, isProFromStripe, stripeSub?.price_id, PRICE_ANNUAL]);
 
   const statusLabel =
     stripeSub?.status === "trialing"
@@ -212,8 +208,6 @@ export default function MyAccount() {
     const priceDisplay =
       plan === "annual"
         ? "£300/year (equivalent £25/month)"
-        : plan === "monthly"
-        ? "£30/month"
         : plan === "pro"
         ? "Pro (price updating)"
         : "—";
@@ -798,8 +792,6 @@ export default function MyAccount() {
               <span className="font-['Fraunces'] text-lg">
                 {subscription.plan === "free"
                   ? "Free"
-                  : subscription.plan === "monthly"
-                  ? "Monthly Pro"
                   : subscription.plan === "annual"
                   ? "Annual Pro"
                   : "Pro"}

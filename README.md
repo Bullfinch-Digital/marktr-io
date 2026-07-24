@@ -12,7 +12,6 @@ AI-powered Ideal Customer Profile generation for your business.
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_ANON_KEY`
 - `VITE_STRIPE_PUBLISHABLE_KEY`
-- `VITE_STRIPE_PRICE_MONTHLY`
 - `VITE_STRIPE_PRICE_ANNUAL`
 - `VITE_TURNSTILE_SITE_KEY` (if used)
 - `VITE_AI_MOCK` (if used)

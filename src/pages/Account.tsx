@@ -24,7 +24,6 @@ export default function Account() {
   console.log("✅ ACCOUNT COMPONENT RENDERED", new Date().toISOString());
   console.log(
     "Stripe prices:",
-    import.meta.env.VITE_STRIPE_PRICE_MONTHLY,
     import.meta.env.VITE_STRIPE_PRICE_ANNUAL
   );
 
@@ -62,14 +61,10 @@ export default function Account() {
     console.log("import.meta.env", import.meta.env);
     console.log(
       "Stripe envs:",
-      import.meta.env.VITE_STRIPE_PRICE_MONTHLY,
       import.meta.env.VITE_STRIPE_PRICE_ANNUAL,
       import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY
     );
-    console.log(
-      import.meta.env.VITE_STRIPE_PRICE_MONTHLY,
-      import.meta.env.VITE_STRIPE_PRICE_ANNUAL
-    );
+    console.log(import.meta.env.VITE_STRIPE_PRICE_ANNUAL);
   }, []);
 
   // Load profile into form when ready - ensure fields are never empty

@@ -16,7 +16,7 @@ interface CheckoutModalProps {
   onClose: () => void;
   onSuccess: () => void;
   onBack?: () => void;
-  plan: "monthly" | "annual";
+  plan: "annual";
   userEmail?: string;
 }
 
@@ -25,7 +25,7 @@ export function CheckoutModal({
   onClose, 
   onSuccess, 
   onBack,
-  plan,
+  plan: _plan,
   userEmail = "" 
 }: CheckoutModalProps) {
   const [name, setName] = useState("");
@@ -35,12 +35,8 @@ export function CheckoutModal({
 
   if (!isOpen) return null;
 
-  const planDetails = {
-    monthly: { price: "£30", billing: "month", total: "£30" },
-    annual: { price: "£25", billing: "year", total: "£300" }
-  };
-
-  const selectedPlan = planDetails[plan];
+  const planDetails = { price: "£25", billing: "year", total: "£300" };
+  const selectedPlan = planDetails;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,17 +92,13 @@ export function CheckoutModal({
             <h3 className="font-['Fraunces'] text-lg mb-4">Order Summary</h3>
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="font-['Inter'] text-sm">
-                  {plan === "annual" ? "Annual Plan" : "Monthly Plan"}
-                </span>
+                <span className="font-['Inter'] text-sm">Annual Plan</span>
                 <span className="font-['Fraunces'] text-lg">{selectedPlan.price}/mo</span>
               </div>
-              {plan === "annual" && (
-                <div className="flex items-center justify-between text-sm">
+              <div className="flex items-center justify-between text-sm">
                   <span className="font-['Inter'] text-foreground/60">Billed annually</span>
                   <span className="font-['Inter'] text-foreground/60">{selectedPlan.total}</span>
                 </div>
-              )}
               <div className="pt-3 border-t border-warm-grey flex items-center justify-between">
                 <span className="font-['Fraunces'] text-lg">Total Today</span>
                 <span className="font-['Fraunces'] text-2xl">{selectedPlan.total}</span>

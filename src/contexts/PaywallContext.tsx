@@ -21,9 +21,8 @@ import {
 } from "../components/ui/alert-dialog";
 import { Button } from "../components/ui/button";
 
-// IMPORTANT: internally we ONLY allow these two values.
-// (UI can say "Yearly", but the value must remain "annual".)
-type Plan = "monthly" | "annual";
+// Annual-only. UI may say "Yearly"; value must remain "annual".
+type Plan = "annual";
 
 type PaywallContextValue = {
   openPaywall: (plan?: Plan) => void;
@@ -69,8 +68,8 @@ export function PaywallProvider({ children }: { children: React.ReactNode }) {
 
   const closePaywall = useCallback(() => setShowPaywall(false), []);
 
-  // Defensive: if any caller accidentally passes "yearly", normalise it.
-  const normalisePlan = (p: any): Plan => (p === "yearly" ? "annual" : p);
+  // Defensive: legacy "monthly" / "yearly" callers all map to annual.
+  const normalisePlan = (_p?: unknown): Plan => "annual";
 
   const proceedToStripe = useCallback(
     async (plan: Plan, force?: boolean) => {

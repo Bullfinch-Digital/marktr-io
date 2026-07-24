@@ -1,7 +1,8 @@
 import { supabase } from "../config/supabase";
 import { clearPendingCheckoutPlan } from "../utils/pendingCheckout";
 
-export type CheckoutPlan = "monthly" | "annual";
+/** Marktr Pro is annual-only. "yearly" is accepted as an alias. */
+export type CheckoutPlan = "annual";
 
 export type StripeCheckoutResult =
   | { status: "redirect"; url: string }
@@ -9,12 +10,12 @@ export type StripeCheckoutResult =
   | { status: "email_already_subscribed"; email?: string | null; portalUrl?: string | null; plan: CheckoutPlan }
   | { status: "error"; message: string };
 
-function normalisePlan(plan: CheckoutPlan | "yearly"): CheckoutPlan {
-  return plan === "yearly" ? "annual" : plan;
+function normalisePlan(_plan?: CheckoutPlan | "yearly" | "monthly" | string): CheckoutPlan {
+  return "annual";
 }
 
 export async function createStripeCheckoutSession(
-  plan: CheckoutPlan | "yearly",
+  plan: CheckoutPlan | "yearly" | "monthly" = "annual",
   options?: { force?: boolean }
 ): Promise<StripeCheckoutResult> {
   const nextPlan = normalisePlan(plan);
@@ -27,16 +28,13 @@ export async function createStripeCheckoutSession(
     return { status: "error", message: "Please sign in before starting checkout." };
   }
 
-  const monthlyPriceId = import.meta.env.VITE_STRIPE_PRICE_MONTHLY as string | undefined;
-  const annualPriceId = import.meta.env.VITE_STRIPE_PRICE_ANNUAL as string | undefined;
-  const priceId = nextPlan === "monthly" ? monthlyPriceId : annualPriceId;
+  const priceId = import.meta.env.VITE_STRIPE_PRICE_ANNUAL as string | undefined;
   const origin = window.location.origin;
 
   if (!priceId) {
     return {
       status: "error",
-      message:
-        "Stripe price ID missing. Check VITE_STRIPE_PRICE_MONTHLY / VITE_STRIPE_PRICE_ANNUAL.",
+      message: "Stripe price ID missing. Check VITE_STRIPE_PRICE_ANNUAL.",
     };
   }
 
@@ -117,7 +115,7 @@ export async function createStripeCheckoutSession(
 }
 
 export async function redirectToStripeCheckout(
-  plan: CheckoutPlan | "yearly",
+  plan: CheckoutPlan | "yearly" | "monthly" = "annual",
   options?: { force?: boolean }
 ): Promise<StripeCheckoutResult> {
   const result = await createStripeCheckoutSession(plan, options);

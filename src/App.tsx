@@ -44,6 +44,7 @@ import GuestIcpPreview from "./pages/GuestIcpPreview";
 import GuestHealthPreview from "./pages/GuestHealthPreview";
 import Resources from "./pages/Resources";
 import ResourcePost from "./pages/ResourcePost";
+import Downloads from "./pages/Downloads";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import OnboardingLayout from "./layouts/OnboardingLayout";
@@ -119,6 +120,14 @@ export default function App() {
               <>
                 <Header />
                 <ResourcePost />
+                <Footer />
+              </>
+            } />
+
+            <Route path="/downloads" element={
+              <>
+                <Header />
+                <Downloads />
                 <Footer />
               </>
             } />

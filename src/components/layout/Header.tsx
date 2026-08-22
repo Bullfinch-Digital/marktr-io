@@ -55,6 +55,18 @@ export function Header() {
       target: "/pricing",
       color: "#F57BBE", // Pink
     },
+    {
+      label: "Resources",
+      type: "link" as const,
+      target: "/resources",
+      color: "#96CBB6", // Mint green
+    },
+    {
+      label: "Downloads",
+      type: "link" as const,
+      target: "/downloads",
+      color: "#FF9922", // Orange
+    },
   ];
 
   return (

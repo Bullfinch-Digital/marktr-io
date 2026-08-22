@@ -29,6 +29,16 @@ export function Footer() {
                 </Link>
               </li>
               <li>
+                <Link to="/resources" className="text-text-dark/80 hover:text-button-green transition-colors">
+                  Resources
+                </Link>
+              </li>
+              <li>
+                <Link to="/downloads" className="text-text-dark/80 hover:text-button-green transition-colors">
+                  Downloads
+                </Link>
+              </li>
+              <li>
                 <Link to={dashboardPath} className="text-text-dark/80 hover:text-button-green transition-colors">
                   Dashboard
                 </Link>

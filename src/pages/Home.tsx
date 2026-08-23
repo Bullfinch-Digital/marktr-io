@@ -3,10 +3,14 @@ import { Link } from "react-router-dom";
 import { BookOpen, ArrowRight, Check, Users, Activity } from "lucide-react";
 
 const benefits = [
-  { id: 0, label: "Start with your ideal customer" },
-  { id: 1, label: "Generate content in your voice" },
-  { id: 2, label: "Publish and track performance" },
-  { id: 3, label: "Replace your agency" },
+  {
+    id: 0,
+    label: "Start with your ideal customer",
+    screenshot: "/images/graphics/start-with-your-ideal-customer.png",
+  },
+  { id: 1, label: "Generate content in your voice", screenshot: null },
+  { id: 2, label: "Publish and track performance", screenshot: null },
+  { id: 3, label: "Replace your agency", screenshot: null },
 ] as const;
 
 const GRID_TEXTURE_STYLE = {
@@ -427,11 +431,21 @@ export default function Home() {
           </div>
 
           <div className="lg:col-span-3">
-            <div className="flex min-h-[360px] items-center justify-center rounded-2xl bg-muted px-6 py-12 text-center">
-              <p className="font-['DM_Sans'] text-lg text-muted-foreground">
-                Product screenshot — {benefits[activeBenefit].label}
-              </p>
-            </div>
+            {benefits[activeBenefit].screenshot ? (
+              <div className="overflow-hidden rounded-2xl border border-border bg-muted">
+                <img
+                  src={benefits[activeBenefit].screenshot}
+                  alt={`Product screenshot — ${benefits[activeBenefit].label}`}
+                  className="h-auto w-full object-cover object-top"
+                />
+              </div>
+            ) : (
+              <div className="flex min-h-[360px] items-center justify-center rounded-2xl bg-muted px-6 py-12 text-center">
+                <p className="font-['DM_Sans'] text-lg text-muted-foreground">
+                  Product screenshot — {benefits[activeBenefit].label}
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </section>

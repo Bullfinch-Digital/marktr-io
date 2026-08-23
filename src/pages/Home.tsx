@@ -443,21 +443,13 @@ export default function Home() {
           </div>
 
           <div className="lg:col-span-3">
-            {benefits[activeBenefit].screenshot ? (
-              <div className="overflow-hidden rounded-2xl border border-border bg-muted">
-                <img
-                  src={benefits[activeBenefit].screenshot}
-                  alt={`Product screenshot — ${benefits[activeBenefit].label}`}
-                  className="h-auto w-full object-cover object-top"
-                />
-              </div>
-            ) : (
-              <div className="flex min-h-[360px] items-center justify-center rounded-2xl bg-muted px-6 py-12 text-center">
-                <p className="font-['DM_Sans'] text-lg text-muted-foreground">
-                  Product screenshot — {benefits[activeBenefit].label}
-                </p>
-              </div>
-            )}
+            <div className="overflow-hidden rounded-2xl border border-border bg-muted">
+              <img
+                src={benefits[activeBenefit].screenshot}
+                alt={`Product screenshot — ${benefits[activeBenefit].label}`}
+                className="h-auto w-full object-cover object-top"
+              />
+            </div>
           </div>
         </div>
       </section>

@@ -8,9 +8,21 @@ const benefits = [
     label: "Start with your ideal customer",
     screenshot: "/images/graphics/start-with-your-ideal-customer.png",
   },
-  { id: 1, label: "Generate content in your voice", screenshot: null },
-  { id: 2, label: "Publish and track performance", screenshot: null },
-  { id: 3, label: "Replace your agency", screenshot: null },
+  {
+    id: 1,
+    label: "Generate content in your voice",
+    screenshot: "/images/graphics/generate-content-in-your-voice.png",
+  },
+  {
+    id: 2,
+    label: "Publish and track performance",
+    screenshot: "/images/graphics/publish-and-track-performance.png",
+  },
+  {
+    id: 3,
+    label: "Replace your agency",
+    screenshot: "/images/graphics/replace-your-agency.png",
+  },
 ] as const;
 
 const GRID_TEXTURE_STYLE = {

@@ -496,7 +496,13 @@ export default function Home() {
           </div>
 
           <div className="rounded-2xl bg-white p-8 text-left shadow-sm">
-            <div className="mb-4 aspect-[3/4] max-h-40 w-full rounded-lg bg-muted" />
+            <div className="mb-4 aspect-[3/4] max-h-40 w-full overflow-hidden rounded-lg bg-muted">
+              <img
+                src="/images/graphics/apostle-coffee-cups.png"
+                alt="Apostle Coffee cups"
+                className="h-full w-full object-cover"
+              />
+            </div>
             <p className="font-['DM_Sans'] text-sm text-[#0D1833]">
               Apostle Coffee — built from zero to award-winning
             </p>

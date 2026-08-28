@@ -7,6 +7,8 @@ type BetaSignupInput = {
   fullName: string;
   contactNumber: string;
   accessCode: string;
+  legalAccepted?: boolean;
+  legalVersion?: string;
 };
 
 function json(resBody: unknown, status = 200) {
@@ -95,6 +97,15 @@ Deno.serve(async (req) => {
     if (password.length < 6) {
       return json({ error: "Password must be at least 6 characters" }, 400);
     }
+    if (!body.legalAccepted) {
+      return json({ error: "You must accept the Terms of Use, Privacy Policy, and Cookie Policy" }, 400);
+    }
+
+    const legalAcceptedAt = new Date().toISOString();
+    const legalVersion =
+      typeof body.legalVersion === "string" && body.legalVersion.trim()
+        ? body.legalVersion.trim().slice(0, 32)
+        : "unknown";
 
     const codeHash = await sha256(accessCode);
     const admin = createClient(supabaseUrl, serviceRole);
@@ -151,6 +162,9 @@ Deno.serve(async (req) => {
         name: fullName,
         contact_number: contactNumber,
         subscription_tier: "pro",
+        terms_accepted_at: legalAcceptedAt,
+        privacy_accepted_at: legalAcceptedAt,
+        legal_version: legalVersion,
       },
       { onConflict: "id" }
     );

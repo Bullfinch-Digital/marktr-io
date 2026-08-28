@@ -1,410 +1,253 @@
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
+import {
+  LegalH2,
+  LegalH3,
+  LegalP,
+  LegalPageShell,
+  LegalUl,
+} from "../components/legal/LegalPageShell";
+import {
+  COMPANY_NAME,
+  COOKIE_POLICY_PATH,
+  PRODUCT_NAME,
+  SUPPORT_EMAIL,
+  SUPPORT_MAILTO,
+  TERMS_PATH,
+} from "../lib/legal";
+import {
+  MARKTR_PRO_ANNUAL_TOTAL_GBP,
+  MARKTR_TRIAL_DAYS,
+} from "../lib/marktrPricing";
 
 export default function PrivacyPolicy() {
   useEffect(() => {
     window.scrollTo(0, 0);
-    document.title = "Privacy Policy | ICP Generator";
+    document.title = `Privacy Policy | ${PRODUCT_NAME}`;
 
-    let meta = document.querySelector(
-      'meta[name="description"]',
-    ) as HTMLMetaElement | null;
+    let meta = document.querySelector('meta[name="description"]') as HTMLMetaElement | null;
     if (!meta) {
       meta = document.createElement("meta");
       meta.name = "description";
       document.head.appendChild(meta);
     }
-    meta.content =
-      "Read the ICP Generator privacy policy and how Bullfinch Digital LTD collects, uses, stores, and protects personal data.";
+    meta.content = `How ${COMPANY_NAME} collects, uses, and protects your personal data when you use ${PRODUCT_NAME}.`;
   }, []);
 
   return (
-    <main className="bg-background py-16 sm:py-20 lg:py-24">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="max-w-3xl">
-          <Link to="/" className="text-sm underline font-['Fraunces']">
-            ← Back to Home
-          </Link>
+    <LegalPageShell title="Privacy Policy" subtitle={COMPANY_NAME}>
+      <LegalH2>1. Introduction</LegalH2>
+      <LegalP>
+        {COMPANY_NAME} (&ldquo;we&rdquo;, &ldquo;us&rdquo;, &ldquo;our&rdquo;) operates the{" "}
+        {PRODUCT_NAME} application and website at marktr.io (the &ldquo;Service&rdquo;).
+      </LegalP>
+      <LegalP>
+        We are committed to protecting your personal data and handling it responsibly in
+        accordance with UK data protection law, including the UK GDPR and the Data Protection Act
+        2018.
+      </LegalP>
+      <LegalP>
+        This Privacy Policy explains what information we collect, how we use it, how it is stored,
+        and your rights. It should be read alongside our{" "}
+        <Link className="underline" to={TERMS_PATH}>
+          Terms of Use
+        </Link>{" "}
+        and{" "}
+        <Link className="underline" to={COOKIE_POLICY_PATH}>
+          Cookie Policy
+        </Link>
+        .
+      </LegalP>
 
-          <header className="mt-6 rounded-design border border-black bg-accent-grey/20 p-6 sm:p-8">
-            <h1 className="font-['Fraunces'] text-3xl sm:text-4xl lg:text-5xl font-bold text-text-dark">
-              Privacy Policy
-            </h1>
-            <p className="mt-4 text-text-dark/80 leading-relaxed text-lg">
-              Bullfinch Digital LTD
-            </p>
-            <p className="mt-2 text-text-dark/70">Last updated: 13 February 2026</p>
-          </header>
+      <LegalH2>2. Who we are</LegalH2>
+      <LegalP>
+        {COMPANY_NAME} is a company registered in the United Kingdom. For the purposes of UK data
+        protection law, {COMPANY_NAME} is the data controller of your personal data.
+      </LegalP>
+      <LegalP>
+        Contact:{" "}
+        <a className="underline" href={SUPPORT_MAILTO}>
+          {SUPPORT_EMAIL}
+        </a>
+      </LegalP>
 
-          <article className="mt-8 rounded-design border border-black bg-white p-6 sm:p-8">
-            <h2 className="mt-2 font-['Fraunces'] text-2xl sm:text-3xl font-bold">
-              1. Introduction
-            </h2>
-            <p className="mt-4 text-foreground/80 leading-relaxed">
-              Bullfinch Digital LTD (“we”, “us”, “our”) operates the ICP
-              Generator application and associated website (the “Service”).
-            </p>
-            <p className="mt-4 text-foreground/80 leading-relaxed">
-              We are committed to protecting your personal data and handling it
-              responsibly in accordance with UK data protection law, including
-              the UK GDPR and the Data Protection Act 2018.
-            </p>
-            <p className="mt-4 text-foreground/80 leading-relaxed">
-              This Privacy Policy explains:
-            </p>
-            <ul className="mt-4 list-disc pl-6 space-y-2 text-foreground/80">
-              <li>What information we collect</li>
-              <li>How we use it</li>
-              <li>How it is stored and processed</li>
-              <li>Your rights in relation to your data</li>
-            </ul>
-            <p className="mt-4 text-foreground/80 leading-relaxed">
-              By using ICP Generator, you agree to the terms of this Privacy
-              Policy.
-            </p>
+      <LegalH2>3. What data we collect</LegalH2>
 
-            <h2 className="mt-10 font-['Fraunces'] text-2xl sm:text-3xl font-bold">
-              2. Who We Are
-            </h2>
-            <p className="mt-4 text-foreground/80 leading-relaxed">
-              Bullfinch Digital LTD is a company registered in the United
-              Kingdom.
-            </p>
-            <p className="mt-4 text-foreground/80 leading-relaxed">
-              For the purposes of UK data protection law, Bullfinch Digital LTD
-              is the data controller of your personal data.
-            </p>
-            <p className="mt-4 text-foreground/80 leading-relaxed">
-              If you have any questions about this policy, you can contact us
-              at:
-            </p>
-            <p className="mt-2 text-foreground/80 leading-relaxed">
-              Email:{" "}
-              <a className="underline" href="mailto:hello@bullfinchdigital.com">
-                hello@bullfinchdigital.com
-              </a>
-            </p>
+      <LegalH3>3.1 Account information</LegalH3>
+      <LegalUl>
+        <li>Name</li>
+        <li>Email address</li>
+        <li>Password (stored securely by our authentication provider; we do not store plain-text passwords)</li>
+        <li>Contact number (if you provide one, e.g. beta signup)</li>
+      </LegalUl>
 
-            <h2 className="mt-10 font-['Fraunces'] text-2xl sm:text-3xl font-bold">
-              3. What Data We Collect
-            </h2>
-            <p className="mt-4 text-foreground/80 leading-relaxed">
-              We collect and process the following categories of information:
-            </p>
+      <LegalH3>3.2 Payment information</LegalH3>
+      <LegalP>
+        Payments are processed by Stripe. We do not store your full card details. Stripe may
+        process billing name, billing address, card details, and transaction history under its own
+        privacy policy.
+      </LegalP>
 
-            <h3 className="mt-8 font-['Fraunces'] text-xl sm:text-2xl font-bold">
-              3.1 Account Information
-            </h3>
-            <ul className="mt-4 list-disc pl-6 space-y-2 text-foreground/80">
-              <li>Name</li>
-              <li>Email address</li>
-            </ul>
+      <LegalH3>3.3 Content you create</LegalH3>
+      <LegalP>We store information you input into the platform, including:</LegalP>
+      <LegalUl>
+        <li>Ideal customer profiles (ICPs), brand stories, and marketing strategies</li>
+        <li>Health-check inputs and reports</li>
+        <li>Content briefs and generated marketing materials</li>
+        <li>Edits, exports, and other user-generated content</li>
+      </LegalUl>
 
-            <h3 className="mt-8 font-['Fraunces'] text-xl sm:text-2xl font-bold">
-              3.2 Payment Information
-            </h3>
-            <p className="mt-4 text-foreground/80 leading-relaxed">
-              All payment processing is handled by Stripe. We do not store your
-              full payment details.
-            </p>
-            <p className="mt-4 text-foreground/80 leading-relaxed">
-              Stripe may collect:
-            </p>
-            <ul className="mt-4 list-disc pl-6 space-y-2 text-foreground/80">
-              <li>Billing name</li>
-              <li>Billing address</li>
-              <li>Card details</li>
-              <li>Transaction history</li>
-            </ul>
-            <p className="mt-4 text-foreground/80 leading-relaxed">
-              Stripe acts as an independent data processor in accordance with
-              its own privacy policy.
-            </p>
+      <LegalH3>3.4 Usage and technical data</LegalH3>
+      <LegalUl>
+        <li>Pages visited and features used</li>
+        <li>Device, browser, and operating system information</li>
+        <li>IP address (which may be truncated or anonymised where possible)</li>
+        <li>Session and error logs needed to operate and secure the Service</li>
+      </LegalUl>
 
-            <h3 className="mt-8 font-['Fraunces'] text-xl sm:text-2xl font-bold">
-              3.3 ICP and User-Generated Content
-            </h3>
-            <p className="mt-4 text-foreground/80 leading-relaxed">
-              We collect and store the information you input into the platform,
-              including:
-            </p>
-            <ul className="mt-4 list-disc pl-6 space-y-2 text-foreground/80">
-              <li>ICP definitions</li>
-              <li>Segment data</li>
-              <li>Goals, pains, triggers, objections</li>
-              <li>Messaging notes</li>
-              <li>Any edits or updates you make</li>
-              <li>Library content you generate or store</li>
-            </ul>
-            <p className="mt-4 text-foreground/80 leading-relaxed">
-              This content is stored securely in our database (Supabase).
-            </p>
+      <LegalH3>3.5 Lead and marketing signups</LegalH3>
+      <LegalP>
+        If you request a resource download, join our newsletter, or complete an onboarding lead
+        form, we collect your email address and related metadata (e.g. source, timestamp) to fulfil
+        your request and, where permitted, send relevant communications.
+      </LegalP>
 
-            <h3 className="mt-8 font-['Fraunces'] text-xl sm:text-2xl font-bold">
-              3.4 Usage Data
-            </h3>
-            <p className="mt-4 text-foreground/80 leading-relaxed">
-              We collect usage and performance data including:
-            </p>
-            <ul className="mt-4 list-disc pl-6 space-y-2 text-foreground/80">
-              <li>Pages visited</li>
-              <li>Features used</li>
-              <li>Device information</li>
-              <li>Browser type</li>
-              <li>IP address (anonymised where possible)</li>
-              <li>Session duration</li>
-            </ul>
-            <p className="mt-4 text-foreground/80 leading-relaxed">
-              This helps us improve platform performance and usability.
-            </p>
+      <LegalH3>3.6 Cookies</LegalH3>
+      <LegalP>
+        We use cookies and similar technologies as described in our{" "}
+        <Link className="underline" to={COOKIE_POLICY_PATH}>
+          Cookie Policy
+        </Link>
+        . Non-essential analytics cookies are only used with your consent.
+      </LegalP>
 
-            <h3 className="mt-8 font-['Fraunces'] text-xl sm:text-2xl font-bold">
-              3.5 Cookies and Tracking Technologies
-            </h3>
-            <p className="mt-4 text-foreground/80 leading-relaxed">
-              We use cookies and similar technologies to:
-            </p>
-            <ul className="mt-4 list-disc pl-6 space-y-2 text-foreground/80">
-              <li>Operate the platform</li>
-              <li>Improve user experience</li>
-              <li>Analyse usage</li>
-              <li>Measure marketing performance</li>
-            </ul>
-            <p className="mt-4 text-foreground/80 leading-relaxed">
-              This includes:
-            </p>
-            <ul className="mt-4 list-disc pl-6 space-y-2 text-foreground/80">
-              <li>Google Analytics</li>
-              <li>Facebook Pixel</li>
-              <li>LinkedIn Insight Tag</li>
-            </ul>
-            <p className="mt-4 text-foreground/80 leading-relaxed">
-              These tools may collect device identifiers, browsing behaviour,
-              and interaction data.
-            </p>
-            <p className="mt-4 text-foreground/80 leading-relaxed">
-              You can control cookies via your browser settings.
-            </p>
+      <LegalH2>4. How we use your data</LegalH2>
+      <LegalUl>
+        <li>Provide, maintain, and improve the Service</li>
+        <li>Generate AI-assisted outputs based on your inputs</li>
+        <li>Manage free, trial, and paid accounts</li>
+        <li>Process payments and prevent fraud</li>
+        <li>Send service-related emails (account, security, billing)</li>
+        <li>Send marketing communications where you have opted in</li>
+        <li>Analyse usage to improve the product (with consent where required)</li>
+        <li>Comply with legal obligations</li>
+      </LegalUl>
 
-            <h2 className="mt-10 font-['Fraunces'] text-2xl sm:text-3xl font-bold">
-              4. How We Use Your Data
-            </h2>
-            <p className="mt-4 text-foreground/80 leading-relaxed">
-              We process your data to:
-            </p>
-            <ul className="mt-4 list-disc pl-6 space-y-2 text-foreground/80">
-              <li>Provide access to the ICP Generator platform</li>
-              <li>Enable ICP creation and editing</li>
-              <li>Deliver AI-generated outputs</li>
-              <li>Manage free and paid accounts</li>
-              <li>Process payments</li>
-              <li>Improve product performance</li>
-              <li>Send account-related communications</li>
-              <li>Send marketing emails (where permitted)</li>
-              <li>Analyse usage and improve marketing performance</li>
-            </ul>
+      <LegalH2>5. AI processing</LegalH2>
+      <LegalP>
+        {PRODUCT_NAME} uses third-party AI providers (including OpenAI) to generate outputs from
+        information you submit. Your content may be transmitted to those providers for processing.
+        They act as data processors under appropriate agreements. We do not sell your personal
+        data.
+      </LegalP>
 
-            <h2 className="mt-10 font-['Fraunces'] text-2xl sm:text-3xl font-bold">
-              5. AI Processing
-            </h2>
-            <p className="mt-4 text-foreground/80 leading-relaxed">
-              ICP Generator uses OpenAI’s API to generate outputs based on the
-              information you input.
-            </p>
-            <p className="mt-4 text-foreground/80 leading-relaxed">
-              Your submitted content may be transmitted to OpenAI for
-              processing. OpenAI acts as a data processor.
-            </p>
-            <p className="mt-4 text-foreground/80 leading-relaxed">
-              We may use anonymised or aggregated data to improve system
-              performance and model quality. We do not sell your personal data.
-            </p>
+      <LegalH2>6. Marketing communications</LegalH2>
+      <LegalP>
+        We only send marketing emails where we have a lawful basis to do so — for example, where you
+        have opted in via a newsletter signup or marketing preference. You can unsubscribe at any
+        time using the link in any marketing email.
+      </LegalP>
+      <LegalP>
+        Account-related and transactional messages (e.g. password resets, billing, trial reminders)
+        are not marketing and may be sent as necessary to provide the Service.
+      </LegalP>
 
-            <h2 className="mt-10 font-['Fraunces'] text-2xl sm:text-3xl font-bold">
-              6. Marketing Communications
-            </h2>
-            <p className="mt-4 text-foreground/80 leading-relaxed">
-              By creating an account, you agree to receive marketing emails from
-              us.
-            </p>
-            <p className="mt-4 text-foreground/80 leading-relaxed">
-              You may unsubscribe at any time using the unsubscribe link in any
-              email.
-            </p>
-            <p className="mt-4 text-foreground/80 leading-relaxed">
-              Marketing emails are delivered via Klaviyo, which acts as a data
-              processor.
-            </p>
+      <LegalH2>7. Free access, trials, and paid plans</LegalH2>
+      <LegalP>
+        You may use parts of {PRODUCT_NAME} for free. Marktr Pro is offered on an annual
+        subscription with a {MARKTR_TRIAL_DAYS}-day free trial, then £{MARKTR_PRO_ANNUAL_TOTAL_GBP}
+        /year unless cancelled. See our{" "}
+        <Link className="underline" to={TERMS_PATH}>
+          Terms of Use
+        </Link>{" "}
+        for full billing details.
+      </LegalP>
 
-            <h2 className="mt-10 font-['Fraunces'] text-2xl sm:text-3xl font-bold">
-              7. Free Access and Paid Accounts
-            </h2>
-            <p className="mt-4 text-foreground/80 leading-relaxed">
-              Users may generate one ICP for free. Editing features require a
-              paid account following a 7-day free access period.
-            </p>
-            <p className="mt-4 text-foreground/80 leading-relaxed">
-              Account data is retained in accordance with this policy whether on
-              free or paid plans.
-            </p>
+      <LegalH2>8. Lawful basis for processing</LegalH2>
+      <LegalP>Under UK GDPR, we rely on:</LegalP>
+      <LegalUl>
+        <li>Contract — to provide the Service you sign up for</li>
+        <li>Legitimate interests — to improve, secure, and protect the platform</li>
+        <li>Consent — for non-essential cookies and optional marketing</li>
+        <li>Legal obligation — for accounting, tax, and regulatory compliance</li>
+      </LegalUl>
 
-            <h2 className="mt-10 font-['Fraunces'] text-2xl sm:text-3xl font-bold">
-              8. Lawful Basis for Processing
-            </h2>
-            <p className="mt-4 text-foreground/80 leading-relaxed">
-              Under UK GDPR, we rely on:
-            </p>
-            <ul className="mt-4 list-disc pl-6 space-y-2 text-foreground/80">
-              <li>Contractual necessity (to provide the Service)</li>
-              <li>
-                Legitimate interests (to improve our platform and prevent
-                misuse)
-              </li>
-              <li>
-                Consent (for marketing communications and certain cookies)
-              </li>
-              <li>
-                Legal obligation (for accounting and regulatory compliance)
-              </li>
-            </ul>
+      <LegalH2>9. Data storage, processors, and security</LegalH2>
+      <LegalP>We use reputable providers including:</LegalP>
+      <LegalUl>
+        <li>Supabase (database and authentication)</li>
+        <li>Vercel (application hosting)</li>
+        <li>Stripe (payments)</li>
+        <li>OpenAI (AI processing)</li>
+        <li>Cloudflare Turnstile (spam prevention on forms)</li>
+        <li>Google Analytics (usage analytics, with consent)</li>
+      </LegalUl>
+      <LegalP>
+        Some providers may process data outside the UK. Where this occurs, we rely on appropriate
+        safeguards such as UK adequacy regulations or Standard Contractual Clauses.
+      </LegalP>
+      <LegalP>
+        We implement reasonable technical and organisational measures to protect your data from
+        loss, misuse, or unauthorised access.
+      </LegalP>
 
-            <h2 className="mt-10 font-['Fraunces'] text-2xl sm:text-3xl font-bold">
-              9. Data Storage and Security
-            </h2>
-            <p className="mt-4 text-foreground/80 leading-relaxed">
-              We use reputable third-party providers including:
-            </p>
-            <ul className="mt-4 list-disc pl-6 space-y-2 text-foreground/80">
-              <li>Supabase (database hosting)</li>
-              <li>Vercel (application hosting)</li>
-              <li>Stripe (payments)</li>
-              <li>Klaviyo (email marketing)</li>
-              <li>OpenAI (AI processing)</li>
-              <li>Google Analytics</li>
-              <li>Meta (Facebook Pixel)</li>
-              <li>LinkedIn Insight Tag</li>
-            </ul>
-            <p className="mt-4 text-foreground/80 leading-relaxed">
-              These providers may process data outside the UK. Where data is
-              transferred internationally, we rely on appropriate safeguards
-              such as Standard Contractual Clauses or equivalent mechanisms.
-            </p>
-            <p className="mt-4 text-foreground/80 leading-relaxed">
-              We take reasonable technical and organisational measures to
-              protect your data from loss, misuse, or unauthorised access.
-            </p>
+      <LegalH2>10. Data retention</LegalH2>
+      <LegalP>We retain personal data:</LegalP>
+      <LegalUl>
+        <li>While your account remains active</li>
+        <li>As required for legal, tax, or regulatory obligations</li>
+        <li>For a reasonable period after account closure unless you request earlier deletion</li>
+      </LegalUl>
+      <LegalP>You may request deletion of your account and associated data at any time.</LegalP>
 
-            <h2 className="mt-10 font-['Fraunces'] text-2xl sm:text-3xl font-bold">
-              10. Data Retention
-            </h2>
-            <p className="mt-4 text-foreground/80 leading-relaxed">
-              We retain personal data:
-            </p>
-            <ul className="mt-4 list-disc pl-6 space-y-2 text-foreground/80">
-              <li>For as long as your account remains active</li>
-              <li>As required for legal, tax, or regulatory obligations</li>
-              <li>
-                For a reasonable period after account closure unless deletion is
-                requested
-              </li>
-            </ul>
-            <p className="mt-4 text-foreground/80 leading-relaxed">
-              You may request deletion of your account and associated data at
-              any time.
-            </p>
+      <LegalH2>11. Your rights</LegalH2>
+      <LegalP>Under UK data protection law, you have the right to:</LegalP>
+      <LegalUl>
+        <li>Access your personal data</li>
+        <li>Correct inaccurate data</li>
+        <li>Request erasure</li>
+        <li>Restrict or object to processing</li>
+        <li>Request data portability</li>
+        <li>Withdraw consent (where processing is based on consent)</li>
+      </LegalUl>
+      <LegalP>
+        To exercise your rights, contact{" "}
+        <a className="underline" href={SUPPORT_MAILTO}>
+          {SUPPORT_EMAIL}
+        </a>
+        . You may also complain to the Information Commissioner&apos;s Office (ICO).
+      </LegalP>
 
-            <h2 className="mt-10 font-['Fraunces'] text-2xl sm:text-3xl font-bold">
-              11. Your Rights
-            </h2>
-            <p className="mt-4 text-foreground/80 leading-relaxed">
-              Under UK data protection law, you have the right to:
-            </p>
-            <ul className="mt-4 list-disc pl-6 space-y-2 text-foreground/80">
-              <li>Access your personal data</li>
-              <li>Correct inaccurate data</li>
-              <li>Request erasure</li>
-              <li>Restrict processing</li>
-              <li>Object to processing</li>
-              <li>Request data portability</li>
-              <li>Withdraw consent (where applicable)</li>
-            </ul>
-            <p className="mt-4 text-foreground/80 leading-relaxed">
-              To exercise your rights, contact us at the email listed above.
-            </p>
-            <p className="mt-4 text-foreground/80 leading-relaxed">
-              You also have the right to lodge a complaint with the Information
-              Commissioner’s Office (ICO).
-            </p>
+      <LegalH2>12. Data sharing</LegalH2>
+      <LegalP>We do not sell your personal data. We may share data with:</LegalP>
+      <LegalUl>
+        <li>Service providers listed above, under contract</li>
+        <li>Professional advisers where necessary</li>
+        <li>Law enforcement or regulators where required by law</li>
+      </LegalUl>
 
-            <h2 className="mt-10 font-['Fraunces'] text-2xl sm:text-3xl font-bold">
-              12. Data Sharing
-            </h2>
-            <p className="mt-4 text-foreground/80 leading-relaxed">
-              We do not sell your personal data.
-            </p>
-            <p className="mt-4 text-foreground/80 leading-relaxed">
-              We may share data with:
-            </p>
-            <ul className="mt-4 list-disc pl-6 space-y-2 text-foreground/80">
-              <li>Service providers listed above</li>
-              <li>Legal authorities where required</li>
-              <li>Professional advisers where necessary</li>
-            </ul>
-            <p className="mt-4 text-foreground/80 leading-relaxed">
-              We may use anonymised or aggregated data for product improvement
-              and internal analytics.
-            </p>
+      <LegalH2>13. Children</LegalH2>
+      <LegalP>
+        The Service is not intended for anyone under 18. We do not knowingly collect data from
+        children.
+      </LegalP>
 
-            <h2 className="mt-10 font-['Fraunces'] text-2xl sm:text-3xl font-bold">
-              13. Cookies Policy
-            </h2>
-            <p className="mt-4 text-foreground/80 leading-relaxed">
-              We use cookies to:
-            </p>
-            <ul className="mt-4 list-disc pl-6 space-y-2 text-foreground/80">
-              <li>Maintain session functionality</li>
-              <li>Improve user experience</li>
-              <li>Analyse traffic</li>
-              <li>Measure marketing effectiveness</li>
-            </ul>
-            <p className="mt-4 text-foreground/80 leading-relaxed">
-              You may disable cookies in your browser settings. Disabling
-              essential cookies may limit functionality.
-            </p>
+      <LegalH2>14. Changes to this policy</LegalH2>
+      <LegalP>
+        We may update this Privacy Policy from time to time. Material changes will be communicated
+        via the platform or email where appropriate. The &ldquo;Last updated&rdquo; date shows the
+        most recent revision.
+      </LegalP>
 
-            <h2 className="mt-10 font-['Fraunces'] text-2xl sm:text-3xl font-bold">
-              14. Changes to This Policy
-            </h2>
-            <p className="mt-4 text-foreground/80 leading-relaxed">
-              We may update this Privacy Policy from time to time.
-            </p>
-            <p className="mt-4 text-foreground/80 leading-relaxed">
-              Where changes are material, we will notify users through the
-              platform or via email.
-            </p>
-            <p className="mt-4 text-foreground/80 leading-relaxed">
-              The “Last updated” date will reflect the most recent revision.
-            </p>
-
-            <h2 className="mt-10 font-['Fraunces'] text-2xl sm:text-3xl font-bold">
-              15. Contact
-            </h2>
-            <p className="mt-4 text-foreground/80 leading-relaxed">
-              If you have questions about this Privacy Policy or your data,
-              contact:
-            </p>
-            <p className="mt-4 text-foreground/80 leading-relaxed">
-              Bullfinch Digital LTD
-            </p>
-            <p className="mt-2 text-foreground/80 leading-relaxed">
-              Email:{" "}
-              <a className="underline" href="mailto:hello@bullfinchdigital.com">
-                hello@bullfinchdigital.com
-              </a>
-            </p>
-          </article>
-        </div>
-      </div>
-    </main>
+      <LegalH2>15. Contact</LegalH2>
+      <LegalP>
+        {COMPANY_NAME}
+        <br />
+        Email:{" "}
+        <a className="underline" href={SUPPORT_MAILTO}>
+          {SUPPORT_EMAIL}
+        </a>
+      </LegalP>
+    </LegalPageShell>
   );
 }

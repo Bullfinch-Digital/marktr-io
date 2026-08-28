@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
 import { Input } from "../../ui/input";
+import {
+  LegalAgreementCheckbox,
+} from "../../legal/LegalAgreement";
 
 interface EmailCaptureScreenProps {
   email: string;
@@ -13,6 +15,8 @@ interface EmailCaptureScreenProps {
   turnstileRequired?: boolean;
   hasTurnstileToken?: boolean;
   hideEmailInput?: boolean;
+  legalAgreed?: boolean;
+  onLegalAgreedChange?: (agreed: boolean) => void;
 }
 
 export function EmailCaptureScreen({ 
@@ -24,6 +28,8 @@ export function EmailCaptureScreen({
   turnstileRequired = false,
   hasTurnstileToken = false,
   hideEmailInput = false,
+  legalAgreed = true,
+  onLegalAgreedChange,
 }: EmailCaptureScreenProps) {
   const widgetIdRef = useRef<string | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -40,6 +46,10 @@ export function EmailCaptureScreen({
     if (e.key !== "Enter") return;
     if (!isValidEmail(email)) return;
     if (turnstileRequired && !hasTurnstileToken) {
+      e.preventDefault();
+      return;
+    }
+    if (!hideEmailInput && !legalAgreed) {
       e.preventDefault();
       return;
     }
@@ -175,16 +185,13 @@ export function EmailCaptureScreen({
           </p>
         ) : null}
 
-        <p className="text-xs text-foreground/60 max-w-md">
-          By continuing, you agree to our{" "}
-          <Link to="/privacy-policy" className="underline text-foreground">
-            Privacy Policy
-          </Link>{" "}
-          and{" "}
-          <Link to="/terms-of-service" className="underline text-foreground">
-            Terms &amp; Conditions
-          </Link>.
-        </p>
+        {!hideEmailInput && (
+          <LegalAgreementCheckbox
+            id="onboarding-email-legal"
+            checked={legalAgreed}
+            onCheckedChange={(value) => onLegalAgreedChange?.(value)}
+          />
+        )}
       </div>
     </div>
   );

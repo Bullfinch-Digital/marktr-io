@@ -92,6 +92,7 @@ export default function OnboardingBuild() {
   const isLoggedIn = Boolean(user && !(user as { is_anonymous?: boolean }).is_anonymous);
   const anonInitRef = useRef(false);
   const [leadToken, setLeadToken] = useState<string | null>(null);
+  const [legalAgreed, setLegalAgreed] = useState(true);
   const turnstileConfigured = isTurnstileConfigured();
   const [currentStep, setCurrentStep] = useState<Step>("1_Welcome");
   const [existingIcpRun, setExistingIcpRun] = useState<{ id: string; created_at: string } | null>(
@@ -881,6 +882,8 @@ export default function OnboardingBuild() {
             turnstileRequired={turnstileConfigured && !isLoggedIn}
             hasTurnstileToken={Boolean(leadToken)}
             hideEmailInput={isLoggedIn}
+            legalAgreed={legalAgreed}
+            onLegalAgreedChange={setLegalAgreed}
             onContinue={async () => {
               if (turnstileConfigured && !isLoggedIn && !leadToken) {
                 console.warn("[LeadCapture] blocked: Turnstile token not ready yet");
@@ -939,6 +942,7 @@ export default function OnboardingBuild() {
         const emailOk = formData.email.trim().length > 0 && formData.email.includes("@");
         if (!emailOk) return false;
         if (turnstileConfigured && !leadToken) return false;
+        if (!legalAgreed) return false;
         return true;
       }
       case "10_Loading":

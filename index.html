@@ -9,14 +9,17 @@
       name="description"
       content="Marktr is your marketing team, built in. Define your ideal customer, shape your story, and generate content without agency overhead."
     />
-    <!-- Google tag (gtag.js) — marktr.io -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-0EFXQPEYY6"></script>
+    <!-- Google Consent Mode defaults — analytics loads only after cookie banner opt-in -->
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-      // send_page_view: false — SPA route changes are tracked in App.tsx
-      gtag('config', 'G-0EFXQPEYY6', { send_page_view: false });
+      gtag('consent', 'default', {
+        analytics_storage: 'denied',
+        ad_storage: 'denied',
+        ad_user_data: 'denied',
+        ad_personalization: 'denied',
+        wait_for_update: 500
+      });
     </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

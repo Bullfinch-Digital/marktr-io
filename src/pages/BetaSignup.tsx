@@ -7,6 +7,11 @@ import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { supabase } from "../config/supabase";
 import { useAuth } from "../contexts/AuthContext";
+import {
+  LegalAgreementCheckbox,
+  LEGAL_AGREEMENT_REQUIRED_MESSAGE,
+} from "../components/legal/LegalAgreement";
+import { LEGAL_VERSION } from "../lib/legal";
 
 /** Edge Functions return JSON errors on non-2xx bodies; supabase-js does not put that in `data`. */
 async function readEdgeFunctionErrorMessage(err: unknown): Promise<string | undefined> {
@@ -38,6 +43,7 @@ export default function BetaSignup() {
   const [accessCode, setAccessCode] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [legalAgreed, setLegalAgreed] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -71,6 +77,10 @@ export default function BetaSignup() {
       setError("Password must be at least 6 characters.");
       return;
     }
+    if (!legalAgreed) {
+      setError(LEGAL_AGREEMENT_REQUIRED_MESSAGE);
+      return;
+    }
 
     setLoading(true);
     try {
@@ -81,6 +91,8 @@ export default function BetaSignup() {
           fullName: trimmedFullName,
           contactNumber: trimmedContactNumber,
           accessCode: trimmedCode,
+          legalAccepted: true,
+          legalVersion: LEGAL_VERSION,
         },
       });
 
@@ -213,9 +225,16 @@ export default function BetaSignup() {
               />
             </div>
 
+            <LegalAgreementCheckbox
+              id="beta-signup-legal"
+              checked={legalAgreed}
+              onCheckedChange={setLegalAgreed}
+              disabled={loading}
+            />
+
             <Button
               type="submit"
-              disabled={loading}
+              disabled={loading || !legalAgreed}
               className="w-full bg-button-green text-text-dark hover:bg-button-green/90 border-[1px] border-black rounded-design px-8 py-6 font-['Fraunces'] font-bold transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
             >
               {loading ? "Creating beta account..." : "Create beta account"}

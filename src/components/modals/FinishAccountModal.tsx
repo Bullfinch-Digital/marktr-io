@@ -10,6 +10,11 @@ import {
   getPendingGuestLink,
   setPendingGuestLink,
 } from "../../utils/pendingGuestLink";
+import {
+  LegalAgreementCheckbox,
+  LEGAL_AGREEMENT_REQUIRED_MESSAGE,
+} from "../legal/LegalAgreement";
+import { createLegalAcceptanceRecord } from "../../lib/legal";
 
 type FinishAccountModalProps = {
   isOpen: boolean;
@@ -47,6 +52,7 @@ export function FinishAccountModal({
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [legalAgreed, setLegalAgreed] = useState(true);
   const [debugDetails, setDebugDetails] = useState<any>(null);
 
   const params = useMemo(() => new URLSearchParams(window.location.search), []);
@@ -210,13 +216,24 @@ export function FinishAccountModal({
       setFormError("Missing checkout reference. Please try the upgrade flow again.");
       return;
     }
+    if (!legalAgreed) {
+      setFormError(LEGAL_AGREEMENT_REQUIRED_MESSAGE);
+      return;
+    }
+
+    const legal = createLegalAcceptanceRecord();
 
     setLoading(true);
     try {
       if (isAnonymous) {
         const { error: updateError } = await supabase.auth.updateUser({
           password,
-          data: { name: name.trim() || null },
+          data: {
+            name: name.trim() || null,
+            terms_accepted_at: legal.terms_accepted_at,
+            privacy_accepted_at: legal.privacy_accepted_at,
+            legal_version: legal.legal_version,
+          },
         });
 
         if (updateError) {
@@ -230,6 +247,9 @@ export function FinishAccountModal({
             .update({
               email: email?.trim() || "",
               name: name.trim() || null,
+              terms_accepted_at: legal.terms_accepted_at,
+              privacy_accepted_at: legal.privacy_accepted_at,
+              legal_version: legal.legal_version,
             })
             .eq("id", user.id);
         }
@@ -246,7 +266,12 @@ export function FinishAccountModal({
         email,
         password,
         options: {
-          data: { name: name.trim() || null },
+          data: {
+            name: name.trim() || null,
+            terms_accepted_at: legal.terms_accepted_at,
+            privacy_accepted_at: legal.privacy_accepted_at,
+            legal_version: legal.legal_version,
+          },
           emailRedirectTo: `${window.location.origin}/auth/callback?next=/dashboard`,
         },
       });
@@ -514,9 +539,16 @@ export function FinishAccountModal({
             <p className="text-sm text-button-green font-['Inter']">{success}</p>
           )}
 
+          <LegalAgreementCheckbox
+            id="finish-account-legal"
+            checked={legalAgreed}
+            onCheckedChange={setLegalAgreed}
+            disabled={loading}
+          />
+
           <Button
             type="submit"
-            disabled={loading}
+            disabled={loading || !legalAgreed}
             className="w-full bg-button-green text-text-dark border border-black rounded-design px-6 py-4 font-['Fraunces']"
           >
             {loading ? "Finishing…" : "Finish account"}

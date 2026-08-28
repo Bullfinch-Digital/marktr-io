@@ -47,28 +47,38 @@ import ResourcePost from "./pages/ResourcePost";
 import Downloads from "./pages/Downloads";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
+import CookiePolicy from "./pages/CookiePolicy";
+import { CookieConsentBanner } from "./components/legal/CookieConsentBanner";
+import { GA_MEASUREMENT_ID, hasAnalyticsConsent } from "./lib/cookieConsent";
 import OnboardingLayout from "./layouts/OnboardingLayout";
 
-const GA_MEASUREMENT_ID = "G-0EFXQPEYY6";
 let lastTrackedPath: string | null = null;
 
 function GA4RouteTracker() {
   const location = useLocation();
 
   useEffect(() => {
-    const pagePath = `${location.pathname}${location.search}${location.hash}`;
-    if (lastTrackedPath === pagePath) return;
-    lastTrackedPath = pagePath;
+    const track = () => {
+      if (!hasAnalyticsConsent()) return;
 
-    const gtag = (window as Window & { gtag?: (...args: unknown[]) => void }).gtag;
-    if (!gtag) return;
+      const pagePath = `${location.pathname}${location.search}${location.hash}`;
+      if (lastTrackedPath === pagePath) return;
+      lastTrackedPath = pagePath;
 
-    gtag("event", "page_view", {
-      send_to: GA_MEASUREMENT_ID,
-      page_title: document.title,
-      page_location: window.location.href,
-      page_path: pagePath,
-    });
+      const gtag = (window as Window & { gtag?: (...args: unknown[]) => void }).gtag;
+      if (!gtag) return;
+
+      gtag("event", "page_view", {
+        send_to: GA_MEASUREMENT_ID,
+        page_title: document.title,
+        page_location: window.location.href,
+        page_path: pagePath,
+      });
+    };
+
+    track();
+    window.addEventListener("marktr:analytics-consent-granted", track);
+    return () => window.removeEventListener("marktr:analytics-consent-granted", track);
   }, [location.pathname, location.search, location.hash]);
 
   return null;
@@ -149,6 +159,15 @@ export default function App() {
               </>
             } />
             <Route path="/terms" element={<Navigate to="/terms-of-service" replace />} />
+
+            <Route path="/cookie-policy" element={
+              <>
+                <Header />
+                <CookiePolicy />
+                <Footer />
+              </>
+            } />
+            <Route path="/cookies" element={<Navigate to="/cookie-policy" replace />} />
             
             {/* Auth Routes — /login and /signup are legacy entry points; AuthRedirect sends real users to /dashboard, others to / */}
             <Route path="/login" element={<AuthRedirect />} />
@@ -279,6 +298,7 @@ export default function App() {
             } />
               </Routes>
             </div>
+            <CookieConsentBanner />
           </Router>
         </PaywallProvider>
       </AuthModalProvider>

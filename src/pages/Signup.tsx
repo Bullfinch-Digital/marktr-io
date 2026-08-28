@@ -6,6 +6,10 @@ import { Label } from "../components/ui/label";
 import { useAuth } from "../contexts/AuthContext";
 import { ArrowRight } from "lucide-react";
 import { AuthHero } from "../components/auth/AuthHero";
+import {
+  LegalAgreementCheckbox,
+  LEGAL_AGREEMENT_REQUIRED_MESSAGE,
+} from "../components/legal/LegalAgreement";
 
 export default function Signup() {
   const navigate = useNavigate();
@@ -13,6 +17,7 @@ export default function Signup() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [legalAgreed, setLegalAgreed] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const { signUp } = useAuth();
@@ -35,6 +40,11 @@ export default function Signup() {
       return;
     }
 
+    if (!legalAgreed) {
+      setError(LEGAL_AGREEMENT_REQUIRED_MESSAGE);
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -48,6 +58,7 @@ export default function Signup() {
         email: trimmedEmail,
         password: trimmedPassword,
         name: trimmedName,
+        legalAccepted: legalAgreed,
       });
 
       if (error) {
@@ -151,9 +162,16 @@ export default function Signup() {
               </div>
             </div>
 
+            <LegalAgreementCheckbox
+              id="signup-legal"
+              checked={legalAgreed}
+              onCheckedChange={setLegalAgreed}
+              disabled={loading}
+            />
+
             <Button
               type="submit"
-              disabled={loading}
+              disabled={loading || !legalAgreed}
               className="w-full bg-button-green text-text-dark hover:bg-button-green/90 border-[1px] border-black rounded-design px-8 py-6 font-['Fraunces'] font-bold transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
             >
               {loading ? "Creating account..." : "Create account"}

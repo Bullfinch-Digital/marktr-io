@@ -12,12 +12,23 @@ import {
   clearPendingGuestLink,
   getPendingGuestLink,
 } from "../utils/pendingGuestLink";
+import {
+  consumePendingLegalAcceptance,
+  createLegalAcceptanceRecord,
+  legalAcceptanceFromMetadata,
+  type LegalAcceptanceRecord,
+} from "../lib/legal";
 
 type AuthContextType = {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signUp: (args: { email: string; password: string; name: string }) => Promise<{ error: AuthError | null }>;
+  signUp: (args: {
+    email: string;
+    password: string;
+    name: string;
+    legalAccepted?: boolean;
+  }) => Promise<{ error: AuthError | null }>;
   signInWithPassword: (args: { email: string; password: string }) => Promise<{ error: AuthError | null }>;
   signInWithGoogle: (redirectPath?: string) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
@@ -69,6 +80,12 @@ async function ensureProfileInsertOnly(user: User) {
   const email = isAnonymous ? "" : user.email ?? "";
   const name = (user.user_metadata as any)?.name ?? null;
 
+  const legalFromMeta = legalAcceptanceFromMetadata(
+    user.user_metadata as Record<string, unknown> | undefined,
+  );
+  const legalFromSession = consumePendingLegalAcceptance();
+  const legal: LegalAcceptanceRecord | null = legalFromMeta ?? legalFromSession;
+
   console.log("AuthContext: profile ensure start", { uid, email, name, isAnonymous, metadata: user.user_metadata });
 
   try {
@@ -100,6 +117,13 @@ async function ensureProfileInsertOnly(user: User) {
         email,
         name,
         subscription_tier: "free",
+        ...(legal
+          ? {
+              terms_accepted_at: legal.terms_accepted_at,
+              privacy_accepted_at: legal.privacy_accepted_at,
+              legal_version: legal.legal_version,
+            }
+          : {}),
       },
       { onConflict: "id" }
     );
@@ -308,24 +332,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // --------------------------------------------------------------
   // SIGN UP
   // --------------------------------------------------------------
-  const signUp = async ({ email, password, name }: { email: string; password: string; name: string }) => {
+  const signUp = async ({
+    email,
+    password,
+    name,
+    legalAccepted = false,
+  }: {
+    email: string;
+    password: string;
+    name: string;
+    legalAccepted?: boolean;
+  }) => {
+    if (!legalAccepted) {
+      return {
+        error: {
+          name: "LegalAgreementRequired",
+          message: "You must agree to the Terms of Use, Privacy Policy, and Cookie Policy.",
+        } as AuthError,
+      };
+    }
+
     const payloadEmail = email.trim();
     const payloadName = name.trim();
+    const legal = createLegalAcceptanceRecord();
 
-    // Ensure email confirmation link returns the user to this app (dev + prod safe)
-    // e.g. http://localhost:5173/auth/callback?next=/account in dev, your domain in production
     const emailRedirectTo = `${window.location.origin}/auth/callback?next=/account`;
 
     const { error } = await supabase.auth.signUp({
       email: payloadEmail,
       password,
       options: {
-        data: { name: payloadName },
+        data: {
+          name: payloadName,
+          terms_accepted_at: legal.terms_accepted_at,
+          privacy_accepted_at: legal.privacy_accepted_at,
+          legal_version: legal.legal_version,
+        },
         emailRedirectTo,
       },
     });
 
-    // Profile creation is handled centrally on SIGNED_IN
     return { error };
   };
 

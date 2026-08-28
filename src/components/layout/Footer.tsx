@@ -77,10 +77,18 @@ export function Footer() {
               </li>
               <li>
                 <Link
+                  to="/cookie-policy"
+                  className="text-text-dark/80 transition-colors hover:text-button-green"
+                >
+                  Cookie Policy
+                </Link>
+              </li>
+              <li>
+                <Link
                   to="/terms-of-service"
                   className="text-text-dark/80 transition-colors hover:text-button-green"
                 >
-                  Terms of Service
+                  Terms of Use
                 </Link>
               </li>
             </ul>

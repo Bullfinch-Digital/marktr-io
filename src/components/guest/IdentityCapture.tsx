@@ -6,17 +6,19 @@ import {
   useRef,
   useState,
 } from "react";
-import { Link } from "react-router-dom";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { captureGuestLeadOnce, isTurnstileConfigured } from "../../lib/leadCapture";
 import { isGuestLeadCaptured } from "../../lib/guestContext";
+import { LegalAgreementCheckbox } from "../legal/LegalAgreement";
 
 export type IdentityCaptureHandle = {
   /** Flush local edits to parent/context and attempt lead capture. */
   commitAll: () => { name: string; email: string };
   /** Current in-field values (may be ahead of parent/context). */
   getDraft: () => { name: string; email: string };
+  /** Whether the user accepted Terms / Privacy / Cookies. */
+  isLegalAgreed: () => boolean;
 };
 
 type IdentityCaptureProps = {
@@ -72,6 +74,7 @@ export const IdentityCapture = forwardRef<IdentityCaptureHandle, IdentityCapture
     const [leadToken, setLeadToken] = useState<string | null>(null);
     const [loadError, setLoadError] = useState<string | null>(null);
     const [captureError, setCaptureError] = useState<string | null>(null);
+    const [legalAgreed, setLegalAgreed] = useState(true);
 
     const localNameRef = useRef(localName);
     const localEmailRef = useRef(localEmail);
@@ -162,8 +165,9 @@ export const IdentityCapture = forwardRef<IdentityCaptureHandle, IdentityCapture
           return { name, email };
         },
         getDraft: () => readDraftFromDom(),
+        isLegalAgreed: () => legalAgreed,
       }),
-      [commitName, commitEmail, attemptLeadCapture, readDraftFromDom]
+      [commitName, commitEmail, attemptLeadCapture, readDraftFromDom, legalAgreed]
     );
 
     useEffect(() => {
@@ -358,17 +362,11 @@ export const IdentityCapture = forwardRef<IdentityCaptureHandle, IdentityCapture
         ) : null}
 
         {fieldVisibility.showEmail && (
-          <p className="text-xs text-muted-foreground max-w-md font-['DM_Sans']">
-            By continuing, you agree to our{" "}
-            <Link to="/privacy-policy" className="underline text-foreground">
-              Privacy Policy
-            </Link>{" "}
-            and{" "}
-            <Link to="/terms-of-service" className="underline text-foreground">
-              Terms &amp; Conditions
-            </Link>
-            .
-          </p>
+          <LegalAgreementCheckbox
+            id="identity-legal-agreement"
+            checked={legalAgreed}
+            onCheckedChange={setLegalAgreed}
+          />
         )}
       </div>
     );

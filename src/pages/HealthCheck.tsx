@@ -169,6 +169,7 @@ export default function HealthCheck() {
 
     if (!isLoggedIn) {
       if (!nameForRun.length || !emailForRun.length) return;
+      if (!identityCaptureRef.current?.isLegalAgreed()) return;
       const needsTurnstile =
         showIdentityEmail && turnstileConfigured && !isGuestLeadCaptured();
       if (needsTurnstile && !leadToken) return;

@@ -14,6 +14,11 @@ import {
   setPendingGuestLink,
 } from "../../utils/pendingGuestLink";
 import { isRealUser } from "../../utils/isRealUser";
+import {
+  LegalAgreementCheckbox,
+  LEGAL_AGREEMENT_REQUIRED_MESSAGE,
+} from "../legal/LegalAgreement";
+import { stashPendingLegalAcceptance } from "../../lib/legal";
 
 type LoginModalProps = {
   isOpen: boolean;
@@ -52,6 +57,7 @@ export function LoginModal({
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [legalAgreed, setLegalAgreed] = useState(true);
 
   useEffect(() => {
     setLocalEmail(email ?? "");
@@ -60,7 +66,12 @@ export function LoginModal({
   if (!isOpen) return null;
 
   const handleGoogle = async () => {
+    if (!legalAgreed) {
+      setError(LEGAL_AGREEMENT_REQUIRED_MESSAGE);
+      return;
+    }
     setError(null);
+    stashPendingLegalAcceptance();
     setGoogleLoading(true);
     const params = new URLSearchParams(window.location.search);
     const next = params.get("next");
@@ -173,10 +184,17 @@ export function LoginModal({
           </button>
         </div>
 
+        <LegalAgreementCheckbox
+          id="login-modal-legal"
+          checked={legalAgreed}
+          onCheckedChange={setLegalAgreed}
+          disabled={loading || googleLoading}
+        />
+
         <button
           type="button"
           onClick={handleGoogle}
-          disabled={googleLoading || loading}
+          disabled={googleLoading || loading || !legalAgreed}
           className="w-full flex items-center justify-center gap-3 border border-black rounded-design px-4 py-3 bg-white font-['DM_Sans'] text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-60"
         >
           <GoogleIcon />

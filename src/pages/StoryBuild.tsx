@@ -584,6 +584,9 @@ export default function StoryBuild() {
             if (!isLoggedIn && (!nameToSave?.length || !emailToSave?.length || !emailToSave.includes("@"))) {
               return;
             }
+            if (!isLoggedIn && !identityCaptureRef.current?.isLegalAgreed()) {
+              return;
+            }
             updateGuestContext({
               identity: {
                 name: nameToSave,

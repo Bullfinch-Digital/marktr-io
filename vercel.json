@@ -8,6 +8,7 @@
     }
   ],
   "rewrites": [
+    { "source": "/yt:slug([a-zA-Z0-9-]+)", "destination": "/api/redirect?slug=yt:slug" },
     { "source": "/(.*)", "destination": "/" }
   ]
 }

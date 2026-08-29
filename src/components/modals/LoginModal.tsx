@@ -16,8 +16,9 @@ import {
 import { isRealUser } from "../../utils/isRealUser";
 import {
   LegalAgreementCheckbox,
-  LEGAL_AGREEMENT_REQUIRED_MESSAGE,
 } from "../legal/LegalAgreement";
+import { LegalAgreementRequiredModal } from "../legal/LegalAgreementRequiredModal";
+import { useLegalAgreementGate } from "../../hooks/useLegalAgreementGate";
 import { stashPendingLegalAcceptance } from "../../lib/legal";
 
 type LoginModalProps = {
@@ -58,6 +59,7 @@ export function LoginModal({
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [legalAgreed, setLegalAgreed] = useState(true);
+  const { open: legalModalOpen, gate, closeModal, confirmAgreement } = useLegalAgreementGate();
 
   useEffect(() => {
     setLocalEmail(email ?? "");
@@ -65,23 +67,20 @@ export function LoginModal({
 
   if (!isOpen) return null;
 
-  const handleGoogle = async () => {
-    if (!legalAgreed) {
-      setError(LEGAL_AGREEMENT_REQUIRED_MESSAGE);
-      return;
-    }
-    setError(null);
-    stashPendingLegalAcceptance();
-    setGoogleLoading(true);
-    const params = new URLSearchParams(window.location.search);
-    const next = params.get("next");
-    const redirectPath =
-      next && next.startsWith("/") ? next : "/dashboard";
-    const { error: oauthError } = await signInWithGoogle(redirectPath);
-    if (oauthError) {
-      setError(oauthError.message);
-      setGoogleLoading(false);
-    }
+  const handleGoogle = () => {
+    gate(legalAgreed, async () => {
+      setError(null);
+      stashPendingLegalAcceptance();
+      setGoogleLoading(true);
+      const params = new URLSearchParams(window.location.search);
+      const next = params.get("next");
+      const redirectPath = next && next.startsWith("/") ? next : "/dashboard";
+      const { error: oauthError } = await signInWithGoogle(redirectPath);
+      if (oauthError) {
+        setError(oauthError.message);
+        setGoogleLoading(false);
+      }
+    });
   };
 
   const performSignIn = async (resolvedEmail: string, resolvedPassword: string) => {
@@ -164,6 +163,12 @@ export function LoginModal({
   };
 
   return (
+    <>
+      <LegalAgreementRequiredModal
+        open={legalModalOpen}
+        onClose={closeModal}
+        onAgree={() => confirmAgreement(setLegalAgreed)}
+      />
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
       <div className="bg-background border border-black rounded-design shadow-2xl w-full max-w-md p-6">
         <div className="flex items-start justify-between gap-4 mb-4">
@@ -193,8 +198,8 @@ export function LoginModal({
 
         <button
           type="button"
-          onClick={handleGoogle}
-          disabled={googleLoading || loading || !legalAgreed}
+          onClick={() => void handleGoogle()}
+          disabled={googleLoading || loading}
           className="w-full flex items-center justify-center gap-3 border border-black rounded-design px-4 py-3 bg-white font-['DM_Sans'] text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-60"
         >
           <GoogleIcon />
@@ -267,5 +272,6 @@ export function LoginModal({
         </form>
       </div>
     </div>
+    </>
   );
 }

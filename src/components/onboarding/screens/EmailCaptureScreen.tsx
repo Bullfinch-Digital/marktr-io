@@ -49,10 +49,6 @@ export function EmailCaptureScreen({
       e.preventDefault();
       return;
     }
-    if (!hideEmailInput && !legalAgreed) {
-      e.preventDefault();
-      return;
-    }
     onContinue();
   };
 

@@ -8,8 +8,9 @@ import { ArrowRight } from "lucide-react";
 import { AuthHero } from "../components/auth/AuthHero";
 import {
   LegalAgreementCheckbox,
-  LEGAL_AGREEMENT_REQUIRED_MESSAGE,
 } from "../components/legal/LegalAgreement";
+import { LegalAgreementRequiredModal } from "../components/legal/LegalAgreementRequiredModal";
+import { useLegalAgreementGate } from "../hooks/useLegalAgreementGate";
 
 export default function Signup() {
   const navigate = useNavigate();
@@ -18,6 +19,7 @@ export default function Signup() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [legalAgreed, setLegalAgreed] = useState(true);
+  const { open: legalModalOpen, gate, closeModal, confirmAgreement } = useLegalAgreementGate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const { signUp } = useAuth();
@@ -40,25 +42,18 @@ export default function Signup() {
       return;
     }
 
-    if (!legalAgreed) {
-      setError(LEGAL_AGREEMENT_REQUIRED_MESSAGE);
-      return;
-    }
+    gate(legalAgreed, () => void submitSignup(trimmedEmail, trimmedPassword, trimmedName));
+  };
 
+  const submitSignup = async (trimmedEmail: string, trimmedPassword: string, trimmedName: string) => {
     setLoading(true);
 
     try {
-      console.log("Signup.tsx: calling signUp with:", {
-        email: trimmedEmail,
-        password: "***",
-        name: trimmedName,
-      });
-
       const { error } = await signUp({
         email: trimmedEmail,
         password: trimmedPassword,
         name: trimmedName,
-        legalAccepted: legalAgreed,
+        legalAccepted: true,
       });
 
       if (error) {
@@ -66,7 +61,7 @@ export default function Signup() {
       } else {
         navigate(`/check-email?email=${encodeURIComponent(trimmedEmail)}`);
       }
-    } catch (err) {
+    } catch {
       setError("An unexpected error occurred. Please try again.");
     } finally {
       setLoading(false);
@@ -74,6 +69,12 @@ export default function Signup() {
   };
 
   return (
+    <>
+      <LegalAgreementRequiredModal
+        open={legalModalOpen}
+        onClose={closeModal}
+        onAgree={() => confirmAgreement(setLegalAgreed)}
+      />
     <main className="bg-background">
       <div className="min-h-[calc(100vh-200px)] flex items-center justify-center px-4 py-12">
         <div className="w-full max-w-md">
@@ -171,7 +172,7 @@ export default function Signup() {
 
             <Button
               type="submit"
-              disabled={loading || !legalAgreed}
+              disabled={loading}
               className="w-full bg-button-green text-text-dark hover:bg-button-green/90 border-[1px] border-black rounded-design px-8 py-6 font-['Fraunces'] font-bold transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
             >
               {loading ? "Creating account..." : "Create account"}
@@ -189,5 +190,6 @@ export default function Signup() {
         </div>
       </div>
     </main>
+    </>
   );
 }

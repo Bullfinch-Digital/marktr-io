@@ -43,6 +43,8 @@ import {
   EmailCaptureScreen,
   LoadingScreen
 } from "../components/onboarding/screens";
+import { LegalAgreementRequiredModal } from "../components/legal/LegalAgreementRequiredModal";
+import { useLegalAgreementGate } from "../hooks/useLegalAgreementGate";
 
 type Step = 
   | "1_Welcome"
@@ -93,6 +95,7 @@ export default function OnboardingBuild() {
   const anonInitRef = useRef(false);
   const [leadToken, setLeadToken] = useState<string | null>(null);
   const [legalAgreed, setLegalAgreed] = useState(true);
+  const { open: legalModalOpen, gate, closeModal, confirmAgreement } = useLegalAgreementGate();
   const turnstileConfigured = isTurnstileConfigured();
   const [currentStep, setCurrentStep] = useState<Step>("1_Welcome");
   const [existingIcpRun, setExistingIcpRun] = useState<{ id: string; created_at: string } | null>(
@@ -884,21 +887,12 @@ export default function OnboardingBuild() {
             hideEmailInput={isLoggedIn}
             legalAgreed={legalAgreed}
             onLegalAgreedChange={setLegalAgreed}
-            onContinue={async () => {
-              if (turnstileConfigured && !isLoggedIn && !leadToken) {
-                console.warn("[LeadCapture] blocked: Turnstile token not ready yet");
+            onContinue={() => {
+              if (isLoggedIn) {
+                void proceedFromEmailCapture();
                 return;
               }
-              const trimmedEmail = formData.email.trim();
-              if (trimmedEmail) {
-                updateGuestContext({ identity: { email: trimmedEmail } });
-              }
-              // Fire-and-forget (time-boxed) lead capture so UI is never blocked
-              await Promise.race([
-                captureLead(emailToUse, isLoggedIn ? null : leadToken),
-                new Promise((resolve) => setTimeout(resolve, 8000)),
-              ]);
-              setCurrentStep("10_Loading");
+              gate(legalAgreed, () => void proceedFromEmailCapture());
             }}
             onBack={handleBack}
           />
@@ -942,7 +936,6 @@ export default function OnboardingBuild() {
         const emailOk = formData.email.trim().length > 0 && formData.email.includes("@");
         if (!emailOk) return false;
         if (turnstileConfigured && !leadToken) return false;
-        if (!legalAgreed) return false;
         return true;
       }
       case "10_Loading":
@@ -952,23 +945,30 @@ export default function OnboardingBuild() {
     }
   };
 
+  const proceedFromEmailCapture = async () => {
+    if (turnstileConfigured && !isLoggedIn && !leadToken) {
+      console.warn("[LeadCapture] blocked CTA: Turnstile token not ready yet");
+      return;
+    }
+    const trimmedEmail = formData.email.trim();
+    if (trimmedEmail) {
+      updateGuestContext({ identity: { email: trimmedEmail } });
+    }
+    console.debug("[LeadCapture] CTA", { email: emailToUse, leadToken });
+    await Promise.race([
+      captureLead(emailToUse, isLoggedIn ? null : leadToken),
+      new Promise((resolve) => setTimeout(resolve, 8000)),
+    ]);
+    setCurrentStep("10_Loading");
+  };
+
   const handleCtaClick = async () => {
     if (currentStep === "9_EmailCapture") {
-      if (turnstileConfigured && !isLoggedIn && !leadToken) {
-        console.warn("[LeadCapture] blocked CTA: Turnstile token not ready yet");
+      if (isLoggedIn) {
+        await proceedFromEmailCapture();
         return;
       }
-      const trimmedEmail = formData.email.trim();
-      if (trimmedEmail) {
-        updateGuestContext({ identity: { email: trimmedEmail } });
-      }
-      console.debug("[LeadCapture] CTA", { email: emailToUse, leadToken });
-      // Fire-and-forget (time-boxed) lead capture so UI is never blocked
-      await Promise.race([
-        captureLead(emailToUse, isLoggedIn ? null : leadToken),
-        new Promise((resolve) => setTimeout(resolve, 8000)),
-      ]);
-      setCurrentStep("10_Loading");
+      gate(legalAgreed, () => void proceedFromEmailCapture());
       return;
     }
     handleNext();
@@ -1019,6 +1019,12 @@ export default function OnboardingBuild() {
   };
 
   return (
+    <>
+      <LegalAgreementRequiredModal
+        open={legalModalOpen}
+        onClose={closeModal}
+        onAgree={() => confirmAgreement(setLegalAgreed)}
+      />
     <main className="min-h-screen bg-background flex">
       {/* Full-width layout for ICP Carousel */}
       {currentStep === "10_Loading" ? (
@@ -1122,5 +1128,6 @@ export default function OnboardingBuild() {
         </>
       )}
     </main>
+    </>
   );
 }

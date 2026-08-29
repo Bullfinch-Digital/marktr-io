@@ -17,6 +17,8 @@ import {
 import { resolveBrandIdForIcpOps } from "../lib/icpBrandAttach";
 import { resolveScopedBrandId } from "../lib/brandScopedReads";
 import { IdentityCapture, type IdentityCaptureHandle } from "../components/guest/IdentityCapture";
+import { LegalAgreementRequiredModal } from "../components/legal/LegalAgreementRequiredModal";
+import { useLegalAgreementGate } from "../hooks/useLegalAgreementGate";
 import {
   getGuestContext,
   getGuestBusinessName,
@@ -145,8 +147,40 @@ export default function StoryBuild() {
   const [identityName, setIdentityName] = useState("");
   const [leadToken, setLeadToken] = useState<string | null>(null);
   const identityCaptureRef = useRef<IdentityCaptureHandle>(null);
+  const { open: legalModalOpen, gate, closeModal, confirmAgreement } = useLegalAgreementGate();
   /** Input fingerprint for the last successful generate-brand-story run (not cleared on loading re-entry). */
   const completedStoryKeyRef = useRef<string | null>(null);
+
+  const proceedFromEmailStep = () => {
+    const committed = identityCaptureRef.current?.commitAll();
+    const nameToSave = committed?.name || identityName.trim() || getGuestIdentityName() || undefined;
+    const emailToSave = committed?.email || email.trim() || getGuestIdentityEmail() || undefined;
+    if (!isLoggedIn && (!nameToSave?.length || !emailToSave?.length || !emailToSave.includes("@"))) {
+      return;
+    }
+    updateGuestContext({
+      identity: {
+        name: nameToSave,
+        email: emailToSave,
+      },
+    });
+    void captureGuestLeadOnce({
+      email: emailToSave || "",
+      name: nameToSave || null,
+      token: leadToken,
+      source: "story",
+    });
+    setStep("q4");
+  };
+
+  const handleEmailStepContinue = () => {
+    if (!isLoggedIn) {
+      gate(identityCaptureRef.current?.isLegalAgreed() ?? false, proceedFromEmailStep);
+      return;
+    }
+    proceedFromEmailStep();
+  };
+
   const storyInFlightKeyRef = useRef<string | null>(null);
   const lastStoryResultRef = useRef<{
     story: BrandStoryOutput | null;
@@ -577,30 +611,7 @@ export default function StoryBuild() {
           onMouseDown={(e) => {
             e.preventDefault();
           }}
-          onClick={() => {
-            const committed = identityCaptureRef.current?.commitAll();
-            const nameToSave = committed?.name || identityName.trim() || getGuestIdentityName() || undefined;
-            const emailToSave = committed?.email || email.trim() || getGuestIdentityEmail() || undefined;
-            if (!isLoggedIn && (!nameToSave?.length || !emailToSave?.length || !emailToSave.includes("@"))) {
-              return;
-            }
-            if (!isLoggedIn && !identityCaptureRef.current?.isLegalAgreed()) {
-              return;
-            }
-            updateGuestContext({
-              identity: {
-                name: nameToSave,
-                email: emailToSave,
-              },
-            });
-            void captureGuestLeadOnce({
-              email: emailToSave || "",
-              name: nameToSave || null,
-              token: leadToken,
-              source: "story",
-            });
-            setStep("q4");
-          }}
+          onClick={handleEmailStepContinue}
           className="mt-8 w-fit rounded-full bg-primary px-8 py-6 font-['DM_Sans'] text-base font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
         >
           Continue building →
@@ -668,11 +679,21 @@ export default function StoryBuild() {
   );
 
   return (
+    <>
+      <LegalAgreementRequiredModal
+        open={legalModalOpen}
+        onClose={closeModal}
+        onAgree={() => {
+          identityCaptureRef.current?.acceptLegalAgreement();
+          confirmAgreement();
+        }}
+      />
     <main className="min-h-screen bg-background">
       {step === "intro" && renderIntro()}
       {isQuestionStep(step) && renderQuestion()}
       {step === "email" && renderEmail()}
       {step === "loading" && renderLoading()}
     </main>
+    </>
   );
 }

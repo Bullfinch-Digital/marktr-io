@@ -12,9 +12,10 @@ import {
 } from "../../utils/pendingGuestLink";
 import {
   LegalAgreementCheckbox,
-  LEGAL_AGREEMENT_REQUIRED_MESSAGE,
 } from "../legal/LegalAgreement";
 import { createLegalAcceptanceRecord } from "../../lib/legal";
+import { LegalAgreementRequiredModal } from "../legal/LegalAgreementRequiredModal";
+import { useLegalAgreementGate } from "../../hooks/useLegalAgreementGate";
 
 type FinishAccountModalProps = {
   isOpen: boolean;
@@ -53,6 +54,7 @@ export function FinishAccountModal({
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [legalAgreed, setLegalAgreed] = useState(true);
+  const { open: legalModalOpen, gate, closeModal, confirmAgreement } = useLegalAgreementGate();
   const [debugDetails, setDebugDetails] = useState<any>(null);
 
   const params = useMemo(() => new URLSearchParams(window.location.search), []);
@@ -195,7 +197,7 @@ export function FinishAccountModal({
 
   if (!isOpen) return null;
 
-  const handleSignup = async (e: React.FormEvent) => {
+  const handleSignup = (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
     setSuccess(null);
@@ -216,8 +218,13 @@ export function FinishAccountModal({
       setFormError("Missing checkout reference. Please try the upgrade flow again.");
       return;
     }
-    if (!legalAgreed) {
-      setFormError(LEGAL_AGREEMENT_REQUIRED_MESSAGE);
+
+    gate(legalAgreed, () => void runSignup());
+  };
+
+  const runSignup = async () => {
+    if (!email) {
+      setFormError("Missing email.");
       return;
     }
 
@@ -416,6 +423,12 @@ export function FinishAccountModal({
   }
 
   return (
+    <>
+      <LegalAgreementRequiredModal
+        open={legalModalOpen}
+        onClose={closeModal}
+        onAgree={() => confirmAgreement(setLegalAgreed)}
+      />
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
       <div className="bg-background border border-black rounded-design shadow-2xl w-full max-w-md p-6">
         <div className="flex items-start justify-between gap-4 mb-4">
@@ -548,7 +561,7 @@ export function FinishAccountModal({
 
           <Button
             type="submit"
-            disabled={loading || !legalAgreed}
+            disabled={loading}
             className="w-full bg-button-green text-text-dark border border-black rounded-design px-6 py-4 font-['Fraunces']"
           >
             {loading ? "Finishing…" : "Finish account"}
@@ -556,5 +569,6 @@ export function FinishAccountModal({
         </form>
       </div>
     </div>
+    </>
   );
 }

@@ -21,6 +21,8 @@ import { parseScoreWebsiteResponse } from "../lib/healthCheck";
 import { extractDomain } from "../components/healthCheck/HealthCheckReportView";
 import { formatFacebookInput, normaliseFacebookUrl } from "../lib/normaliseFacebookUrl";
 import { IdentityCapture, type IdentityCaptureHandle } from "../components/guest/IdentityCapture";
+import { LegalAgreementRequiredModal } from "../components/legal/LegalAgreementRequiredModal";
+import { useLegalAgreementGate } from "../hooks/useLegalAgreementGate";
 import {
   getGuestContext,
   getGuestIdentityEmail,
@@ -110,6 +112,7 @@ export default function HealthCheck() {
   const [businessNameTouched, setBusinessNameTouched] = useState(false);
   const [leadToken, setLeadToken] = useState<string | null>(null);
   const identityCaptureRef = useRef<IdentityCaptureHandle>(null);
+  const { open: legalModalOpen, gate, closeModal, confirmAgreement } = useLegalAgreementGate();
   /** Input fingerprint for the last successful score-website run (not cleared on loading re-entry). */
   const completedScoreKeyRef = useRef<string | null>(null);
   const scoreInFlightKeyRef = useRef<string | null>(null);
@@ -151,7 +154,7 @@ export default function HealthCheck() {
   const resolvedGuestEmail = formData.email.trim() || getGuestIdentityEmail() || "";
   const resolvedGuestName = identityName.trim() || getGuestIdentityName() || "";
 
-  const flushGuestIdentityAndProceed = () => {
+  const runGuestIdentityAndProceed = () => {
     const draft = identityCaptureRef.current?.getDraft();
     const committed = identityCaptureRef.current?.commitAll();
     const nameForRun =
@@ -169,7 +172,6 @@ export default function HealthCheck() {
 
     if (!isLoggedIn) {
       if (!nameForRun.length || !emailForRun.length) return;
-      if (!identityCaptureRef.current?.isLegalAgreed()) return;
       const needsTurnstile =
         showIdentityEmail && turnstileConfigured && !isGuestLeadCaptured();
       if (needsTurnstile && !leadToken) return;
@@ -198,6 +200,14 @@ export default function HealthCheck() {
     setCompletedCount(0);
     setChecklistDone(false);
     setStep("loading");
+  };
+
+  const flushGuestIdentityAndProceed = () => {
+    if (!isLoggedIn && showIdentityEmail) {
+      gate(identityCaptureRef.current?.isLegalAgreed() ?? false, runGuestIdentityAndProceed);
+      return;
+    }
+    runGuestIdentityAndProceed();
   };
 
   const [identityFieldsSnapshot] = useState(() => ({
@@ -744,10 +754,20 @@ export default function HealthCheck() {
   );
 
   return (
+    <>
+      <LegalAgreementRequiredModal
+        open={legalModalOpen}
+        onClose={closeModal}
+        onAgree={() => {
+          identityCaptureRef.current?.acceptLegalAgreement();
+          confirmAgreement();
+        }}
+      />
     <main className="min-h-screen bg-background">
       {step === "welcome" && renderWelcome()}
       {step === "inputs" && renderInputs()}
       {step === "loading" && renderLoading()}
     </main>
+    </>
   );
 }

@@ -9,8 +9,9 @@ import { supabase } from "../config/supabase";
 import { useAuth } from "../contexts/AuthContext";
 import {
   LegalAgreementCheckbox,
-  LEGAL_AGREEMENT_REQUIRED_MESSAGE,
 } from "../components/legal/LegalAgreement";
+import { LegalAgreementRequiredModal } from "../components/legal/LegalAgreementRequiredModal";
+import { useLegalAgreementGate } from "../hooks/useLegalAgreementGate";
 import { LEGAL_VERSION } from "../lib/legal";
 
 /** Edge Functions return JSON errors on non-2xx bodies; supabase-js does not put that in `data`. */
@@ -44,6 +45,7 @@ export default function BetaSignup() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [legalAgreed, setLegalAgreed] = useState(true);
+  const { open: legalModalOpen, gate, closeModal, confirmAgreement } = useLegalAgreementGate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -77,11 +79,29 @@ export default function BetaSignup() {
       setError("Password must be at least 6 characters.");
       return;
     }
-    if (!legalAgreed) {
-      setError(LEGAL_AGREEMENT_REQUIRED_MESSAGE);
-      return;
-    }
 
+    gate(legalAgreed, () => void submitBetaSignup({
+      trimmedEmail,
+      trimmedPassword,
+      trimmedFullName,
+      trimmedContactNumber,
+      trimmedCode,
+    }));
+  };
+
+  const submitBetaSignup = async ({
+    trimmedEmail,
+    trimmedPassword,
+    trimmedFullName,
+    trimmedContactNumber,
+    trimmedCode,
+  }: {
+    trimmedEmail: string;
+    trimmedPassword: string;
+    trimmedFullName: string;
+    trimmedContactNumber: string;
+    trimmedCode: string;
+  }) => {
     setLoading(true);
     try {
       const { data, error: invokeError } = await supabase.functions.invoke("beta-signup", {
@@ -124,6 +144,12 @@ export default function BetaSignup() {
   };
 
   return (
+    <>
+      <LegalAgreementRequiredModal
+        open={legalModalOpen}
+        onClose={closeModal}
+        onAgree={() => confirmAgreement(setLegalAgreed)}
+      />
     <main className="bg-background">
       <div className="min-h-[calc(100vh-200px)] flex items-center justify-center px-4 py-12">
         <div className="w-full max-w-md">
@@ -234,7 +260,7 @@ export default function BetaSignup() {
 
             <Button
               type="submit"
-              disabled={loading || !legalAgreed}
+              disabled={loading}
               className="w-full bg-button-green text-text-dark hover:bg-button-green/90 border-[1px] border-black rounded-design px-8 py-6 font-['Fraunces'] font-bold transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
             >
               {loading ? "Creating beta account..." : "Create beta account"}
@@ -251,5 +277,6 @@ export default function BetaSignup() {
         </div>
       </div>
     </main>
+    </>
   );
 }

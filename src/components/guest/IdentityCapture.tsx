@@ -19,6 +19,8 @@ export type IdentityCaptureHandle = {
   getDraft: () => { name: string; email: string };
   /** Whether the user accepted Terms / Privacy / Cookies. */
   isLegalAgreed: () => boolean;
+  /** Mark legal agreement as accepted (e.g. from the agreement modal). */
+  acceptLegalAgreement: () => void;
 };
 
 type IdentityCaptureProps = {
@@ -166,6 +168,7 @@ export const IdentityCapture = forwardRef<IdentityCaptureHandle, IdentityCapture
         },
         getDraft: () => readDraftFromDom(),
         isLegalAgreed: () => legalAgreed,
+        acceptLegalAgreement: () => setLegalAgreed(true),
       }),
       [commitName, commitEmail, attemptLeadCapture, readDraftFromDom, legalAgreed]
     );

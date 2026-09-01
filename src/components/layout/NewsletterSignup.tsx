@@ -8,7 +8,22 @@ function isValidEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 }
 
-export function NewsletterSignup({ source = "footer" }: { source?: string }) {
+type NewsletterSignupProps = {
+  source?: string;
+  /** Footer shows intro copy; landing is form-only for use on dedicated pages. */
+  variant?: "footer" | "landing";
+  emailInputId?: string;
+  submitLabel?: string;
+  className?: string;
+};
+
+export function NewsletterSignup({
+  source = "footer",
+  variant = "footer",
+  emailInputId = "newsletter-email",
+  submitLabel = "Subscribe",
+  className = "",
+}: NewsletterSignupProps) {
   const [email, setEmail] = useState("");
   const [token, setToken] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -167,37 +182,59 @@ export function NewsletterSignup({ source = "footer" }: { source?: string }) {
 
   if (done) {
     return (
-      <div className="rounded-design border border-black bg-button-green/20 p-5">
-        <p className="font-['Fraunces'] text-lg font-bold text-text-dark">You're on the list</p>
-        <p className="mt-1 text-sm text-text-dark/80">
-          Thanks — we'll send practical marketing ideas, not fluff.
+      <div
+        className={
+          variant === "landing"
+            ? "rounded-2xl border border-black bg-button-green/20 p-8 text-center"
+            : "rounded-design border border-black bg-button-green/20 p-5"
+        }
+      >
+        <p
+          className={
+            variant === "landing"
+              ? "font-['Fraunces'] text-2xl font-bold text-text-dark"
+              : "font-['Fraunces'] text-lg font-bold text-text-dark"
+          }
+        >
+          You&apos;re on the list
+        </p>
+        <p className="mt-2 text-sm text-text-dark/80 sm:text-base">
+          {variant === "landing"
+            ? "Watch your inbox — we'll send something useful, not filler."
+            : "Thanks — we'll send practical marketing ideas, not fluff."}
         </p>
       </div>
     );
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3">
-      <div>
-        <h4 className="font-['Fraunces'] text-lg font-bold text-text-dark">Stay in the loop</h4>
-        <p className="mt-1 text-sm text-text-dark/80">
-          Occasional tips on customers, content and growth. Unsubscribe anytime.
-        </p>
-      </div>
+    <form onSubmit={handleSubmit} className={`space-y-3 ${className}`}>
+      {variant === "footer" ? (
+        <div>
+          <h4 className="font-['Fraunces'] text-lg font-bold text-text-dark">Stay in the loop</h4>
+          <p className="mt-1 text-sm text-text-dark/80">
+            Occasional tips on customers, content and growth. Unsubscribe anytime.
+          </p>
+        </div>
+      ) : null}
 
       <div className="space-y-2">
-        <label htmlFor="newsletter-email" className="sr-only">
+        <label htmlFor={emailInputId} className="sr-only">
           Email
         </label>
         <input
-          id="newsletter-email"
+          id={emailInputId}
           type="email"
           autoComplete="email"
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="you@company.com"
-          className="w-full rounded-design border border-black bg-white px-4 py-3 focus:outline-none"
+          className={
+            variant === "landing"
+              ? "w-full rounded-design border border-black bg-white px-4 py-4 text-base focus:outline-none"
+              : "w-full rounded-design border border-black bg-white px-4 py-3 focus:outline-none"
+          }
         />
       </div>
 
@@ -217,7 +254,11 @@ export function NewsletterSignup({ source = "footer" }: { source?: string }) {
       <Button
         type="submit"
         disabled={submitting || !turnstileReady}
-        className="w-full rounded-design border border-black bg-button-green font-['Fraunces'] font-bold text-text-dark hover:bg-button-green/90"
+        className={
+          variant === "landing"
+            ? "w-full rounded-design border border-black bg-button-green py-6 font-['Fraunces'] text-lg font-bold text-text-dark hover:bg-button-green/90"
+            : "w-full rounded-design border border-black bg-button-green font-['Fraunces'] font-bold text-text-dark hover:bg-button-green/90"
+        }
       >
         {submitting ? (
           <span className="inline-flex items-center gap-2">
@@ -225,7 +266,7 @@ export function NewsletterSignup({ source = "footer" }: { source?: string }) {
             Joining…
           </span>
         ) : (
-          "Subscribe"
+          submitLabel
         )}
       </Button>
     </form>

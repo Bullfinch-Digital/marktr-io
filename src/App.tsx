@@ -45,6 +45,7 @@ import GuestHealthPreview from "./pages/GuestHealthPreview";
 import Resources from "./pages/Resources";
 import ResourcePost from "./pages/ResourcePost";
 import Downloads from "./pages/Downloads";
+import NewsletterLanding from "./pages/NewsletterLanding";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import CookiePolicy from "./pages/CookiePolicy";
@@ -138,6 +139,14 @@ export default function App() {
               <>
                 <Header />
                 <Downloads />
+                <Footer />
+              </>
+            } />
+
+            <Route path="/newsletter" element={
+              <>
+                <Header />
+                <NewsletterLanding />
                 <Footer />
               </>
             } />

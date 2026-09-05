@@ -5,6 +5,21 @@
       "has": [{ "type": "host", "value": "app.marktr.io" }],
       "destination": "https://marktr.io/:path*",
       "permanent": true
+    },
+    {
+      "source": "/yt04",
+      "destination": "https://marktr.io/?utm_source=youtube&utm_medium=organic&utm_campaign=video-04-stop-marketing-to-everyone&utm_content=desc-top",
+      "permanent": false
+    },
+    {
+      "source": "/yt04-cta",
+      "destination": "https://marktr.io/?utm_source=youtube&utm_medium=organic&utm_campaign=video-04-stop-marketing-to-everyone&utm_content=desc-cta",
+      "permanent": false
+    },
+    {
+      "source": "/yt04-dl",
+      "destination": "https://www.marktr.io/downloads?utm_source=youtube&utm_medium=organic&utm_campaign=video-04-stop-marketing-to-everyone&utm_content=downloads",
+      "permanent": false
     }
   ],
   "rewrites": [

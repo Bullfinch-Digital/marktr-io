@@ -67,9 +67,12 @@ export function initCookieConsent(): void {
   });
   gtag()?.("js", new Date());
 
+  // Re-declare Consent Mode from the saved preference — same path as Accept/Reject.
+  // Previously we only called enableAnalytics() on restore, so analytics_storage stayed
+  // "denied" for returning visitors who had already accepted.
   const saved = readCookieConsent();
-  if (saved?.analytics) {
-    enableAnalytics();
+  if (saved) {
+    applyAnalyticsConsent(saved.analytics);
   }
 }
 

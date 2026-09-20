@@ -16,7 +16,15 @@ export type ResourcePost = {
     | { type: "ul"; items: string[] }
     | { type: "links"; items: Array<{ text: string; href: string }> }
     | { type: "cta" }
-    | { type: "callout"; title: string; text: string }
+    | {
+        type: "callout";
+        title: string;
+        text: string;
+        href?: string;
+        linkText?: string;
+      }
+    | { type: "youtube"; videoId: string; title?: string }
+    | { type: "table"; headers: string[]; rows: string[][] }
   >;
 };
 
@@ -1590,6 +1598,345 @@ export const RESOURCE_POSTS: ResourcePost[] = [
           "Clarity reduces noise, improves focus, and gives your team a shared foundation for growth decisions.",
       },
       { type: "cta" },
+    ],
+  },
+  {
+    slug: "hollywood-brand-storytelling-framework",
+    title: "The Hollywood Storytelling Framework for Your Brand Story",
+    description:
+      "A filmmaker's three-act framework for founders who can't find the words for their own brand story — five lines, one logline, no fluff.",
+    introLine:
+      "A filmmaker's three-act framework for founders who can't find the words for their own brand story — five lines, one logline, no fluff.",
+    bgColor: "#7EB8DA",
+    readingTime: "14 min read",
+    date: "2026-09-20",
+    seoTitle:
+      "The Hollywood Storytelling Framework for Your Brand Story (Free Template)",
+    metaDescription:
+      "A filmmaker's three-act framework for founders who can't find the words for their own brand story — five lines, one logline, no fluff. Free to try in marktr.io.",
+    body: [
+      {
+        type: "p",
+        text:
+          "If you've ever sat down to write your own brand story and stared at a blank page — made a start, then given up halfway through, or read back what you'd written and wanted to delete the whole thing — you're not bad at this. You've just never been shown the structure.",
+      },
+      {
+        type: "p",
+        text:
+          "Here's the thing most founders don't know: the secret to telling your own story well isn't fancier words, and it isn't copying whoever you think does it better. It's structure. And Hollywood has been using the exact structure I'm about to walk you through for about a hundred years.",
+      },
+      {
+        type: "p",
+        text:
+          "Before we get into it — one honest disclaimer. This isn't a five-minute skim-read. There's a genuine pen-and-paper moment coming, and the founders who get the most out of it are the ones who actually stop and do the work. If that's you, brilliant. Let's go.",
+      },
+      { type: "h2", text: "Watch the full breakdown" },
+      {
+        type: "youtube",
+        videoId: "kpZ1qZUeAkQ",
+        title: "How To Master Storytelling (Hollywood's Cheat Sheet)",
+      },
+      {
+        type: "p",
+        text:
+          "Prefer to read than watch? Keep scrolling — everything in the video is below, plus the worked example.",
+      },
+      {
+        type: "h2",
+        text: "Why your favourite film and your brand story work the same way",
+      },
+      {
+        type: "p",
+        text:
+          "Think about your favourite film for a second. Not just one you've enjoyed — your favourite. The one you've watched more times than you'd like to admit.",
+      },
+      {
+        type: "p",
+        text:
+          "Mine's Finding Nemo. An anxious, overprotective clownfish has his son snatched by a scuba diver and swept out to sea, and has to cross a vast, dangerous, unpredictable ocean to bring him home. It's funny, it's heartbreaking, it works.",
+      },
+      {
+        type: "p",
+        text:
+          "Here's what's interesting: the thing that makes your favourite film impossible to ignore, and mine, isn't luck. It's a series of steps almost every great film follows — the same three acts, every time. Jaws, Gladiator, The Lion King, Finding Nemo. Different worlds, same blueprint.",
+      },
+      {
+        type: "p",
+        text:
+          "And that blueprint doesn't just work for films. It's in every brand story you've ever actually remembered.",
+      },
+      {
+        type: "p",
+        text:
+          "**Act one — the setup.** We meet the world as it is. Then something disrupts it — a problem, a challenge, a call to action that can't be ignored.",
+      },
+      {
+        type: "p",
+        text:
+          "**Act two — the confrontation.** The hero faces obstacles. Things get hard. They get close to what they want and get knocked back. This is where conflict lives — and conflict is what makes a story worth paying attention to.",
+      },
+      {
+        type: "p",
+        text:
+          "**Act three — the resolution.** The hero doesn't just win. They transform. They come back changed by everything they went through to get there.",
+      },
+      {
+        type: "p",
+        text:
+          "Take Ben & Jerry's. Act one: two friends who couldn't afford equipment for the bagel shop they'd planned, so they took a five-dollar ice cream correspondence course instead. Act two: no experience, no industry connections, a single scoop shop in a converted petrol station in Vermont, competing against every established brand in the market. Act three: one of the most recognised and loved ice cream brands in the world, built on the belief that business can be a force for good.",
+      },
+      {
+        type: "p",
+        text: "Same structure. Different medium. Same emotional pull.",
+      },
+      {
+        type: "h2",
+        text: "The ingredient most founders leave out: conflict",
+      },
+      {
+        type: "p",
+        text:
+          "The single most important ingredient in any story that actually lands — film or brand — is conflict. Not manufactured drama. Real conflict. The thing that stood between you and what you were trying to build. The moment it almost didn't work.",
+      },
+      {
+        type: "p",
+        text:
+          "Most founders skip straight past it. They tell the setup — \"I saw a gap in the market\" — and jump straight to the resolution — \"and now we're an award-winning business.\" The story lands flat, because without conflict there's no tension, and without tension there's no reason to keep reading.",
+      },
+      {
+        type: "p",
+        text:
+          "James Dyson went through 5,127 failed prototypes before the first working Dyson vacuum. Fifteen years. Every manufacturer he approached turned him down. That's an extraordinary act two — and it's exactly why people remember the story.",
+      },
+      {
+        type: "p",
+        text:
+          "Your act two is in your story too. The thing that almost stopped you. The problem nobody had a template for. Don't smooth it out — that's the best part of your story, and it's the part that makes someone actually lean in.",
+      },
+      {
+        type: "h2",
+        text: "The five lines that hold your entire brand story",
+      },
+      {
+        type: "p",
+        text:
+          "Here's the tool that makes all of this usable. Five lines. That's all you need to capture your entire brand story before you write a single word of copy, film a second of content, or brief a designer.",
+      },
+      {
+        type: "table",
+        headers: ["Act", "Line", "The question to answer"],
+        rows: [
+          [
+            "**Act One — Setup**",
+            "1. Situation",
+            "Where were we? What did the world look like before your business existed?",
+          ],
+          [
+            "",
+            "2. Desire",
+            "What did you want to change, build, or achieve?",
+          ],
+          [
+            "**Act Two — Confrontation**",
+            "3. Conflict",
+            "What got in the way? What made it hard? Don't skip this one.",
+          ],
+          [
+            "",
+            "4. Change",
+            "What shifted — the turning point, the insight, the decision that moved things forward?",
+          ],
+          [
+            "**Act Three — Resolution**",
+            "5. Result",
+            "Where did you end up? What's the transformation — for you, for your customers?",
+          ],
+        ],
+      },
+      {
+        type: "p",
+        text:
+          "Here's how it plays out for Apostle Coffee, the roastery I co-founded:",
+      },
+      {
+        type: "ul",
+        items: [
+          "**Situation:** We'd spent a decade working high-pressure careers in London, but wanted a different kind of life — something slower, something we'd built with our own hands.",
+          "**Desire:** To create a coffee brand from scratch that we genuinely believed in — ethical, sustainable, and genuinely delicious, all at once.",
+          "**Conflict:** No budget, no team, no experience in coffee. Just a vintage roaster from the 1980s, a horse trailer packed with our possessions, and a lot of naive optimism.",
+          "**Change:** We stopped trying to do what everyone else in the industry was doing, and built everything around the story at the heart of the brand — the compostable packaging nobody else was using, the tree-planting scheme before third-party offsetting was fashionable, every decision informed by what we actually stood for.",
+          "**Result:** An award-winning roastery, named Best UK Coffee Subscription by The Independent, serving over a thousand customers a year — proof that values-first actually works.",
+        ],
+      },
+      {
+        type: "p",
+        text: "Five lines. The whole story. Everything else can be expanded from here.",
+      },
+      {
+        type: "p",
+        text:
+          "Your turn. Write your own five lines right now, and don't overthink it. If the answers don't come easily, sit down with someone who knows your business — a friend, a customer, a colleague. It's easy to get so deep in the day-to-day that you stop noticing what's genuinely interesting from the outside. Other people spot it immediately.",
+      },
+      {
+        type: "callout",
+        title: "Do this in minutes, not on paper.",
+        text:
+          "Once you have your five lines, you have the emotional core of your brand — the foundation everything else in your marketing gets built on.",
+        href: "/story",
+        linkText: "Start mapping your brand story free →",
+      },
+      {
+        type: "h2",
+        text: "Supercharge it: bring your customer into the story",
+      },
+      {
+        type: "p",
+        text:
+          "In filmmaking, \"breaking the fourth wall\" is when a character steps out of the story and speaks directly to the audience — think Ferris Bueller turning to camera. The camera stops being a passive observer. It becomes the person in the room.",
+      },
+      {
+        type: "p",
+        text:
+          "The most effective brand stories do the same thing. They take your authentic, personal story — everything in your five lines — and weave the customer directly into it. Not replacing the story. Supercharging it.",
+      },
+      {
+        type: "p",
+        text:
+          "Take the Apostle story as it stands: \"We built Apostle because we believed coffee could be ethical, sustainable and genuinely delicious.\" Honest. Personal. A decent foundation.",
+      },
+      {
+        type: "p",
+        text:
+          "Now watch what happens when we break the fourth wall: \"We built Apostle because we believed you shouldn't have to choose between great-tasting coffee and a clear conscience — so we figured out how to give you both.\"",
+      },
+      {
+        type: "p",
+        text:
+          "Same story. Same values. But now the customer is in it. They can see themselves in the transformation.",
+      },
+      {
+        type: "p",
+        text:
+          "For every piece of your brand story, ask: what does this mean for my customer? Not instead of your story — alongside it. \"We did this, so you can do that.\" \"We figured this out, so you don't have to.\"",
+      },
+      {
+        type: "p",
+        text:
+          "To do this convincingly, you need to actually know your customer — their fears, their frustrations, what they're trying to achieve. If you haven't built a clear picture of your ideal customer yet, that's genuinely worth doing before you write another word of your brand story.",
+      },
+      {
+        type: "callout",
+        title: "Know exactly who you're writing for.",
+        text: "Build a clear picture of your ideal customer before you write another word of brand story.",
+        href: "/onboarding-build",
+        linkText: "Build your ideal customer profile free →",
+      },
+      {
+        type: "h2",
+        text: "Package it: your logline and the 5-second test",
+      },
+      {
+        type: "p",
+        text:
+          "Every great film has a logline — one sentence that captures the protagonist, the conflict and the stakes. It's the elevator pitch. The thing that decides whether someone leans in or looks away, in a world that's genuinely time-poor and full of noise.",
+      },
+      {
+        type: "ul",
+        items: [
+          "**Finding Nemo:** \"When his son is swept out to sea, an anxious clownfish embarks on a perilous journey across a treacherous ocean to bring him home.\"",
+          "**Jaws:** \"A police chief, a marine biologist, and a fisherman set out to stop a great white shark terrorising a small beach town.\"",
+          "**Apostle Coffee:** \"When two London escapees pack a vintage roaster into a horse trailer and head for the Shropshire hills, they set out to prove that great coffee and genuine ethics don't have to be a compromise.\"",
+        ],
+      },
+      {
+        type: "p",
+        text:
+          "Notice what all three share: a specific protagonist, a clear conflict, a goal worth caring about, and not a single wasted word.",
+      },
+      {
+        type: "p",
+        text: "Your brand needs one too. The formula:",
+      },
+      {
+        type: "p",
+        text:
+          "**\"We help [specific person] achieve [specific transformation] — without [the thing they're afraid of or tired of].\"**",
+      },
+      {
+        type: "p",
+        text:
+          "Write yours, then show it to someone and ask three questions: what does this business do, who is it for, and why should they care? If they can answer all three, your packaging is working. If they can't — and most people can't, if you're honest — the problem is almost always act two. Your conflict isn't sharp enough yet. Go back to your five lines and ask what almost didn't work.",
+      },
+      {
+        type: "p",
+        text:
+          "And underneath all of it is one filmmaking principle worth holding onto: show, don't tell. We process images faster than words. Wherever you can, show the product in use, show the before and after, show the conflict. Let people see the transformation rather than read about it.",
+      },
+      { type: "h2", text: "One framework, every piece of content" },
+      {
+        type: "p",
+        text:
+          "Here's the good news: once you have your brand story — your five lines, your logline, your fourth-wall moment — you don't need a new framework for every piece of content you make. The Hollywood blueprint works at every scale. A long-form video, a sixty-second reel, an email, a single social caption. Setup, confrontation, resolution. Every time.",
+      },
+      {
+        type: "p",
+        text:
+          "Here's a real Apostle Coffee Instagram post, broken into its three acts:",
+      },
+      {
+        type: "ul",
+        items: [
+          "**Act one (the problem):** \"If you've ever bought a bag of coffee that didn't quite taste right, or struggled to make café-quality coffee at home — you're not alone, and it's probably not your fault.\"",
+          "**Act two (the solution):** \"We roast every bag fresh on a Monday and send it straight to your door, so the coffee arriving in your kitchen is as fresh as it gets.\"",
+          "**Act three (the call to action):** \"Start your subscription today, and taste the difference a fresh roast makes.\"",
+        ],
+      },
+      {
+        type: "p",
+        text:
+          "Three acts, one post. The customer is the hero. Your brand is the guide that removes the obstacle. The call to action is the invitation to begin.",
+      },
+      { type: "h2", text: "Want the shorter version?" },
+      {
+        type: "p",
+        text:
+          "If you'd rather get the headline version in five minutes, here's the same framework, condensed:",
+      },
+      {
+        type: "youtube",
+        videoId: "p_B-epqgBus",
+        title:
+          "Give Me 5 Minutes and I'll Make You a Master Storyteller (Hollywood's Cheat Sheet)",
+      },
+      { type: "h2", text: "Your story was always there" },
+      {
+        type: "p",
+        text:
+          "It can be structured exactly the same way as your favourite film. Three acts. Five lines. A fourth-wall moment that brings your customer in. A logline that pitches your whole business in a sentence. Show, don't tell, running through all of it.",
+      },
+      {
+        type: "p",
+        text:
+          "That's the blueprint. It's worked for Pixar, for Dyson, for Ben & Jerry's. It'll work for you too.",
+      },
+      {
+        type: "p",
+        text:
+          "If you've made it this far and actually written your five lines — nice work. You now have something most businesses never bother to build: a story worth telling.",
+      },
+      {
+        type: "p",
+        text:
+          "The next step is putting it to work everywhere — your website, your content, your ICP, your whole marketing strategy built around the story you just wrote. That's exactly what marktr.io is for, and it's free to get started.",
+      },
+      {
+        type: "callout",
+        title: "Ready when you are.",
+        text:
+          "Put your brand story to work across your website, content, ICP, and marketing strategy.",
+        href: "/",
+        linkText: "Start building your brand story on marktr.io →",
+      },
     ],
   },
 ];

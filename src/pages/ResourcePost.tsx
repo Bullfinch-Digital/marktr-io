@@ -1,7 +1,59 @@
-import { useEffect } from "react";
+import { Fragment, type ReactNode, useEffect } from "react";
 import { Link, useParams } from "react-router-dom";
 import { getResourceBySlug } from "../content/resources";
 import { Button } from "../components/ui/button";
+
+/** Lightweight inline formatting: **bold** and [label](/path) links. */
+function renderInline(text: string): ReactNode {
+  const nodes: ReactNode[] = [];
+  const re = /(\*\*[^*]+\*\*|\[[^\]]+\]\([^)]+\))/g;
+  let last = 0;
+  let match: RegExpExecArray | null;
+  let key = 0;
+
+  while ((match = re.exec(text)) !== null) {
+    if (match.index > last) {
+      nodes.push(text.slice(last, match.index));
+    }
+    const token = match[0];
+    if (token.startsWith("**")) {
+      nodes.push(
+        <strong key={key++}>{token.slice(2, -2)}</strong>,
+      );
+    } else {
+      const linkMatch = token.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
+      if (linkMatch) {
+        const [, label, href] = linkMatch;
+        if (href.startsWith("/")) {
+          nodes.push(
+            <Link key={key++} className="underline hover:no-underline" to={href}>
+              {label}
+            </Link>,
+          );
+        } else {
+          nodes.push(
+            <a
+              key={key++}
+              className="underline hover:no-underline"
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {label}
+            </a>,
+          );
+        }
+      }
+    }
+    last = match.index + token.length;
+  }
+
+  if (last < text.length) {
+    nodes.push(text.slice(last));
+  }
+
+  return nodes.length === 1 ? nodes[0] : <Fragment>{nodes}</Fragment>;
+}
 
 export default function ResourcePost() {
   const { slug } = useParams();
@@ -169,7 +221,7 @@ export default function ResourcePost() {
                     className="mt-4 list-disc pl-6 space-y-2 text-foreground/80"
                   >
                     {block.items.map((item) => (
-                      <li key={item}>{item}</li>
+                      <li key={item}>{renderInline(item)}</li>
                     ))}
                   </ul>
                 );
@@ -182,7 +234,10 @@ export default function ResourcePost() {
                   >
                     {block.items.map((item) => (
                       <li key={item.href}>
-                        <Link className="underline hover:no-underline" to={item.href}>
+                        <Link
+                          className="underline hover:no-underline"
+                          to={item.href}
+                        >
                           {item.text}
                         </Link>
                       </li>
@@ -192,7 +247,10 @@ export default function ResourcePost() {
               }
               if (block.type === "cta") {
                 return (
-                  <div key={idx} className="mt-10 flex flex-col items-center text-center">
+                  <div
+                    key={idx}
+                    className="mt-10 flex flex-col items-center text-center"
+                  >
                     <p className="mb-8 text-lg font-['Inter'] text-foreground/70 font-bold">
                       Start free and see who your real customers are...
                     </p>
@@ -211,18 +269,87 @@ export default function ResourcePost() {
                 return (
                   <div
                     key={idx}
-                    className="mt-6 rounded-design border border-black bg-accent-grey/10 p-4"
+                    className="mt-6 rounded-design border border-black bg-accent-grey/10 p-4 sm:p-5"
                   >
                     <div className="font-['Fraunces'] font-bold">
                       {block.title}
                     </div>
-                    <div className="mt-1 text-foreground/80">{block.text}</div>
+                    <div className="mt-1 text-foreground/80 leading-relaxed">
+                      {renderInline(block.text)}
+                    </div>
+                    {block.href && block.linkText ? (
+                      <Link
+                        to={block.href}
+                        className="mt-3 inline-block font-semibold underline hover:no-underline"
+                      >
+                        {block.linkText}
+                      </Link>
+                    ) : null}
+                  </div>
+                );
+              }
+              if (block.type === "youtube") {
+                const title =
+                  block.title ?? "YouTube video related to this article";
+                return (
+                  <div
+                    key={idx}
+                    className="mt-6 overflow-hidden rounded-design border border-black bg-black/5"
+                  >
+                    <div className="relative w-full" style={{ paddingTop: "56.25%" }}>
+                      <iframe
+                        className="absolute inset-0 h-full w-full"
+                        src={`https://www.youtube-nocookie.com/embed/${block.videoId}`}
+                        title={title}
+                        loading="lazy"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        referrerPolicy="strict-origin-when-cross-origin"
+                        allowFullScreen
+                      />
+                    </div>
+                  </div>
+                );
+              }
+              if (block.type === "table") {
+                return (
+                  <div key={idx} className="mt-6 overflow-x-auto">
+                    <table className="w-full min-w-[28rem] border-collapse text-left text-sm">
+                      <thead>
+                        <tr className="border-b border-black">
+                          {block.headers.map((header) => (
+                            <th
+                              key={header}
+                              className="py-2 pr-4 font-['Fraunces'] font-semibold"
+                            >
+                              {header}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody className="text-foreground/80">
+                        {block.rows.map((row, rowIdx) => (
+                          <tr
+                            key={rowIdx}
+                            className="border-b border-border align-top"
+                          >
+                            {row.map((cell, cellIdx) => (
+                              <td key={cellIdx} className="py-3 pr-4">
+                                {renderInline(cell)}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 );
               }
               return (
-                <p key={idx} className="mt-4 text-foreground/80 leading-relaxed">
-                  {block.text}
+                <p
+                  key={idx}
+                  className="mt-4 text-foreground/80 leading-relaxed"
+                >
+                  {renderInline(block.text)}
                 </p>
               );
             })}

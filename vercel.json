@@ -29,6 +29,46 @@
       "destination": "/resources/:slug/index.html"
     },
     {
+      "source": "/pricing",
+      "destination": "/pricing/index.html"
+    },
+    {
+      "source": "/onboarding-build",
+      "destination": "/onboarding-build/index.html"
+    },
+    {
+      "source": "/health-check",
+      "destination": "/health-check/index.html"
+    },
+    {
+      "source": "/story",
+      "destination": "/story/index.html"
+    },
+    {
+      "source": "/downloads",
+      "destination": "/downloads/index.html"
+    },
+    {
+      "source": "/newsletter",
+      "destination": "/newsletter/index.html"
+    },
+    {
+      "source": "/privacy-policy",
+      "destination": "/privacy-policy/index.html"
+    },
+    {
+      "source": "/terms-of-service",
+      "destination": "/terms-of-service/index.html"
+    },
+    {
+      "source": "/cookie-policy",
+      "destination": "/cookie-policy/index.html"
+    },
+    {
+      "source": "/resources",
+      "destination": "/resources/index.html"
+    },
+    {
       "source": "/((?!robots\\.txt$|sitemap\\.xml$).*)",
       "destination": "/"
     }

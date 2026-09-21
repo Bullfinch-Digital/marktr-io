@@ -1934,7 +1934,7 @@ export const RESOURCE_POSTS: ResourcePost[] = [
         title: "Ready when you are.",
         text:
           "Put your brand story to work across your website, content, ICP, and marketing strategy.",
-        href: "/",
+        href: "/story",
         linkText: "Start building your brand story on marktr.io →",
       },
     ],

@@ -2,6 +2,10 @@ export type ResourcePost = {
   slug: string;
   title: string;
   description: string;
+  /** Core subject label for the topic-cluster map (avoid duplicate topics). */
+  topic: string;
+  /** Primary search phrase this post is written to own. */
+  searchIntent: string;
   introLine?: string;
   bgColor: string; // used to match homepage resource cards
   readingTime?: string;
@@ -46,6 +50,8 @@ export const RESOURCE_POSTS: ResourcePost[] = [
       "What Is an Ideal Customer Profile (ICP)? A Practical Framework With Real Examples",
     description:
       "How to build a real Ideal Customer Profile — six questions, real examples, and the technique for writing copy your ICP will think was written just for them.",
+    topic: "ICP definition & framework",
+    searchIntent: "what is an ICP",
     bgColor: "#BBA0E5",
     readingTime: "14 min read",
     date: "2026-02-13",
@@ -384,6 +390,8 @@ export const RESOURCE_POSTS: ResourcePost[] = [
     title: "How to Turn an ICP Into Better Content and Ads",
     description:
       "Turn your Ideal Customer Profile (ICP) into clear content ideas, stronger messaging, and higher-performing ads using a practical framework.",
+    topic: "ICP → content/ads",
+    searchIntent: "how to turn an ICP into content and ads",
     bgColor: "#96CBB6",
     readingTime: "10 min read",
     date: "2026-01-29",
@@ -654,6 +662,8 @@ export const RESOURCE_POSTS: ResourcePost[] = [
     title: "How to Validate an Ideal Customer Profile (ICP) Using Real Data",
     description:
       "Most ICP definitions are hypotheses. This guide shows you how to test them against real commercial performance data.",
+    topic: "ICP validation",
+    searchIntent: "how to validate an ICP",
     bgColor: "#FF9922",
     readingTime: "11 min read",
     date: "2025-10-07",
@@ -932,6 +942,8 @@ export const RESOURCE_POSTS: ResourcePost[] = [
     title: "Why Your Marketing Isn't Landing (And How to Fix It)",
     description:
       "If your marketing gets clicks but no conversions, the issue is usually ICP clarity. Learn how to fix targeting misalignment and improve conversion rate.",
+    topic: "Marketing conversion clarity",
+    searchIntent: "why marketing isn't converting",
     introLine:
       "Most marketing problems are not creative problems. They are clarity problems.",
     bgColor: "#FF9922",
@@ -1123,6 +1135,8 @@ export const RESOURCE_POSTS: ResourcePost[] = [
     title: "Stop Wasting Ad Spend: How ICPs Improve Targeting",
     description:
       "If your ads are underperforming, the issue is usually ICP clarity. Learn how better segment definition improves targeting and reduces wasted spend.",
+    topic: "ICP → ad targeting",
+    searchIntent: "how ICPs improve ad targeting",
     introLine:
       "Most underperforming ad accounts do not have a creative problem. They have a targeting clarity problem.",
     bgColor: "#F57BBE",
@@ -1345,6 +1359,8 @@ export const RESOURCE_POSTS: ResourcePost[] = [
     title: "Why We Built the ICP Generator (And How It Helps You Win)",
     description:
       "The story behind the tool - and how deeper audience clarity leads to better content, smarter targeting, and faster growth.",
+    topic: "Product story",
+    searchIntent: "why we built the ICP generator",
     introLine: "Most marketing problems start with unclear audience definition.",
     bgColor: "#FFD336",
     readingTime: "8 min read",
@@ -1524,6 +1540,8 @@ export const RESOURCE_POSTS: ResourcePost[] = [
     title: "The Hollywood Storytelling Framework for Your Brand Story",
     description:
       "A filmmaker's three-act framework for founders who can't find the words for their own brand story — five lines, one logline, no fluff.",
+    topic: "Brand story",
+    searchIntent: "how to write my brand story",
     introLine:
       "A filmmaker's three-act framework for founders who can't find the words for their own brand story — five lines, one logline, no fluff.",
     bgColor: "#7EB8DA",
@@ -1959,6 +1977,8 @@ export const RESOURCE_POSTS: ResourcePost[] = [
     title: "The 5-Stage Marketing Strategy Framework for Founders",
     description:
       "The exact framework I use with every client: brand story, ideal customer, transformation, offer, distribution. Five stages, real examples, no fluff.",
+    topic: "Marketing strategy framework",
+    searchIntent: "marketing strategy framework for founders",
     introLine:
       "The exact framework I use with every client: brand story, ideal customer, transformation, offer, distribution. Five stages, real examples, no fluff.",
     bgColor: "#A8D5BA",
@@ -2380,6 +2400,369 @@ export const RESOURCE_POSTS: ResourcePost[] = [
           {
             text: "Start building your strategy free",
             href: "/story",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    slug: "hormozi-marketing-strategy-tested",
+    title:
+      "I Tested Alex Hormozi's Marketing Strategy on My Own Business — Here's What Actually Worked",
+    description:
+      "I put Alex Hormozi's Offers, Leads and Money Models frameworks against my own coffee business, Apostle — real pricing mistakes, real numbers, and the one offer I've been too scared to try.",
+    topic: "Offer & lead-gen strategy (applied)",
+    searchIntent: "hormozi marketing strategy tested on a real business",
+    introLine:
+      "I put Alex Hormozi's Offers, Leads and Money Models frameworks against my own coffee business, Apostle — real pricing mistakes, real numbers, and the one offer I've been too scared to try.",
+    bgColor: "#E8A87C",
+    readingTime: "16 min read",
+    date: "2026-09-21",
+    author: {
+      name: "Jon Stanford",
+      title: "Founder",
+      org: "Bullfinch Digital",
+      url: "https://bullfinchdigital.com",
+    },
+    seoTitle:
+      "I Tested Alex Hormozi's Marketing Strategy on My Own Business — Here's What Actually Worked",
+    metaDescription:
+      "I put Alex Hormozi's Offers, Leads and Money Models frameworks against my own coffee business, Apostle — real pricing mistakes, real numbers, and the one offer I've been too scared to try.",
+    faq: [
+      {
+        question:
+          "What's the difference between $100M Offers, $100M Leads and $100M Money Models?",
+        answer:
+          "Offers is about building something so good people feel stupid saying no. Leads is about getting that offer in front of the right people. Money Models is about sequencing multiple offers (attraction, upsell, downsell, continuity) so a business compounds rather than relying on one single sale.",
+      },
+      {
+        question:
+          "Do Hormozi's frameworks actually work for a small ecommerce business, or just for coaching/membership businesses?",
+        answer:
+          "Mostly yes, though some translation is needed — Money Models leans naturally toward memberships and tiered coaching offers. The attraction/upsell/downsell/continuity structure still applies to a subscription ecommerce business like Apostle; I've mapped our own version of all four above.",
+      },
+      {
+        question:
+          "What's the biggest pricing mistake founders make, according to this?",
+        answer:
+          "Pricing against competitors instead of on value. It starts a race to the bottom and attracts customers who leave the moment someone undercuts you. Value-driven pricing — positioning yourself as a category of one — protects both margin and customer quality.",
+      },
+      {
+        question:
+          "How do you know if your marketing is actually filtering for the right customer, not just getting views?",
+        answer:
+          "Track conversions, not views. A post can get hundreds of thousands of views and zero sales if it doesn't filter — the fix is a clear call to action and, underneath that, a genuinely specific idea of who your ideal customer is in the first place.",
+      },
+      {
+        question: "What is a money model, in plain terms?",
+        answer:
+          "A sequence of offers rather than a single one — an attraction offer to get someone in, an upsell and downsell to serve different readiness levels, and a continuity offer (subscription, membership) that provides recurring revenue.",
+      },
+    ],
+    body: [
+      {
+        type: "p",
+        text:
+          "Alex Hormozi has more marketing advice online than any one person could get through — three books, hundreds of hours of YouTube, a bench press that could probably out-lift his mentor Tony Robbins. If you've looked at any of it and thought \"I don't have time to wade through all this, just tell me what actually works,\" this is that.",
+      },
+      {
+        type: "p",
+        text:
+          "I'm Jon Stanford. I spent a decade making other people's brands look good before turning the same thinking on my own coffee company, Apostle Coffee. So rather than just summarising Hormozi's three books — $100M Offers, $100M Leads, and $100M Money Models — I've gone through book by book and pulled out exactly what I've actually used in Apostle, what worked, what I got wrong before I found it, and one offer I've never had the nerve to try. We're setting that one live by the end of this article.",
+      },
+      { type: "h2", text: "Watch the full breakdown" },
+      {
+        type: "youtube",
+        videoId: "W5Vwoj6CjBI",
+        title:
+          "I Tested Alex Hormozi's Marketing Strategy on My Own Business — Here's What Actually Worked",
+      },
+      {
+        type: "p",
+        text:
+          "Prefer to read than watch? Everything's below, with the real numbers.",
+      },
+      { type: "h2", text: "Book one: $100M Offers" },
+      {
+        type: "p",
+        text:
+          "Hormozi's definition of an offer is simple: the goods or services you agree to provide, how you get paid for them, and the terms of that agreement. His argument is that the offer is the actual lifeblood of a business — it's the thing that attracts a customer in the first place.",
+      },
+      {
+        type: "h3",
+        text: "Pricing against competitors is a race to the bottom",
+      },
+      {
+        type: "p",
+        text:
+          "Most businesses price against their competitors — a bit cheaper, a bit more included. Hormozi calls this a race to the bottom, and I've got the scar tissue to back it up. We built Apostle's early pricing off a spreadsheet of what our competitors charged, which felt sensible at the time. It meant we started too low, and it took the best part of a year before I had the confidence to raise prices without expecting to lose half our customers.",
+      },
+      {
+        type: "p",
+        text:
+          "We lost two. Two customers, in exchange for a year of undercharging for genuinely better coffee. If you're underpricing right now, that's the trade you're making too — you just haven't seen the bill yet.",
+      },
+      {
+        type: "p",
+        text:
+          "The alternative is what Hormozi calls value-driven pricing: position yourself as a category of one, so there's nothing to directly compare yourself against, and the price ceiling goes up instead of down.",
+      },
+      {
+        type: "h3",
+        text: "The mistake that nearly killed us wasn't pricing — it was terms",
+      },
+      {
+        type: "p",
+        text:
+          "In Apostle's early days, cash flow was the thing that nearly finished us. Every new customer meant more green bean stock, and that stock swallowed whatever cash we had before the sales caught up. As a bootstrapped start-up, that wasn't much. I was personally buying beans to keep the lights on.",
+      },
+      {
+        type: "p",
+        text:
+          "The fix wasn't a pricing fix at all — it was a terms fix. We were on thirty-day payment terms with our supplier. I negotiated that out to sixty. That gap gave us enough time to actually sell through the stock and bank the money before the invoice was due. That's the other half of a grand slam offer that's easy to miss: the payment terms that stop cash being the thing throttling your growth.",
+      },
+      {
+        type: "h3",
+        text: "Underpricing doesn't just cost margin — it attracts the wrong customer",
+      },
+      {
+        type: "p",
+        text:
+          "Here's the bit that reframes everything. Someone who's only there because it's cheap was never going to be your best customer — they'll be first to leave the second someone undercuts you. Charge what the thing's actually worth, and you start attracting people who get real value from it, which are the customers who stick around. We now have customers who've been subscribing to Apostle's coffee club for over three years, with a lifetime value north of £2,000. That's what happens when you serve the right people something they genuinely value.",
+      },
+      { type: "h3", text: "The formula behind a good offer" },
+      {
+        type: "p",
+        text: "Hormozi's formula for what makes an offer compelling:",
+      },
+      {
+        type: "p",
+        text:
+          "**(Dream outcome × likelihood of success) ÷ (time delay × effort and sacrifice)**",
+      },
+      {
+        type: "p",
+        text:
+          "We didn't plan for this deliberately at the start, but Apostle hits all four levers:",
+      },
+      {
+        type: "ul",
+        items: [
+          "**The dream outcome** — delicious coffee, made properly, at home, with no fancy gear.",
+          "**The likelihood of success** — the coffee's roasted so it works across brew methods, backed by enough brew guides and videos that it's genuinely hard to make it taste bad.",
+          "**The time it takes** — roasted and posted within the week, always fresh.",
+          "**The effort required** — once you're subscribed, it just arrives on a schedule that suits you, and if you don't love a coffee, we swap it for one you do, free.",
+        ],
+      },
+      {
+        type: "p",
+        text:
+          "That last one is a guarantee, and guarantees are one of a handful of things Hormozi points to as making an offer genuinely hard to say no to, alongside scarcity, urgency and bonuses. We use the guarantee constantly at Apostle — not as a clever trick, but because it removes the one hesitation someone might have before subscribing.",
+      },
+      {
+        type: "p",
+        text:
+          "An offer this good still goes nowhere if nobody sees it, which is exactly the gap book two is written for.",
+      },
+      { type: "h2", text: "Book two: $100M Leads" },
+      {
+        type: "p",
+        text:
+          "Hormozi opens book two with a genuinely useful reframe: there are only two ways to grow a business. Get more customers, or get more from the customers you've already got.",
+      },
+      { type: "h3", text: "What actually counts as a lead" },
+      {
+        type: "p",
+        text:
+          "A lead, in Hormozi's terms, is someone you can actually contact — a name, an email, a number. He argues you earn that contact by giving people a taste of what you do before you ask for anything in return. I haven't had the confidence to do that with actual bags of coffee yet (more on that below) — for now, our free taste is brew guides and tutorials on our YouTube channel, plus a big discount across a new member's first three deliveries, which is close to full access to the real thing at a much lower cost of entry.",
+      },
+      {
+        type: "h3",
+        text: "Warm and cold outreach, and why we don't spread thin",
+      },
+      {
+        type: "p",
+        text:
+          "Outreach splits two ways. Warm outreach is people who already know you — friends, family, referrals, your existing audience. Cold outreach is everyone else, and it's far more labour-intensive: DMs, bought email lists, finding people one at a time.",
+      },
+      {
+        type: "p",
+        text:
+          "The alternative is paid ads, and the platform you choose needs to be wherever your ideal customer already spends their time. Don't spread your content thinly across multiple platforms — I know this one from experience, and it's a reliable way to waste time, energy and hard-earned cash.",
+      },
+      {
+        type: "h3",
+        text: "An ad's job is to filter, not just attract attention",
+      },
+      {
+        type: "p",
+        text:
+          "The wording, the hooks, the content — they should be filtering your leads, not just grabbing attention. I've got an Apostle Instagram post with over 350,000 organic views. It worked beautifully at attracting coffee-related viewers, and did nothing to qualify my ideal customer. The result was some uplift in website traffic and zero traceable sales.",
+      },
+      {
+        type: "p",
+        text:
+          "The fix was taking that same winning hook and reposting it with a clear call to action at the end. The new post got another 45,000 organic views — but this time, thanks to the CTA, it actually generated sales and some later subscription conversions. The formula still wasn't quite right, which is exactly what the experiment at the end of this article is built to test properly.",
+      },
+      {
+        type: "h3",
+        text: "How do you know who your ideal customer even is?",
+      },
+      {
+        type: "p",
+        text:
+          "This is the bit most people skip entirely, and it's the actual foundation everything above depends on. If you don't know who you're filtering for, you can't write an ad that filters. I built a free tool for exactly this reason.",
+      },
+      {
+        type: "callout",
+        title: "Work out your ideal customer.",
+        text:
+          "marktr.io's free ICP tool builds a detailed customer profile in a couple of minutes, so your next ad, post or offer is written for someone specific instead of everyone in general.",
+        href: "/onboarding-build",
+        linkText: "Build your ideal customer profile free →",
+      },
+      { type: "h3", text: "Track everything, or you're just hoping" },
+      {
+        type: "p",
+        text:
+          "The other half of book two is tracking, and it's the bit I got wrong for longer than I'd like to admit. I spent money throwing posts out there and hoping sales would follow. They don't, not without a structure behind them. What actually works is knowing which channel drove which click and which sale — for us, that's Google Analytics on our Shopify store and a UTM on every single campaign link. Traffic that doesn't convert isn't worth anything, no matter how good the view count looks.",
+      },
+      {
+        type: "p",
+        text:
+          "Underneath all of it sits one piece of maths that has to hold: what a customer's worth to you over time has to be more than what it cost you to get them. Get that backwards and you're not building a business — you're funding one out of your own pocket, which I can confirm from experience is not a sustainable long-term strategy.",
+      },
+      {
+        type: "p",
+        text:
+          "Offers get someone to want your product. Leads get them through the door. Neither is powerful enough alone — which is exactly what the third book is for.",
+      },
+      { type: "h2", text: "Book three: $100M Money Models" },
+      {
+        type: "p",
+        text:
+          "Money Models is where the offers and leads strategies get stacked together to scale a business at every available opportunity. Hormozi defines a money model as a sequence of offers — chances to solve a customer's problem and offer to solve it. Making one offer is better than none, but making multiple offers in sequence is what turns it into an actual system.",
+      },
+      {
+        type: "p",
+        text:
+          "At first glance this felt like it belonged more to Hormozi's own world — memberships, tiered coaching offers — than to an ecommerce coffee subscription. But the four-offer structure applies to almost any business, and it's genuinely useful for thinking about where you're leaving growth on the table.",
+      },
+      {
+        type: "p",
+        text:
+          "He splits a money model into four offer types, and Apostle already runs all four without us ever planning it that deliberately:",
+      },
+      {
+        type: "ul",
+        items: [
+          "**The attraction offer** — what turns a stranger into a customer. For us, that's the discount on the first three deliveries, backed by the guarantee and a free storage jar and brew guides.",
+          "**The upsell** — getting more from someone already buying. We run three tiers: Foundation at the entry point, Discovery as a rotating single-origin subscription in the middle, and Exceptional at the top for rare, unique coffees — with a short questionnaire on the site pointing people to the right one rather than leaving them to guess.",
+          "**The downsell** — catching the person who isn't ready to commit to a subscription. We sell a single bag instead, and say so directly on the site: \"Not ready to subscribe? No worries — try one of our Foundation coffees available in a 225g compostable bag instead.\"",
+          "**The continuity offer** — the one that actually pays the bills every month. The subscription itself, rolling on a schedule that suits the customer, which is where our recurring revenue genuinely comes from.",
+        ],
+      },
+      {
+        type: "p",
+        text:
+          "All four pieces were already quietly running in the background, and most of our customers going through them have no idea there's a system behind it at all.",
+      },
+      { type: "h2", text: "The one offer I've never dared pull" },
+      {
+        type: "p",
+        text:
+          "There's one attraction offer Hormozi talks about that I've never actually tried — the most aggressive version there is. Free.",
+      },
+      {
+        type: "p",
+        text:
+          "For the next three months, I'm giving away a free trial bag of Apostle coffee, boosted by ads, betting that the trial converts into a real Coffee Club subscription. I want to see, in real numbers, whether a free attraction offer actually does what the theory says: whether it gathers leads, improves conversion, and grows the Coffee Club without a wave of churn behind it, since that's what actually matters long-term.",
+      },
+      {
+        type: "p",
+        text:
+          "What genuinely scares me isn't giving the coffee away — it's the targeting. If the hook on that ad doesn't filter properly, I'll just be handing free bags to people who were never going to become customers, and that's real margin gone for nothing. That's exactly the trap the 350,000-view Instagram post fell into.",
+      },
+      {
+        type: "p",
+        text:
+          "I don't know if it'll work. I'll be sharing the real numbers as they come in — not just the ones that make it look like it worked.",
+      },
+      { type: "h2", text: "The takeaway" },
+      {
+        type: "p",
+        text:
+          "Hormozi's frameworks aren't theory for me — they're mostly things Apostle was already doing, a few things I got wrong for longer than I should have, and one thing I've never had the courage to try until now. Value-driven pricing over racing competitors. Payment terms that protect cash flow. An offer built from dream outcome, likelihood, speed and effort. Ads that filter, not just attract. And a stack of four offer types working quietly in the background of any business, whether you've mapped them out or not.",
+      },
+      {
+        type: "callout",
+        title: "Ready when you are.",
+        text:
+          "Map your offer, ideal customer, and the rest of your marketing strategy on marktr — free to get started.",
+        href: "/story",
+        linkText: "Start mapping your own offer on marktr.io →",
+      },
+      { type: "h2", text: "Frequently asked questions" },
+      {
+        type: "h3",
+        text: "What's the difference between $100M Offers, $100M Leads and $100M Money Models?",
+      },
+      {
+        type: "p",
+        text:
+          "Offers is about building something so good people feel stupid saying no. Leads is about getting that offer in front of the right people. Money Models is about sequencing multiple offers (attraction, upsell, downsell, continuity) so a business compounds rather than relying on one single sale.",
+      },
+      {
+        type: "h3",
+        text: "Do Hormozi's frameworks actually work for a small ecommerce business, or just for coaching/membership businesses?",
+      },
+      {
+        type: "p",
+        text:
+          "Mostly yes, though some translation is needed — Money Models leans naturally toward memberships and tiered coaching offers. The attraction/upsell/downsell/continuity structure still applies to a subscription ecommerce business like Apostle; I've mapped our own version of all four above.",
+      },
+      {
+        type: "h3",
+        text: "What's the biggest pricing mistake founders make, according to this?",
+      },
+      {
+        type: "p",
+        text:
+          "Pricing against competitors instead of on value. It starts a race to the bottom and attracts customers who leave the moment someone undercuts you. Value-driven pricing — positioning yourself as a category of one — protects both margin and customer quality.",
+      },
+      {
+        type: "h3",
+        text: "How do you know if your marketing is actually filtering for the right customer, not just getting views?",
+      },
+      {
+        type: "p",
+        text:
+          "Track conversions, not views. A post can get hundreds of thousands of views and zero sales if it doesn't filter — the fix is a clear call to action and, underneath that, a genuinely specific idea of who your ideal customer is in the first place.",
+      },
+      {
+        type: "h3",
+        text: "What is a money model, in plain terms?",
+      },
+      {
+        type: "p",
+        text:
+          "A sequence of offers rather than a single one — an attraction offer to get someone in, an upsell and downsell to serve different readiness levels, and a continuity offer (subscription, membership) that provides recurring revenue.",
+      },
+      { type: "h2", text: "Related resources" },
+      {
+        type: "links",
+        items: [
+          {
+            text: "The 5-Stage Marketing Strategy Framework for Founders",
+            href: "/resources/5-stage-marketing-strategy-framework",
+          },
+          {
+            text: "What Is an Ideal Customer Profile (ICP)?",
+            href: "/resources/what-an-icp-really-is",
+          },
+          {
+            text: "Stop Wasting Ad Spend: How ICPs Improve Targeting",
+            href: "/resources/stop-wasting-ad-spend",
           },
         ],
       },

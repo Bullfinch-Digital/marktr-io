@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
-import { supabase } from "../config/supabase";
+import { insertIcpVersionRpc } from "../lib/icpVersioning";
 import {
   avatarUrlFromKey,
   getAvatarFolderInfo,
@@ -17,7 +17,7 @@ type Props = {
   gender?: string | null;
   ageRange?: string | null;
   onClose: () => void;
-  onSaved?: (avatarKey: string | null) => void | Promise<void>;
+  onSaved?: (avatarKey: string | null, newIcpId?: string) => void | Promise<void>;
 };
 
 export default function ICPAvatarModal({
@@ -52,13 +52,12 @@ export default function ICPAvatarModal({
     setIsSaving(true);
     setError(null);
     try {
-      const { error } = await supabase.from("icps").update({ avatar_key: selected }).eq("id", icpId);
-      if (error) {
-        console.error("ICPAvatarModal: Failed to update avatar_key", error);
+      const updated = await insertIcpVersionRpc(icpId, { avatar_key: selected });
+      if (!updated) {
         setError("Failed to save avatar. Please try again.");
         return;
       }
-      await onSaved?.(selected);
+      await onSaved?.(selected, updated.id);
       onClose();
     } catch (e) {
       console.error("ICPAvatarModal: Unexpected error", e);

@@ -12,6 +12,9 @@ import {
   outbox,
   type PendingOp,
 } from "../lib/localCache";
+import { resolveBrandIdForIcpInsertPayload } from "../lib/icpBrandAttach";
+import { softDeleteIcpById } from "../lib/icpVersioning";
+import { insertIcpVersionRpc, isPermanentIcpSyncError } from "../lib/icpVersioning";
 
 // ---- DB-safe payload helpers (Outbox hardening) ----
 const stripKeys = <T extends Record<string, any>>(obj: T, keys: string[]) => {
@@ -92,10 +95,11 @@ export function useOutboxSync() {
       switch (op.type) {
         case "create_icp": {
           const dbPayload = toDbIcpPayload(op.payload);
+          const resolvedPayload = await resolveBrandIdForIcpInsertPayload(userId, dbPayload);
 
           const { data: created, error } = await supabase
             .from("icps")
-            .insert([dbPayload])
+            .insert([resolvedPayload])
             .select()
             .single();
 
@@ -118,31 +122,15 @@ export function useOutboxSync() {
         }
 
         case "update_icp": {
-          const { error } = await supabase
-            .from("icps")
-            .update(toDbIcpPayload(op.payload.updates))
-            .eq("id", op.payload.id)
-            .eq("user_id", userId);
-
-          if (error) throw error;
+          await insertIcpVersionRpc(
+            op.payload.id,
+            toDbIcpPayload(op.payload.updates)
+          );
           return true;
         }
 
         case "delete_icp": {
-          // Delete from collection_items first
-          // IMPORTANT: collection_items does NOT have user_id column - only filter by icp_id
-          await supabase
-            .from("collection_items")
-            .delete()
-            .eq("icp_id", op.payload.id);
-
-          const { error } = await supabase
-            .from("icps")
-            .delete()
-            .eq("id", op.payload.id)
-            .eq("user_id", userId);
-
-          if (error) throw error;
+          await softDeleteIcpById(userId, op.payload.id);
           return true;
         }
 
@@ -210,13 +198,11 @@ export function useOutboxSync() {
             return true; // Consider it handled (dropped)
           }
 
-          // Check if already exists
-          // IMPORTANT: collection_items does NOT have user_id column - only filter by collection_id and icp_id
           let checkQuery = supabase
             .from("collection_items")
             .select("*")
             .eq("collection_id", collectionId)
-            .eq("icp_id", op.payload.icp_id);
+            .eq("lineage_id", op.payload.lineage_id);
           
           const { data: existing } = await checkQuery.maybeSingle();
 
@@ -224,10 +210,12 @@ export function useOutboxSync() {
             return true; // Already exists, consider it success
           }
 
-          // IMPORTANT: collection_items only has collection_id and icp_id - no user_id
-          const { error } = await supabase
-            .from("collection_items")
-            .insert([op.payload]);
+          const { error } = await supabase.from("collection_items").insert([
+            {
+              collection_id: collectionId,
+              lineage_id: op.payload.lineage_id,
+            },
+          ]);
 
           if (error) throw error;
 
@@ -241,12 +229,11 @@ export function useOutboxSync() {
         }
 
         case "remove_icp_from_collection": {
-          // IMPORTANT: collection_items does NOT have user_id column - only filter by collection_id and icp_id
           const { error } = await supabase
             .from("collection_items")
             .delete()
             .eq("collection_id", op.payload.collection_id)
-            .eq("icp_id", op.payload.icp_id);
+            .eq("lineage_id", op.payload.lineage_id);
 
           if (error) throw error;
 
@@ -265,14 +252,18 @@ export function useOutboxSync() {
       }
     } catch (err: any) {
       console.error(`Error syncing operation ${op.id} (${op.type}):`, err);
-      
-      // If error is invalid UUID syntax (22P02), remove the op to prevent infinite retries
-      if (err?.code === "22P02" || err?.message?.includes("invalid input syntax for type uuid")) {
-        console.warn(`Removing operation ${op.id} due to invalid UUID syntax - operation payload is invalid`);
+
+      // Drop ops that can never succeed (schema mismatch, bad payload, etc.)
+      if (
+        isPermanentIcpSyncError(err) ||
+        err?.code === "22P02" ||
+        err?.message?.includes("invalid input syntax for type uuid")
+      ) {
+        console.warn(`Removing operation ${op.id} — permanent sync failure`, err?.code ?? err?.message);
         await removePendingOp(userId, op.id);
-        return true; // Consider it handled (dropped)
+        return true;
       }
-      
+
       return false;
     }
   };

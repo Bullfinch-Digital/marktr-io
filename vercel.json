@@ -1,5 +1,86 @@
 {
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "app.marktr.io" }],
+      "destination": "https://marktr.io/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/yt04",
+      "destination": "https://marktr.io/?utm_source=youtube&utm_medium=organic&utm_campaign=video-04-stop-marketing-to-everyone&utm_content=desc-top",
+      "permanent": false
+    },
+    {
+      "source": "/yt04-cta",
+      "destination": "https://marktr.io/?utm_source=youtube&utm_medium=organic&utm_campaign=video-04-stop-marketing-to-everyone&utm_content=desc-cta",
+      "permanent": false
+    },
+    {
+      "source": "/yt04-dl",
+      "destination": "https://www.marktr.io/downloads?utm_source=youtube&utm_medium=organic&utm_campaign=video-04-stop-marketing-to-everyone&utm_content=downloads",
+      "permanent": false
+    }
+  ],
   "rewrites": [
-    { "source": "/(.*)", "destination": "/" }
+    { "source": "/yt:slug([a-zA-Z0-9-]+)", "destination": "/api/redirect?slug=yt:slug" },
+    {
+      "source": "/resources/:slug",
+      "destination": "/resources/:slug/index.html"
+    },
+    {
+      "source": "/pricing",
+      "destination": "/pricing/index.html"
+    },
+    {
+      "source": "/onboarding-build",
+      "destination": "/onboarding-build/index.html"
+    },
+    {
+      "source": "/health-check",
+      "destination": "/health-check/index.html"
+    },
+    {
+      "source": "/story",
+      "destination": "/story/index.html"
+    },
+    {
+      "source": "/downloads",
+      "destination": "/downloads/index.html"
+    },
+    {
+      "source": "/newsletter",
+      "destination": "/newsletter/index.html"
+    },
+    {
+      "source": "/privacy-policy",
+      "destination": "/privacy-policy/index.html"
+    },
+    {
+      "source": "/terms-of-service",
+      "destination": "/terms-of-service/index.html"
+    },
+    {
+      "source": "/cookie-policy",
+      "destination": "/cookie-policy/index.html"
+    },
+    {
+      "source": "/resources",
+      "destination": "/resources/index.html"
+    },
+    {
+      "source": "/((?!robots\\.txt$|sitemap\\.xml$).*)",
+      "destination": "/"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/robots.txt",
+      "headers": [{ "key": "Content-Type", "value": "text/plain; charset=utf-8" }]
+    },
+    {
+      "source": "/sitemap.xml",
+      "headers": [{ "key": "Content-Type", "value": "application/xml; charset=utf-8" }]
+    }
   ]
 }

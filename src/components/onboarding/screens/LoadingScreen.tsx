@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { consumePendingIcpRegenerateNudge } from "../../../lib/icpPersonaCap";
 import { AnimatePresence, motion } from "../../../lib/motion";
 import { getAllProfileImages } from "../../../config/profileImages";
 
@@ -38,6 +39,7 @@ export function LoadingScreen({ onComplete, run, runJob }: LoadingScreenProps) {
   const [currentStageIndex, setCurrentStageIndex] = useState(0);
   const [currentAvatarIndex, setCurrentAvatarIndex] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [infoMessage, setInfoMessage] = useState<string | null>(null);
   const startedRef = useRef(false);
   const [jobDone, setJobDone] = useState(false);
   const progressIntervalRef = useRef<number | null>(null);
@@ -163,6 +165,12 @@ export function LoadingScreen({ onComplete, run, runJob }: LoadingScreenProps) {
     const runOnce = async () => {
       try {
         await job();
+        if (cancelled || !mountedRef.current) return;
+        const nudge = consumePendingIcpRegenerateNudge();
+        if (nudge) {
+          setInfoMessage(nudge);
+          await new Promise((resolve) => window.setTimeout(resolve, 2200));
+        }
         if (cancelled || !mountedRef.current) return;
         setJobDone(true);
         setProgress(100);
@@ -341,6 +349,12 @@ export function LoadingScreen({ onComplete, run, runJob }: LoadingScreenProps) {
             </motion.p>
           </AnimatePresence>
         </div>
+
+        {infoMessage && !error && (
+          <p className="max-w-xl text-center text-sm text-foreground/65 font-['Inter'] px-4">
+            {infoMessage}
+          </p>
+        )}
 
         {error && (
           <div className="max-w-xl border border-black rounded-design bg-white p-4 text-left">

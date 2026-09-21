@@ -1,16 +1,47 @@
 import { supabase } from "../config/supabase";
 import { ICP } from "../hooks/useICPs";
+import { resolveBrandIdForIcpWrite } from "../lib/icpBrandAttach";
+import {
+  applyCurrentIcpFilter,
+  newGenerationId,
+  withVersioningDefaults,
+} from "../lib/icpVersioning";
 
 /**
- * Seed the database with example ICPs for testing
- * Uses only the new Supabase schema fields
+ * Seed the database with example ICPs for testing.
+ * Only runs when the target brand has no current personas.
  */
-export async function seedExampleICPs(userId: string): Promise<ICP[]> {
+export async function seedExampleICPs(
+  userId: string,
+  preferredBrandId?: string | null
+): Promise<ICP[]> {
   const now = new Date().toISOString();
+  const brandId = await resolveBrandIdForIcpWrite(userId, preferredBrandId ?? null);
+  const generationId = newGenerationId();
+
+  let existingQuery = supabase
+    .from("icps")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("brand_id", brandId);
+
+  existingQuery = applyCurrentIcpFilter(existingQuery);
+
+  const { count: existingCount, error: countError } = await existingQuery;
+  if (countError) {
+    console.error("[seedExampleICPs] existing ICP count failed", countError);
+    throw countError;
+  }
+  if ((existingCount ?? 0) > 0) {
+    throw new Error(
+      "[seedExampleICPs] refused: brand already has current ICPs — load examples only on an empty brand"
+    );
+  }
 
   const examples = [
     {
       user_id: userId,
+      brand_id: brandId,
       name: "Sarah the Startup Founder",
       description: "Early-stage tech founder seeking product-market fit.",
       industry: "Tech / SaaS",
@@ -36,6 +67,7 @@ export async function seedExampleICPs(userId: string): Promise<ICP[]> {
     },
     {
       user_id: userId,
+      brand_id: brandId,
       name: "Marcus the Marketing Manager",
       description: "Growth-focused B2B marketing lead.",
       industry: "B2B SaaS",
@@ -61,6 +93,7 @@ export async function seedExampleICPs(userId: string): Promise<ICP[]> {
     },
     {
       user_id: userId,
+      brand_id: brandId,
       name: "Emma the E-commerce Owner",
       description: "Runs a sustainable DTC online shop.",
       industry: "E-commerce / Retail",
@@ -84,7 +117,7 @@ export async function seedExampleICPs(userId: string): Promise<ICP[]> {
       created_at: now,
       updated_at: now
     }
-  ];
+  ].map((row) => withVersioningDefaults(row, generationId));
 
   const { data, error } = await supabase
     .from("icps")

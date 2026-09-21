@@ -1,0 +1,2 @@
+# Public newsletter signup is gated by Turnstile in the function body.
+verify_jwt = false

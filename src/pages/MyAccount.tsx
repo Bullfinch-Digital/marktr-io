@@ -8,19 +8,25 @@ import { supabase } from "../config/supabase";
 import useProfile from "../hooks/useProfile";
 import useSubscription from "../hooks/useSubscription";
 import { usePaywall } from "../contexts/PaywallContext";
+import DashboardShell from "../layouts/DashboardShell";
+import {
+  MARKTR_SUPPORT_EMAIL,
+  MARKTR_SUPPORT_MAILTO,
+  MARKTR_TRIAL_DAYS,
+} from "../lib/marktrPricing";
 import {
   User,
   CheckCircle2,
   Crown,
   Calendar,
-  ChevronLeft,
   AlertTriangle,
   Lock,
+  Mail,
 } from "lucide-react";
 
 export default function MyAccount() {
   const navigate = useNavigate();
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, signOut } = useAuth();
   const { profile, loading: profileLoading } = useProfile(user?.id ?? null);
   const { isPro } = useSubscription();
   const { openPaywall } = usePaywall();
@@ -29,6 +35,8 @@ export default function MyAccount() {
   const [saving, setSaving] = useState(false);
   const [saveFeedback, setSaveFeedback] = useState<"idle" | "saved" | "error">("idle");
   const [emailMessage, setEmailMessage] = useState<string | null>(null);
+  const [emailCooldownUntil, setEmailCooldownUntil] = useState<number | null>(null);
+  const [cooldownNow, setCooldownNow] = useState<number>(Date.now());
   const [localReady, setLocalReady] = useState(false);
   const savedTimerRef = useRef<number | null>(null);
   const isSavingRef = useRef(false);
@@ -38,6 +46,8 @@ export default function MyAccount() {
   const [passwordMessage, setPasswordMessage] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [isManagingBilling, setIsManagingBilling] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   // Stripe subscription display (from DB)
   type StripeSubscriptionRow = {
@@ -56,14 +66,32 @@ export default function MyAccount() {
 
   const [stripeSub, setStripeSub] = useState<StripeSubscriptionRow | null>(null);
 
-  const PRICE_MONTHLY = import.meta.env.VITE_STRIPE_PRICE_MONTHLY as
-    | string
-    | undefined;
   const PRICE_ANNUAL = import.meta.env.VITE_STRIPE_PRICE_ANNUAL as
     | string
     | undefined;
 
   const isLoading = authLoading || profileLoading || !localReady;
+  /**
+   * Password form visibility must not rely on AuthContext's session user alone —
+   * getSession()/onAuthStateChange often omit or stale-cache `identities`.
+   * Resolve from a fresh auth.getUser() (network) when the account page mounts.
+   */
+  const [identityProviders, setIdentityProviders] = useState<string[] | null>(null);
+  const hasPasswordIdentity = Array.isArray(identityProviders)
+    ? identityProviders.includes("email")
+    : false;
+  const identityCheckReady = identityProviders !== null;
+  const oauthOnlyProviders = useMemo(() => {
+    if (!identityCheckReady) return [];
+    return identityProviders.filter((p) => p !== "email");
+  }, [identityCheckReady, identityProviders]);
+  const emailInputChanged =
+    email.trim().length > 0 &&
+    email.trim().toLowerCase() !== (user?.email || "").trim().toLowerCase();
+  const emailCooldownSeconds = emailCooldownUntil
+    ? Math.max(0, Math.ceil((emailCooldownUntil - cooldownNow) / 1000))
+    : 0;
+  const emailOnCooldown = emailInputChanged && emailCooldownSeconds > 0;
 
   // Safer timestamptz parsing (Supabase can return microseconds; JS Date can be inconsistent)
   const parseSupabaseTimestamptz = useCallback((input: string | null | undefined): number | null => {
@@ -160,14 +188,13 @@ export default function MyAccount() {
   const isProFromStripe =
     stripeSub?.status === "trialing" || stripeSub?.status === "active";
 
-  const plan = useMemo<"free" | "monthly" | "annual" | "pro">(() => {
+  const plan = useMemo<"free" | "annual" | "pro">(() => {
     if (!isPro && !isProFromStripe) return "free";
     const priceId = stripeSub?.price_id ?? null;
     if (priceId && PRICE_ANNUAL && priceId === PRICE_ANNUAL) return "annual";
-    if (priceId && PRICE_MONTHLY && priceId === PRICE_MONTHLY) return "monthly";
     // fallback if price_id missing/unknown
     return "pro";
-  }, [isPro, isProFromStripe, stripeSub?.price_id, PRICE_ANNUAL, PRICE_MONTHLY]);
+  }, [isPro, isProFromStripe, stripeSub?.price_id, PRICE_ANNUAL]);
 
   const statusLabel =
     stripeSub?.status === "trialing"
@@ -181,8 +208,6 @@ export default function MyAccount() {
     const priceDisplay =
       plan === "annual"
         ? "£300/year (equivalent £25/month)"
-        : plan === "monthly"
-        ? "£30/month"
         : plan === "pro"
         ? "Pro (price updating)"
         : "—";
@@ -230,14 +255,84 @@ export default function MyAccount() {
       userId: user?.id,
       profileName: profile?.name,
       profileEmail: profile?.email,
+      authEmail: user?.email,
     });
 
-    if (!authLoading && !profileLoading && profile) {
-      setName(profile.name ?? "");
-      setEmail(profile.email ?? "");
-      setLocalReady(true);
+    if (authLoading || profileLoading) return;
+
+    // Keep account screen usable even if profile row is delayed or email is blank.
+    const resolvedName =
+      profile?.name ??
+      user?.user_metadata?.name ??
+      user?.email?.split("@")[0] ??
+      "";
+
+    const resolvedEmail = profile?.email || user?.email || "";
+
+    setName(resolvedName);
+    // Only overwrite local email when we actually have a resolved value.
+    // This avoids blank profile.email wiping a just-entered pending email.
+    if (resolvedEmail) {
+      setEmail(resolvedEmail);
     }
+    setLocalReady(true);
   }, [authLoading, profileLoading, profile, user]);
+
+  // Fresh identities from Auth server (not session storage JWT user)
+  useEffect(() => {
+    if (!user?.id) {
+      setIdentityProviders(null);
+      return;
+    }
+
+    let cancelled = false;
+    setIdentityProviders(null);
+
+    void (async () => {
+      try {
+        const { data, error } = await supabase.auth.getUser();
+        if (cancelled) return;
+
+        if (error || !data.user) {
+          console.warn("MyAccount: getUser for identities failed", error);
+          setIdentityProviders([]);
+          return;
+        }
+
+        const fresh = data.user;
+        const fromIdentities = (fresh.identities ?? [])
+          .map((i) => i.provider)
+          .filter((p): p is string => typeof p === "string" && p.length > 0);
+
+        if (fromIdentities.length > 0) {
+          setIdentityProviders(Array.from(new Set(fromIdentities)));
+          return;
+        }
+
+        const meta = fresh.app_metadata as
+          | { provider?: string; providers?: string[] }
+          | undefined;
+        if (Array.isArray(meta?.providers) && meta.providers.length > 0) {
+          setIdentityProviders(Array.from(new Set(meta.providers)));
+          return;
+        }
+        if (typeof meta?.provider === "string" && meta.provider.length > 0) {
+          setIdentityProviders([meta.provider]);
+          return;
+        }
+
+        setIdentityProviders([]);
+      } catch (err) {
+        if (cancelled) return;
+        console.warn("MyAccount: unexpected getUser identities error", err);
+        setIdentityProviders([]);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
 
   useEffect(() => {
     return () => {
@@ -246,6 +341,25 @@ export default function MyAccount() {
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (!emailCooldownUntil) return;
+    if (emailCooldownUntil <= Date.now()) return;
+
+    const intervalId = window.setInterval(() => {
+      setCooldownNow(Date.now());
+    }, 1000);
+
+    return () => window.clearInterval(intervalId);
+  }, [emailCooldownUntil]);
+
+  useEffect(() => {
+    if (!emailCooldownUntil) return;
+    if (emailCooldownUntil <= Date.now()) {
+      setEmailCooldownUntil(null);
+      setCooldownNow(Date.now());
+    }
+  }, [emailCooldownUntil, cooldownNow]);
 
   const showTemporarySavedState = () => {
     if (savedTimerRef.current) {
@@ -279,6 +393,15 @@ export default function MyAccount() {
     const emailChanged =
       trimmedEmail.length > 0 && trimmedEmail.toLowerCase() !== currentAuthEmail.toLowerCase();
     const nameChanged = trimmedName !== currentProfileName;
+    const now = Date.now();
+
+    if (emailChanged && emailCooldownUntil && now < emailCooldownUntil) {
+      const secondsLeft = Math.max(1, Math.ceil((emailCooldownUntil - now) / 1000));
+      setEmailMessage(
+        `Please wait ${secondsLeft}s before requesting another email change.`
+      );
+      return;
+    }
 
     if (!emailChanged && !nameChanged) {
       console.log("MyAccount: no changes detected");
@@ -296,6 +419,8 @@ export default function MyAccount() {
       if (!user?.id) {
         throw new Error("No authenticated user");
       }
+
+      let emailChangeWarning: string | null = null;
 
       if (emailChanged) {
         const emailRedirectUrl = `${window.location.origin}/account`;
@@ -319,12 +444,31 @@ export default function MyAccount() {
 
         if (result.error) {
           console.error("MyAccount: updateUser error", result.error);
-          throw result.error;
-        }
+          const status = (result.error as any)?.status;
+          const message = (result.error as any)?.message || "Failed to request email change.";
+          const waitMatch = /after\s+(\d+)\s+seconds?/i.exec(message);
 
-        setEmailMessage("Check your new email to confirm this change.");
-        console.log("MyAccount: email change request sent successfully");
-        showTemporarySavedState();
+          const isRateLimited =
+            status === 429 ||
+            !!waitMatch ||
+            /rate limit|too many requests/i.test(message);
+
+          if (isRateLimited) {
+            const waitSeconds = waitMatch ? Number(waitMatch[1]) : 60;
+            setEmailCooldownUntil(Date.now() + waitSeconds * 1000);
+            emailChangeWarning = waitMatch
+              ? `Please wait ${waitSeconds}s before requesting another email change.`
+              : "Email change rate limit reached. Please wait a few minutes, then try again.";
+          } else {
+            throw result.error;
+          }
+        } else {
+          setEmailMessage("Check your new email to confirm this change.");
+          // Keep the requested email visible in the field while confirmation is pending.
+          setEmail(newEmail);
+          console.log("MyAccount: email change request sent successfully");
+          showTemporarySavedState();
+        }
       }
 
       if (nameChanged) {
@@ -342,6 +486,10 @@ export default function MyAccount() {
         }
 
         showTemporarySavedState();
+      }
+
+      if (emailChangeWarning) {
+        setEmailMessage(emailChangeWarning);
       }
 
     } catch (err) {
@@ -362,6 +510,11 @@ export default function MyAccount() {
 
     setPasswordMessage(null);
     setPasswordError(null);
+
+    if (!hasPasswordIdentity) {
+      setPasswordError("This account signs in with Google and has no Marktr password to update.");
+      return;
+    }
 
     if (!newPassword || newPassword.length < 8) {
       setPasswordError("Password must be at least 8 characters long.");
@@ -420,33 +573,57 @@ export default function MyAccount() {
     }
   };
 
+  const handleDeleteAccount = async () => {
+    const confirmed = window.confirm(
+      "Delete your Marktr account permanently?\n\nThis cancels any active or trial subscription and permanently deletes your brands, strategies, content, health checks, brand stories, ICPs, and collections.\n\nThis cannot be undone."
+    );
+    if (!confirmed) return;
+
+    setIsDeletingAccount(true);
+    setDeleteError(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("delete-account", {
+        body: {},
+      });
+      if (error) throw error;
+      if (data?.error) {
+        throw new Error(String(data.error));
+      }
+      try {
+        await signOut();
+      } catch {
+        // User may already be invalidated after delete.
+      }
+      navigate("/", { replace: true });
+    } catch (err) {
+      console.error("MyAccount: delete account failed", err);
+      setDeleteError(
+        err instanceof Error
+          ? err.message
+          : "Unable to delete account. Please contact support."
+      );
+    } finally {
+      setIsDeletingAccount(false);
+    }
+  };
+
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center">
-          <div className="w-16 h-16 mx-auto mb-4 border-4 border-button-green border-t-transparent rounded-full animate-spin" />
-          <p className="text-foreground/70">Loading account...</p>
+      <DashboardShell contentClassName="flex-1 px-6 py-8 lg:px-12">
+        <div className="min-h-[40vh] flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-16 h-16 mx-auto mb-4 border-4 border-button-green border-t-transparent rounded-full animate-spin" />
+            <p className="text-foreground/70">Loading account...</p>
+          </div>
         </div>
-      </div>
+      </DashboardShell>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="border-b border-warm-grey bg-background sticky top-0 z-10">
-        <div className="max-w-5xl mx-auto px-6 py-4">
-          <button
-            onClick={() => navigate("/dashboard")}
-            className="inline-flex items-center gap-2 font-['Inter'] text-sm text-foreground/70 hover:text-foreground transition-colors"
-          >
-            <ChevronLeft className="w-4 h-4" />
-            Back to Dashboard
-          </button>
-        </div>
-      </div>
-
-      <div className="max-w-5xl mx-auto px-6 py-12 space-y-8">
-        <div className="mb-8">
+    <DashboardShell contentClassName="flex-1 px-6 py-8 lg:px-12">
+      <div className="max-w-5xl mx-auto space-y-8 pb-10">
+        <div className="mb-2">
           <h1 className="font-['Fraunces'] text-4xl mb-2">My Account</h1>
           <p className="font-['Inter'] text-foreground/70">
             Manage your profile, subscription, and settings.
@@ -497,13 +674,14 @@ export default function MyAccount() {
             <div className="flex items-center gap-3">
               <Button
                 onClick={handleSaveProfile}
-                disabled={saving}
+                disabled={saving || emailOnCooldown}
                 className="bg-button-green hover:bg-button-green/90 text-foreground border border-black rounded-design font-['Inter'] disabled:opacity-50"
               >
                 {saving && "Saving..."}
+                {!saving && emailOnCooldown && `Wait ${emailCooldownSeconds}s`}
                 {!saving && saveFeedback === "saved" && "Saved!"}
                 {!saving && saveFeedback === "error" && "Try Again"}
-                {!saving && saveFeedback === "idle" && "Save Changes"}
+                {!saving && !emailOnCooldown && saveFeedback === "idle" && "Save Changes"}
               </Button>
               {saveFeedback === "saved" && (
                 <span className="flex items-center gap-2 font-['Inter'] text-sm text-button-green">
@@ -512,6 +690,11 @@ export default function MyAccount() {
                 </span>
               )}
             </div>
+            {emailOnCooldown && (
+              <p className="font-['Inter'] text-xs text-foreground/70">
+                Please wait {emailCooldownSeconds}s before requesting another email change.
+              </p>
+            )}
           </div>
         </div>
 
@@ -521,49 +704,65 @@ export default function MyAccount() {
             <div className="flex-1">
               <h2 className="font-['Fraunces'] text-2xl mb-1">Security</h2>
               <p className="font-['Inter'] text-sm text-foreground/70">
-                Update your password.
+                {!identityCheckReady
+                  ? "Checking how you sign in…"
+                  : hasPasswordIdentity
+                    ? "Update your password."
+                    : "How you sign in to Marktr."}
               </p>
             </div>
           </div>
 
-          <div className="space-y-4 max-w-md">
-            <div className="space-y-2">
-              <Label htmlFor="new-password" className="font-['Inter'] text-sm">
-                New password
-              </Label>
-              <Input
-                id="new-password"
-                type="password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                className="border-black rounded-design font-['Inter']"
-              />
+          {!identityCheckReady ? (
+            <p className="font-['Inter'] text-sm text-foreground/60">Loading…</p>
+          ) : hasPasswordIdentity ? (
+            <div className="space-y-4 max-w-md">
+              <div className="space-y-2">
+                <Label htmlFor="new-password" className="font-['Inter'] text-sm">
+                  New password
+                </Label>
+                <Input
+                  id="new-password"
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="border-black rounded-design font-['Inter']"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="confirm-password" className="font-['Inter'] text-sm">
+                  Confirm new password
+                </Label>
+                <Input
+                  id="confirm-password"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="border-black rounded-design font-['Inter']"
+                />
+              </div>
+
+              {passwordError && <p className="text-sm text-red-600">{passwordError}</p>}
+              {passwordMessage && <p className="text-sm text-foreground/80">{passwordMessage}</p>}
+
+              <Button
+                onClick={handleChangePassword}
+                disabled={passwordSaving}
+                className="bg-background hover:bg-foreground/5 text-foreground border border-black rounded-design font-['Inter'] disabled:opacity-60"
+              >
+                {passwordSaving ? "Saving..." : "Update password"}
+              </Button>
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="confirm-password" className="font-['Inter'] text-sm">
-                Confirm new password
-              </Label>
-              <Input
-                id="confirm-password"
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="border-black rounded-design font-['Inter']"
-              />
-            </div>
-
-            {passwordError && <p className="text-sm text-red-600">{passwordError}</p>}
-            {passwordMessage && <p className="text-sm text-foreground/80">{passwordMessage}</p>}
-
-            <Button
-              onClick={handleChangePassword}
-              disabled={passwordSaving}
-              className="bg-background hover:bg-foreground/5 text-foreground border border-black rounded-design font-['Inter'] disabled:opacity-60"
-            >
-              {passwordSaving ? "Saving..." : "Update password"}
-            </Button>
-          </div>
+          ) : (
+            <p className="font-['Inter'] text-sm text-foreground/80 max-w-lg">
+              {oauthOnlyProviders.includes("google")
+                ? "You're signed in with Google. Manage your password through your Google account."
+                : oauthOnlyProviders.length > 0
+                  ? `You're signed in with ${oauthOnlyProviders.join(", ")}. Manage your password through that account.`
+                  : "This account doesn't have a Marktr password to change. Sign in with Google (or another linked provider) to manage credentials there."}
+            </p>
+          )}
         </div>
 
         <div className="bg-gradient-to-br from-button-green/20 to-[#BBA0E5]/10 border border-black rounded-design p-8">
@@ -593,8 +792,6 @@ export default function MyAccount() {
               <span className="font-['Fraunces'] text-lg">
                 {subscription.plan === "free"
                   ? "Free"
-                  : subscription.plan === "monthly"
-                  ? "Monthly Pro"
                   : subscription.plan === "annual"
                   ? "Annual Pro"
                   : "Pro"}
@@ -636,7 +833,7 @@ export default function MyAccount() {
                 onClick={() => openPaywall()}
                 className="bg-button-green hover:bg-button-green/90 text-foreground border border-black rounded-design font-['Inter']"
               >
-                Start 7-day trial
+                Start {MARKTR_TRIAL_DAYS}-day trial
               </Button>
             )}
             {isPro && (
@@ -652,6 +849,25 @@ export default function MyAccount() {
           </div>
         </div>
 
+        <div className="bg-background border border-black rounded-design p-8">
+          <div className="flex items-start gap-6 mb-4">
+            <Mail className="w-5 h-5 mt-1" />
+            <div className="flex-1">
+              <h2 className="font-['Fraunces'] text-2xl mb-1">Support</h2>
+              <p className="font-['Inter'] text-sm text-foreground/70">
+                Need help with billing, your account, or anything else? Email us and we&apos;ll get
+                back to you.
+              </p>
+            </div>
+          </div>
+          <a
+            href={MARKTR_SUPPORT_MAILTO}
+            className="inline-flex font-['Inter'] text-sm text-foreground underline underline-offset-2 hover:text-foreground/80"
+          >
+            {MARKTR_SUPPORT_EMAIL}
+          </a>
+        </div>
+
         <div className="bg-[#FFE5E5]/30 border-l-4 border-l-[#FF6B6B] border-t border-r border-b border-black rounded-design p-8">
           <div className="flex items-start gap-6 mb-6">
             <AlertTriangle className="w-5 h-5 mt-1 text-[#FF6B6B]" />
@@ -665,17 +881,23 @@ export default function MyAccount() {
 
           <div className="space-y-4">
             <p className="font-['Inter'] text-sm text-foreground/80">
-              This action cannot be undone. All ICPs and collections will be permanently deleted.
+              Deleting your account permanently removes your brands, strategies, content briefs,
+              health checks, brand stories, ICPs, and collections. Any active or trial
+              subscription is cancelled so you won&apos;t be billed again. This cannot be undone.
             </p>
+            {deleteError ? (
+              <p className="font-['Inter'] text-sm text-[#FF6B6B]">{deleteError}</p>
+            ) : null}
             <Button
-              onClick={() => window.confirm("Are you sure?")}
-              className="bg-background hover:bg-[#FF6B6B]/10 text-[#FF6B6B] border border-[#FF6B6B] rounded-design font-['Inter']"
+              onClick={() => void handleDeleteAccount()}
+              disabled={isDeletingAccount}
+              className="bg-background hover:bg-[#FF6B6B]/10 text-[#FF6B6B] border border-[#FF6B6B] rounded-design font-['Inter'] disabled:opacity-50"
             >
-              Delete Account
+              {isDeletingAccount ? "Deleting…" : "Delete Account"}
             </Button>
           </div>
         </div>
       </div>
-    </div>
+    </DashboardShell>
   );
 }

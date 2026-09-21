@@ -1,0 +1,699 @@
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { ArrowLeft, CheckCircle2, Loader2 } from "lucide-react";
+import { Button } from "../components/ui/button";
+import { VoiceTextarea } from "../components/ui/VoiceTextarea";
+import { AlreadyCompletedPrompt } from "../components/AlreadyCompletedPrompt";
+import { useAuth } from "../contexts/AuthContext";
+import { useBrand } from "../contexts/BrandContext";
+import { supabase } from "../config/supabase";
+import type { BrandStoryOutput } from "../lib/brandStory";
+import { parseBrandStoryFromApi } from "../lib/brandStory";
+import {
+  buildStoryStoredPayload,
+  fetchLatestBrandStory,
+  insertBrandStoryResult,
+} from "../lib/brandStoryPersistence";
+import { resolveBrandIdForIcpOps } from "../lib/icpBrandAttach";
+import { resolveScopedBrandId } from "../lib/brandScopedReads";
+import { IdentityCapture, type IdentityCaptureHandle } from "../components/guest/IdentityCapture";
+import { LegalAgreementRequiredModal } from "../components/legal/LegalAgreementRequiredModal";
+import { useLegalAgreementGate } from "../hooks/useLegalAgreementGate";
+import {
+  getGuestContext,
+  getGuestBusinessName,
+  getGuestIdentityEmail,
+  getGuestIdentityName,
+  hasGuestIdentity,
+  isGuestLeadCaptured,
+  updateGuestContext,
+  commitStoryAnswerToGuestContext,
+} from "../lib/guestContext";
+import { captureGuestLeadOnce, isTurnstileConfigured } from "../lib/leadCapture";
+
+type StoryStep =
+  | "intro"
+  | "q1"
+  | "q2"
+  | "q3"
+  | "email"
+  | "q4"
+  | "q5"
+  | "q6"
+  | "q7"
+  | "loading";
+
+const QUESTIONS: { heading: string; subtext: string }[] = [
+  {
+    heading: "What do you do, and who do you do it for?",
+    subtext: "Just like you'd explain it to someone you've just met.",
+  },
+  {
+    heading: "Why did you start this business?",
+    subtext: "What was the moment — or the frustration — that made it inevitable?",
+  },
+  {
+    heading: "What do you believe about your industry that most people in it wouldn't say out loud?",
+    subtext: "Your honest opinion. The thing that makes you different.",
+  },
+  {
+    heading: "Who is your best customer — not in demographics, but as a person?",
+    subtext: "What do they care about? What keeps them up at night?",
+  },
+  {
+    heading: "What do your best customers say about you that you couldn't have written yourself?",
+    subtext: "Real words, real feedback. Even rough paraphrases work.",
+  },
+  {
+    heading: "What would be lost if your business didn't exist?",
+    subtext: "Think beyond the product or service.",
+  },
+  {
+    heading: "In five years, what does success look like — not in numbers, but in the world?",
+    subtext: "The change you want to have made.",
+  },
+];
+
+const STEP_TO_Q_INDEX: Record<Exclude<StoryStep, "email" | "loading" | "intro">, number> = {
+  q1: 0,
+  q2: 1,
+  q3: 2,
+  q4: 3,
+  q5: 4,
+  q6: 5,
+  q7: 6,
+};
+
+const LOADING_ITEMS = [
+  "Reading your founding moment",
+  "Finding your point of view",
+  "Identifying what makes you different",
+  "Shaping your brand narrative",
+  "Writing your story...",
+] as const;
+
+const ANALYSIS_MESSAGES = [
+  "Reading between the lines of your answers...",
+  "Finding the thread that connects your story...",
+  "Shaping your brand narrative...",
+  "Writing the words you've been looking for...",
+] as const;
+
+function AnalysisMessage({ messages }: { messages: readonly string[] }) {
+  const [index, setIndex] = useState(0);
+  const [visible, setVisible] = useState(true);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setVisible(false);
+      setTimeout(() => {
+        setIndex((prev) => (prev + 1) % messages.length);
+        setVisible(true);
+      }, 300);
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [messages.length]);
+
+  return (
+    <p
+      className="max-w-xs text-center font-['DM_Sans'] text-sm leading-relaxed text-muted-foreground transition-opacity duration-300"
+      style={{ opacity: visible ? 1 : 0 }}
+    >
+      {messages[index]}
+    </p>
+  );
+}
+
+const STEP_ORDER: StoryStep[] = ["q1", "q2", "q3", "email", "q4", "q5", "q6", "q7"];
+
+type QuestionOnlyStep = Exclude<StoryStep, "email" | "loading" | "intro">;
+
+function isQuestionStep(step: StoryStep): step is QuestionOnlyStep {
+  return step !== "email" && step !== "loading" && step !== "intro";
+}
+
+export default function StoryBuild() {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { activeBrandId, brands, loading: brandLoading } = useBrand();
+  const isLoggedIn = Boolean(user && !(user as { is_anonymous?: boolean }).is_anonymous);
+  const [step, setStep] = useState<StoryStep>("q1");
+  const [existingRun, setExistingRun] = useState<{ id: string; created_at: string } | null>(
+    null
+  );
+  const [answers, setAnswers] = useState<string[]>(() => Array(7).fill(""));
+  const [draft, setDraft] = useState("");
+  const [email, setEmail] = useState("");
+  const [identityName, setIdentityName] = useState("");
+  const [leadToken, setLeadToken] = useState<string | null>(null);
+  const identityCaptureRef = useRef<IdentityCaptureHandle>(null);
+  const { open: legalModalOpen, gate, closeModal, confirmAgreement } = useLegalAgreementGate();
+  /** Input fingerprint for the last successful generate-brand-story run (not cleared on loading re-entry). */
+  const completedStoryKeyRef = useRef<string | null>(null);
+
+  const proceedFromEmailStep = () => {
+    const committed = identityCaptureRef.current?.commitAll();
+    const nameToSave = committed?.name || identityName.trim() || getGuestIdentityName() || undefined;
+    const emailToSave = committed?.email || email.trim() || getGuestIdentityEmail() || undefined;
+    if (!isLoggedIn && (!nameToSave?.length || !emailToSave?.length || !emailToSave.includes("@"))) {
+      return;
+    }
+    updateGuestContext({
+      identity: {
+        name: nameToSave,
+        email: emailToSave,
+      },
+    });
+    void captureGuestLeadOnce({
+      email: emailToSave || "",
+      name: nameToSave || null,
+      token: leadToken,
+      source: "story",
+    });
+    setStep("q4");
+  };
+
+  const handleEmailStepContinue = () => {
+    if (!isLoggedIn) {
+      gate(identityCaptureRef.current?.isLegalAgreed() ?? false, proceedFromEmailStep);
+      return;
+    }
+    proceedFromEmailStep();
+  };
+
+  const storyInFlightKeyRef = useRef<string | null>(null);
+  const lastStoryResultRef = useRef<{
+    story: BrandStoryOutput | null;
+    storyError: string | null;
+  } | null>(null);
+  /** Snapshot when the email step mounts — stable through blur/commit. */
+  const emailStepFieldsRef = useRef<{ showName: boolean; showEmail: boolean } | null>(null);
+  if (step === "email" && !emailStepFieldsRef.current) {
+    emailStepFieldsRef.current = {
+      showName: !getGuestIdentityName(),
+      showEmail: !getGuestIdentityEmail(),
+    };
+  }
+  const emailStepFields = emailStepFieldsRef.current;
+  const [completedCount, setCompletedCount] = useState(0);
+  const [checklistDone, setChecklistDone] = useState(false);
+
+  useEffect(() => {
+    const ctx = getGuestContext();
+    setEmail(ctx.identity.email || "");
+    setIdentityName(ctx.identity.name || "");
+  }, []);
+
+  const questionIndex = isQuestionStep(step) ? STEP_TO_Q_INDEX[step] : null;
+
+  useEffect(() => {
+    if (!isLoggedIn || !user?.id || brandLoading) {
+      setExistingRun(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    void (async () => {
+      const brandId =
+        resolveScopedBrandId(activeBrandId, brands) ??
+        (await resolveBrandIdForIcpOps(user.id, activeBrandId));
+      if (!brandId || cancelled) return;
+
+      const latest = await fetchLatestBrandStory(user.id, brandId);
+      if (cancelled) return;
+
+      if (latest?.id && latest.created_at) {
+        setExistingRun({ id: latest.id, created_at: latest.created_at });
+        setStep("intro");
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isLoggedIn, user?.id, activeBrandId, brands, brandLoading]);
+
+  useEffect(() => {
+    if (questionIndex === null) return;
+    setDraft(answers[questionIndex] ?? "");
+  }, [step, questionIndex, answers]);
+
+  useEffect(() => {
+    if (step === "email" && (isLoggedIn || hasGuestIdentity())) {
+      setStep("q4");
+    }
+  }, [step, isLoggedIn]);
+
+  useEffect(() => {
+    if (step !== "loading") {
+      setChecklistDone(false);
+      return;
+    }
+
+    let cancelled = false;
+    const timers: number[] = [];
+
+    for (let i = 1; i <= LOADING_ITEMS.length; i += 1) {
+      timers.push(
+        window.setTimeout(() => {
+          if (!cancelled) setCompletedCount(i);
+        }, i * 400)
+      );
+    }
+
+    timers.push(
+      window.setTimeout(() => {
+        if (!cancelled) setChecklistDone(true);
+      }, LOADING_ITEMS.length * 400 + 200)
+    );
+
+    const run = async () => {
+      let story: BrandStoryOutput | null = null;
+      let storyError: string | null = null;
+      const emailToUse = isLoggedIn
+        ? user?.email?.trim() ?? ""
+        : email.trim() || getGuestIdentityEmail() || "";
+      const nameToUse = identityName.trim() || getGuestIdentityName() || "";
+
+      void captureGuestLeadOnce({
+        email: emailToUse,
+        name: nameToUse,
+        token: leadToken,
+        source: "story",
+      });
+
+      updateGuestContext({
+        identity: {
+          name: nameToUse || undefined,
+          email: emailToUse || undefined,
+        },
+      });
+
+      const businessName = getGuestBusinessName();
+      const storyInputKey = JSON.stringify({
+        answers,
+        email: emailToUse,
+        name: nameToUse,
+        businessName: businessName ?? "",
+      });
+
+      const apiPromise = (async () => {
+        if (completedStoryKeyRef.current === storyInputKey && lastStoryResultRef.current) {
+          story = lastStoryResultRef.current.story;
+          storyError = lastStoryResultRef.current.storyError;
+          return;
+        }
+        if (storyInFlightKeyRef.current === storyInputKey) {
+          return;
+        }
+
+        storyInFlightKeyRef.current = storyInputKey;
+        try {
+          const { data, error: invokeError } = await supabase.functions.invoke(
+            "generate-brand-story",
+            {
+              body: {
+                answers,
+                email: emailToUse,
+                ...(businessName ? { businessName } : {}),
+              },
+            }
+          );
+
+          if (invokeError) throw invokeError;
+
+          const raw = data as Record<string, unknown> | null;
+          const parsed = parseBrandStoryFromApi(raw);
+          if (!parsed) {
+            throw new Error("Invalid story response from server.");
+          }
+
+          story = parsed;
+          completedStoryKeyRef.current = storyInputKey;
+          lastStoryResultRef.current = { story, storyError: null };
+        } catch (e) {
+          storyError = e instanceof Error ? e.message : "Something went wrong.";
+          completedStoryKeyRef.current = storyInputKey;
+          lastStoryResultRef.current = { story: null, storyError };
+        } finally {
+          if (storyInFlightKeyRef.current === storyInputKey) {
+            storyInFlightKeyRef.current = null;
+          }
+        }
+      })();
+
+      const checklistMinPromise = new Promise<void>((resolve) => {
+        timers.push(window.setTimeout(() => resolve(), LOADING_ITEMS.length * 400 + 500));
+      });
+
+      await Promise.all([apiPromise, checklistMinPromise]);
+
+      if (!cancelled) {
+        if (isLoggedIn && user?.id && story) {
+          const brandId =
+            resolveScopedBrandId(activeBrandId, brands) ??
+            (await resolveBrandIdForIcpOps(user.id, activeBrandId));
+
+          if (brandId) {
+            const payload = buildStoryStoredPayload(story, {
+              answers: [...answers],
+              email: emailToUse,
+              brandId,
+            });
+            await insertBrandStoryResult(user.id, brandId, payload);
+          }
+
+          navigate("/story-report", { replace: true });
+          return;
+        }
+
+        if (isLoggedIn && user?.id && storyError) {
+          navigate("/story", { replace: true });
+          return;
+        }
+
+        navigate("/story/results", {
+          state: { answers, email: emailToUse, story, error: storyError },
+        });
+      }
+    };
+
+    void run();
+
+    return () => {
+      cancelled = true;
+      timers.forEach((t) => window.clearTimeout(t));
+    };
+  }, [step, answers, email, identityName, leadToken, navigate, isLoggedIn, user?.id, user?.email, activeBrandId, brands]);
+
+  const canContinueQuestion = useMemo(() => draft.trim().length > 0, [draft]);
+
+  const canContinueEmail = useMemo(() => {
+    if (isLoggedIn || hasGuestIdentity()) return true;
+    // Autofill may leave React state empty until first interaction — validate on click.
+    const needsTurnstile =
+      Boolean(emailStepFields?.showEmail) &&
+      isTurnstileConfigured() &&
+      !isGuestLeadCaptured();
+    if (needsTurnstile && !leadToken) return false;
+    return true;
+  }, [isLoggedIn, leadToken, emailStepFields?.showEmail]);
+
+  const goBack = () => {
+    if (step === "q4" && (isLoggedIn || hasGuestIdentity())) {
+      setStep("q3");
+      return;
+    }
+    const idx = STEP_ORDER.indexOf(step);
+    if (idx <= 0) return;
+    const prev = STEP_ORDER[idx - 1]!;
+    if (prev === "email" && (isLoggedIn || hasGuestIdentity())) {
+      setStep("q3");
+      return;
+    }
+    setStep(prev);
+  };
+
+  const advanceFromQuestion = () => {
+    if (questionIndex === null) return;
+    const trimmed = draft.trim();
+    const nextAnswers = [...answers];
+    nextAnswers[questionIndex] = trimmed;
+    setAnswers(nextAnswers);
+    commitStoryAnswerToGuestContext(questionIndex, trimmed);
+
+    if (step === "q3") {
+      if (isLoggedIn || hasGuestIdentity()) setStep("q4");
+      else setStep("email");
+    } else if (step === "q7") {
+      setCompletedCount(0);
+      setChecklistDone(false);
+      setStep("loading");
+    } else {
+      const qOnly: QuestionOnlyStep[] = ["q1", "q2", "q3", "q4", "q5", "q6", "q7"];
+      const i = qOnly.indexOf(step as QuestionOnlyStep);
+      setStep(qOnly[i + 1]!);
+    }
+  };
+
+  const skipQuestion = () => {
+    if (questionIndex === null || questionIndex === 0) return;
+    const nextAnswers = [...answers];
+    nextAnswers[questionIndex] = "";
+    setAnswers(nextAnswers);
+    setDraft("");
+
+    if (step === "q3") {
+      if (isLoggedIn || hasGuestIdentity()) setStep("q4");
+      else setStep("email");
+    } else if (step === "q7") {
+      setCompletedCount(0);
+      setChecklistDone(false);
+      setStep("loading");
+    } else {
+      const qOnly: QuestionOnlyStep[] = ["q1", "q2", "q3", "q4", "q5", "q6", "q7"];
+      const i = qOnly.indexOf(step as QuestionOnlyStep);
+      setStep(qOnly[i + 1]!);
+    }
+  };
+
+  const renderIntro = () => (
+    <section className="relative mx-auto flex min-h-screen w-full max-w-3xl flex-col justify-center px-6 py-12">
+      <div className="mb-8">
+        <Link
+          to="/"
+          className="inline-flex items-center gap-2 font-['DM_Sans'] text-sm text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to home
+        </Link>
+      </div>
+      {existingRun && (
+        <AlreadyCompletedPrompt
+          toolName="Brand Story"
+          reportPath="/story-report"
+          createdAt={existingRun.created_at}
+          onRunAgain={() => setStep("q1")}
+        />
+      )}
+    </section>
+  );
+
+  const renderQuestion = () => {
+    if (questionIndex === null) return null;
+    const q = QUESTIONS[questionIndex]!;
+    const showSkip = questionIndex >= 1;
+    const commitsToGuestContext = questionIndex === 0 || questionIndex === 1 || questionIndex === 3;
+
+    return (
+      <section className="relative mx-auto flex min-h-screen w-full max-w-3xl flex-col px-6 py-12">
+        <div className="mb-8 flex items-start justify-between gap-4">
+          {step !== "q1" ? (
+            <button
+              type="button"
+              onClick={goBack}
+              className="inline-flex items-center gap-2 font-['DM_Sans'] text-sm text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </button>
+          ) : (
+            <Link
+              to="/"
+              className="inline-flex items-center gap-2 font-['DM_Sans'] text-sm text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to home
+            </Link>
+          )}
+          <p className="font-['DM_Sans'] text-xs text-muted-foreground">
+            Question {questionIndex + 1} of 7
+          </p>
+        </div>
+
+        <div className="flex flex-1 flex-col justify-center pb-12">
+          <h1 className="font-['Fraunces'] text-3xl font-bold leading-tight text-[#0D1833] sm:text-4xl">
+            {q.heading}
+          </h1>
+          <p className="mt-4 max-w-lg font-['DM_Sans'] text-base text-muted-foreground">{q.subtext}</p>
+
+          <div className="mt-8">
+            <VoiceTextarea
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onBlur={() => {
+                if (commitsToGuestContext) {
+                  commitStoryAnswerToGuestContext(questionIndex, draft);
+                }
+              }}
+              className="min-h-[140px] resize-none border border-black rounded-design bg-white px-4 py-4 font-['DM_Sans'] text-foreground placeholder:text-foreground/40"
+            />
+          </div>
+
+          <Button
+            type="button"
+            disabled={!canContinueQuestion}
+            onClick={advanceFromQuestion}
+            className="mt-8 w-fit rounded-full bg-primary px-8 py-6 font-['DM_Sans'] text-base font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
+          >
+            Continue →
+          </Button>
+
+          {showSkip && (
+            <button
+              type="button"
+              onClick={skipQuestion}
+              className="mt-4 w-fit font-['DM_Sans'] text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+            >
+              Skip this question
+            </button>
+          )}
+        </div>
+      </section>
+    );
+  };
+
+  const renderEmail = () => {
+    const showName = emailStepFields?.showName ?? !getGuestIdentityName();
+    const showEmail = emailStepFields?.showEmail ?? !getGuestIdentityEmail();
+
+    return (
+    <section className="relative mx-auto flex min-h-screen w-full max-w-3xl flex-col px-6 py-12">
+      <div className="mb-8 flex items-start justify-between gap-4">
+        <button
+          type="button"
+          onClick={goBack}
+          className="inline-flex items-center gap-2 font-['DM_Sans'] text-sm text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back
+        </button>
+        <span />
+      </div>
+
+      <div className="flex flex-1 flex-col justify-center pb-12">
+        <h1 className="font-['Fraunces'] text-3xl font-bold leading-tight text-[#0D1833] sm:text-4xl">
+          Before we write your story
+        </h1>
+        <p className="mt-4 max-w-lg font-['DM_Sans'] text-base text-muted-foreground">
+          We&apos;ll save your results and send you a copy when it&apos;s ready.
+        </p>
+
+        {!isLoggedIn && (
+          <IdentityCapture
+            ref={identityCaptureRef}
+            captureSource="story"
+            className="mt-8 max-w-lg"
+            initialName={identityName}
+            initialEmail={email}
+            showName={showName}
+            showEmail={showEmail}
+            onTokenChange={setLeadToken}
+            onDraftChange={({ name, email: draftEmail }) => {
+              setIdentityName(name);
+              setEmail(draftEmail);
+            }}
+            onNameCommit={(value) => {
+              setIdentityName(value);
+              updateGuestContext({ identity: { name: value || undefined } });
+            }}
+            onEmailCommit={(value) => {
+              setEmail(value);
+              updateGuestContext({ identity: { email: value || undefined } });
+            }}
+          />
+        )}
+
+        <Button
+          type="button"
+          disabled={!canContinueEmail}
+          onMouseDown={(e) => {
+            e.preventDefault();
+          }}
+          onClick={handleEmailStepContinue}
+          className="mt-8 w-fit rounded-full bg-primary px-8 py-6 font-['DM_Sans'] text-base font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
+        >
+          Continue building →
+        </Button>
+      </div>
+    </section>
+    );
+  };
+
+  const renderLoading = () => (
+    <section className="mx-auto flex min-h-screen w-full max-w-3xl flex-col justify-center px-6 py-12">
+      <div className="rounded-3xl border border-border bg-white p-8 shadow-sm sm:p-12">
+        <h1 className="font-['Fraunces'] text-3xl font-bold leading-tight text-[#0D1833] sm:text-4xl">
+          marktr is finding your story...
+        </h1>
+        <div className="mt-8 space-y-4">
+          {LOADING_ITEMS.map((item, index) => {
+            const done = index < completedCount;
+            const active =
+              index === completedCount && completedCount < LOADING_ITEMS.length;
+            return (
+              <div key={item} className="flex items-center gap-3">
+                {done ? (
+                  <CheckCircle2 className="h-5 w-5 text-[#E8650A]" />
+                ) : active ? (
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                ) : (
+                  <Loader2 className="h-5 w-5 text-muted-foreground/40" />
+                )}
+                <p
+                  className={`font-['DM_Sans'] text-sm ${
+                    done
+                      ? "text-foreground"
+                      : active
+                        ? "text-muted-foreground"
+                        : "text-muted-foreground/60"
+                  }`}
+                >
+                  {item}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+
+        {checklistDone && (
+          <div className="mt-8 flex flex-col items-center gap-4">
+            <div className="flex items-center gap-2">
+              {[0, 1, 2].map((i) => (
+                <span
+                  key={i}
+                  className="block h-2 w-2 rounded-full bg-primary"
+                  style={{
+                    animation: "dot-pulse 1.2s ease-in-out infinite",
+                    animationDelay: `${i * 0.2}s`,
+                  }}
+                />
+              ))}
+            </div>
+            <AnalysisMessage messages={ANALYSIS_MESSAGES} />
+          </div>
+        )}
+      </div>
+    </section>
+  );
+
+  return (
+    <>
+      <LegalAgreementRequiredModal
+        open={legalModalOpen}
+        onClose={closeModal}
+        onAgree={() => {
+          identityCaptureRef.current?.acceptLegalAgreement();
+          confirmAgreement();
+        }}
+      />
+    <main className="min-h-screen bg-background">
+      {step === "intro" && renderIntro()}
+      {isQuestionStep(step) && renderQuestion()}
+      {step === "email" && renderEmail()}
+      {step === "loading" && renderLoading()}
+    </main>
+    </>
+  );
+}

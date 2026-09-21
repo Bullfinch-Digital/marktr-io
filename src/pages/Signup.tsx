@@ -6,6 +6,11 @@ import { Label } from "../components/ui/label";
 import { useAuth } from "../contexts/AuthContext";
 import { ArrowRight } from "lucide-react";
 import { AuthHero } from "../components/auth/AuthHero";
+import {
+  LegalAgreementCheckbox,
+} from "../components/legal/LegalAgreement";
+import { LegalAgreementRequiredModal } from "../components/legal/LegalAgreementRequiredModal";
+import { useLegalAgreementGate } from "../hooks/useLegalAgreementGate";
 
 export default function Signup() {
   const navigate = useNavigate();
@@ -13,6 +18,8 @@ export default function Signup() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [legalAgreed, setLegalAgreed] = useState(true);
+  const { open: legalModalOpen, gate, closeModal, confirmAgreement } = useLegalAgreementGate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const { signUp } = useAuth();
@@ -35,19 +42,18 @@ export default function Signup() {
       return;
     }
 
+    gate(legalAgreed, () => void submitSignup(trimmedEmail, trimmedPassword, trimmedName));
+  };
+
+  const submitSignup = async (trimmedEmail: string, trimmedPassword: string, trimmedName: string) => {
     setLoading(true);
 
     try {
-      console.log("Signup.tsx: calling signUp with:", {
-        email: trimmedEmail,
-        password: "***",
-        name: trimmedName,
-      });
-
       const { error } = await signUp({
         email: trimmedEmail,
         password: trimmedPassword,
         name: trimmedName,
+        legalAccepted: true,
       });
 
       if (error) {
@@ -55,7 +61,7 @@ export default function Signup() {
       } else {
         navigate(`/check-email?email=${encodeURIComponent(trimmedEmail)}`);
       }
-    } catch (err) {
+    } catch {
       setError("An unexpected error occurred. Please try again.");
     } finally {
       setLoading(false);
@@ -63,6 +69,12 @@ export default function Signup() {
   };
 
   return (
+    <>
+      <LegalAgreementRequiredModal
+        open={legalModalOpen}
+        onClose={closeModal}
+        onAgree={() => confirmAgreement(setLegalAgreed)}
+      />
     <main className="bg-background">
       <div className="min-h-[calc(100vh-200px)] flex items-center justify-center px-4 py-12">
         <div className="w-full max-w-md">
@@ -151,6 +163,13 @@ export default function Signup() {
               </div>
             </div>
 
+            <LegalAgreementCheckbox
+              id="signup-legal"
+              checked={legalAgreed}
+              onCheckedChange={setLegalAgreed}
+              disabled={loading}
+            />
+
             <Button
               type="submit"
               disabled={loading}
@@ -171,5 +190,6 @@ export default function Signup() {
         </div>
       </div>
     </main>
+    </>
   );
 }

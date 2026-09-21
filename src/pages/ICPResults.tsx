@@ -14,6 +14,7 @@ import { useAuthModal } from "../contexts/AuthModalContext";
 import { resolveAvatarSrc } from "../utils/avatar";
 import { BrandCard } from "../components/cards/BrandCard";
 import { getGuestBrandSeed } from "../lib/guestBrandSeed";
+import { isRealUser } from "../utils/isRealUser";
 
 // Fallback avatars + colours for generated data that doesn't include them
 const DEFAULT_COLORS = ["#BBA0E5", "#FFD336", "#FF9922"];
@@ -30,8 +31,9 @@ export default function ICPResults() {
   const { openPaywall } = usePaywall();
   const { openLogin } = useAuthModal();
   const [guestICPs, setGuestICPsState] = useState<any[]>([]);
-  const isGuest = !user;
-  const dashboardPath = user ? "/dashboard" : "/icp-results";
+  const isRealUserFlag = isRealUser(user);
+  const isGuest = !isRealUserFlag;
+  const dashboardPath = isRealUserFlag ? "/dashboard" : "/guest-dashboard";
   const brandSeed = useMemo(() => getGuestBrandSeed(), []);
 
   const handleGoToDashboard = () => {
@@ -51,14 +53,14 @@ export default function ICPResults() {
   }, []);
 
   useEffect(() => {
-    if (user) {
+    if (isRealUserFlag) {
       const timeout = setTimeout(() => {
         navigate("/dashboard");
       }, 800);
 
       return () => clearTimeout(timeout);
     }
-  }, [user, navigate]);
+  }, [isRealUserFlag, navigate]);
 
   const icpData: ICPData[] = useMemo(() => {
     // 1) Prefer guest generated ICPs (from onboarding)
@@ -184,6 +186,7 @@ export default function ICPResults() {
                           userTier={"free" as any}
                           onUpgrade={() => {}}
                           isLocked={false}
+                          previewOnly
                           onChangeColor={() => {}}
                           onChangeAvatar={() => {}}
                           brands={[]}
@@ -254,7 +257,7 @@ export default function ICPResults() {
             <div className="mt-6 mb-10 p-6 border border-black rounded-design bg-background text-center">
               <h3 className="font-['Fraunces'] text-xl mb-2">Want to save these?</h3>
 
-              {user ? (
+              {isRealUserFlag ? (
                 <>
                   <p className="font-['Inter'] text-foreground/70 mb-4">
                     Your ICPs are ready and saved to your account.
@@ -343,8 +346,8 @@ export default function ICPResults() {
                           isLocked={!canViewICP(effectiveTier as any, index)}
                           onUnlock={handleUnlockAll}
                           cardNumber={index + 1}
-                          onEmailICP={user ? handleEmailICP : handleSignupToSave}
-                          ctaLabel={user ? undefined : "Sign up to save"}
+                          onEmailICP={isRealUserFlag ? handleEmailICP : handleSignupToSave}
+                          ctaLabel={isRealUserFlag ? undefined : "Sign up to save"}
                         />
                       </div>
                     );

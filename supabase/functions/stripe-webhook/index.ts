@@ -9,6 +9,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 // Ensure supabase-js is also Deno-targeted, otherwise esm.sh may emit std/node shims
 // that crash in the Supabase Edge runtime (e.g. Deno.core.runMicrotasks).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2?target=deno";
+import Stripe from "https://esm.sh/stripe@12.18.0?target=deno";
 
 function json(resBody: unknown, status = 200) {
   return new Response(JSON.stringify(resBody), {
@@ -231,6 +232,118 @@ async function resolveUserIdFromCustomer(
   return null;
 }
 
+async function tryMigrateAnonymousSubscriptionToRealUser(
+  supabaseAdmin: ReturnType<typeof createClient>,
+  opts: {
+    anonymousUserId: string;
+    customerEmail: string | null;
+    stripeCustomerId: string | null;
+  }
+) {
+  const { anonymousUserId, customerEmail, stripeCustomerId } = opts;
+  const normalizedEmail = customerEmail?.trim() ?? "";
+  if (!normalizedEmail) return;
+
+  const { data: anonymousAuth, error: anonymousAuthError } =
+    await supabaseAdmin.auth.admin.getUserById(anonymousUserId);
+  if (anonymousAuthError) {
+    console.warn("[stripe-webhook] migrate: anonymous auth lookup failed", {
+      anonymousUserId,
+      error: anonymousAuthError,
+    });
+    return;
+  }
+
+  const isAnonymous =
+    anonymousAuth?.user?.is_anonymous === true ||
+    !anonymousAuth?.user?.email?.trim();
+  if (!isAnonymous) return;
+
+  const { data: matchedProfile, error: profileError } = await supabaseAdmin
+    .from("profiles")
+    .select("id, email")
+    .eq("email", normalizedEmail)
+    .neq("id", anonymousUserId)
+    .maybeSingle();
+
+  if (profileError) {
+    console.warn("[stripe-webhook] migrate: profile lookup failed", profileError);
+    return;
+  }
+  if (!matchedProfile?.id) return;
+
+  const { data: matchedAuth, error: matchedAuthError } =
+    await supabaseAdmin.auth.admin.getUserById(matchedProfile.id);
+  if (matchedAuthError) {
+    console.warn("[stripe-webhook] migrate: matched auth lookup failed", {
+      matchedUserId: matchedProfile.id,
+      error: matchedAuthError,
+    });
+    return;
+  }
+
+  const matchedIsRealUser =
+    matchedAuth?.user?.is_anonymous !== true &&
+    Boolean(matchedAuth?.user?.email?.trim());
+  if (!matchedIsRealUser) return;
+
+  const realUserId = matchedProfile.id;
+
+  const { error: subError } = await supabaseAdmin
+    .from("stripe_subscriptions")
+    .update({ user_id: realUserId, updated_at: new Date().toISOString() })
+    .eq("user_id", anonymousUserId);
+  if (subError) {
+    console.warn("[stripe-webhook] migrate: stripe_subscriptions update failed", subError);
+    return;
+  }
+
+  if (stripeCustomerId) {
+    const { error: customerError } = await supabaseAdmin
+      .from("stripe_customers")
+      .update({ user_id: realUserId, email: normalizedEmail })
+      .eq("user_id", anonymousUserId);
+    if (customerError) {
+      console.warn("[stripe-webhook] migrate: stripe_customers update failed", customerError);
+    }
+  }
+
+  const { error: profileUpdateError } = await supabaseAdmin
+    .from("profiles")
+    .update({ subscription_tier: "pro" })
+    .eq("id", realUserId);
+  if (profileUpdateError) {
+    console.warn("[stripe-webhook] migrate: profile tier update failed", profileUpdateError);
+  }
+
+  console.log(
+    "[stripe-webhook] Migrated subscription from anonymous",
+    anonymousUserId,
+    "to real user",
+    realUserId,
+    { email: normalizedEmail }
+  );
+}
+
+async function fetchStripeSubscription(
+  stripeSubscriptionId: string,
+  stripeSecretKey: string
+) {
+  try {
+    const stripe = new Stripe(stripeSecretKey, {
+      apiVersion: "2023-10-16",
+      httpClient: Stripe.createFetchHttpClient(),
+    });
+    return await stripe.subscriptions.retrieve(stripeSubscriptionId);
+  } catch (err) {
+    console.error("[stripe-webhook] Failed to retrieve subscription", {
+      stripeSubscriptionId,
+      error: (err as any)?.message ?? String(err),
+    });
+    return null;
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method !== "POST") {
     return json({ error: "Method not allowed" }, 405);
@@ -324,7 +437,8 @@ Deno.serve(async (req) => {
 
   const handleSubscription = async (
     subscription: any,
-    userIdHint?: string | null
+    userIdHint?: string | null,
+    customerEmail?: string | null
   ) => {
     const stripeCustomerId =
       typeof subscription.customer === "string"
@@ -361,6 +475,7 @@ Deno.serve(async (req) => {
         {
           user_id: userId,
           stripe_customer_id: stripeCustomerId,
+          ...(customerEmail?.trim() ? { email: customerEmail.trim() } : {}),
         },
         { onConflict: "user_id" }
       );
@@ -453,6 +568,7 @@ Deno.serve(async (req) => {
             {
               user_id: sessionUserId,
               stripe_customer_id: stripeCustomerId,
+              ...(email?.trim() ? { email: email.trim() } : {}),
             },
             { onConflict: "user_id" }
           );
@@ -482,36 +598,44 @@ Deno.serve(async (req) => {
               {
                 user_id: userId,
                 stripe_customer_id: stripeCustomerId,
+                ...(email?.trim() ? { email: email.trim() } : {}),
               },
               { onConflict: "user_id" }
             );
           }
 
-          const subscriptionLike = {
-            id: stripeSubscriptionId,
-            customer: stripeCustomerId,
-            items: priceId
-              ? {
-                  data: [
-                    {
-                      price: { id: priceId },
-                      plan: { id: priceId },
-                    },
-                  ],
-                }
-              : { data: [] },
-            status: session?.status ?? null,
-            trial_start: session?.subscription_data?.trial_start ?? null,
-            trial_end: session?.subscription_data?.trial_end ?? null,
-            billing_cycle_anchor:
-              session?.subscription_data?.billing_cycle_anchor ?? null,
-          };
+          const stripeSecretKey = (Deno.env.get("STRIPE_SECRET_KEY") ?? "").trim();
+          let subscription = stripeSecretKey
+            ? await fetchStripeSubscription(stripeSubscriptionId, stripeSecretKey)
+            : null;
 
-          await upsertStripeSubscriptionRow(supabaseAdmin, {
-            userId,
+          if (!subscription) {
+            // Session status is "complete" — never use it as subscription status.
+            subscription = {
+              id: stripeSubscriptionId,
+              customer: stripeCustomerId,
+              items: priceId
+                ? {
+                    data: [
+                      {
+                        price: { id: priceId },
+                        plan: { id: priceId },
+                      },
+                    ],
+                  }
+                : { data: [] },
+              status: "trialing",
+              trial_start: null,
+              trial_end: null,
+            };
+          }
+
+          await handleSubscription(subscription, userId, email);
+
+          await tryMigrateAnonymousSubscriptionToRealUser(supabaseAdmin, {
+            anonymousUserId: userId,
+            customerEmail: email,
             stripeCustomerId,
-            stripeSubscriptionId,
-            subscription: subscriptionLike,
           });
         }
         break;

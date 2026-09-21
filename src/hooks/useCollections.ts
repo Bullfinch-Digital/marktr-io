@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../config/supabase";
 import { useAuth } from "../contexts/AuthContext";
 import { getCachedCollections, setCachedCollections, addPendingOp, type PendingOp } from "../lib/localCache";
+import { applyCurrentIcpFilter } from "../lib/icpVersioning";
 
 export interface Collection {
   id: string;
@@ -20,7 +21,59 @@ export interface Collection {
 
 export interface CollectionItem {
   collection_id: string;
-  icp_id: string;
+  lineage_id: string;
+}
+
+/** Lineage → collection names for the signed-in user (roster indicators). */
+export async function fetchCollectionNamesByLineageIds(
+  userId: string,
+  lineageIds: string[]
+): Promise<Record<string, string[]>> {
+  const uniqueLineageIds = [...new Set(lineageIds.filter(Boolean))];
+  if (!uniqueLineageIds.length) return {};
+
+  const { data: collections, error: collectionsError } = await supabase
+    .from("collections")
+    .select("id, name")
+    .eq("user_id", userId);
+
+  if (collectionsError) {
+    console.error("[useCollections] fetchCollectionNamesByLineageIds collections failed", collectionsError);
+    throw collectionsError;
+  }
+
+  if (!collections?.length) return {};
+
+  const nameById = Object.fromEntries(collections.map((col) => [col.id, col.name]));
+  const collectionIds = collections.map((col) => col.id);
+
+  const { data: items, error: itemsError } = await supabase
+    .from("collection_items")
+    .select("lineage_id, collection_id")
+    .in("collection_id", collectionIds)
+    .in("lineage_id", uniqueLineageIds);
+
+  if (itemsError) {
+    console.error("[useCollections] fetchCollectionNamesByLineageIds items failed", itemsError);
+    throw itemsError;
+  }
+
+  const result: Record<string, string[]> = {};
+  for (const item of items || []) {
+    if (!item.lineage_id) continue;
+    const name = nameById[item.collection_id];
+    if (!name) continue;
+    if (!result[item.lineage_id]) result[item.lineage_id] = [];
+    if (!result[item.lineage_id].includes(name)) {
+      result[item.lineage_id].push(name);
+    }
+  }
+
+  for (const names of Object.values(result)) {
+    names.sort((a, b) => a.localeCompare(b));
+  }
+
+  return result;
 }
 
 /**
@@ -426,7 +479,7 @@ export function useCollections() {
     }
   }, [user?.id]);
 
-  const addICPToCollection = useCallback(async (collectionId: string, icpId: string): Promise<boolean> => {
+  const addICPToCollection = useCallback(async (collectionId: string, lineageId: string): Promise<boolean> => {
     if (!user?.id) return false;
 
     // Skip if collection ID is temporary (wait for collection to be created first)
@@ -466,7 +519,7 @@ export function useCollections() {
     const op: PendingOp = {
       id: `op-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       type: "add_icp_to_collection",
-      payload: { collection_id: collectionId, icp_id: icpId },
+      payload: { collection_id: collectionId, lineage_id: lineageId },
       timestamp: Date.now(),
       retryCount: 0,
     };
@@ -474,13 +527,11 @@ export function useCollections() {
 
     // Then attempt Supabase mutation immediately
     try {
-      // Check if already exists
-      // IMPORTANT: collection_items does NOT have user_id column - only filter by collection_id and icp_id
       const { data: existing } = await supabase
         .from("collection_items")
         .select("*")
         .eq("collection_id", collectionId)
-        .eq("icp_id", icpId)
+        .eq("lineage_id", lineageId)
         .maybeSingle();
 
       if (existing) {
@@ -491,10 +542,9 @@ export function useCollections() {
         return true;
       }
 
-      // IMPORTANT: collection_items only has collection_id and icp_id - no user_id
       const { error: insertError } = await supabase
         .from("collection_items")
-        .insert([{ collection_id: collectionId, icp_id: icpId }]);
+        .insert([{ collection_id: collectionId, lineage_id: lineageId }]);
 
       if (insertError) throw insertError;
 
@@ -535,7 +585,7 @@ export function useCollections() {
     }
   }, [user?.id, fetchCollections]);
 
-  const removeICPFromCollection = useCallback(async (collectionId: string, icpId: string): Promise<boolean> => {
+  const removeICPFromCollection = useCallback(async (collectionId: string, lineageId: string): Promise<boolean> => {
     if (!user?.id) return false;
 
     // Optimistic update: update counts immediately
@@ -556,7 +606,7 @@ export function useCollections() {
     const op: PendingOp = {
       id: `op-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       type: "remove_icp_from_collection",
-      payload: { collection_id: collectionId, icp_id: icpId },
+      payload: { collection_id: collectionId, lineage_id: lineageId },
       timestamp: Date.now(),
       retryCount: 0,
     };
@@ -564,12 +614,11 @@ export function useCollections() {
 
     // Then attempt Supabase mutation immediately
     try {
-      // IMPORTANT: collection_items does NOT have user_id column - only filter by collection_id and icp_id
       const { error: deleteError } = await supabase
         .from("collection_items")
         .delete()
         .eq("collection_id", collectionId)
-        .eq("icp_id", icpId);
+        .eq("lineage_id", lineageId);
 
       if (deleteError) throw deleteError;
 
@@ -618,7 +667,7 @@ export function useCollections() {
       // IMPORTANT: collection_items does NOT have user_id column - only filter by collection_id
       let itemsQuery = supabase
         .from("collection_items")
-        .select("icp_id")
+        .select("lineage_id")
         .eq("collection_id", collectionId);
       
       const { data: items, error: itemsError } = await itemsQuery;
@@ -627,14 +676,15 @@ export function useCollections() {
 
       if (!items || items.length === 0) return [];
 
-      const icpIds = items.map((item) => item.icp_id);
+      const lineageIds = items.map((item) => item.lineage_id).filter(Boolean);
 
-      // Build ICP query with filters BEFORE select (join brands for brand name)
       let icpsQuery = supabase
         .from("icps")
         .select("*, brands(name)")
         .eq("user_id", user.id)
-        .in("id", icpIds);
+        .in("lineage_id", lineageIds);
+
+      icpsQuery = applyCurrentIcpFilter(icpsQuery);
       
       const { data: icps, error: icpsError } = await icpsQuery;
 

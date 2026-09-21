@@ -10,6 +10,12 @@ import {
   getPendingGuestLink,
   setPendingGuestLink,
 } from "../../utils/pendingGuestLink";
+import {
+  LegalAgreementCheckbox,
+} from "../legal/LegalAgreement";
+import { createLegalAcceptanceRecord } from "../../lib/legal";
+import { LegalAgreementRequiredModal } from "../legal/LegalAgreementRequiredModal";
+import { useLegalAgreementGate } from "../../hooks/useLegalAgreementGate";
 
 type FinishAccountModalProps = {
   isOpen: boolean;
@@ -47,6 +53,8 @@ export function FinishAccountModal({
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [legalAgreed, setLegalAgreed] = useState(true);
+  const { open: legalModalOpen, gate, closeModal, confirmAgreement } = useLegalAgreementGate();
   const [debugDetails, setDebugDetails] = useState<any>(null);
 
   const params = useMemo(() => new URLSearchParams(window.location.search), []);
@@ -189,7 +197,7 @@ export function FinishAccountModal({
 
   if (!isOpen) return null;
 
-  const handleSignup = async (e: React.FormEvent) => {
+  const handleSignup = (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
     setSuccess(null);
@@ -211,13 +219,28 @@ export function FinishAccountModal({
       return;
     }
 
+    gate(legalAgreed, () => void runSignup());
+  };
+
+  const runSignup = async () => {
+    if (!email) {
+      setFormError("Missing email.");
+      return;
+    }
+
+    const legal = createLegalAcceptanceRecord();
+
     setLoading(true);
     try {
       if (isAnonymous) {
         const { error: updateError } = await supabase.auth.updateUser({
-          email,
           password,
-          data: { name: name.trim() || null },
+          data: {
+            name: name.trim() || null,
+            terms_accepted_at: legal.terms_accepted_at,
+            privacy_accepted_at: legal.privacy_accepted_at,
+            legal_version: legal.legal_version,
+          },
         });
 
         if (updateError) {
@@ -231,6 +254,9 @@ export function FinishAccountModal({
             .update({
               email: email?.trim() || "",
               name: name.trim() || null,
+              terms_accepted_at: legal.terms_accepted_at,
+              privacy_accepted_at: legal.privacy_accepted_at,
+              legal_version: legal.legal_version,
             })
             .eq("id", user.id);
         }
@@ -247,7 +273,12 @@ export function FinishAccountModal({
         email,
         password,
         options: {
-          data: { name: name.trim() || null },
+          data: {
+            name: name.trim() || null,
+            terms_accepted_at: legal.terms_accepted_at,
+            privacy_accepted_at: legal.privacy_accepted_at,
+            legal_version: legal.legal_version,
+          },
           emailRedirectTo: `${window.location.origin}/auth/callback?next=/dashboard`,
         },
       });
@@ -392,6 +423,12 @@ export function FinishAccountModal({
   }
 
   return (
+    <>
+      <LegalAgreementRequiredModal
+        open={legalModalOpen}
+        onClose={closeModal}
+        onAgree={() => confirmAgreement(setLegalAgreed)}
+      />
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
       <div className="bg-background border border-black rounded-design shadow-2xl w-full max-w-md p-6">
         <div className="flex items-start justify-between gap-4 mb-4">
@@ -515,6 +552,13 @@ export function FinishAccountModal({
             <p className="text-sm text-button-green font-['Inter']">{success}</p>
           )}
 
+          <LegalAgreementCheckbox
+            id="finish-account-legal"
+            checked={legalAgreed}
+            onCheckedChange={setLegalAgreed}
+            disabled={loading}
+          />
+
           <Button
             type="submit"
             disabled={loading}
@@ -525,5 +569,6 @@ export function FinishAccountModal({
         </form>
       </div>
     </div>
+    </>
   );
 }

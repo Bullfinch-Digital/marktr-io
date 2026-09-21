@@ -12,14 +12,13 @@ AI-powered Ideal Customer Profile generation for your business.
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_ANON_KEY`
 - `VITE_STRIPE_PUBLISHABLE_KEY`
-- `VITE_STRIPE_PRICE_MONTHLY`
 - `VITE_STRIPE_PRICE_ANNUAL`
 - `VITE_TURNSTILE_SITE_KEY` (if used)
 - `VITE_AI_MOCK` (if used)
 - `VITE_BYPASS_PAYWALL` (if used)
 - `VITE_OPENAI_API_KEY` (note: should not be exposed client-side; planned to move server-side later)
 
-**Supabase Auth:** set **Site URL** to `https://icpgenerator.io` and allow redirect URL `https://icpgenerator.io/auth/callback` (and optionally `https://icpgenerator.io/*` during development).
+**Supabase Auth:** set **Site URL** to `https://marktr.io` and allow redirect URL `https://marktr.io/auth/callback` (and optionally `http://localhost:5173/**` for local development).
 
 
 ## Tech Stack
@@ -106,7 +105,7 @@ npm run preview
 - `/` - Homepage
 - `/pricing` - Pricing page
 - `/onboarding-build` - ICP generation flow (10 steps)
-- `/icp-results` - Results display
+- `/guest-dashboard` - Results display
 - `/dashboard` - Main dashboard
 - `/dashboard/icp/:id` - ICP editor
 - `/collections` - Collections grid

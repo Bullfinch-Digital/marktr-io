@@ -15,6 +15,7 @@ type CreateCheckoutInput = {
   successUrl: string;
   cancelUrl: string;
   customerEmail?: string;
+  email?: string;
   force?: boolean;
 };
 
@@ -80,13 +81,13 @@ Deno.serve(async (req) => {
 
     const body = (await req.json()) as CreateCheckoutInput;
     const force = Boolean(body?.force);
-    const customerEmail = body?.customerEmail?.trim() || null;
+    const customerEmail =
+      body?.customerEmail?.trim() || body?.email?.trim() || null;
     console.log("[create-checkout-session] received email", customerEmail ?? "(none)");
     const missingFields: string[] = [];
     if (!body?.priceId) missingFields.push("priceId");
     if (!body?.successUrl) missingFields.push("successUrl");
     if (!body?.cancelUrl) missingFields.push("cancelUrl");
-    if (!customerEmail) missingFields.push("customerEmail");
     if (missingFields.length) {
       return errorJson(
         { error: "Missing required fields", fields: missingFields },
@@ -342,7 +343,7 @@ Deno.serve(async (req) => {
         : {}),
       line_items: [{ price: body.priceId, quantity: 1 }],
       subscription_data: {
-        trial_period_days: 7,
+        trial_period_days: 14,
         metadata: userMetadata,
       },
       ...(user?.id ? { client_reference_id: user.id } : {}),
@@ -350,7 +351,9 @@ Deno.serve(async (req) => {
         price_id: body.priceId,
         ...userMetadata,
       },
-      payment_method_collection: "always",
+      // Promo field on Checkout; skip card when a 100%-off forever coupon zeroes the total.
+      allow_promotion_codes: true,
+      payment_method_collection: "if_required",
       success_url: successUrl,
       cancel_url: body.cancelUrl,
     });

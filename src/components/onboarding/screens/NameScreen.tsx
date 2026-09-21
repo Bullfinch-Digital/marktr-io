@@ -3,11 +3,12 @@ import { Input } from "../../ui/input";
 interface NameScreenProps {
   value: string;
   onChange: (value: string) => void;
+  onCommit?: (value: string) => void;
   onContinue: () => void;
   onBack: () => void;
 }
 
-export function NameScreen({ value, onChange, onContinue }: NameScreenProps) {
+export function NameScreen({ value, onChange, onCommit, onContinue }: NameScreenProps) {
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && value.trim()) {
       onContinue();
@@ -28,6 +29,7 @@ export function NameScreen({ value, onChange, onContinue }: NameScreenProps) {
           type="text"
           value={value}
           onChange={(e) => onChange(e.target.value)}
+          onBlur={() => onCommit?.(value.trim())}
           onKeyDown={handleKeyDown}
           placeholder="Enter your name"
           className="border border-black rounded-design px-4 py-6 bg-white text-foreground placeholder:text-foreground/40"

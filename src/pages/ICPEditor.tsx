@@ -9,11 +9,14 @@ import useSubscription from "../hooks/useSubscription";
 import { exportICPAsPDF } from "../utils/exportICP";
 import { canExportICP } from "../config/accessRules";
 import { usePaywall } from "../contexts/PaywallContext";
-import { useICPStrategy } from "../hooks/useICPStrategy";
+import { useAuth } from "../contexts/AuthContext";
 import DashboardShell from "../layouts/DashboardShell";
 import { ICPProfileLayout } from "../components/icp/ICPProfileLayout";
+import { IcpVersionHistorySection } from "../components/icp/IcpVersionHistorySection";
 import ICPColorModal from "../components/ICPColorModal";
 import ICPAvatarModal from "../components/ICPAvatarModal";
+import IcpArchiveModal from "../components/IcpArchiveModal";
+import { ARCHIVE_ACTION_TOOLTIP } from "../components/ArchiveActionTooltip";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,7 +25,11 @@ import {
   DropdownMenuTrigger,
 } from "../components/ui/dropdown-menu";
 import { getAvatarSrc } from "../utils/avatarLibrary";
-import { supabase } from "../config/supabase";
+import { EditableListSection } from "../components/EditableListSection";
+import {
+  buildStrategyLauncherIntent,
+  STRATEGY_LAUNCHER_STATE_KEY,
+} from "../lib/strategyLauncherState";
 import "../styles/Modal.css";
 import {
   ArrowLeft,
@@ -31,32 +38,22 @@ import {
   Download,
   FileText,
   Lock,
-  Plus,
-  X,
-  Pencil,
-  Check,
-  Trash2,
-  Undo2,
+  Archive,
   MoreVertical,
   Palette,
   Image as ImageIcon,
   FolderPlus,
+  Target,
 } from "lucide-react";
 
 export default function ICPEditor() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getICP, updateICP, duplicateICP } = useICPs();
+  const { user } = useAuth();
+  const { getICP, updateICP, duplicateICP, deleteICP } = useICPs();
   const { brands, isLoading: brandsLoading } = useBrands();
   const { tier: userTier, trialActive } = useSubscription();
   const { openPaywall } = usePaywall();
-  const {
-    strategy,
-    isLoading: strategyLoading,
-    isGenerating: strategyGenerating,
-    error: strategyError,
-    generateStrategy,
-  } = useICPStrategy(id);
   // Treat trial users as "pro" for export gating.
   const effectiveTier = userTier === "free" && !trialActive ? "free" : "pro";
   const isFreeTier = effectiveTier === "free";
@@ -98,14 +95,22 @@ export default function ICPEditor() {
 
   const [moveBrandOpen, setMoveBrandOpen] = useState(false);
   const [moveBrandId, setMoveBrandId] = useState<string | null>(null);
-  const [strategyGoal, setStrategyGoal] = useState("Generate qualified leads");
-  const [strategyChannel, setStrategyChannel] = useState("");
-  const [strategyOfferType, setStrategyOfferType] = useState("");
-  const [strategyTone, setStrategyTone] = useState("");
-  const [strategyBusinessStage, setStrategyBusinessStage] = useState("");
-  const [strategyMonthlyBudgetBand, setStrategyMonthlyBudgetBand] = useState("");
-  const [strategyObjectiveHorizon, setStrategyObjectiveHorizon] = useState("next_30_days");
-  const [strategyMarketingCapacity, setStrategyMarketingCapacity] = useState("");
+  const [archiveModalOpen, setArchiveModalOpen] = useState(false);
+  const [isArchiving, setIsArchiving] = useState(false);
+
+  const handleBuildStrategyForPersona = () => {
+    if (!id || !icpData.lineage_id) return;
+    navigate("/strategy", {
+      state: {
+        [STRATEGY_LAUNCHER_STATE_KEY]: buildStrategyLauncherIntent({
+          icpLineageId: icpData.lineage_id,
+          icpId: id,
+          icpName: icpData.name || "this persona",
+          brandId: ((icpData as { brand_id?: string | null }).brand_id ?? null),
+        }),
+      },
+    });
+  };
 
   useEffect(() => {
     const loadICP = async () => {
@@ -114,6 +119,10 @@ export default function ICPEditor() {
       if (!originalDataRef.current) setIsLoading(true);
       const icp = await getICP(id);
       if (icp) {
+        if (icp.id !== id) {
+          navigate(`/icp/${icp.id}`, { replace: true });
+          return;
+        }
         setICPData(icp);
         originalDataRef.current = icp;
         setIsDirty(false);
@@ -222,15 +231,19 @@ export default function ICPEditor() {
       opportunities: icpData.opportunities,
     };
 
-    const success = await updateICP(id, updates);
-    if (!success) {
+    const saved = await updateICP(id, updates);
+    if (!saved) {
       setSaveStatus("error");
       setTimeout(() => setSaveStatus("idle"), 3000);
       alert("Failed to save changes. Please try again.");
       setIsSaving(false);
       return false;
     }
-    originalDataRef.current = { ...icpData, ...updates };
+    if (saved.id !== id) {
+      navigate(`/icp/${saved.id}`, { replace: true });
+    }
+    setICPData(saved);
+    originalDataRef.current = saved;
     setIsDirty(false);
     setSaveStatus("saved");
     setTimeout(() => setSaveStatus("idle"), 3000);
@@ -335,23 +348,30 @@ export default function ICPEditor() {
     }
   };
 
-  const handleDelete = async () => {
+  const handleOpenArchiveModal = () => {
     if (!id) return;
     if (isFreeTier) {
       openPaywall();
       return;
     }
-    const ok = window.confirm("Are you sure you want to delete this ICP? This action cannot be undone.");
-    if (!ok) return;
+    setArchiveModalOpen(true);
+  };
+
+  const handleArchiveConfirm = async () => {
+    if (!id) return;
+    setIsArchiving(true);
     try {
-      const { error } = await supabase.from("icps").delete().eq("id", id);
-      if (error) throw error;
+      const ok = await deleteICP(id);
+      if (!ok) throw new Error("Archive failed");
+      setArchiveModalOpen(false);
       try {
         window.dispatchEvent(new Event("icps:changed"));
       } catch {}
       navigate("/icps");
     } catch (err) {
-      console.error("ICPEditor delete error:", err);
+      console.error("ICPEditor archive error:", err);
+    } finally {
+      setIsArchiving(false);
     }
   };
 
@@ -401,204 +421,6 @@ export default function ICPEditor() {
     try {
       window.dispatchEvent(new Event("icps:changed"));
     } catch {}
-  };
-
-  const EditableListSection = ({ 
-    title, 
-    items, 
-    isLocked = false,
-    onChange,
-  }: { 
-    title: string; 
-    items: string[]; 
-    isLocked?: boolean;
-    onChange?: (items: string[]) => void;
-  }) => {
-    const [localItems, setLocalItems] = useState(items);
-    const [newItem, setNewItem] = useState("");
-    const [editingIndex, setEditingIndex] = useState<number | null>(null);
-    const [editingText, setEditingText] = useState("");
-    const [history, setHistory] = useState<string[][]>([items]);
-    const [historyIndex, setHistoryIndex] = useState(0);
-    const [showUndo, setShowUndo] = useState(false);
-
-    // Keep local state in sync when parent data changes (e.g., navigating between ICPs)
-    useEffect(() => {
-      setLocalItems(items);
-      setHistory([items]);
-      setHistoryIndex(0);
-    }, [items]);
-
-    const saveToHistory = (newItems: string[]) => {
-      const newHistory = history.slice(0, historyIndex + 1);
-      newHistory.push(newItems);
-      setHistory(newHistory);
-      setHistoryIndex(newHistory.length - 1);
-      setLocalItems(newItems);
-      onChange?.(newItems);
-      
-      // Show undo button briefly
-      setShowUndo(true);
-      setTimeout(() => setShowUndo(false), 3000);
-    };
-
-    const handleUndo = () => {
-      if (historyIndex > 0) {
-        const newIndex = historyIndex - 1;
-        setHistoryIndex(newIndex);
-        setLocalItems(history[newIndex]);
-        setShowUndo(true);
-        setTimeout(() => setShowUndo(false), 3000);
-      }
-    };
-
-    const addItem = () => {
-      if (newItem.trim() && !isLocked) {
-        const newItems = [...localItems, newItem.trim()];
-        saveToHistory(newItems);
-        setNewItem("");
-      }
-    };
-
-    const removeItem = (index: number) => {
-      if (!isLocked) {
-        const newItems = localItems.filter((_, i) => i !== index);
-        saveToHistory(newItems);
-      }
-    };
-
-    const startEditing = (index: number, text: string) => {
-      if (!isLocked) {
-        setEditingIndex(index);
-        setEditingText(text);
-      }
-    };
-
-    const saveEdit = (index: number) => {
-      if (editingText.trim()) {
-        const updatedItems = [...localItems];
-        updatedItems[index] = editingText.trim();
-        saveToHistory(updatedItems);
-      }
-      setEditingIndex(null);
-      setEditingText("");
-    };
-
-    const cancelEdit = () => {
-      setEditingIndex(null);
-      setEditingText("");
-    };
-
-    return (
-      <div className={`relative ${isLocked ? 'opacity-60' : ''}`}>
-        {isLocked && (
-          <div className="absolute inset-0 bg-background/60 backdrop-blur-[2px] rounded-design z-10 flex items-center justify-center">
-            <Lock className="w-6 h-6 text-foreground/60" />
-          </div>
-        )}
-        
-        <h3 className="font-['Fraunces'] text-lg mb-3">{title}</h3>
-        
-        <ul className="space-y-2 mb-3">
-          {localItems.map((item, index) => (
-            <li key={index} className="flex items-start gap-2 group">
-              {editingIndex === index ? (
-                <>
-                  <Input
-                    type="text"
-                    value={editingText}
-                    onChange={(e) => setEditingText(e.target.value)}
-                    onKeyPress={(e) => {
-                      if (e.key === 'Enter') saveEdit(index);
-                      if (e.key === 'Escape') cancelEdit();
-                    }}
-                    className="flex-1 border-black rounded-design font-['Inter'] text-sm"
-                    autoFocus
-                  />
-                  <button
-                    onClick={() => saveEdit(index)}
-                    className="p-1 hover:bg-green-100 rounded transition-colors"
-                    title="Save"
-                  >
-                    <Check className="w-4 h-4 text-green-600" />
-                  </button>
-                  <button
-                    onClick={cancelEdit}
-                    className="p-1 hover:bg-red-100 rounded transition-colors"
-                    title="Cancel"
-                  >
-                    <X className="w-4 h-4 text-red-600" />
-                  </button>
-                </>
-              ) : (
-                <>
-                  <span 
-                    className="font-['Inter'] text-sm text-foreground/80 flex-1 cursor-pointer hover:text-foreground transition-colors py-1 px-2 -mx-2 rounded hover:bg-accent-grey/20"
-                    onClick={() => !isLocked && startEditing(index, item)}
-                    title={!isLocked ? "Click to edit" : ""}
-                  >
-                    • {item}
-                  </span>
-                  {!isLocked && (
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        onClick={() => startEditing(index, item)}
-                        className="p-1 hover:bg-blue-100 rounded transition-colors"
-                        title="Edit"
-                      >
-                        <Pencil className="w-3 h-3 text-blue-600" />
-                      </button>
-                      <button
-                        onClick={() => removeItem(index)}
-                        className="p-1 hover:bg-red-100 rounded transition-colors"
-                        title="Delete"
-                      >
-                        <Trash2 className="w-3 h-3 text-red-600" />
-                      </button>
-                    </div>
-                  )}
-                </>
-              )}
-            </li>
-          ))}
-        </ul>
-
-        {!isLocked && (
-          <div className="flex gap-2">
-            <Input
-              type="text"
-              value={newItem}
-              onChange={(e) => setNewItem(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && addItem()}
-              placeholder={`Add ${title.toLowerCase()}...`}
-              className="flex-1 border-black rounded-design font-['Inter'] text-sm"
-            />
-            <Button
-              onClick={addItem}
-              size="sm"
-              variant="outline"
-              className="border-black rounded-design px-3"
-            >
-              <Plus className="w-4 h-4" />
-            </Button>
-          </div>
-        )}
-
-        {showUndo && (
-          <div className="mt-2">
-            <Button
-              onClick={handleUndo}
-              size="sm"
-              variant="outline"
-              className="border-black rounded-design px-3"
-            >
-              <Undo2 className="w-4 h-4" />
-              Undo
-            </Button>
-          </div>
-        )}
-      </div>
-    );
   };
 
   // Show loading state (after hooks so hook order is consistent)
@@ -847,15 +669,17 @@ export default function ICPEditor() {
                         <DropdownMenuSeparator />
 
                         <DropdownMenuItem
-                          className="text-sm text-red-600 focus:text-red-600"
+                          className="text-sm"
+                          aria-label="Archive customer profile"
+                          title={ARCHIVE_ACTION_TOOLTIP}
                           onSelect={(e) => {
                             e.preventDefault();
                             (e as any).stopPropagation?.();
-                            handleDelete();
+                            handleOpenArchiveModal();
                           }}
                         >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Delete ICP
+                          <Archive className="h-4 w-4 mr-2" />
+                          Archive
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -970,7 +794,7 @@ export default function ICPEditor() {
                 <EditableListSection
                   title="Goals & Motivations"
                   items={icpData.goals || []}
-                  isLocked={isFreeTier}
+                  isLocked={false}
                   onChange={(items) => setICPData({ ...icpData, goals: items })}
                 />
               </div>
@@ -980,7 +804,7 @@ export default function ICPEditor() {
                 <EditableListSection
                   title="Pain Points"
                   items={icpData.pain_points || []}
-                  isLocked={isFreeTier}
+                  isLocked={false}
                   onChange={(items) => setICPData({ ...icpData, pain_points: items })}
                 />
               </div>
@@ -990,7 +814,7 @@ export default function ICPEditor() {
                 <EditableListSection
                   title="Decision Makers"
                   items={icpData.decision_makers || []}
-                  isLocked={isFreeTier}
+                  isLocked={false}
                   onChange={(items) => setICPData({ ...icpData, decision_makers: items })}
                 />
               </div>
@@ -1000,7 +824,7 @@ export default function ICPEditor() {
                 <EditableListSection
                   title="Digital Tools & Platforms"
                   items={icpData.tech_stack || []}
-                  isLocked={isFreeTier}
+                  isLocked={false}
                   onChange={(items) => setICPData({ ...icpData, tech_stack: items })}
                 />
               </div>
@@ -1010,7 +834,7 @@ export default function ICPEditor() {
                 <EditableListSection
                   title="Challenges"
                   items={icpData.challenges || []}
-                  isLocked={isFreeTier}
+                  isLocked={false}
                   onChange={(items) => setICPData({ ...icpData, challenges: items })}
                 />
               </div>
@@ -1020,337 +844,54 @@ export default function ICPEditor() {
                 <EditableListSection
                   title="Opportunities"
                   items={icpData.opportunities || []}
-                  isLocked={isFreeTier}
+                  isLocked={false}
                   onChange={(items) => setICPData({ ...icpData, opportunities: items })}
                 />
               </div>
 
             </div>
 
-            {/* Marketing Strategy */}
-            <div className="bg-[#F1F7FF]/60 border border-black rounded-design p-6 shadow-md animate-fade-in-up delay-[400ms]">
-                <h3 className="font-['Fraunces'] text-xl mb-2">Marketing Strategy</h3>
-                {isFreeTier ? (
-                  <div className="relative">
-                    <div className="space-y-4 blur-sm pointer-events-none select-none">
-                      <div className="border border-black rounded-design p-4 bg-white">
-                        <h4 className="font-['Fraunces'] text-lg mb-2">Positioning</h4>
-                        <p className="text-sm font-['Inter'] text-foreground/80">
-                          Your ICP positioning, messaging and differentiators will appear here.
-                        </p>
-                      </div>
+            {icpData.lineage_id && id && user?.id ? (
+              <IcpVersionHistorySection
+                lineageId={icpData.lineage_id}
+                currentIcpId={id}
+                userId={user.id}
+                disabled={isFreeTier}
+                onVersionRestored={(newIcp) => {
+                  setICPData(newIcp);
+                  originalDataRef.current = newIcp;
+                  setIsDirty(false);
+                  setSaveStatus("idle");
+                  navigate(`/icp/${newIcp.id}`, { replace: true });
+                  try {
+                    window.dispatchEvent(new Event("icps:changed"));
+                  } catch {}
+                }}
+              />
+            ) : null}
 
-                      <div className="border border-black rounded-design p-4 bg-white">
-                        <h4 className="font-['Fraunces'] text-lg mb-2">Campaign Ideas</h4>
-                        <p className="text-sm font-['Inter'] text-foreground/80">
-                          Ready-to-use campaign hooks, angles and CTAs tailored to this ICP.
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6">
-                      <h4 className="font-['Fraunces'] text-lg mb-2">
-                        Unlock your marketing strategy
-                      </h4>
-                      <p className="text-sm font-['Inter'] text-foreground/70 mb-4 max-w-sm">
-                        Generate positioning, messaging, campaigns and ad ideas tailored to this ICP.
-                      </p>
-                      <Button
-                        className="bg-button-green hover:bg-button-green/90 text-foreground border border-black rounded-design px-6 py-3"
-                        onClick={() => openPaywall()}
-                      >
-                        Start your FREE 7-day trial
-                      </Button>
-                    </div>
-                  </div>
-                ) : strategyLoading ? (
-                  <p className="text-sm text-foreground/60 font-['Inter']">Loading strategy…</p>
-                ) : strategy ? (
-                  <div className="space-y-4">
-                    <div className="border border-black rounded-design p-4 bg-white">
-                      <h4 className="font-['Fraunces'] text-lg mb-2">Positioning</h4>
-                      <p className="text-sm font-['Inter'] text-foreground/80">
-                        <span className="font-semibold">One-liner:</span> {strategy.positioning?.one_liner}
-                      </p>
-                      <p className="text-sm font-['Inter'] text-foreground/80 mt-2">
-                        <span className="font-semibold">Why us:</span> {strategy.positioning?.why_us}
-                      </p>
-                      <ul className="list-disc list-inside text-sm text-foreground/80 font-['Inter'] mt-2 space-y-1">
-                        {(strategy.positioning?.differentiators || []).map((item, index) => (
-                          <li key={`diff-${index}`}>{item}</li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    <div className="border border-black rounded-design p-4 bg-white">
-                      <h4 className="font-['Fraunces'] text-lg mb-2">Messaging</h4>
-                      <p className="text-xs font-['Inter'] text-foreground/60 mb-1">Value props</p>
-                      <ul className="list-disc list-inside text-sm text-foreground/80 font-['Inter'] space-y-1">
-                        {(strategy.messaging?.value_props || []).map((item, index) => (
-                          <li key={`vp-${index}`}>{item}</li>
-                        ))}
-                      </ul>
-                      <p className="text-xs font-['Inter'] text-foreground/60 mb-1 mt-3">Pain to promise</p>
-                      <ul className="list-disc list-inside text-sm text-foreground/80 font-['Inter'] space-y-1">
-                        {(strategy.messaging?.pain_to_promise || []).map((item, index) => (
-                          <li key={`ptp-${index}`}>{item}</li>
-                        ))}
-                      </ul>
-                      <p className="text-xs font-['Inter'] text-foreground/60 mb-1 mt-3">Objections & rebuttals</p>
-                      <ul className="list-disc list-inside text-sm text-foreground/80 font-['Inter'] space-y-1">
-                        {(strategy.messaging?.objections_and_rebuttals || []).map((item, index) => (
-                          <li key={`obr-${index}`}>{item}</li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    <div className="border border-black rounded-design p-4 bg-white">
-                      <h4 className="font-['Fraunces'] text-lg mb-2">Campaign ideas</h4>
-                      <div className="space-y-3">
-                        {(strategy.campaign_ideas || []).map((idea, index) => (
-                          <div key={`campaign-${index}`} className="border border-black/10 rounded-design p-3 bg-white">
-                            <p className="text-sm font-['Inter'] text-foreground/80">
-                              <span className="font-semibold">{idea.name}:</span> {idea.hook}
-                            </p>
-                            <p className="text-sm font-['Inter'] text-foreground/70 mt-1">{idea.angle}</p>
-                            <p className="text-sm font-['Inter'] text-foreground/70 mt-1">CTA: {idea.cta}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="border border-black rounded-design p-4 bg-white">
-                        <h4 className="font-['Fraunces'] text-lg mb-2">Channel plan</h4>
-                        <p className="text-sm font-['Inter'] text-foreground/80">
-                          <span className="font-semibold">Primary:</span> {strategy.channel_plan?.primary_channel}
-                        </p>
-                        <p className="text-xs font-['Inter'] text-foreground/60 mb-1 mt-2">Secondary</p>
-                        <ul className="list-disc list-inside text-sm text-foreground/80 font-['Inter'] space-y-1">
-                          {(strategy.channel_plan?.secondary_channels || []).map((item, index) => (
-                            <li key={`secondary-${index}`}>{item}</li>
-                          ))}
-                        </ul>
-                        <p className="text-xs font-['Inter'] text-foreground/60 mb-1 mt-3">First 14 days</p>
-                        <ul className="list-disc list-inside text-sm text-foreground/80 font-['Inter'] space-y-1">
-                          {(strategy.channel_plan?.first_14_days || []).map((item, index) => (
-                            <li key={`first14-${index}`}>{item}</li>
-                          ))}
-                        </ul>
-                      </div>
-
-                      <div className="border border-black rounded-design p-4 bg-white">
-                        <h4 className="font-['Fraunces'] text-lg mb-2">Offer</h4>
-                        <p className="text-sm font-['Inter'] text-foreground/80">
-                          <span className="font-semibold">Recommended:</span> {strategy.offer?.recommended_offer}
-                        </p>
-                        <p className="text-sm font-['Inter'] text-foreground/80 mt-2">
-                          <span className="font-semibold">Lead magnet:</span>{" "}
-                          {strategy.offer?.lead_magnet_idea || "—"}
-                        </p>
-                        <p className="text-xs font-['Inter'] text-foreground/60 mb-1 mt-3">Landing page sections</p>
-                        <ul className="list-disc list-inside text-sm text-foreground/80 font-['Inter'] space-y-1">
-                          {(strategy.offer?.landing_page_sections || []).map((item, index) => (
-                            <li key={`landing-${index}`}>{item}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="border border-black rounded-design p-4 bg-white">
-                        <h4 className="font-['Fraunces'] text-lg mb-2">Ad assets</h4>
-                        {strategy.ad_assets ? (
-                          <>
-                            <p className="text-xs font-['Inter'] text-foreground/60 mb-1">Headlines</p>
-                            <ul className="list-disc list-inside text-sm text-foreground/80 font-['Inter'] space-y-1">
-                              {(strategy.ad_assets?.headlines || []).map((item, index) => (
-                                <li key={`headline-${index}`}>{item}</li>
-                              ))}
-                            </ul>
-                            <p className="text-xs font-['Inter'] text-foreground/60 mb-1 mt-3">Primary text</p>
-                            <ul className="list-disc list-inside text-sm text-foreground/80 font-['Inter'] space-y-1">
-                              {(strategy.ad_assets?.primary_texts || []).map((item, index) => (
-                                <li key={`primary-${index}`}>{item}</li>
-                              ))}
-                            </ul>
-                            <p className="text-xs font-['Inter'] text-foreground/60 mb-1 mt-3">Creative briefs</p>
-                            <ul className="list-disc list-inside text-sm text-foreground/80 font-['Inter'] space-y-1">
-                              {(strategy.ad_assets?.creative_briefs || []).map((item, index) => (
-                                <li key={`brief-${index}`}>{item}</li>
-                              ))}
-                            </ul>
-                          </>
-                        ) : (
-                          <p className="text-sm font-['Inter'] text-foreground/60">Not included</p>
-                        )}
-                      </div>
-
-                      <div className="border border-black rounded-design p-4 bg-white">
-                        <h4 className="font-['Fraunces'] text-lg mb-2">Success metrics</h4>
-                        <p className="text-xs font-['Inter'] text-foreground/60 mb-1">KPIs</p>
-                        <ul className="list-disc list-inside text-sm text-foreground/80 font-['Inter'] space-y-1">
-                          {(strategy.success_metrics?.kpis || []).map((item, index) => (
-                            <li key={`kpi-${index}`}>{item}</li>
-                          ))}
-                        </ul>
-                        <p className="text-xs font-['Inter'] text-foreground/60 mb-1 mt-3">Targets</p>
-                        <ul className="list-disc list-inside text-sm text-foreground/80 font-['Inter'] space-y-1">
-                          {(strategy.success_metrics?.targets || []).map((item, index) => (
-                            <li key={`target-${index}`}>{item}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="border border-black rounded-design p-4 bg-white">
-                    <p className="text-sm font-['Inter'] text-foreground/70 mb-4">
-                      Generate a tailored marketing strategy for this ICP.
-                    </p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-xs font-['Inter'] text-foreground/60 mb-1">Goal</p>
-                        <select
-                          value={strategyGoal}
-                          onChange={(e) => setStrategyGoal(e.target.value)}
-                          className="w-full border border-black rounded-design px-4 py-3 bg-white font-['Inter'] text-foreground"
-                        >
-                          <option value="Generate qualified leads">Generate qualified leads</option>
-                          <option value="Increase conversions">Increase conversions</option>
-                          <option value="Launch a new offer">Launch a new offer</option>
-                          <option value="Improve retention">Improve retention</option>
-                        </select>
-                      </div>
-                      <div>
-                        <p className="text-xs font-['Inter'] text-foreground/60 mb-1">Channel (optional)</p>
-                        <select
-                          value={strategyChannel}
-                          onChange={(e) => setStrategyChannel(e.target.value)}
-                          className="w-full border border-black rounded-design px-4 py-3 bg-white font-['Inter'] text-foreground"
-                        >
-                          <option value="">No preference</option>
-                          <option value="Paid social">Paid social</option>
-                          <option value="Search">Search</option>
-                          <option value="LinkedIn organic">LinkedIn organic</option>
-                          <option value="Email">Email</option>
-                          <option value="Content">Content</option>
-                        </select>
-                      </div>
-                      <div>
-                        <p className="text-xs font-['Inter'] text-foreground/60 mb-1">Offer type (optional)</p>
-                        <select
-                          value={strategyOfferType}
-                          onChange={(e) => setStrategyOfferType(e.target.value)}
-                          className="w-full border border-black rounded-design px-4 py-3 bg-white font-['Inter'] text-foreground"
-                        >
-                          <option value="">No preference</option>
-                          <option value="Audit">Audit</option>
-                          <option value="Consultation">Consultation</option>
-                          <option value="Demo">Demo</option>
-                          <option value="Free trial">Free trial</option>
-                          <option value="Download">Download</option>
-                        </select>
-                      </div>
-                      <div>
-                        <p className="text-xs font-['Inter'] text-foreground/60 mb-1">Tone (optional)</p>
-                        <select
-                          value={strategyTone}
-                          onChange={(e) => setStrategyTone(e.target.value)}
-                          className="w-full border border-black rounded-design px-4 py-3 bg-white font-['Inter'] text-foreground"
-                        >
-                          <option value="">No preference</option>
-                          <option value="Direct">Direct</option>
-                          <option value="Friendly">Friendly</option>
-                          <option value="Premium">Premium</option>
-                          <option value="Educational">Educational</option>
-                        </select>
-                      </div>
-                      <div>
-                        <p className="text-xs font-['Inter'] text-foreground/60 mb-1">Business stage / size</p>
-                        <select
-                          value={strategyBusinessStage}
-                          onChange={(e) => setStrategyBusinessStage(e.target.value)}
-                          className="w-full border border-black rounded-design px-4 py-3 bg-white font-['Inter'] text-foreground"
-                        >
-                          <option value="">Not specified</option>
-                          <option value="Solo founder">Solo founder</option>
-                          <option value="Small team (2-10)">Small team (2-10)</option>
-                          <option value="Growing business (11-50)">Growing business (11-50)</option>
-                          <option value="Established business (50+)">Established business (50+)</option>
-                        </select>
-                      </div>
-                      <div>
-                        <p className="text-xs font-['Inter'] text-foreground/60 mb-1">Monthly marketing budget</p>
-                        <select
-                          value={strategyMonthlyBudgetBand}
-                          onChange={(e) => setStrategyMonthlyBudgetBand(e.target.value)}
-                          className="w-full border border-black rounded-design px-4 py-3 bg-white font-['Inter'] text-foreground"
-                        >
-                          <option value="">Not specified</option>
-                          <option value="£0-500">£0-500</option>
-                          <option value="£500-2,000">£500-2,000</option>
-                          <option value="£2,000-10,000">£2,000-10,000</option>
-                          <option value="£10,000+">£10,000+</option>
-                        </select>
-                      </div>
-                      <div>
-                        <p className="text-xs font-['Inter'] text-foreground/60 mb-1">Primary objective horizon</p>
-                        <select
-                          value={strategyObjectiveHorizon}
-                          onChange={(e) => setStrategyObjectiveHorizon(e.target.value)}
-                          className="w-full border border-black rounded-design px-4 py-3 bg-white font-['Inter'] text-foreground"
-                        >
-                          <option value="next_30_days">Next 30 days</option>
-                          <option value="next_quarter">Next quarter</option>
-                          <option value="next_6_months">Next 6 months</option>
-                          <option value="next_12_months">Next 12 months</option>
-                        </select>
-                      </div>
-                      <div>
-                        <p className="text-xs font-['Inter'] text-foreground/60 mb-1">Weekly marketing capacity</p>
-                        <select
-                          value={strategyMarketingCapacity}
-                          onChange={(e) => setStrategyMarketingCapacity(e.target.value)}
-                          className="w-full border border-black rounded-design px-4 py-3 bg-white font-['Inter'] text-foreground"
-                        >
-                          <option value="">Not specified</option>
-                          <option value="1-3 hours/week">1-3 hours/week</option>
-                          <option value="4-7 hours/week">4-7 hours/week</option>
-                          <option value="8-15 hours/week">8-15 hours/week</option>
-                          <option value="16+ hours/week">16+ hours/week</option>
-                        </select>
-                      </div>
-                    </div>
-                    {strategyError && (
-                      <p className="text-xs font-['Inter'] text-red-600 mt-3">
-                        {strategyError}
-                      </p>
-                    )}
-                    <div className="mt-4">
-                      <Button
-                        onClick={() =>
-                          generateStrategy({
-                            goal: strategyGoal,
-                            channel: strategyChannel || null,
-                            offerType: strategyOfferType || null,
-                            tone: strategyTone || null,
-                            businessStage: strategyBusinessStage || null,
-                            monthlyBudgetBand: strategyMonthlyBudgetBand || null,
-                            objectiveHorizon: strategyObjectiveHorizon || null,
-                            marketingCapacity: strategyMarketingCapacity || null,
-                          })
-                        }
-                        disabled={strategyGenerating || !strategyGoal}
-                        className="bg-button-green hover:bg-button-green/90 text-foreground border border-black rounded-design px-6 py-3"
-                      >
-                        {strategyGenerating ? "Generating…" : "Generate Strategy"}
-                      </Button>
-                    </div>
-                  </div>
-                )}
+            <div className="border-t border-black/10 pt-4 mt-2">
+              <div className="rounded-design border border-black/15 bg-accent-grey/15 px-4 py-4 flex flex-wrap items-center justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="font-['Fraunces'] text-lg text-[#0D1833]">Strategy</p>
+                  <p className="font-['Inter'] text-sm text-foreground/65 mt-1 max-w-xl">
+                    Strategies live in the Strategy pillar — build one for this persona there, then refine
+                    through edits and version history.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="border-black rounded-design gap-2 shrink-0"
+                  disabled={!icpData.lineage_id || !id}
+                  onClick={handleBuildStrategyForPersona}
+                >
+                  <Target className="h-4 w-4" />
+                  Build a strategy for this persona
+                </Button>
               </div>
             </div>
+          </div>
         }
         footerCta={
           effectiveTier === "free" ? (
@@ -1472,6 +1013,15 @@ export default function ICPEditor() {
           </div>
         </div>
       )}
+
+      <IcpArchiveModal
+        isOpen={archiveModalOpen}
+        isArchiving={isArchiving}
+        onClose={() => {
+          if (!isArchiving) setArchiveModalOpen(false);
+        }}
+        onConfirm={() => void handleArchiveConfirm()}
+      />
     </DashboardShell>
   );
 }

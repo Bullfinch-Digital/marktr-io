@@ -4,6 +4,7 @@ import { ArrowLeft, Home } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { ProgressBar } from "../components/onboarding/ProgressBar";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
+import { AlreadyCompletedPrompt } from "../components/AlreadyCompletedPrompt";
 import { useICPs } from "../hooks/useICPs";
 import useSubscription from "../hooks/useSubscription";
 import { canCreateICP } from "../config/accessRules";
@@ -11,8 +12,25 @@ import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../config/supabase";
 import { setLastGenerated } from "../lib/ai/generatedStore";
 import { setGuestICPs } from "../lib/guestICP";
-import { upsertOnboardingLead } from "../lib/leadCapture";
+import { captureGuestLeadOnce, isTurnstileConfigured } from "../lib/leadCapture";
 import { clearGuestBrandSeed, getGuestBrandSeed, setGuestBrandSeed } from "../lib/guestBrandSeed";
+import {
+  getGuestContext,
+  getGuestIdentityEmail,
+  getGuestIdentityName,
+  isGuestLeadCaptured,
+  updateGuestContext,
+} from "../lib/guestContext";
+import { resolveBrandIdForIcpWrite } from "../lib/icpBrandAttach";
+import {
+  countCurrentIcpsForBrand,
+  formatIcpCapBlockMessage,
+  formatIcpNudgeMessage,
+  setPendingIcpRegenerateNudge,
+  shouldShowIcpNudge,
+  wouldExceedIcpCap,
+} from "../lib/icpPersonaCap";
+import { applyCurrentIcpFilter, newGenerationId } from "../lib/icpVersioning";
 import {
   WelcomeScreen,
   NameScreen,
@@ -25,6 +43,8 @@ import {
   EmailCaptureScreen,
   LoadingScreen
 } from "../components/onboarding/screens";
+import { LegalAgreementRequiredModal } from "../components/legal/LegalAgreementRequiredModal";
+import { useLegalAgreementGate } from "../hooks/useLegalAgreementGate";
 
 type Step = 
   | "1_Welcome"
@@ -71,13 +91,22 @@ export default function OnboardingBuild() {
   const { icps, isLoading: icpsLoading } = useICPs();
   const { tier: userTier, effectiveTier, loading: subscriptionLoading } = useSubscription();
   const { user, loading: authLoading } = useAuth();
+  const isLoggedIn = Boolean(user && !(user as { is_anonymous?: boolean }).is_anonymous);
   const anonInitRef = useRef(false);
   const [leadToken, setLeadToken] = useState<string | null>(null);
-  const turnstileConfigured = Boolean((import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined)?.trim());
+  const [legalAgreed, setLegalAgreed] = useState(true);
+  const { open: legalModalOpen, gate, closeModal, confirmAgreement } = useLegalAgreementGate();
+  const turnstileConfigured = isTurnstileConfigured();
   const [currentStep, setCurrentStep] = useState<Step>("1_Welcome");
-  const hasRunRef = useRef(false);
+  const [existingIcpRun, setExistingIcpRun] = useState<{ id: string; created_at: string } | null>(
+    null
+  );
+  const [icpPromptDismissed, setIcpPromptDismissed] = useState(false);
   const hasPersistedRef = useRef(false);
   const unsavedPreviewRef = useRef(false);
+  /** Input fingerprint for the last successful generate-icps run (not cleared on loading re-entry). */
+  const completedGenerationKeyRef = useRef<string | null>(null);
+  const generationInFlightKeyRef = useRef<string | null>(null);
   const [formData, setFormData] = useState<FormData>({
     name: "",
     brandName: "",
@@ -92,6 +121,86 @@ export default function OnboardingBuild() {
     currency: "GBP",
     email: "",
   });
+  const [storyPrefilled, setStoryPrefilled] = useState({
+    businessDescription: false,
+    customAudience: false,
+  });
+
+  useEffect(() => {
+    const ctx = getGuestContext();
+    const { business } = ctx;
+    const prefilled = { businessDescription: false, customAudience: false };
+
+    setFormData((prev) => {
+      const next = { ...prev };
+
+      if (!prev.name.trim() && ctx.identity.name?.trim()) {
+        next.name = ctx.identity.name.trim();
+      }
+      if (!prev.email.trim() && ctx.identity.email?.trim()) {
+        next.email = ctx.identity.email.trim();
+      }
+      if (!prev.brandName.trim() && business.businessName?.trim()) {
+        next.brandName = business.businessName.trim();
+      }
+      if (!prev.businessDescription.trim() && business.whatYouDo?.trim()) {
+        next.businessDescription = business.whatYouDo.trim();
+        prefilled.businessDescription = true;
+      }
+      if (
+        !prev.customAudience.trim() &&
+        prev.assumedAudience.length === 0 &&
+        business.bestCustomer?.trim()
+      ) {
+        next.customAudience = business.bestCustomer.trim();
+        prefilled.customAudience = true;
+      }
+
+      return next;
+    });
+
+    setStoryPrefilled(prefilled);
+  }, []);
+
+  const shouldSkipStep = useCallback(
+    (step: Step): boolean => {
+      const ctx = getGuestContext();
+      if (step === "2_Name" && (ctx.identity.name?.trim() || formData.name.trim())) {
+        return true;
+      }
+      if (step === "3_BrandName" && (ctx.business.businessName?.trim() || formData.brandName.trim())) {
+        return true;
+      }
+      if (
+        step === "9_EmailCapture" &&
+        (isLoggedIn || ctx.identity.email?.trim() || formData.email.trim())
+      ) {
+        return true;
+      }
+      return false;
+    },
+    [formData.brandName, formData.email, formData.name, isLoggedIn]
+  );
+
+  const resolveStepIndex = useCallback(
+    (fromIndex: number, direction: 1 | -1): number => {
+      let index = fromIndex + direction;
+      while (index >= 0 && index < STEPS.length) {
+        const step = STEPS[index]!;
+        if (direction === 1 && shouldSkipStep(step)) {
+          index += direction;
+          continue;
+        }
+        if (direction === -1 && shouldSkipStep(step)) {
+          index += direction;
+          continue;
+        }
+        break;
+      }
+      return Math.max(0, Math.min(STEPS.length - 1, index));
+    },
+    [shouldSkipStep]
+  );
 
   useEffect(() => {
     if (anonInitRef.current) return;
@@ -103,56 +212,96 @@ export default function OnboardingBuild() {
     });
   }, [authLoading, user]);
 
+  useEffect(() => {
+    if (!isLoggedIn || !user?.id) {
+      setExistingIcpRun(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    void applyCurrentIcpFilter(
+      supabase
+        .from("icps")
+        .select("generation_id, created_at")
+        .eq("user_id", user.id)
+    )
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!cancelled) {
+          setExistingIcpRun(
+            data?.generation_id && data?.created_at
+              ? { id: data.generation_id, created_at: data.created_at }
+              : null
+          );
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isLoggedIn, user?.id]);
+
   const captureLead = useCallback(
     async (email: string, token: string | null) => {
-      const trimmed = email?.trim();
+      const trimmed = email?.trim() || getGuestIdentityEmail();
       if (!trimmed) return;
-      try {
-        await upsertOnboardingLead(trimmed, {
-          source: "onboarding",
-          userId: user?.id ?? null,
-          token,
-          name: formData.name,
-          metadata: {},
-        });
-      } catch {
-        // best-effort; silently ignore
+
+      if (!isLoggedIn && !token && !isGuestLeadCaptured()) {
+        return;
       }
+
+      await captureGuestLeadOnce({
+        email: trimmed,
+        source: "onboarding",
+        userId: user?.id ?? null,
+        token: isLoggedIn ? null : token,
+        name: formData.name.trim() || getGuestIdentityName() || null,
+      });
     },
-    [user?.id, formData.name]
+    [user?.id, formData.name, isLoggedIn]
   );
 
   const currentStepIndex = STEPS.indexOf(currentStep);
-  const showBackButton = currentStepIndex > 1 && currentStep !== "10_Loading"; // Show back button after step 2, hide on ICP carousel
+  // Layout-only Back (screens do not render onBack). From 2_Name → welcome; loading has no Back.
+  const showBackButton = currentStepIndex > 0 && currentStep !== "10_Loading";
   const showProgressBar = currentStep !== "10_Loading";
 
+  const emailToUse = isLoggedIn
+    ? user?.email?.trim() ?? ""
+    : formData.email.trim() || getGuestIdentityEmail() || "";
+
   const handleNext = () => {
-    const nextIndex = currentStepIndex + 1;
+    if (currentStep === "2_Name" && formData.name.trim()) {
+      updateGuestContext({ identity: { name: formData.name.trim() } });
+    }
+    let nextIndex = resolveStepIndex(currentStepIndex, 1);
     if (nextIndex < STEPS.length) {
-      setCurrentStep(STEPS[nextIndex]);
+      const nextStep = STEPS[nextIndex]!;
+      if (
+        currentStep === "8_GeographyCurrency" &&
+        nextStep === "10_Loading"
+      ) {
+        if (isLoggedIn || isGuestLeadCaptured() || leadToken) {
+          void captureLead(emailToUse, isLoggedIn ? null : leadToken);
+        }
+      }
+      setCurrentStep(nextStep);
     }
   };
 
-  // Reset guard whenever we enter the loading step to ensure pipeline runs
-  useEffect(() => {
-    if (currentStep === "10_Loading") {
-      hasRunRef.current = false;
-      hasPersistedRef.current = false;
-      unsavedPreviewRef.current = false;
-      console.debug("[Onboarding] reset hasRunRef for Loading step");
-    }
-  }, [currentStep]);
-
   const handleBack = () => {
-    const prevIndex = currentStepIndex - 1;
+    const prevIndex = resolveStepIndex(currentStepIndex, -1);
     if (prevIndex >= 0) {
-      setCurrentStep(STEPS[prevIndex]);
+      setCurrentStep(STEPS[prevIndex]!);
     }
   };
 
   const handleLoadingComplete = () => {
     // Navigate to dedicated ICP Results page after loading
-    navigate("/icp-results", { state: { unsavedPreview: unsavedPreviewRef.current } });
+    navigate("/guest-dashboard", { state: { unsavedPreview: unsavedPreviewRef.current } });
   };
 
   // Only evaluate create limits once BOTH subscription + ICPs have finished loading.
@@ -166,7 +315,7 @@ export default function OnboardingBuild() {
 
   useEffect(() => {
     // Only enforce ICP creation limits for logged-in users.
-    if (!user?.id) return;
+    if (!isLoggedIn) return;
     if (icpsLoading) return;
     if (subscriptionLoading) return;
     if (!icps) return;
@@ -195,6 +344,7 @@ export default function OnboardingBuild() {
 
     const desiredNameRaw =
       (formData.brandName || "").trim() ||
+      getGuestContext().business.businessName?.trim() ||
       (getGuestBrandSeed()?.brandName || "").trim();
 
     if (!desiredNameRaw) return null;
@@ -285,16 +435,62 @@ export default function OnboardingBuild() {
     }
   }, [user?.id, formData]);
 
+  const buildGenerationInputKey = useCallback(() => {
+    return JSON.stringify({
+      name: formData.name.trim(),
+      brandName: formData.brandName.trim(),
+      businessDescription: formData.businessDescription.trim(),
+      productOrService: formData.productOrService.trim(),
+      businessType: formData.businessType,
+      assumedAudience: [...formData.assumedAudience].sort(),
+      customAudience: formData.customAudience.trim(),
+      marketingChannels: [...formData.marketingChannels].sort(),
+      country: formData.country.trim(),
+      regionOrCity: formData.regionOrCity.trim(),
+      currency: formData.currency.trim(),
+      email: emailToUse.trim(),
+    });
+  }, [formData, emailToUse]);
+
   // Option B: run pipeline on Loading screen mount
   const runIcpGeneration = useCallback(async () => {
-    // Guard against double-run (React StrictMode can mount/unmount in dev)
-    if (hasRunRef.current) {
-      console.warn("[Onboarding] runIcpGeneration blocked by hasRunRef guard");
+    const inputKey = buildGenerationInputKey();
+
+    if (completedGenerationKeyRef.current === inputKey) {
+      console.debug("[Onboarding] skip generate-icps — already completed for this input");
       return;
     }
-    hasRunRef.current = true;
+    if (generationInFlightKeyRef.current === inputKey) {
+      console.debug("[Onboarding] skip generate-icps — already in flight for this input");
+      return;
+    }
+
+    generationInFlightKeyRef.current = inputKey;
+    if (completedGenerationKeyRef.current !== inputKey) {
+      hasPersistedRef.current = false;
+    }
+
+    try {
     console.log("[Onboarding] runIcpGeneration start");
     console.debug("[Onboarding] importing pipeline…");
+
+    if (isLoggedIn && user?.id) {
+      try {
+        const ensuredBrandId = await ensureBrandForAuthenticatedOnboarding();
+        if (ensuredBrandId) {
+          const currentCount = await countCurrentIcpsForBrand(user.id, ensuredBrandId);
+          setPendingIcpRegenerateNudge(
+            shouldShowIcpNudge(currentCount) ? formatIcpNudgeMessage(currentCount) : null
+          );
+        } else {
+          setPendingIcpRegenerateNudge(null);
+        }
+      } catch {
+        setPendingIcpRegenerateNudge(null);
+      }
+    } else {
+      setPendingIcpRegenerateNudge(null);
+    }
 
     const { generateICPs } = await import("../lib/ai/pipeline");
     console.debug("[Onboarding] calling generateICPs…");
@@ -336,6 +532,15 @@ export default function OnboardingBuild() {
       currency: formData.currency,
       created_at: new Date().toISOString(),
     });
+    updateGuestContext({
+      identity: {
+        name: formData.name.trim() || undefined,
+        email: emailToUse || undefined,
+      },
+      business: {
+        businessName: formData.brandName.trim() || undefined,
+      },
+    });
 
     // Only save if:
     // - not at limit
@@ -354,7 +559,7 @@ export default function OnboardingBuild() {
       let insertedRows: Array<{ id: string; created_at: string; user_id: string; name: string }> = [];
 
       const canInsert =
-        user?.id && Array.isArray(result.icps) && result.icps.length > 0;
+        isLoggedIn && user?.id && Array.isArray(result.icps) && result.icps.length > 0;
 
       if (canInsert) {
         if (hasPersistedRef.current) {
@@ -366,14 +571,31 @@ export default function OnboardingBuild() {
           // and use it to allocate the new ICPs.
           let resolvedBrandId: string | null = null;
           try {
-            resolvedBrandId = await ensureBrandForAuthenticatedOnboarding();
+            const ensuredBrandId = await ensureBrandForAuthenticatedOnboarding();
+            resolvedBrandId = await resolveBrandIdForIcpWrite(user.id, ensuredBrandId);
           } catch (err) {
-            if (import.meta.env.DEV) {
-              console.warn("[Onboarding] ensureBrandForAuthenticatedOnboarding error", err);
-            }
+            console.error("[Onboarding] brand resolution failed — skipping ICP insert", err);
+            hasPersistedRef.current = false;
           }
 
+          if (resolvedBrandId) {
+          const brandName = formData.brandName.trim() || "this brand";
+          const batchSize = Array.isArray(result.icps) ? result.icps.length : 0;
+          let currentCount = 0;
+          try {
+            currentCount = await countCurrentIcpsForBrand(user.id, resolvedBrandId);
+          } catch (countErr) {
+            console.error("[Onboarding] current ICP count failed", countErr);
+            hasPersistedRef.current = false;
+            currentCount = -1;
+          }
+
+          if (currentCount >= 0 && wouldExceedIcpCap(currentCount, batchSize)) {
+            alert(formatIcpCapBlockMessage(brandName));
+            hasPersistedRef.current = false;
+          } else if (currentCount >= 0) {
           const now = new Date().toISOString();
+          const generationId = newGenerationId();
           const rowsToInsert = result.icps.map((icp: any) => {
             const {
               id,
@@ -390,9 +612,12 @@ export default function OnboardingBuild() {
               avatar_gender: (icp as any)?.avatar_gender ?? null,
               avatar_age_range: (icp as any)?.avatar_age_range ?? null,
               user_id: user.id,
-              brand_id: (rest as any)?.brand_id ?? resolvedBrandId ?? null,
+              brand_id: resolvedBrandId,
               name: (rest as any)?.name || "",
               description: (rest as any)?.description || "",
+              generation_id: generationId,
+              version: 1,
+              superseded_at: null,
               created_at: now,
               updated_at: now,
             };
@@ -516,7 +741,9 @@ export default function OnboardingBuild() {
               window.dispatchEvent(new Event("icps:changed"));
             } catch {}
           }
+          }
         }
+      }
       }
 
       setLastGenerated(result.icps || []);
@@ -524,21 +751,40 @@ export default function OnboardingBuild() {
       setLastGenerated(result.icps || []);
     }
 
-    navigate("/icp-results", { state: { unsavedPreview: unsavedPreviewRef.current } });
+    completedGenerationKeyRef.current = inputKey;
+    navigate("/guest-dashboard", { state: { unsavedPreview: unsavedPreviewRef.current } });
     console.log("[Onboarding] runIcpGeneration complete");
+    } finally {
+      if (generationInFlightKeyRef.current === inputKey) {
+        generationInFlightKeyRef.current = null;
+      }
+    }
   }, [
     formData,
+    emailToUse,
+    buildGenerationInputKey,
     atCreateLimit,
     icpsLoading,
     subscriptionLoading,
     user?.id,
+    isLoggedIn,
     ensureBrandForAuthenticatedOnboarding,
-    navigate
+    navigate,
   ]);
 
   const renderScreen = () => {
     switch (currentStep) {
       case "1_Welcome":
+        if (existingIcpRun && !icpPromptDismissed && isLoggedIn) {
+          return (
+            <AlreadyCompletedPrompt
+              toolName="Know Your Customer"
+              reportPath="/icp-report"
+              createdAt={existingIcpRun.created_at}
+              onRunAgain={() => setIcpPromptDismissed(true)}
+            />
+          );
+        }
         return <WelcomeScreen onContinue={handleNext} />;
       
       case "2_Name":
@@ -546,6 +792,9 @@ export default function OnboardingBuild() {
           <NameScreen
             value={formData.name}
             onChange={(value) => setFormData({ ...formData, name: value })}
+            onCommit={(value) => {
+              updateGuestContext({ identity: { name: value || undefined } });
+            }}
             onContinue={handleNext}
             onBack={handleBack}
           />
@@ -555,7 +804,10 @@ export default function OnboardingBuild() {
         return (
           <BrandNameScreen
             value={formData.brandName}
-            onChange={(value) => setFormData({ ...formData, brandName: value })}
+            onChange={(value) => {
+              setFormData({ ...formData, brandName: value });
+              updateGuestContext({ business: { businessName: value.trim() || undefined } });
+            }}
             onContinue={handleNext}
             onBack={handleBack}
           />
@@ -566,6 +818,7 @@ export default function OnboardingBuild() {
           <BusinessDescriptionScreen
             value={formData.businessDescription}
             onChange={(value) => setFormData({ ...formData, businessDescription: value })}
+            pulledFromStory={storyPrefilled.businessDescription}
             onContinue={handleNext}
             onBack={handleBack}
           />
@@ -590,6 +843,7 @@ export default function OnboardingBuild() {
             onChange={(value) => setFormData({ ...formData, assumedAudience: value })}
             onCustomAudienceChange={(value) => setFormData({ ...formData, customAudience: value })}
             onBusinessTypeChange={(value) => setFormData({ ...formData, businessType: value })}
+            pulledFromStory={storyPrefilled.customAudience}
             onContinue={handleNext}
             onBack={handleBack}
           />
@@ -624,32 +878,27 @@ export default function OnboardingBuild() {
           <EmailCaptureScreen
             email={formData.email}
             onEmailChange={(value) => setFormData({ ...formData, email: value })}
+            onEmailCommit={(value) => {
+              updateGuestContext({ identity: { email: value || undefined } });
+            }}
             onTokenChange={(token) => setLeadToken(token)}
-            turnstileRequired={turnstileConfigured}
+            turnstileRequired={turnstileConfigured && !isLoggedIn}
             hasTurnstileToken={Boolean(leadToken)}
-            onContinue={async () => {
-              if (turnstileConfigured && !leadToken) {
-                console.warn("[LeadCapture] blocked: Turnstile token not ready yet");
+            hideEmailInput={isLoggedIn}
+            legalAgreed={legalAgreed}
+            onLegalAgreedChange={setLegalAgreed}
+            onContinue={() => {
+              if (isLoggedIn) {
+                void proceedFromEmailCapture();
                 return;
               }
-              // reset guard each time we enter loading step
-              hasRunRef.current = false;
-              console.debug("[LeadCapture] continue", { email: formData.email, leadToken });
-              // Fire-and-forget (time-boxed) lead capture so UI is never blocked
-              await Promise.race([
-                captureLead(formData.email, leadToken),
-                new Promise((resolve) => setTimeout(resolve, 8000)),
-              ]);
-              setCurrentStep("10_Loading");
+              gate(legalAgreed, () => void proceedFromEmailCapture());
             }}
             onBack={handleBack}
           />
         );
       
       case "10_Loading":
-        // Loading screen owns the async generation now (Option B)
-        // Reset guard right before mounting the loader to guarantee a fresh run
-        hasRunRef.current = false;
         return <LoadingScreen run={runIcpGeneration} onComplete={handleLoadingComplete} />;
       
       default:
@@ -668,9 +917,9 @@ export default function OnboardingBuild() {
       case "1_Welcome":
         return true;
       case "2_Name":
-        return formData.name.trim().length > 0;
+        return formData.name.trim().length > 0 || Boolean(getGuestIdentityName());
       case "3_BrandName":
-        return formData.brandName.trim().length > 0;
+        return formData.brandName.trim().length > 0 || Boolean(getGuestContext().business.businessName?.trim());
       case "4_BusinessDescription":
         return formData.businessDescription.trim().length > 0;
       case "5_ProductOrService":
@@ -682,6 +931,8 @@ export default function OnboardingBuild() {
       case "8_GeographyCurrency":
         return formData.country.trim().length > 0 && formData.currency.trim().length > 0;
       case "9_EmailCapture": {
+        if (isLoggedIn) return Boolean(user?.email?.trim());
+        if (getGuestIdentityEmail()) return true;
         const emailOk = formData.email.trim().length > 0 && formData.email.includes("@");
         if (!emailOk) return false;
         if (turnstileConfigured && !leadToken) return false;
@@ -694,20 +945,30 @@ export default function OnboardingBuild() {
     }
   };
 
+  const proceedFromEmailCapture = async () => {
+    if (turnstileConfigured && !isLoggedIn && !leadToken) {
+      console.warn("[LeadCapture] blocked CTA: Turnstile token not ready yet");
+      return;
+    }
+    const trimmedEmail = formData.email.trim();
+    if (trimmedEmail) {
+      updateGuestContext({ identity: { email: trimmedEmail } });
+    }
+    console.debug("[LeadCapture] CTA", { email: emailToUse, leadToken });
+    await Promise.race([
+      captureLead(emailToUse, isLoggedIn ? null : leadToken),
+      new Promise((resolve) => setTimeout(resolve, 8000)),
+    ]);
+    setCurrentStep("10_Loading");
+  };
+
   const handleCtaClick = async () => {
     if (currentStep === "9_EmailCapture") {
-      if (turnstileConfigured && !leadToken) {
-        console.warn("[LeadCapture] blocked CTA: Turnstile token not ready yet");
+      if (isLoggedIn) {
+        await proceedFromEmailCapture();
         return;
       }
-      hasRunRef.current = false;
-      console.debug("[LeadCapture] CTA", { email: formData.email, leadToken });
-      // Fire-and-forget (time-boxed) lead capture so UI is never blocked
-      await Promise.race([
-        captureLead(formData.email, leadToken),
-        new Promise((resolve) => setTimeout(resolve, 8000)),
-      ]);
-      setCurrentStep("10_Loading");
+      gate(legalAgreed, () => void proceedFromEmailCapture());
       return;
     }
     handleNext();
@@ -758,6 +1019,12 @@ export default function OnboardingBuild() {
   };
 
   return (
+    <>
+      <LegalAgreementRequiredModal
+        open={legalModalOpen}
+        onClose={closeModal}
+        onAgree={() => confirmAgreement(setLegalAgreed)}
+      />
     <main className="min-h-screen bg-background flex">
       {/* Full-width layout for ICP Carousel */}
       {currentStep === "10_Loading" ? (
@@ -806,13 +1073,17 @@ export default function OnboardingBuild() {
                 {currentStep !== "1_Welcome" && (
                   <div className="mt-8 animate-fade-in-up delay-300">
                     <Button
+                      type="button"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                      }}
                       onClick={handleCtaClick}
                       disabled={!canContinue()}
                       className="bg-button-green text-text-dark hover:bg-button-green/90 border-[1px] border-black rounded-design px-8 py-6 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 font-['Fraunces']"
                     >
                       {getCTAText()}
                     </Button>
-                    {currentStep === "9_EmailCapture" && (
+                    {currentStep === "9_EmailCapture" && !isLoggedIn && (
                       <div className="mt-2 space-y-1">
                         <p className="text-xs text-foreground/60 font-['Inter']">
                           No spam. Just your ICP and access to your dashboard.
@@ -828,7 +1099,7 @@ export default function OnboardingBuild() {
                 )}
 
                 {/* Welcome Screen Button */}
-                {currentStep === "1_Welcome" && (
+                {currentStep === "1_Welcome" && !(existingIcpRun && !icpPromptDismissed && isLoggedIn) && (
                   <div className="mt-8 animate-fade-in-up delay-300">
                     <Button
                       onClick={handleNext}
@@ -857,5 +1128,6 @@ export default function OnboardingBuild() {
         </>
       )}
     </main>
+    </>
   );
 }

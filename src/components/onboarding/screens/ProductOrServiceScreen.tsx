@@ -1,4 +1,4 @@
-import { Input } from "../../ui/input";
+import { VoiceInput } from "../../ui/VoiceInput";
 
 interface ProductOrServiceScreenProps {
   value: string;
@@ -9,7 +9,7 @@ interface ProductOrServiceScreenProps {
 
 export function ProductOrServiceScreen({ value, onChange, onContinue }: ProductOrServiceScreenProps) {
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && value.trim()) {
+    if (e.key === "Enter" && value.trim()) {
       onContinue();
     }
   };
@@ -22,9 +22,9 @@ export function ProductOrServiceScreen({ value, onChange, onContinue }: ProductO
       <p className="text-foreground/70 max-w-md">
         Pick one offer for now — you can generate more ICPs later.
       </p>
-      
+
       <div className="space-y-4 pt-4">
-        <Input
+        <VoiceInput
           type="text"
           value={value}
           onChange={(e) => onChange(e.target.value)}

@@ -5,12 +5,14 @@ import { Button } from "../ui/button";
 import {
   Eye,
   Copy,
-  Trash2,
+  Archive,
   MoreVertical,
   Lock,
   Palette,
   FileText,
   FolderPlus,
+  FolderMinus,
+  FolderOpen,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -32,6 +34,10 @@ import { avatarUrlFromKey } from "../../utils/avatarLibrary";
 import "../../styles/Modal.css";
 import { useICPs, generateIcpCopyName } from "../../hooks/useICPs";
 import useSubscription from "../../hooks/useSubscription";
+import { resolveBrandIdForIcpWrite } from "../../lib/icpBrandAttach";
+import { softDeleteIcpById } from "../../lib/icpVersioning";
+import IcpArchiveModal from "../IcpArchiveModal";
+import { ARCHIVE_ACTION_TOOLTIP } from "../ArchiveActionTooltip";
 
 // EXACT same helper pattern as CollectionCard
 const stop = (e: React.MouseEvent | Event) => {
@@ -43,6 +49,42 @@ const stop = (e: React.MouseEvent | Event) => {
 // Helper to merge class names
 function cls(...c: (string | false | null | undefined)[]) {
   return c.filter(Boolean).join(" ");
+}
+
+function CollectionMembershipIndicator({ names }: { names: string[] }) {
+  if (!names.length) return null;
+
+  const chipClass =
+    "inline-flex items-center gap-1 px-2 py-0.5 text-[11px] text-foreground/55 border border-black/15 rounded-design bg-foreground/[0.03] max-w-full";
+
+  if (names.length === 1) {
+    return (
+      <span className={chipClass} title={names[0]}>
+        <FolderOpen className="h-3 w-3 shrink-0" />
+        <span className="truncate">in {names[0]}</span>
+      </span>
+    );
+  }
+
+  if (names.length === 2) {
+    return (
+      <div className="flex flex-wrap gap-1 justify-center max-w-full">
+        {names.map((name) => (
+          <span key={name} className={chipClass} title={name}>
+            <FolderOpen className="h-3 w-3 shrink-0" />
+            <span className="truncate max-w-[7rem]">in {name}</span>
+          </span>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <span className={chipClass} title={names.join(", ")}>
+      <FolderOpen className="h-3 w-3 shrink-0" />
+      in {names.length} collections
+    </span>
+  );
 }
 
 interface ICPPreviewCardProps {
@@ -93,6 +135,10 @@ interface ICPPreviewCardProps {
   onDelete?: () => void;
   onMoveToBrand?: (icpId: string, brandId: string | null) => Promise<void> | void;
   onCardClickOverride?: () => void;
+  /** Collection names this persona belongs to (lineage membership). */
+  collectionNames?: string[];
+  /** Guest preview — card is display-only, no navigation on click */
+  previewOnly?: boolean;
   // Optional brand list so the card can resolve a brand name globally
   brands?: Array<{ id: string; name: string }>;
 }
@@ -105,15 +151,20 @@ export function ICPPreviewCard(props: ICPPreviewCardProps) {
     brands,
     onRemoveFromCollection,
     onAddToCollection,
+    isInCollection = false,
     isLocked,
     onChangeColor,
     onChangeAvatar,
     onDelete,
     onMoveToBrand,
     onCardClickOverride,
+    previewOnly = false,
+    collectionNames = [],
   } = props;
   const [isHovered, setIsHovered] = useState(false);
   const [shake, setShake] = useState(false);
+  const [archiveModalOpen, setArchiveModalOpen] = useState(false);
+  const [isArchiving, setIsArchiving] = useState(false);
   const [moveBrandOpen, setMoveBrandOpen] = useState(false);
   const [moveBrandId, setMoveBrandId] = useState<string | null>(icp.brand_id ?? null);
   const [isDuplicating, setIsDuplicating] = useState(false);
@@ -147,6 +198,17 @@ export function ICPPreviewCard(props: ICPPreviewCardProps) {
     null;
 
   const hasBrand = !!displayBrandName || !!icp.brand_id;
+
+  const companySize = (icp as any).company_size ?? icp.companySize;
+  const previewMetaLine = [icp.industry, companySize, icp.location]
+    .filter(Boolean)
+    .join(" · ");
+  const previewPainPoints =
+    ((icp as any).pain_points as string[] | undefined) ?? icp.painPoints ?? [];
+  const previewGoals = icp.goals ?? [];
+  const previewBullets = (
+    previewPainPoints.length ? previewPainPoints : previewGoals
+  ).slice(0, 2);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -212,12 +274,22 @@ export function ICPPreviewCard(props: ICPPreviewCardProps) {
           }
 
           const names = Array.isArray(allIcps) ? allIcps.map((i: any) => i?.name || "") : [];
+          const {
+            data: { user: authUser },
+          } = await supabase.auth.getUser();
+          const resolvedBrandId = authUser?.id
+            ? await resolveBrandIdForIcpWrite(
+                authUser.id,
+                (original as any).brand_id ?? null
+              )
+            : (original as any).brand_id;
           const payload: any = {
             ...original,
             id: undefined,
             _index: undefined,
             brandName: undefined,
             brands: undefined,
+            brand_id: resolvedBrandId,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
             name: generateIcpCopyName(original.name || "ICP", names),
@@ -290,27 +362,34 @@ export function ICPPreviewCard(props: ICPPreviewCardProps) {
       return;
     }
 
-    if (action === "delete") {
+    if (action === "archive") {
       if (!hasFullAccess) {
         triggerShake();
         onUpgrade?.();
         return;
       }
-      const confirmed = window.confirm(
-        "Are you sure you want to delete this ICP? This action cannot be undone."
-      );
-      if (!confirmed) return;
-      try {
-        const { error } = await supabase.from("icps").delete().eq("id", icp.id);
-        if (error) {
-          console.error("Failed to delete ICP:", error);
-          return;
-        }
-        onDelete?.();
-      } catch (err) {
-        console.error("Unexpected delete error:", err);
-      }
+      setArchiveModalOpen(true);
       return;
+    }
+  };
+
+  const handleArchiveConfirm = async () => {
+    setIsArchiving(true);
+    try {
+      const {
+        data: { user: authUser },
+      } = await supabase.auth.getUser();
+      if (!authUser?.id) return;
+      await softDeleteIcpById(authUser.id, icp.id);
+      setArchiveModalOpen(false);
+      try {
+        window.dispatchEvent(new Event("icps:changed"));
+      } catch {}
+      onDelete?.();
+    } catch (err) {
+      console.error("Unexpected archive error:", err);
+    } finally {
+      setIsArchiving(false);
     }
   };
 
@@ -332,6 +411,8 @@ export function ICPPreviewCard(props: ICPPreviewCardProps) {
           onCardClickOverride();
           return;
         }
+
+        if (previewOnly) return;
 
         if (locked) {
           triggerShake();
@@ -366,7 +447,8 @@ export function ICPPreviewCard(props: ICPPreviewCardProps) {
             </div>
           )}
 
-          {/* Three-dots menu — same interaction pattern as CollectionCard */}
+          {/* Three-dots menu — hidden in guest preview mode */}
+          {!previewOnly && (
           <div className="absolute top-3 right-3">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -458,22 +540,53 @@ export function ICPPreviewCard(props: ICPPreviewCardProps) {
                   </DropdownMenuItem>
                 ) : null}
 
+                {onAddToCollection && !isInCollection ? (
+                  <DropdownMenuItem
+                    data-no-card-click="true"
+                    className="text-sm"
+                    onSelect={(e) => {
+                      stop(e);
+                      handleAction("add-to-collection");
+                    }}
+                  >
+                    <FolderPlus className="h-4 w-4 mr-2" />
+                    Add to collection
+                  </DropdownMenuItem>
+                ) : null}
+
+                {onRemoveFromCollection && isInCollection ? (
+                  <DropdownMenuItem
+                    data-no-card-click="true"
+                    className="text-sm"
+                    onSelect={(e) => {
+                      stop(e);
+                      handleAction("remove-from-collection");
+                    }}
+                  >
+                    <FolderMinus className="h-4 w-4 mr-2" />
+                    Remove from collection
+                  </DropdownMenuItem>
+                ) : null}
+
                 <DropdownMenuSeparator />
 
                 <DropdownMenuItem
                   data-no-card-click="true"
-                  className="text-sm text-red-600 focus:text-red-600"
+                  className="text-sm"
+                  aria-label="Archive customer profile"
+                  title={ARCHIVE_ACTION_TOOLTIP}
                   onSelect={(e) => {
                     stop(e);
-                    handleAction("delete");
+                    handleAction("archive");
                   }}
                 >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete ICP
+                  <Archive className="h-4 w-4 mr-2" />
+                  Archive
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
+          )}
 
           {/* Avatar badge (image placeholder or custom avatar) */}
           <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2">
@@ -550,7 +663,51 @@ export function ICPPreviewCard(props: ICPPreviewCardProps) {
           </div>
         )}
 
+        <IcpArchiveModal
+          isOpen={archiveModalOpen}
+          isArchiving={isArchiving}
+          onClose={() => {
+            if (!isArchiving) setArchiveModalOpen(false);
+          }}
+          onConfirm={() => void handleArchiveConfirm()}
+        />
+
         {/* Body */}
+        {previewOnly ? (
+          <div className="p-6 pt-12 bg-background text-left">
+            <h3 className="font-['Fraunces'] text-lg mb-1 truncate">{icp.name}</h3>
+
+            {previewMetaLine && (
+              <p className="font-['Inter'] text-xs text-foreground/60 mb-3 truncate">
+                {previewMetaLine}
+              </p>
+            )}
+
+            {icp.description && (
+              <p className="font-['Inter'] text-sm text-foreground/70 mb-3 line-clamp-3">
+                {icp.description}
+              </p>
+            )}
+
+            {previewBullets.length > 0 && (
+              <ul className="mb-4 space-y-1">
+                {previewBullets.map((item, idx) => (
+                  <li
+                    key={`preview-bullet-${idx}`}
+                    className="font-['Inter'] text-xs text-foreground/70 flex gap-1.5"
+                  >
+                    <span className="text-foreground/40 shrink-0">•</span>
+                    <span className="line-clamp-2">{item}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            <p className="font-['DM_Sans'] text-sm font-medium text-primary">
+              View full profile →
+            </p>
+          </div>
+        ) : (
         <div className="p-6 pt-12 text-center bg-background">
           <h3 className="font-['Fraunces'] text-lg mb-2 truncate">
             {icp.name}
@@ -561,6 +718,12 @@ export function ICPPreviewCard(props: ICPPreviewCardProps) {
               ? `Brand: ${displayBrandName || "Unknown brand"}`
               : "No brand allocated"}
           </p>
+
+          {collectionNames.length > 0 ? (
+            <div className="mb-2 flex justify-center">
+              <CollectionMembershipIndicator names={collectionNames} />
+            </div>
+          ) : null}
 
           {icp.industry && (
             <p className="font-['Inter'] text-xs text-foreground/60 mb-2">
@@ -667,6 +830,7 @@ export function ICPPreviewCard(props: ICPPreviewCardProps) {
             </div>
           </TooltipProvider>
         </div>
+        )}
       </Card>
     </div>
   );

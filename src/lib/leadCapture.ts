@@ -1,4 +1,5 @@
 import { supabase } from "../config/supabase";
+import { isGuestLeadCaptured, markGuestLeadCaptured } from "./guestContext";
 
 /** Read JSON/text body from a Supabase FunctionsHttpError (error.context is a Response). */
 async function readFunctionsHttpErrorBody(error: unknown): Promise<unknown> {
@@ -17,27 +18,38 @@ async function readFunctionsHttpErrorBody(error: unknown): Promise<unknown> {
   }
 }
 
+export function isTurnstileConfigured(): boolean {
+  return Boolean((import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined)?.trim());
+}
+
 /**
  * Best-effort lead capture for onboarding emails via Edge Function (service role).
  * Requires Turnstile token for anonymous users; logged-in users can pass userId without token.
+ * @returns true when the lead was written (or already captured via flag).
  */
 export async function upsertOnboardingLead(
   email: string,
-  opts?: { source?: string; userId?: string | null; token?: string | null; metadata?: Record<string, any>; name?: string | null }
-) {
+  opts?: {
+    source?: string;
+    userId?: string | null;
+    token?: string | null;
+    metadata?: Record<string, unknown>;
+    name?: string | null;
+  }
+): Promise<boolean> {
   const trimmed = email?.trim();
-  if (!trimmed) return;
+  if (!trimmed) return false;
 
   const siteKey = (import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined)?.trim();
   if (!siteKey) {
     console.warn(
       "[leadCapture] VITE_TURNSTILE_SITE_KEY is not set; skipping onboarding_leads capture (add Turnstile to your env / hosting build).",
     );
-    return;
+    return false;
   }
 
   try {
-    const payload: any = {
+    const payload: Record<string, unknown> = {
       email: trimmed,
       source: opts?.source || "onboarding",
       intent: "capture",
@@ -65,11 +77,44 @@ export async function upsertOnboardingLead(
         message: (error as Error)?.message ?? String(error),
         data,
       });
-      throw error;
+      return false;
     }
+    return true;
   } catch (err) {
     console.warn("[leadCapture] upsert lead failed", err);
+    return false;
   }
+}
+
+/**
+ * Idempotent guest lead capture — skips if leadCapturedAt is already set.
+ * Anonymous guests require a Turnstile token when Turnstile is configured.
+ */
+export async function captureGuestLeadOnce(opts: {
+  email: string;
+  name?: string | null;
+  token?: string | null;
+  source?: string;
+  userId?: string | null;
+}): Promise<boolean> {
+  if (isGuestLeadCaptured()) return true;
+
+  const trimmed = opts.email?.trim();
+  if (!trimmed) return false;
+
+  if (isTurnstileConfigured() && !opts.userId && !opts.token) {
+    return false;
+  }
+
+  const ok = await upsertOnboardingLead(trimmed, {
+    source: opts.source || "guest",
+    userId: opts.userId ?? null,
+    token: opts.token ?? null,
+    name: opts.name ?? null,
+  });
+
+  if (ok) markGuestLeadCaptured();
+  return ok;
 }
 
 /**

@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { SelectChip } from "../SelectChip";
-import { Input } from "../../ui/input";
+import { VoiceInput } from "../../ui/VoiceInput";
 
 interface AssumedAudienceScreenProps {
   value: string[];
@@ -11,6 +11,7 @@ interface AssumedAudienceScreenProps {
   onBusinessTypeChange: (value: "B2B" | "B2C" | "Both") => void;
   onContinue: () => void;
   onBack: () => void;
+  pulledFromStory?: boolean;
 }
 
 const audienceOptionsByType: Record<AssumedAudienceScreenProps["businessType"], string[]> = {
@@ -54,7 +55,8 @@ export function AssumedAudienceScreen({
   onChange, 
   onCustomAudienceChange,
   onBusinessTypeChange,
-  onContinue
+  onContinue,
+  pulledFromStory = false,
 }: AssumedAudienceScreenProps) {
   const options = audienceOptionsByType[businessType];
 
@@ -121,14 +123,21 @@ export function AssumedAudienceScreen({
           <label className="text-sm text-foreground/70">
             Or specify your own:
           </label>
-          <Input
-            type="text"
-            value={customAudience}
-            onChange={(e) => onCustomAudienceChange(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="e.g., Busy café owners, Fitness coaches, Boutique e-commerce brands"
-            className="border border-black rounded-design px-4 py-6 bg-white text-foreground placeholder:text-foreground/40"
-          />
+          {pulledFromStory ? (
+            <p className="text-xs text-muted-foreground font-['DM_Sans']">
+              Pulled from your brand story — edit anything.
+            </p>
+          ) : null}
+          <div className="flex items-start gap-2">
+            <VoiceInput
+              type="text"
+              value={customAudience}
+              onChange={(e) => onCustomAudienceChange(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="e.g., Busy café owners, Fitness coaches, Boutique e-commerce brands"
+              className="border border-black rounded-design px-4 py-6 bg-white text-foreground placeholder:text-foreground/40"
+            />
+          </div>
         </div>
       </div>
     </div>

@@ -2,13 +2,14 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "../components/ui/button";
 import { CheckCircle2, Sparkles, CreditCard } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
+import { isRealUser } from "../utils/isRealUser";
 
 export default function PaymentSuccess() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const dashboardPath = user ? "/dashboard" : "/icp-results";
+  const dashboardPath = isRealUser(user) ? "/dashboard" : "/guest-dashboard";
 
-  // Calculate renewal date (30 days from now for monthly, 365 for annual)
+  // Renewal date assumes annual billing
   const getRenewalDate = () => {
     const date = new Date();
     date.setDate(date.getDate() + 365); // Assuming annual for demo

@@ -39,9 +39,16 @@ export interface PendingOp {
  * @param userId - The user ID
  * @returns Promise resolving to cached ICPs array, or empty array if none found
  */
-export async function getCachedICPs(userId: string): Promise<ICP[]> {
+function icpCacheKey(userId: string, brandId?: string | null) {
+  return brandId ? `icps:${userId}:${brandId}` : `icps:${userId}`;
+}
+
+export async function getCachedICPs(
+  userId: string,
+  brandId?: string | null
+): Promise<ICP[]> {
   try {
-    const cached = await cache.getItem<ICP[]>(`icps:${userId}`);
+    const cached = await cache.getItem<ICP[]>(icpCacheKey(userId, brandId));
     return cached || [];
   } catch (err) {
     console.error("Error reading cached ICPs:", err);
@@ -50,13 +57,15 @@ export async function getCachedICPs(userId: string): Promise<ICP[]> {
 }
 
 /**
- * Cache ICPs for a specific user
- * @param userId - The user ID
- * @param icps - Array of ICPs to cache
+ * Cache ICPs for a specific user (optionally scoped to active brand).
  */
-export async function setCachedICPs(userId: string, icps: ICP[]): Promise<void> {
+export async function setCachedICPs(
+  userId: string,
+  icps: ICP[],
+  brandId?: string | null
+): Promise<void> {
   try {
-    await cache.setItem(`icps:${userId}`, icps);
+    await cache.setItem(icpCacheKey(userId, brandId), icps);
   } catch (err) {
     console.error("Error caching ICPs:", err);
     // Don't throw - caching failures shouldn't break the app

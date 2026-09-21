@@ -10,6 +10,9 @@ import {
   outbox,
   type PendingOp,
 } from "./localCache";
+import { resolveBrandIdForIcpInsertPayload } from "./icpBrandAttach";
+import { softDeleteIcpById } from "./icpVersioning";
+import { insertIcpVersionRpc, isPermanentIcpSyncError } from "./icpVersioning";
 
 const inFlight = new Map<string, Promise<number>>();
 
@@ -56,9 +59,10 @@ async function syncOperation(op: PendingOp, userId: string): Promise<boolean> {
     switch (op.type) {
       case "create_icp": {
         const dbPayload = toDbIcpPayload(op.payload);
+        const resolvedPayload = await resolveBrandIdForIcpInsertPayload(userId, dbPayload);
         const { data: created, error } = await supabase
           .from("icps")
-          .insert([dbPayload])
+          .insert([resolvedPayload])
           .select()
           .single();
 
@@ -77,25 +81,15 @@ async function syncOperation(op: PendingOp, userId: string): Promise<boolean> {
       }
 
       case "update_icp": {
-        const { error } = await supabase
-          .from("icps")
-          .update(toDbIcpPayload(op.payload.updates))
-          .eq("id", op.payload.id)
-          .eq("user_id", userId);
-
-        if (error) throw error;
+        await insertIcpVersionRpc(
+          op.payload.id,
+          toDbIcpPayload(op.payload.updates)
+        );
         return true;
       }
 
       case "delete_icp": {
-        await supabase.from("collection_items").delete().eq("icp_id", op.payload.id);
-        const { error } = await supabase
-          .from("icps")
-          .delete()
-          .eq("id", op.payload.id)
-          .eq("user_id", userId);
-
-        if (error) throw error;
+        await softDeleteIcpById(userId, op.payload.id);
         return true;
       }
 
@@ -158,14 +152,17 @@ async function syncOperation(op: PendingOp, userId: string): Promise<boolean> {
           .from("collection_items")
           .select("*")
           .eq("collection_id", collectionId)
-          .eq("icp_id", op.payload.icp_id)
+          .eq("lineage_id", op.payload.lineage_id)
           .maybeSingle();
 
         if (existing) return true;
 
-        const { error } = await supabase
-          .from("collection_items")
-          .insert([op.payload]);
+        const { error } = await supabase.from("collection_items").insert([
+          {
+            collection_id: collectionId,
+            lineage_id: op.payload.lineage_id,
+          },
+        ]);
 
         if (error) throw error;
 
@@ -182,7 +179,7 @@ async function syncOperation(op: PendingOp, userId: string): Promise<boolean> {
           .from("collection_items")
           .delete()
           .eq("collection_id", op.payload.collection_id)
-          .eq("icp_id", op.payload.icp_id);
+          .eq("lineage_id", op.payload.lineage_id);
 
         if (error) throw error;
 
@@ -200,7 +197,11 @@ async function syncOperation(op: PendingOp, userId: string): Promise<boolean> {
     }
   } catch (err: any) {
     console.error(`[syncOutbox] error syncing ${op.id} (${op.type})`, err);
-    if (err?.code === "22P02" || err?.message?.includes("invalid input syntax for type uuid")) {
+    if (
+      isPermanentIcpSyncError(err) ||
+      err?.code === "22P02" ||
+      err?.message?.includes("invalid input syntax for type uuid")
+    ) {
       await removePendingOp(userId, op.id);
       return true;
     }

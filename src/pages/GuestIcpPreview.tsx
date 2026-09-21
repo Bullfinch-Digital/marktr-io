@@ -1,28 +1,29 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Lock } from "lucide-react";
-import DashboardShell from "../layouts/DashboardShell";
 import { useAuth } from "../contexts/AuthContext";
+import { isRealUser } from "../utils/isRealUser";
 import { getGuestICPs } from "../lib/guestICP";
 import { getGuestBrandSeed } from "../lib/guestBrandSeed";
 import { Button } from "../components/ui/button";
 import { ICPProfileLayout } from "../components/icp/ICPProfileLayout";
 import { usePaywall } from "../contexts/PaywallContext";
-import useSubscription from "@/hooks/useSubscription";
+import { GuestTrialPromptModal } from "../components/modals/GuestTrialPromptModal";
+
+import { GuestPreviewShell } from "../layouts/GuestPreviewShell";
 
 export default function GuestIcpPreview() {
   const { index } = useParams<{ index: string }>();
   const navigate = useNavigate();
   const { openPaywall } = usePaywall();
+  const [editPromptOpen, setEditPromptOpen] = useState(false);
   const { user } = useAuth();
-  const { effectiveTier } = useSubscription();
 
-  // Redirect authenticated users to the real dashboard.
+  // Redirect real authenticated users to the dashboard.
   useEffect(() => {
-    if (user?.id) {
+    if (isRealUser(user)) {
       navigate("/dashboard", { replace: true });
     }
-  }, [user?.id, navigate]);
+  }, [user, navigate]);
 
   const brandSeed = getGuestBrandSeed();
   const guestBrand = useMemo(
@@ -60,11 +61,7 @@ export default function GuestIcpPreview() {
 
   if (!icp) {
     return (
-      <DashboardShell
-        guestMode
-        onGuestAction={() => openPaywall()}
-        contentClassName="flex-1 px-6 py-8 lg:px-12"
-      >
+      <GuestPreviewShell>
         <div className="max-w-4xl mx-auto text-center space-y-4">
           <h1 className="font-['Fraunces'] text-3xl lg:text-4xl">No ICPs yet</h1>
           <p className="font-['Inter'] text-foreground/70">
@@ -77,22 +74,18 @@ export default function GuestIcpPreview() {
             Create a free ICP
           </Button>
         </div>
-      </DashboardShell>
+      </GuestPreviewShell>
     );
   }
 
   return (
-    <DashboardShell
-      guestMode
-      onGuestAction={() => openPaywall()}
-      contentClassName="flex-1 px-6 py-8 lg:px-12"
-    >
+    <GuestPreviewShell>
       <ICPProfileLayout
         headerLeft={
           <div>
             <h1 className="font-['Fraunces'] text-3xl lg:text-4xl">ICP Preview</h1>
             <p className="font-['Inter'] text-foreground/70">
-              Explore your first profile. Sign up to edit, save and unlock marketing insights.
+              Explore your first profile. Start your free trial to edit, save and unlock marketing insights.
             </p>
           </div>
         }
@@ -102,7 +95,7 @@ export default function GuestIcpPreview() {
               className="bg-button-green hover:bg-button-green/90 text-foreground border border-black rounded-design px-4 py-2"
               onClick={() => openPaywall()}
             >
-              Start 7-day free trial
+              Start 14-day free trial
             </Button>
           </>
         }
@@ -118,7 +111,7 @@ export default function GuestIcpPreview() {
               <Button
                 variant="outline"
                 className="border-black rounded-design"
-                onClick={() => openPaywall()}
+                onClick={() => setEditPromptOpen(true)}
               >
                 Edit this ICP
               </Button>
@@ -180,36 +173,20 @@ export default function GuestIcpPreview() {
                     className="bg-button-green hover:bg-button-green/90 text-foreground border border-black rounded-design px-6 py-3"
                     onClick={() => openPaywall()}
                   >
-                    Start your FREE 7-day trial
+                    Start your 14-day free trial
                   </Button>
                 </div>
               </div>
             </div>
           </div>
         }
-        footerCta={
-          effectiveTier === "free" ? (
-            <div className="text-center animate-fade-in-up">
-              <div className="bg-gradient-to-br from-[#FFD336]/20 to-[#FF9922]/20 rounded-design p-8">
-                <Lock className="w-8 h-8 mx-auto mb-4 text-foreground/60" />
-                <h3 className="font-['Fraunces'] text-xl mb-3">
-                  Unlock full editing & exports
-                </h3>
-                <p className="font-['Inter'] text-foreground/70 mb-6 max-w-md mx-auto">
-                  Upgrade to edit all sections, generate marketing strategies, and export to PDF.
-                </p>
-                <Button
-                  className="bg-button-green hover:bg-button-green/90 text-foreground border border-black rounded-design px-8 py-6 transition-all hover:scale-[1.02] hover:shadow-lg"
-                  onClick={() => openPaywall()}
-                >
-                  Start your FREE 7-day trial
-                </Button>
-              </div>
-            </div>
-          ) : null
-        }
       />
-    </DashboardShell>
+      <GuestTrialPromptModal
+        isOpen={editPromptOpen}
+        onClose={() => setEditPromptOpen(false)}
+        onStartTrial={() => openPaywall()}
+      />
+    </GuestPreviewShell>
   );
 }
 

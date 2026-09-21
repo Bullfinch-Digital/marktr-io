@@ -25,7 +25,7 @@ await build({
 const { RESOURCE_POSTS } = await import(pathToFileURL(tmpBundle).href);
 const indexHtml = readFileSync(join(distDir, "index.html"), "utf8");
 
-function applyMeta(html, title, description) {
+function applyMeta(html, title, description, jsonLd) {
   let out = html.replace(
     /<title>[^<]*<\/title>/,
     `<title>${escapeHtml(title)}</title>`,
@@ -41,7 +41,53 @@ function applyMeta(html, title, description) {
       `</title>\n    <meta name="description" content="${escapeAttr(description)}" />`,
     );
   }
+  if (jsonLd) {
+    const script = `<script type="application/ld+json" id="resource-jsonld">${JSON.stringify(jsonLd)}</script>`;
+    out = out.replace(/<\/head>/i, `    ${script}\n  </head>`);
+  }
   return out;
+}
+
+function buildPostJsonLd(post, title, description) {
+  const siteUrl = "https://marktr.io";
+  const pageUrl = `${siteUrl}/resources/${post.slug}`;
+  const article = {
+    "@type": "Article",
+    "@id": `${pageUrl}#article`,
+    mainEntityOfPage: { "@type": "WebPage", "@id": pageUrl },
+    headline: title,
+    description,
+    datePublished: post.date ?? "2026-02-13",
+    dateModified: post.date ?? "2026-02-13",
+    inLanguage: "en-GB",
+    author: post.author
+      ? {
+          "@type": "Person",
+          name: post.author.name,
+          jobTitle: post.author.title,
+          url: post.author.url,
+          worksFor: {
+            "@type": "Organization",
+            name: post.author.org,
+            url: post.author.url,
+          },
+        }
+      : { "@type": "Organization", name: "marktr" },
+    publisher: { "@type": "Organization", name: "marktr" },
+  };
+  const graph = [article];
+  if (post.faq?.length) {
+    graph.push({
+      "@type": "FAQPage",
+      "@id": `${pageUrl}#faq`,
+      mainEntity: post.faq.map((item) => ({
+        "@type": "Question",
+        name: item.question,
+        acceptedAnswer: { "@type": "Answer", text: item.answer },
+      })),
+    });
+  }
+  return { "@context": "https://schema.org", "@graph": graph };
 }
 
 function escapeHtml(s) {
@@ -62,7 +108,8 @@ let count = 0;
 for (const post of RESOURCE_POSTS) {
   const title = post.seoTitle ?? post.title;
   const description = post.metaDescription ?? post.description;
-  const html = applyMeta(indexHtml, title, description);
+  const jsonLd = buildPostJsonLd(post, title, description);
+  const html = applyMeta(indexHtml, title, description, jsonLd);
   const outDir = join(distDir, "resources", post.slug);
   mkdirSync(outDir, { recursive: true });
   writeFileSync(join(outDir, "index.html"), html, "utf8");

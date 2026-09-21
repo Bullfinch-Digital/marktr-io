@@ -348,16 +348,20 @@ export const RESOURCE_POSTS: ResourcePost[] = [
         type: "links",
         items: [
           {
+            text: "The 5-Stage Marketing Strategy Framework for Founders",
+            href: "/resources/5-stage-marketing-strategy-framework",
+          },
+          {
+            text: "The Hollywood Storytelling Framework for Your Brand Story",
+            href: "/resources/hollywood-brand-storytelling-framework",
+          },
+          {
             text: "How to Turn an ICP Into Better Content and Ads",
             href: "/resources/turn-an-icp-into-better-content-and-ads",
           },
           {
-            text: "Why Your Marketing Isn't Landing (And How to Fix It)",
-            href: "/resources/why-your-marketing-isnt-landing",
-          },
-          {
-            text: "Stop Wasting Ad Spend: How ICPs Improve Targeting",
-            href: "/resources/stop-wasting-ad-spend",
+            text: "How to Validate an Ideal Customer Profile (ICP) Using Real Data",
+            href: "/resources/how-to-validate-an-icp",
           },
           {
             text: "Why We Built the ICP Generator (And How It Helps You Win)",
@@ -1535,6 +1539,35 @@ export const RESOURCE_POSTS: ResourcePost[] = [
       "The Hollywood Storytelling Framework for Your Brand Story (Free Template)",
     metaDescription:
       "A filmmaker's three-act framework for founders who can't find the words for their own brand story — five lines, one logline, no fluff. Free to try in marktr.io.",
+    faq: [
+      {
+        question:
+          "What's the difference between a brand story and a mission statement?",
+        answer:
+          "A mission statement says what you do. A brand story shows why it matters, through a real turning point — the moment that shaped why you started. One's a sentence on an About page; the other is what makes someone care.",
+      },
+      {
+        question: "Do I need to be a good writer to use this framework?",
+        answer:
+          "No. The five-lines exercise is deliberately simple — plain sentences, not polished copy. The structure does the work; you just need to be honest about the real turning point.",
+      },
+      {
+        question: "How long should a brand story be?",
+        answer:
+          "Short enough that someone reads the whole thing. One clear logline plus a few paragraphs beats three pages nobody finishes. Save the extended version for an About page; use the short version everywhere else — website, pitch, About page.",
+      },
+      {
+        question: "Can a brand story change as the business grows?",
+        answer:
+          "The core turning point usually doesn't change, but how you tell it should evolve as the business does — new proof points, new results, new chapters building on the same foundation.",
+      },
+      {
+        question:
+          "Where should I actually use my brand story once I've written it?",
+        answer:
+          "Everywhere a prospect first encounters you: homepage, About page, pitch deck, sales calls, even your ICP messaging — it's the thread that should run through all of it.",
+      },
+    ],
     body: [
       {
         type: "p",
@@ -1858,6 +1891,67 @@ export const RESOURCE_POSTS: ResourcePost[] = [
         href: "/story",
         linkText: "Start building your brand story on marktr.io →",
       },
+      { type: "h2", text: "Frequently asked questions" },
+      {
+        type: "h3",
+        text: "What's the difference between a brand story and a mission statement?",
+      },
+      {
+        type: "p",
+        text:
+          "A mission statement says what you do. A brand story shows why it matters, through a real turning point — the moment that shaped why you started. One's a sentence on an About page; the other is what makes someone care.",
+      },
+      {
+        type: "h3",
+        text: "Do I need to be a good writer to use this framework?",
+      },
+      {
+        type: "p",
+        text:
+          "No. The five-lines exercise is deliberately simple — plain sentences, not polished copy. The structure does the work; you just need to be honest about the real turning point.",
+      },
+      { type: "h3", text: "How long should a brand story be?" },
+      {
+        type: "p",
+        text:
+          "Short enough that someone reads the whole thing. One clear logline plus a few paragraphs beats three pages nobody finishes. Save the extended version for an About page; use the short version everywhere else — website, pitch, About page.",
+      },
+      {
+        type: "h3",
+        text: "Can a brand story change as the business grows?",
+      },
+      {
+        type: "p",
+        text:
+          "The core turning point usually doesn't change, but how you tell it should evolve as the business does — new proof points, new results, new chapters building on the same foundation.",
+      },
+      {
+        type: "h3",
+        text: "Where should I actually use my brand story once I've written it?",
+      },
+      {
+        type: "p",
+        text:
+          "Everywhere a prospect first encounters you: homepage, About page, pitch deck, sales calls, even your ICP messaging — it's the thread that should run through all of it.",
+      },
+      { type: "h2", text: "Related resources" },
+      {
+        type: "links",
+        items: [
+          {
+            text: "The 5-Stage Marketing Strategy Framework for Founders",
+            href: "/resources/5-stage-marketing-strategy-framework",
+          },
+          {
+            text: "What Is an Ideal Customer Profile (ICP)?",
+            href: "/resources/what-an-icp-really-is",
+          },
+          {
+            text: "Build your brand story free",
+            href: "/story",
+          },
+        ],
+      },
     ],
   },
   {
@@ -1880,6 +1974,35 @@ export const RESOURCE_POSTS: ResourcePost[] = [
       "The 5-Stage Marketing Strategy Framework for Founders (Free Template)",
     metaDescription:
       "The exact framework I use with every client: brand story, ideal customer, transformation, offer, distribution. Five stages, real examples, no fluff.",
+    faq: [
+      {
+        question: "Do I need to do all five stages in order?",
+        answer:
+          "Yes, broadly — each stage builds on the last. Brand story and ideal customer come first because everything else (offer, content, distribution) depends on knowing those two things clearly.",
+      },
+      {
+        question: "How long does it take to work through all five stages?",
+        answer:
+          "Most founders can get a first working version of all five in a few hours if they're honest and specific rather than perfect. It's a living strategy, not a one-off document — expect to revisit it.",
+      },
+      {
+        question:
+          "What's the single biggest mistake founders make with this framework?",
+        answer:
+          "Skipping straight to distribution (posting content, running ads) without doing Stages One and Two first. Without a clear story and a clear ICP, distribution just amplifies vague messaging faster.",
+      },
+      {
+        question:
+          "Is this framework only for founders, or does it work for existing marketing teams too?",
+        answer:
+          "Both. I use it with solo founders and with small in-house teams — the stages are the same, the difference is just who's doing the work.",
+      },
+      {
+        question: "How often should I revisit my 5-stage strategy?",
+        answer:
+          "At minimum whenever the business shifts meaningfully — new offer, new pricing, new market — and otherwise a light review each quarter.",
+      },
+    ],
     body: [
       {
         type: "p",
@@ -2191,6 +2314,74 @@ export const RESOURCE_POSTS: ResourcePost[] = [
           "Walk through brand story, ideal customer, and the rest of your marketing strategy on marktr — free to get started.",
         href: "/story",
         linkText: "Start building your marketing strategy on marktr.io →",
+      },
+      { type: "h2", text: "Frequently asked questions" },
+      {
+        type: "h3",
+        text: "Do I need to do all five stages in order?",
+      },
+      {
+        type: "p",
+        text:
+          "Yes, broadly — each stage builds on the last. Brand story and ideal customer come first because everything else (offer, content, distribution) depends on knowing those two things clearly.",
+      },
+      {
+        type: "h3",
+        text: "How long does it take to work through all five stages?",
+      },
+      {
+        type: "p",
+        text:
+          "Most founders can get a first working version of all five in a few hours if they're honest and specific rather than perfect. It's a living strategy, not a one-off document — expect to revisit it.",
+      },
+      {
+        type: "h3",
+        text: "What's the single biggest mistake founders make with this framework?",
+      },
+      {
+        type: "p",
+        text:
+          "Skipping straight to distribution (posting content, running ads) without doing Stages One and Two first. Without a clear story and a clear ICP, distribution just amplifies vague messaging faster.",
+      },
+      {
+        type: "h3",
+        text: "Is this framework only for founders, or does it work for existing marketing teams too?",
+      },
+      {
+        type: "p",
+        text:
+          "Both. I use it with solo founders and with small in-house teams — the stages are the same, the difference is just who's doing the work.",
+      },
+      {
+        type: "h3",
+        text: "How often should I revisit my 5-stage strategy?",
+      },
+      {
+        type: "p",
+        text:
+          "At minimum whenever the business shifts meaningfully — new offer, new pricing, new market — and otherwise a light review each quarter.",
+      },
+      { type: "h2", text: "Related resources" },
+      {
+        type: "links",
+        items: [
+          {
+            text: "The Hollywood Storytelling Framework for Your Brand Story",
+            href: "/resources/hollywood-brand-storytelling-framework",
+          },
+          {
+            text: "What Is an Ideal Customer Profile (ICP)?",
+            href: "/resources/what-an-icp-really-is",
+          },
+          {
+            text: "How to Turn an ICP Into Better Content and Ads",
+            href: "/resources/turn-an-icp-into-better-content-and-ads",
+          },
+          {
+            text: "Start building your strategy free",
+            href: "/story",
+          },
+        ],
       },
     ],
   },

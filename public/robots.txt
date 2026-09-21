@@ -1,0 +1,56 @@
+# marktr.io — crawl policy
+User-agent: *
+Allow: /
+
+# Explicitly allow known AI crawlers
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Claude-User
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+# Authenticated / app areas — not for indexing
+User-agent: *
+Disallow: /dashboard
+Disallow: /account
+Disallow: /admin
+Disallow: /team
+Disallow: /icps
+Disallow: /icp/
+Disallow: /my-brands
+Disallow: /collections
+Disallow: /strategy
+Disallow: /content
+Disallow: /scheduling
+Disallow: /health-report
+Disallow: /story-report
+Disallow: /icp-report
+Disallow: /auth/
+Disallow: /login
+Disallow: /signup
+Disallow: /logout
+Disallow: /reset-password
+Disallow: /check-email
+Disallow: /payment-success
+Disallow: /paywall-demo
+Disallow: /beta-signup
+
+Sitemap: https://www.marktr.io/sitemap.xml

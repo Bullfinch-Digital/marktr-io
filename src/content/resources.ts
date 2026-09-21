@@ -6,6 +6,12 @@ export type ResourcePost = {
   bgColor: string; // used to match homepage resource cards
   readingTime?: string;
   date?: string; // ISO string
+  author?: {
+    name: string;
+    title: string;
+    org: string;
+    url: string;
+  };
   seoTitle?: string;
   metaDescription?: string;
   faq?: Array<{ question: string; answer: string }>;
@@ -1610,6 +1616,12 @@ export const RESOURCE_POSTS: ResourcePost[] = [
     bgColor: "#7EB8DA",
     readingTime: "14 min read",
     date: "2026-09-20",
+    author: {
+      name: "Jon Stanford",
+      title: "Founder",
+      org: "Bullfinch Digital",
+      url: "https://bullfinchdigital.com",
+    },
     seoTitle:
       "The Hollywood Storytelling Framework for Your Brand Story (Free Template)",
     metaDescription:
@@ -1949,6 +1961,12 @@ export const RESOURCE_POSTS: ResourcePost[] = [
     bgColor: "#A8D5BA",
     readingTime: "16 min read",
     date: "2026-09-21",
+    author: {
+      name: "Jon Stanford",
+      title: "Founder",
+      org: "Bullfinch Digital",
+      url: "https://bullfinchdigital.com",
+    },
     seoTitle:
       "The 5-Stage Marketing Strategy Framework for Founders (Free Template)",
     metaDescription:

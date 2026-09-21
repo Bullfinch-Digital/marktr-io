@@ -91,10 +91,22 @@ export default function ResourcePost() {
       datePublished: post.date ?? "2026-02-13",
       dateModified: post.date ?? "2026-02-13",
       inLanguage: "en-GB",
-      author: {
-        "@type": "Organization",
-        name: "marktr",
-      },
+      author: post.author
+        ? {
+            "@type": "Person",
+            name: post.author.name,
+            jobTitle: post.author.title,
+            url: post.author.url,
+            worksFor: {
+              "@type": "Organization",
+              name: post.author.org,
+              url: post.author.url,
+            },
+          }
+        : {
+            "@type": "Organization",
+            name: "marktr",
+          },
       publisher: {
         "@type": "Organization",
         name: "marktr",
@@ -175,6 +187,19 @@ export default function ResourcePost() {
               {post.introLine ?? post.description}
             </p>
             <div className="mt-5 flex flex-wrap items-center gap-3 text-sm text-text-dark/90">
+              {post.author ? (
+                <span className="rounded-full border border-black bg-white px-3 py-1">
+                  {post.author.name}, {post.author.title},{" "}
+                  <a
+                    href={post.author.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline hover:no-underline"
+                  >
+                    {post.author.org}
+                  </a>
+                </span>
+              ) : null}
               {post.readingTime ? (
                 <span className="rounded-full border border-black bg-white px-3 py-1">
                   {post.readingTime}

@@ -1939,6 +1939,334 @@ export const RESOURCE_POSTS: ResourcePost[] = [
       },
     ],
   },
+  {
+    slug: "5-stage-marketing-strategy-framework",
+    title: "The 5-Stage Marketing Strategy Framework for Founders",
+    description:
+      "The exact framework I use with every client: brand story, ideal customer, transformation, offer, distribution. Five stages, real examples, no fluff.",
+    introLine:
+      "The exact framework I use with every client: brand story, ideal customer, transformation, offer, distribution. Five stages, real examples, no fluff.",
+    bgColor: "#A8D5BA",
+    readingTime: "16 min read",
+    date: "2026-09-21",
+    seoTitle:
+      "The 5-Stage Marketing Strategy Framework for Founders (Free Template)",
+    metaDescription:
+      "The exact framework I use with every client: brand story, ideal customer, transformation, offer, distribution. Five stages, real examples, no fluff.",
+    body: [
+      {
+        type: "p",
+        text:
+          "If you want to drive sales, build awareness and genuinely win at marketing, there are five stages you need to follow — and a guiding principle behind every single one of them that's easy to miss.",
+      },
+      {
+        type: "p",
+        text:
+          "I know what you're thinking. Another framework copied from a book or a YouTube channel. But I've been living this one for nearly a decade, through my own businesses and with the clients I work with every week — and I've made the mistakes so you don't have to.",
+      },
+      {
+        type: "p",
+        text:
+          "This is sensible marketing strategy for founders and small business owners who've built something genuinely excellent, but feel like their digital marketing is dramatically underselling it. Follow it properly and you'll go from the 90% of business owners who are guessing — posting and hoping and wondering why nothing's sticking — to the 10% who actually know what they're doing and why it's working.",
+      },
+      { type: "h2", text: "Watch the full breakdown" },
+      {
+        type: "youtube",
+        videoId: "ooKobJUrjdE",
+        title:
+          "Why Your Marketing Isn't Working (And The 5 Stages That Fix It)",
+      },
+      {
+        type: "p",
+        text:
+          "Prefer to read than watch? Everything's below, with the worked examples.",
+      },
+      { type: "h2", text: "Stage one — your brand story" },
+      {
+        type: "p",
+        text:
+          "Every great business is built around a compelling story. I don't mean a slogan — I don't mean \"just do it\" or \"think different.\" I mean the people and the founding moments that make a business genuinely different within its niche.",
+      },
+      {
+        type: "p",
+        text:
+          "It's Ben and his mate Jerry starting an ice cream shop after they couldn't afford the equipment for the bagel shop they'd planned. It's Jo Malone, who grew up on a council estate, left school with no qualifications, and started hand-mixing scented bath oils in her kitchen as a thank-you gift for her facial clients. It's a 19-year-old delivering pizzas for Pizza Hut who couldn't find gym clothes that fit his lean physique, so he launched his own brand from his garage.",
+      },
+      {
+        type: "p",
+        text:
+          "Chances are you're so close to your own business that your story feels anything but compelling. That's where you're wrong. Everyone has something genuinely interesting to say about how their business got started — and in a world saturated with AI-generated content, it's the human, personal connection that cuts through the noise.",
+      },
+      {
+        type: "p",
+        text:
+          "So let's find yours. Your brand story is the answer to three questions. Grab some paper and write these down:",
+      },
+      {
+        type: "ul",
+        items: [
+          "Why does your business exist?",
+          "What made you start it?",
+          "What do you genuinely believe that your competitors don't?",
+        ],
+      },
+      {
+        type: "p",
+        text:
+          "When I built Apostle Coffee, the story wasn't \"we sell nice coffee.\" It was an off-grid, renewable-powered roastery deep in the Shropshire hills, built on the belief that coffee could be environmentally minded, ethically sourced and genuinely delicious, all at the same time. That belief shaped everything — the compostable packaging we championed before anyone else, the tree-planting scheme we launched before third-party offsetting became fashionable, the way we spoke across our website, social media and PR. Every marketing decision was informed by the story at the heart of the brand.",
+      },
+      {
+        type: "p",
+        text:
+          "We started by towing an old horse trailer to rural Shropshire, packed with our possessions and a coffee roaster from the 1980s, with nothing more than naive curiosity and a desire to build something from scratch. That detail — that specific moment — is what makes the story real. Anyone can say they're passionate about coffee. Not many people start with a vintage roaster and a horse trailer.",
+      },
+      {
+        type: "p",
+        text:
+          "Try applying those three questions to your own business today. If the answers don't come easily, ask someone who knows your business — a customer, a supplier, a colleague. It's easy to get so deep in the day-to-day that you can't see what's genuinely interesting from the outside. Other people spot it immediately.",
+      },
+      {
+        type: "p",
+        text:
+          "If you can't answer these three questions clearly, your marketing will always feel like something's missing — and your customers will feel that too. Which is exactly what we're looking at next.",
+      },
+      {
+        type: "callout",
+        title: "Map your brand story properly, not just on the back of an envelope.",
+        text:
+          "marktr.io walks you through this exact framework in a few minutes and keeps it structured, ready to plug into every piece of content you make.",
+        href: "/story",
+        linkText: "Start mapping your brand story free →",
+      },
+      { type: "h2", text: "Stage two — your ideal customer" },
+      {
+        type: "p",
+        text:
+          "This is where most marketing falls apart — and I'll be honest, it's where I see even experienced founders getting it wrong too.",
+      },
+      {
+        type: "p",
+        text:
+          "As business owners, it's so easy to get caught up in packing orders, developing new lines, or chasing the sales you're already making, that you never stop to really look at who you're selling to. A business that markets to everybody speaks to nobody.",
+      },
+      {
+        type: "p",
+        text:
+          "Here's something that helped me think about this differently. Imagine a stadium full of potential customers — thousands of people, all in one place. What's the single most powerful way to get one specific person's attention? It's their name. Shout someone's name in a crowded space and they'll turn and look every time. That's what great marketing does — it calls your ideal customer out by name, speaks directly to their situation, and makes them feel like you built your product specifically for them.",
+      },
+      {
+        type: "p",
+        text:
+          "What you need is a crystal-clear picture of that one person — your Ideal Customer Profile, or ICP (sometimes called a customer avatar). Not a vague sense of \"people who might need this.\" A specific, detailed picture of who they are, what they care about, what keeps them up at night, what language they use to describe their own problems, and where they spend their time online.",
+      },
+      {
+        type: "p",
+        text:
+          "You might end up with two or three ICPs, because different products within your offering suit different people. But start with one.",
+      },
+      {
+        type: "p",
+        text:
+          "Here's how you do it. Write down a description of your single best customer — someone you've already done business with. Not your average customer, not the customer you'd like to attract. Your best one to date. Even better, the customer who got the most value from your product, who always comes back or refers you to friends, who you could happily point a prospect to for a testimonial. This person is your north star.",
+      },
+      {
+        type: "p",
+        text: "Once you have them in mind, define six things:",
+      },
+      {
+        type: "ul",
+        items: [
+          "**Who are they?** A name and a one-line description of their situation. An ICP doesn't have to be a single individual — it can be a couple, a household, or a type.",
+          "**What defines them?** Age, location, income, lifestyle — be as specific as possible.",
+          "**What motivates them** in relation to your product, and the broader interests and values that shape their decisions.",
+          "**What attracts them to your offer** — what signals tell them you're the right choice?",
+          "**What problems can you solve for them** — what's keeping them up at night that your product genuinely fixes?",
+          "**Where do they hang out?** Not down the pub — the online spaces and platforms they actually use and trust, because that's where your marketing needs to show up.",
+        ],
+      },
+      {
+        type: "p",
+        text:
+          "Here's a real example. I work with a family-run campsite in the Shropshire Hills called The Green, offering camping, caravanning and yearly touring pitches. For their touring caravan pitch product, the ICP is John and Sue, the settled adventurers: a retired couple, 55–70, based in the Midlands or North West within a couple of hours' drive, on a stable pension with mid-range disposable income, routine-orientated, valuing community and calmness over novelty. They want to return to the same peaceful spot every season rather than start somewhere new each time. They're put off by sites that feel too commercial or entertainment-heavy, and they're probably uncertain about storing their caravan over winter — a problem The Green can solve directly with clear advice. They hang out in Facebook caravanning and motorhome groups, and watch YouTube content from couples just like them.",
+      },
+      {
+        type: "p",
+        text:
+          "Knowing your ideal customer isn't about excluding anybody. It's about speaking so clearly to one person that they feel like you built your entire business specifically for them. Call that person out in a stadium of thousands, and others will always follow.",
+      },
+      {
+        type: "p",
+        text:
+          "Stages one and two are deeply connected — your story and your ideal customer shape each other, and you'll find yourself moving back and forth between them. That's the work. There's no shortcut. This is what makes your marketing hold together across platforms.",
+      },
+      {
+        type: "callout",
+        title: "Skip the blank page.",
+        text:
+          "marktr.io's free ICP tool builds a detailed ideal customer profile in a couple of minutes — and you can edit the result until it's exactly right.",
+        href: "/onboarding-build",
+        linkText: "Build your ideal customer profile free →",
+      },
+      { type: "h2", text: "Stage three — your transformation" },
+      {
+        type: "p",
+        text:
+          "With your ICP in place, stage three is where we take it somewhere useful: the transformation your product or service actually delivers.",
+      },
+      {
+        type: "p",
+        text:
+          "I don't mean listing your products and services — \"we have three colours of cooking pot in four sizes.\" I mean articulating the transformation. What pain point or frustration in your customer's life can only you address? What are you transforming their situation from — pain and discomfort — to: their desired state of satisfaction and comfort? In its most literal sense, a pain point is a headache, and your product is the aspirin.",
+      },
+      {
+        type: "p",
+        text:
+          "Remember, a product is a thing. A transformation is the change that happens to someone because of that thing. A plumber doesn't just install boilers — they give a family a warm home in winter. A personal trainer doesn't sell workout sessions — they build the body and confidence their client has always dreamed of.",
+      },
+      {
+        type: "p",
+        text:
+          "When you frame your offer as the transformation it provides — when you show your customer what life looks like after they've worked with you — you stop selling a product and start telling a story that can't be ignored.",
+      },
+      {
+        type: "p",
+        text:
+          "Ask yourself: what does my customer's world look like before they buy from me, and how does it look after? What's better? What problem no longer exists? And use language that speaks directly to them — \"you\" and \"your,\" not \"we\" and \"our.\"",
+      },
+      {
+        type: "p",
+        text:
+          "Here's an example from Apostle's own website. We know from talking to customers that the first time they buy, they're looking for reassurance the coffee will taste good without needing fancy barista gear — the pain point is the fear they can't make coffee as good as their local café. Here's the copy that addresses it:",
+      },
+      {
+        type: "p",
+        text:
+          "\"Great coffee shouldn't be this hard. If you've ever bought a bag of coffee that didn't quite taste right, or struggled to make café-quality coffee at home — that's exactly why we created Apostle. We source exceptional coffees, roast them fresh every Monday, and deliver them straight to your door, so you can make better coffee at home without the guesswork.\"",
+      },
+      {
+        type: "p",
+        text:
+          "Illustrate the problem, speak directly to the customer, finish with the solution. Once you break it into those steps, it's easy to repeat across your entire marketing.",
+      },
+      { type: "h2", text: "Stage four — your compelling offer" },
+      {
+        type: "p",
+        text:
+          "This is the stage most people jump straight into — understandably, because we see it everywhere: the supermarket, our favourite online retailers, even the guy at the fruit market shouting out offers. It feels like a clear, quick marketing win.",
+      },
+      {
+        type: "p",
+        text:
+          "That's exactly why it sits at number four. A compelling offer only works when it's built on the foundations you've already laid — a clear story, a well-defined ideal customer, and a transformation they actually want. Without those three things, even a brilliant offer falls flat, because nobody knows why they should care, and they're certainly not going to bite if you're knocking 20% off willy-nilly.",
+      },
+      {
+        type: "p",
+        text:
+          "If your ICP is already at the point of transformation and ready to buy, you probably don't need a compelling offer at all — you'll hit a home run regardless. But what about the customers on the fence, who fit your avatar but need a little more convincing? That's where the compelling offer comes in: converting your audience into a sale, or attracting them with something alluring. Two versions worth knowing:",
+      },
+      {
+        type: "p",
+        text:
+          "**The value hook** — something small you dangle in front of a customer to make it easy to say yes. Free postage. 10% off a first purchase. A bundle. A complimentary extra. It could even be an emotional reason to buy — a limited-time offer, a money-back guarantee. The key is making it something you're genuinely happy to give away without hurting your margin or reputation.",
+      },
+      {
+        type: "p",
+        text:
+          "**The lead magnet** — magnetically drawing in people who need more convincing before they commit. Often a free sample, a free tool, a useful guide (like this very article), a taster session, a brochure. Anything that lets your ideal customer experience some of the value of your main product with minimal personal risk. The goal isn't giving lots away for free — it's letting them taste the transformation that awaits, so when you ask them to buy, book or subscribe, it feels like a no-brainer.",
+      },
+      {
+        type: "p",
+        text:
+          "A few real examples: Apostle's product is a coffee subscription, and the lead magnet is a free 30-second coffee quiz that points people to their best-fit club — personal curation and a little flex of expertise. For a campsite, it could be a free \"plan your visit\" guide — local walks, restaurants, things to do — that sells the experience before anyone's booked. For a log cabin builder, a free checklist: \"ten things to check before you commission a log cabin,\" which positions you as the expert before a single conversation about budget.",
+      },
+      {
+        type: "p",
+        text:
+          "Most research suggests it takes around ten touch points before a customer even registers your brand exists. A well-placed lead magnet knocks several of those off in one go — and makes you a lot harder to ignore.",
+      },
+      { type: "h2", text: "Stage five — your distribution" },
+      {
+        type: "p",
+        text:
+          "This is exactly where most people start, which is exactly the problem. Should you be on TikTok? Do you need a podcast? More Instagram? LinkedIn? These are the bits of marketing that feel most visible — we see breakout successes on every platform, so it's tempting to jump in.",
+      },
+      {
+        type: "p",
+        text:
+          "But platform choice is a distribution decision, not a strategy decision. You can't distribute something effectively if you don't know what you're saying, who you're saying it to, or what you want them to do when they hear it. Without stages one to four in place, you're shouting into a room and hoping the right person is in it.",
+      },
+      {
+        type: "p",
+        text:
+          "With the foundations already built, platform choice becomes straightforward — because it's entirely about where your ideal customer hangs out (stage two, question six). It's not about you, your product, where you'd like to be, or what competitors are posting. It's where your specific customer spends their time online, asks their questions, and trusts the answers they get.",
+      },
+      {
+        type: "p",
+        text:
+          "Back to John and Sue: they're in Facebook caravanning groups, watching YouTube from couples just like them. So that's where The Green's messaging and offers need to show up — not TikTok.",
+      },
+      {
+        type: "p",
+        text:
+          "Pick one or two platforms and do them properly. Consistency beats omnipresence every time. A business that shows up brilliantly on Instagram and sends a genuinely useful weekly email will outperform a business posting half-heartedly across six platforms, every single time.",
+      },
+      { type: "h2", text: "The bonus stage — be intentional" },
+      {
+        type: "p",
+        text:
+          "Five stages, as promised — but there's one more thing that separates businesses that sustain their marketing from the ones that burn out after six weeks: being intentional about why you're doing this.",
+      },
+      {
+        type: "p",
+        text:
+          "\"Grow the business\" isn't specific enough. What does growth actually look like for you — more revenue? More of the right customers? More people on a waitlist? A loyal community? Get clear on your specific version of success, because that's what lets you measure it. Measurement isn't about being obsessed with numbers — it's the only honest way to know what's working and what isn't.",
+      },
+      {
+        type: "p",
+        text:
+          "Launch something. Learn from it. Fix it or cut it. Then double down on what's actually working. The founders who build genuinely strong marketing aren't the ones with the most creative campaigns — they're the ones who stayed intentional, kept it simple, and were honest with themselves about what the results were telling them.",
+      },
+      {
+        type: "p",
+        text:
+          "Launch, learn, fix, repeat. That's it. That's all great marketing ever is: the five stages working together, with the intention to measure what matters and keep improving.",
+      },
+      { type: "h2", text: "Want the shorter version?" },
+      {
+        type: "p",
+        text:
+          "If you'd rather get the headline version in five minutes, here's the same five stages, condensed:",
+      },
+      {
+        type: "youtube",
+        videoId: "A7Zp9WBUleY",
+        title:
+          "Give Me 5 Minutes. I'll Grow Your Business (With 5 Marketing Steps)",
+      },
+      {
+        type: "h2",
+        text: "Your strategy is built the same way every time",
+      },
+      {
+        type: "p",
+        text:
+          "Five stages: your brand story, your ideal customer, the transformation you deliver, your compelling offer, and where your messaging needs to show up. That's not a to-do list — it's the foundation of a complete marketing strategy, in the order that actually makes each stage work.",
+      },
+      {
+        type: "p",
+        text:
+          "If you're a busy founder and want to get this done in minutes rather than an afternoon with a notepad, marktr.io walks you through the whole thing — brand story, ideal customer, and everything that follows — and it's free to get started.",
+      },
+      {
+        type: "callout",
+        title: "Ready when you are.",
+        text:
+          "Walk through brand story, ideal customer, and the rest of your marketing strategy on marktr — free to get started.",
+        href: "/story",
+        linkText: "Start building your marketing strategy on marktr.io →",
+      },
+    ],
+  },
 ];
 
 export function getResourceBySlug(slug: string) {

@@ -42,16 +42,23 @@ export type ResourcePost = {
 export const RESOURCE_POSTS: ResourcePost[] = [
   {
     slug: "what-an-icp-really-is",
-    title: "What Is an Ideal Customer Profile (ICP)?",
+    title:
+      "What Is an Ideal Customer Profile (ICP)? A Practical Framework With Real Examples",
     description:
-      "Learn what an Ideal Customer Profile (ICP) is, how it differs from an ideal customer persona or avatar, and how to define and validate the right segment.",
+      "How to build a real Ideal Customer Profile — six questions, real examples, and the technique for writing copy your ICP will think was written just for them.",
     bgColor: "#BBA0E5",
-    readingTime: "9 min read",
+    readingTime: "14 min read",
     date: "2026-02-13",
+    author: {
+      name: "Jon Stanford",
+      title: "Founder",
+      org: "Bullfinch Digital",
+      url: "https://bullfinchdigital.com",
+    },
     seoTitle:
       "What Is an Ideal Customer Profile (ICP)? Definition, Framework and Validation Guide",
     metaDescription:
-      "Learn what an Ideal Customer Profile (ICP) is, how it differs from an ideal customer persona or avatar, and how to define and validate the right segment.",
+      "How to build a real Ideal Customer Profile — six questions, real examples (Patagonia, Dollar Shave Club, a UK campsite), and the exact technique for writing copy your ICP will think was written just for them.",
     faq: [
       {
         question: "What is the difference between an ICP and a buyer persona?",
@@ -61,327 +68,235 @@ export const RESOURCE_POSTS: ResourcePost[] = [
       {
         question: "How do you validate an ICP?",
         answer:
-          "Validate with behavioural and commercial outcomes: conversion rate by segment, sales cycle length, retention rate, customer lifetime value, and revenue contribution. Consistent outperformance is evidence of ICP fit.",
+          "Look at behavioural and commercial outcomes — conversion rate by segment, sales cycle length, retention, customer lifetime value, revenue contribution. Consistent outperformance is your evidence.",
       },
       {
         question: "Can an ICP change over time?",
         answer:
-          "Yes. ICPs should be reviewed when product, pricing, market conditions, or customer behaviour changes.",
+          "Yes. Review it when your product, pricing, market conditions, or customer behaviour shift.",
       },
       {
-        question: "Is an ICP only for SaaS companies?",
+        question: "Is an ICP only useful for SaaS companies?",
         answer:
-          "No. ICPs are useful for SaaS, agencies, consultancies, e-commerce brands, and B2B service businesses.",
+          "No — this exact framework works with craft brands, campsites, log cabin builders and service businesses, not just software.",
       },
       {
         question: "How often should you update an ICP?",
         answer:
-          "Review at least quarterly in fast-moving markets, and after major changes such as repositioning, pricing updates, or market expansion.",
+          "At least quarterly in a fast-moving market, and always after a repositioning, a pricing change, or a real shift in who's actually buying.",
       },
     ],
     body: [
-      { type: "h2", text: "Direct Answer Summary" },
       {
         type: "p",
         text:
-          "An Ideal Customer Profile (ICP) is a clear, evidence-based description of the customer segment that is the best commercial fit for your offer.",
+          "There's one person who can transform your entire brand — someone who already wants what you offer, needs the transformation you provide, and will champion you to anyone who'll listen. This is how you find them.",
       },
       {
         type: "p",
         text:
-          "The right ICP identifies the customers who convert faster, stay longer, generate higher lifetime value, and achieve better outcomes.",
+          "I know what you're thinking: I already know who my customers are, there's nothing new here — they're the people buying from me right now. I promise you that's not the case. Your ideal customer isn't necessarily whoever happens to be buying from you today. I'll show you why that matters, and we'll build your Ideal Customer Profile properly, together.",
+      },
+      { type: "h2", text: "Watch the full breakdown" },
+      {
+        type: "youtube",
+        videoId: "bj6J4bNxwwc",
+        title:
+          "STOP Marketing to Everyone — Find The ONE Person Who Will Grow Your Business",
       },
       {
         type: "p",
         text:
-          "Without a defined ICP, businesses struggle with product-market fit, attract low-quality leads, and make inconsistent marketing and sales decisions.",
+          "Prefer to read than watch? Everything's below, with worked examples.",
       },
       { type: "h2", text: "What is an Ideal Customer Profile?" },
       {
         type: "p",
         text:
-          "An Ideal Customer Profile defines the type of customer that delivers the strongest commercial outcomes for your business.",
+          "An Ideal Customer Profile (ICP) is a specific, detailed picture of the one person your marketing should be built around — not a vague sense of \"people who might like this,\" but their name, their frustration, the words they actually use, and where they're already spending time online, waiting for you to show up.",
       },
       {
         type: "p",
         text:
-          "It is not a general audience description. It is a prioritisation framework.",
+          "Most businesses get this wrong not because they're doing anything badly, but because they've never been asked to get specific. They know their product inside out, they get enough sales to feel like it's working — but they've never sat down and built a detailed, honest picture of the one person they should really be reaching.",
       },
-      {
-        type: "ul",
-        items: [
-          "Commercial context (revenue, size, maturity)",
-          "Active pain points",
-          "Buying triggers",
-          "Objections and friction",
-          "Channels of attention",
-          "Measurable performance signals",
-        ],
-      },
-      { type: "h2", text: "Why does an ICP matter for growth?" },
       {
         type: "p",
         text:
-          "Without an ICP, teams often target anyone who might buy. That increases waste and reduces consistency.",
-      },
-      {
-        type: "ul",
-        items: [
-          "Lower conversion rates",
-          "Higher acquisition costs",
-          "Longer sales cycles",
-          "Higher churn in new customers",
-          "Unclear product and messaging decisions",
-        ],
-      },
-      {
-        type: "p",
-        text: "A strong ICP improves:",
-      },
-      {
-        type: "ul",
-        items: [
-          "Targeting accuracy",
-          "Sales qualification",
-          "Retention and lifetime value",
-          "Product-market fit decisions",
-          "Cross-team alignment",
-        ],
-      },
-      { type: "h2", text: "ICP vs buyer persona: what's the difference?" },
-      {
-        type: "p",
-        text: "Use both, but in the right order.",
-      },
-      {
-        type: "ul",
-        items: [
-          "ICP defines the best-fit customer segment for your business.",
-          "Buyer persona defines the individual decision-maker inside that segment.",
-          "ICP answers: who should we target?",
-          "Persona answers: how does this person decide?",
-        ],
-      },
-      {
-        type: "p",
-        text: "Practical order:",
-      },
-      {
-        type: "ul",
-        items: [
-          "Define ICP using commercial fit and performance signals.",
-          "Build personas within that ICP.",
-          "Tailor messaging to each persona without changing segment focus.",
-        ],
+          "Here's why that matters. Think about a stadium full of people — thousands of them, all in one place. What's the single most powerful way to get one specific person's attention? It's their name. Shout someone's name in a crowded space and they'll turn around, every time. That's what marketing to a real ICP does — it calls your ideal customer out by name, speaks so directly to their situation that they feel like you built what you offer specifically for them. Marketing to everyone means speaking to no one; specificity is what filters out the people who were never going to buy, while pulling your real audience in immediately.",
       },
       {
         type: "h2",
-        text: "Is an Ideal Customer Profile the same as an ideal customer persona or avatar?",
+        text: "ICP vs buyer persona vs avatar: what's the difference?",
       },
       {
         type: "p",
         text:
-          "The terms Ideal Customer Profile (ICP), ideal customer persona, and ideal customer avatar are often used interchangeably, but they are not identical.",
-      },
-      {
-        type: "p",
-        text:
-          "An Ideal Customer Profile defines the best-fit customer segment for your business.",
-      },
-      {
-        type: "p",
-        text:
-          "An ideal customer persona focuses on the individual decision-maker within that segment and how they evaluate and purchase solutions.",
-      },
-      {
-        type: "p",
-        text:
-          "An ideal customer avatar is typically a simplified marketing label for a fictionalised representation of your target buyer.",
-      },
-      {
-        type: "p",
-        text: "In practical terms:",
+          "These three terms get used interchangeably, but they're not quite the same thing, and it's worth knowing which one you actually need.",
       },
       {
         type: "ul",
         items: [
-          "ICP = strategic segment definition",
-          "Persona = individual behaviour and decision process",
-          "Avatar = simplified marketing shorthand",
+          "**ICP** defines the best-fit customer segment for your business — who you should be targeting at all.",
+          "**Buyer persona** defines the individual decision-maker inside that segment — how that person actually decides.",
+          "**Avatar** is usually just a simplified marketing shorthand for a fictionalised version of your target buyer.",
         ],
       },
       {
         type: "p",
         text:
-          "For structured growth decisions, defining the ICP first is critical. Personas and avatars are built within that definition, not instead of it.",
+          "I build these in order: define the ICP first (the segment), then build personas inside it if you need that extra layer, and tailor messaging to each persona without losing focus on the segment as a whole. Skip straight to personas or avatars without doing the ICP work first, and you end up with a plausible-sounding character who isn't actually grounded in anything.",
       },
-      { type: "cta" },
-      { type: "h2", text: "How do you build an ICP step by step?" },
-      { type: "h3", text: "1) What goals are they trying to achieve?" },
+      { type: "h2", text: "How do you build an ICP? Six questions" },
       {
         type: "p",
-        text: "Define measurable outcomes your best customers care about.",
+        text:
+          "You might end up with two or three ICPs eventually, because different products within your offering suit different people. But start with one.",
+      },
+      {
+        type: "p",
+        text:
+          "Use your single best customer as the model — not your average customer, not an aspirational one. Your best one to date: the one who gets the most value, comes back, refers their friends, the one you'd happily point a prospect to for a testimonial. That person is your north star.",
       },
       {
         type: "ul",
         items: [
-          "Improve conversion rate",
-          "Reduce churn",
-          "Increase qualified demand",
-          "Grow revenue predictably",
+          "**Who are they?** Give them a name and a one-line description of their situation. An ICP doesn't have to be a single individual — it can be a couple, a household, a type of person — but it needs an identity you can refer back to.",
+          "**What defines them?** Age, location, income, lifestyle. Be specific — vague demographics build vague marketing, every time.",
+          "**What motivates them?** Not just the transaction — the values and interests underneath it.",
+          "**What attracts them to what you offer?** What signals make them lean in, what earns trust before they've spent a penny?",
+          "**What problem can you solve for them?** What's keeping them up at night that your product genuinely fixes? This is the pain point that should run through everything you make from here on.",
+          "**Where do they hang out?** Not down the pub — which online platforms and communities do they actually trust? That's where your marketing needs to show up, not everywhere at once.",
         ],
       },
-      { type: "h3", text: "2) What pains are frustrating or costly right now?" },
       {
         type: "p",
-        text: "Map active friction, not generic challenges.",
-      },
-      {
-        type: "ul",
-        items: [
-          "Marketing is not converting",
-          "Sales cycles are too long",
-          "Positioning is unclear",
-          "Wrong-fit leads are entering the funnel",
-        ],
-      },
-      { type: "h3", text: "3) What triggers make them look for help?" },
-      {
-        type: "p",
-        text: "Identify events that create urgency.",
-      },
-      {
-        type: "ul",
-        items: [
-          "Revenue plateau",
-          "Product launch",
-          "Investor pressure",
-          "Team changes",
-          "Declining performance metrics",
-        ],
-      },
-      { type: "h3", text: "4) What objections could stop them buying?" },
-      {
-        type: "p",
-        text: "Capture recurring objections early.",
-      },
-      {
-        type: "ul",
-        items: [
-          "We can do this internally.",
-          "This is not urgent yet.",
-          "The cost feels high.",
-          "We tried this before.",
-        ],
+        text:
+          "Answer those six honestly and you've got a north star for your website copy, your next social post, even how you describe your business at a networking event.",
       },
       {
         type: "h3",
-        text: "5) Where do they spend attention and how can you reach them?",
-      },
-      {
-        type: "p",
-        text: "Turn the ICP into channel and content choices.",
-      },
-      {
-        type: "ul",
-        items: [
-          "Channels (for example LinkedIn, newsletters, communities)",
-          "Formats (guides, case studies, webinars, podcasts)",
-          "Trusted voices and sources",
-        ],
-      },
-      { type: "h2", text: "What does a strong ICP look like in practice?" },
-      {
-        type: "p",
-        text: "Weak ICP: B2B SaaS companies with 10-50 employees.",
+        text: "Two brands who got this brilliantly right",
       },
       {
         type: "p",
         text:
-          "Strong ICP: B2B SaaS founders with GBP500k-GBP2m ARR, churn above 8% monthly, and a recent Customer Success hire, aiming to improve retention before their next funding round.",
+          "Most people assume Patagonia's ICP is a climber or a serious outdoor athlete. It isn't. We'll call him Alex — mid-30s to mid-50s, an urban professional, financially comfortable, someone who wants his spending to reflect his values. Alex is more likely to wear a Patagonia fleece to a coffee shop than up a mountain. What he's buying isn't waterproofing — it's a statement, membership of a community that gives the environment a genuine thought before it opens its wallet. Once Patagonia understood that, everything from \"Don't Buy This Jacket\" to giving the company away made perfect sense.",
       },
       {
         type: "p",
-        text: "Why the stronger version works:",
+        text:
+          "Compare that to Dollar Shave Club. Their ICP is Dave — late 20s to mid-40s, practical, no-nonsense, sick of paying fifteen quid for four razor blades in a locked cabinet at the drugstore. Dave isn't after a luxury shave. He's after someone finally calling out the fact he's been ripped off for years, and offering him a better deal without the nonsense. That one frustration became the entire brand — the launch video, the packaging, all of it.",
+      },
+      {
+        type: "p",
+        text:
+          "Two completely different ICPs, two completely different emotional drivers — one identity-led, one frustration-led. Both turned a deep understanding of one specific person into a brand that dominated its market.",
+      },
+      {
+        type: "h3",
+        text: "A real example from my own client work",
+      },
+      {
+        type: "p",
+        text:
+          "I work with a family-run campsite in the Shropshire Hills called The Green — camping, caravanning, and yearly touring pitches where customers book a seasonal spot and can come and go as they please, always knowing it's waiting for them.",
+      },
+      {
+        type: "p",
+        text:
+          "For their touring caravan pitch product, the ICP is John and Sue, the settled adventurers:",
       },
       {
         type: "ul",
         items: [
-          "Clear commercial context",
-          "Clear active pain",
-          "Clear timing trigger",
-          "Clear qualification criteria",
+          "**Who are they?** A retired couple looking for a home away from home — not tourists passing through, a returning seasonal community.",
+          "**What defines them?** 55–70, retired or semi-retired, Midlands or North West, routine-orientated, valuing community and countryside calm over novelty.",
+          "**What motivates them?** Returning to the same peaceful spot every season. Belonging to a site, not just renting a pitch.",
+          "**What attracts them?** A locally run, eco-friendly family business over a corporate holiday park. Reliable facilities, consistent management, a friendly tone.",
+          "**What problems can you solve?** Rising pitch prices elsewhere, sites that feel too commercial, uncertainty about winter caravan storage.",
+          "**Where do they hang out?** Facebook caravanning groups, motorhome clubs, YouTube caravan-lifestyle content from couples just like them.",
         ],
       },
-      { type: "h2", text: "What are common ICP mistakes?" },
+      {
+        type: "p",
+        text:
+          "Once you have that level of detail, every piece of content has a clear brief. Every social post has a specific person to speak to. Every offer solves a problem that person actually has. That's what an ICP does — it turns vague marketing into a conversation.",
+      },
+      {
+        type: "callout",
+        title: "Skip the blank page.",
+        text:
+          "marktr.io's free ICP tool builds this for you in a few minutes — you answer a handful of questions, it hands you back up to three ICPs, ready to edit until they're exactly right.",
+        href: "/onboarding-build",
+        linkText: "Build your ideal customer profile free →",
+      },
+      { type: "h2", text: "The content superpower most people miss" },
+      {
+        type: "p",
+        text:
+          "Once you know your ICP properly, something shifts in how you write. You stop describing your product and start describing the transformation — and the most powerful way to do that is to use your customer's own words, not marketing language, not industry jargon.",
+      },
+      {
+        type: "p",
+        text:
+          "Get on the phone and ask a handful of customers what nearly stopped them buying, what they'd say to a friend about your product, what problem they were trying to solve when they found you. If you're not comfortable asking directly, read your reviews back instead — what drew them in, which platform they found you on, why they chose you over the alternative.",
+      },
+      {
+        type: "p",
+        text:
+          "I did this recently with our own coffee club members at Apostle, and the phrases they used were nothing like the copy on our website. When someone reads your copy and thinks \"that's exactly how I'd describe it,\" that feeling of being understood is the thing that actually converts. And once you know where they hang out too, you're not guessing at platforms any more — you're just showing up where they already are, speaking in the language they already use, about the problem they're already trying to solve.",
+      },
+      {
+        type: "p",
+        text:
+          "That's not just an ICP. That's a superpowered content strategy.",
+      },
+      { type: "h2", text: "Want the shorter version?" },
+      {
+        type: "p",
+        text:
+          "If you'd rather get the headline version in five minutes, here's the same framework, condensed:",
+      },
+      {
+        type: "youtube",
+        videoId: "qfF2XSznguY",
+        title:
+          "Give Me 5 Minutes. I'll Find The ONE Person Who Can Grow Your Business",
+      },
+      { type: "h2", text: "Common ICP mistakes" },
       {
         type: "ul",
         items: [
           "Making the ICP too broad",
-          "Using aspiration instead of data",
-          "Confusing industry with fit",
+          "Using aspiration instead of real customer data",
+          "Confusing industry with genuine fit",
           "Ignoring timing and buying triggers",
-          "Skipping validation against outcomes",
+          "Skipping validation against actual outcomes",
           "Not updating the ICP as the business evolves",
         ],
       },
-      { type: "h2", text: "What are signs you have the wrong ICP?" },
+      { type: "h2", text: "Signs you have the wrong ICP" },
       {
         type: "ul",
         items: [
           "High traffic but weak conversion",
           "Long sales cycles with low close rates",
           "Churn rising in new accounts",
-          "Messaging changes every quarter",
-          "Sales and marketing disagree on lead quality",
+          "Your messaging keeps changing every quarter",
+          "Marketing and sales disagree on lead quality",
         ],
       },
       {
         type: "p",
         text:
-          "Quick sentence test: We help [specific customer type] with [specific problem] achieve [specific outcome]. If this stays vague, your ICP needs refining.",
+          "A quick sentence test I use with clients: \"We help [specific customer type] with [specific problem] achieve [specific outcome].\" If that stays vague, your ICP needs refining.",
       },
-      { type: "h2", text: "When should you use ICP Generator?" },
+      { type: "h2", text: "Frequently asked questions" },
       {
-        type: "p",
-        text:
-          "Manual ICP documents often become inconsistent, outdated or influenced by opinion rather than data.",
+        type: "h3",
+        text: "What is the difference between an ICP and a buyer persona?",
       },
-      {
-        type: "p",
-        text: "Use a structured ICP system when:",
-      },
-      {
-        type: "ul",
-        items: [
-          "Teams disagree on who the real target customer is",
-          "Marketing attracts volume but not qualified demand",
-          "Sales cycles are unpredictable",
-          "Churn is rising in new accounts",
-          "Product-market fit feels unstable",
-          "You are repositioning, launching, or entering a new segment",
-        ],
-      },
-      {
-        type: "p",
-        text: "ICP Generator provides:",
-      },
-      {
-        type: "ul",
-        items: [
-          "A structured decision-making framework",
-          "A repeatable validation process",
-          "Clear qualification criteria",
-          "Shared language across marketing, sales and product",
-        ],
-      },
-      {
-        type: "p",
-        text:
-          "It turns ICP work from a brainstorming exercise into an operational growth system.",
-      },
-      { type: "h2", text: "Frequently Asked Questions" },
-      { type: "h3", text: "What is the difference between an ICP and a buyer persona?" },
       {
         type: "p",
         text:
@@ -390,39 +305,43 @@ export const RESOURCE_POSTS: ResourcePost[] = [
       { type: "h3", text: "How do you validate an ICP?" },
       {
         type: "p",
-        text: "Validate with behavioural and commercial outcomes:",
-      },
-      {
-        type: "ul",
-        items: [
-          "Conversion rate by segment",
-          "Sales cycle length",
-          "Retention rate",
-          "Customer lifetime value",
-          "Revenue contribution",
-        ],
-      },
-      {
-        type: "p",
-        text: "Consistent outperformance is evidence of ICP fit.",
+        text:
+          "Look at behavioural and commercial outcomes — conversion rate by segment, sales cycle length, retention, customer lifetime value, revenue contribution. Consistent outperformance is your evidence. (I've written a full guide on this — see Related resources below.)",
       },
       { type: "h3", text: "Can an ICP change over time?" },
       {
         type: "p",
         text:
-          "Yes. ICPs should be reviewed when product, pricing, market conditions, or customer behaviour changes.",
+          "Yes. Review it when your product, pricing, market conditions, or customer behaviour shift.",
       },
-      { type: "h3", text: "Is an ICP only for SaaS companies?" },
+      {
+        type: "h3",
+        text: "Is an ICP only useful for SaaS companies?",
+      },
       {
         type: "p",
         text:
-          "No. ICPs are useful for SaaS, agencies, consultancies, e-commerce brands, and B2B service businesses.",
+          "No — I use this exact framework with craft brands, campsites, log cabin builders and service businesses, not just software.",
       },
       { type: "h3", text: "How often should you update an ICP?" },
       {
         type: "p",
         text:
-          "Review at least quarterly in fast-moving markets, and after major changes such as repositioning, pricing updates, or market expansion.",
+          "At least quarterly in a fast-moving market, and always after a repositioning, a pricing change, or a real shift in who's actually buying.",
+      },
+      { type: "h2", text: "The takeaway" },
+      {
+        type: "p",
+        text:
+          "An ICP isn't a demographic profile. It's a practical filter for who to prioritise, how to position, and where to focus. Get specific enough, in your customer's own words, and your marketing stops being a guess.",
+      },
+      {
+        type: "callout",
+        title: "Ready when you are.",
+        text:
+          "Build a real Ideal Customer Profile in minutes — free on marktr.",
+        href: "/onboarding-build",
+        linkText: "Start building your ICP on marktr.io →",
       },
       { type: "h2", text: "Related resources" },
       {
@@ -454,16 +373,6 @@ export const RESOURCE_POSTS: ResourcePost[] = [
           },
         ],
       },
-      {
-        type: "h2",
-        text: "What is the key takeaway?",
-      },
-      {
-        type: "p",
-        text:
-          "An ICP is not a demographic profile. It is a practical commercial filter for who to prioritise, how to position, and where to focus growth.",
-      },
-      { type: "cta" },
     ],
   },
   {

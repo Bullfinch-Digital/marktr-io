@@ -20,6 +20,46 @@
       "source": "/yt04-dl",
       "destination": "https://www.marktr.io/downloads?utm_source=youtube&utm_medium=organic&utm_campaign=video-04-stop-marketing-to-everyone&utm_content=downloads",
       "permanent": false
+    },
+    {
+      "source": "/yt01-nl",
+      "destination": "https://www.marktr.io/newsletter?utm_source=youtube&utm_medium=organic&utm_campaign=video-01-marketing-genius&utm_content=newsletter",
+      "permanent": false
+    },
+    {
+      "source": "/yt02-nl",
+      "destination": "https://www.marktr.io/newsletter?utm_source=youtube&utm_medium=organic&utm_campaign=video-02-story-impossible-to-ignore&utm_content=newsletter",
+      "permanent": false
+    },
+    {
+      "source": "/yt03-nl",
+      "destination": "https://www.marktr.io/newsletter?utm_source=youtube&utm_medium=organic&utm_campaign=video-03-marketing-strategy-5min&utm_content=newsletter",
+      "permanent": false
+    },
+    {
+      "source": "/yt04-nl",
+      "destination": "https://www.marktr.io/newsletter?utm_source=youtube&utm_medium=organic&utm_campaign=video-04-stop-marketing-to-everyone&utm_content=newsletter",
+      "permanent": false
+    },
+    {
+      "source": "/yt05-nl",
+      "destination": "https://www.marktr.io/newsletter?utm_source=youtube&utm_medium=organic&utm_campaign=video-05-icp-in-5-minutes&utm_content=newsletter",
+      "permanent": false
+    },
+    {
+      "source": "/yt06-nl",
+      "destination": "https://www.marktr.io/newsletter?utm_source=youtube&utm_medium=organic&utm_campaign=video-06-master-storyteller&utm_content=newsletter",
+      "permanent": false
+    },
+    {
+      "source": "/yt07-nl",
+      "destination": "https://www.marktr.io/newsletter?utm_source=youtube&utm_medium=organic&utm_campaign=video-07-hormozi-strategy-test&utm_content=newsletter",
+      "permanent": false
+    },
+    {
+      "source": "/yt08-nl",
+      "destination": "https://www.marktr.io/newsletter?utm_source=youtube&utm_medium=organic&utm_campaign=video-08-hormozi-strategy-5min&utm_content=newsletter",
+      "permanent": false
     }
   ],
   "rewrites": [

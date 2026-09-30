@@ -7,6 +7,13 @@
 
 :root {
   --font-size: 16px;
+  /* Utility stacks behind font-display / font-body. marktr deliberately has no
+     fallback here: the old font-['Fraunces'] and font-['DM_Sans'] utilities
+     emitted a bare family name, and any fallback changes which font supplies
+     glyphs those two fonts lack (→, ✓), which would not be pixel-identical. */
+  --font-display-stack: Fraunces;
+  --font-body-stack: "DM Sans";
+  /* Base-layer stacks — these always carried fallbacks. */
   --font-display-family: "Fraunces", serif;
   --font-body-family: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --hc-score-high: #2d7a5f;
@@ -90,6 +97,8 @@
   --bf-paper: #fffff7;
   --bf-ink: #0b0b0c;
   --bf-navy: #18202d;
+  --font-display-stack: "Newsreader", Georgia, serif;
+  --font-body-stack: "Inter Tight", "Helvetica Neue", Arial, sans-serif;
   --font-display-family: "Newsreader", Georgia, serif;
   --font-body-family: "Inter Tight", "Helvetica Neue", Arial, sans-serif;
   --background: var(--bf-cream);
@@ -240,8 +249,8 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
-  --font-display: var(--font-display-family);
-  --font-body: var(--font-body-family);
+  --font-display: var(--font-display-stack);
+  --font-body: var(--font-body-stack);
 }
 
 @layer base {

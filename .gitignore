@@ -41,3 +41,7 @@ supabase/.temp/
 *.tsbuildinfo
 next-env.d.ts
 .tmp/
+
+# Generated visual-check output (regenerate with `npm run visual-check`)
+docs/phase2-proof/marktr/
+docs/phase2-proof/diff/

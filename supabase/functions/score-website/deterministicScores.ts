@@ -238,7 +238,7 @@ function weightedOverallScore(
   };
 }
 
-const HEALTH_CHECK_SCORER_VERSION = "1.0.2";
+const HEALTH_CHECK_SCORER_VERSION = "1.0.3";
 
 export { OVERALL_CAP, OVERALL_CAP_FRAMING_COPY, HEALTH_CHECK_SCORER_VERSION };
 

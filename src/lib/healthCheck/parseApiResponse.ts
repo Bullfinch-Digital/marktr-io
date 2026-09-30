@@ -21,6 +21,7 @@ export type ScoreWebsiteApiResponse = {
   overallRaw?: number;
   capped?: boolean;
   overallSummary?: string;
+  report?: { publicToken: string };
 };
 
 export function parseScoreWebsiteResponse(

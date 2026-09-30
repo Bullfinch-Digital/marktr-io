@@ -6,6 +6,9 @@ import {
   parseAggregateRating,
   type AggregateRatingSignal,
 } from "./extractSignals.ts";
+import { isAllowedBullfinchTurnstileHostname } from "../_shared/bullfinchHosts.ts";
+import { persistHealthCheckReport, resolveEditionFromRequest } from "./persistReport.ts";
+import { clientIpFromRequest, TURNSTILE_REJECT_STATUS, turnstileRejectCode, verifyTurnstile } from "../_shared/verifyTurnstile.ts";
 
 type PriorRunInput = {
   scores: {
@@ -41,6 +44,9 @@ type Input = {
   priorRun?: PriorRunInput;
   /** Pillar definitions (marktr) — findings prose ONLY; never affects facts or scores. */
   pillarContext?: PillarContextInput;
+  edition?: "marktr" | "bullfinch";
+  turnstileToken?: string | null;
+  utm?: Record<string, unknown> | null;
 };
 
 /** Pinned model version — same string recorded client-side (§6). */
@@ -133,6 +139,57 @@ function corsPreflight(req: Request) {
     });
   }
   return null;
+}
+
+function extractDomain(url: string): string {
+  try {
+    const prefixed = /^https?:\/\//i.test(url) ? url : `https://${url}`;
+    return new URL(prefixed).hostname.replace(/^www\./, "");
+  } catch {
+    return url.trim();
+  }
+}
+
+async function jsonWithOptionalReport(
+  payload: Record<string, unknown>,
+  persistBullfinch: boolean,
+  snapshot: {
+    websiteUrl: string;
+    instagramHandle: string;
+    facebookUrl: string;
+    facts: HealthCheckFacts;
+    apifyMetrics: ApifySocialMetrics;
+    observation: string;
+    strengths?: string[];
+    gaps?: string[];
+    findings?: FindingsResponse["findings"] | null;
+    utm?: Record<string, unknown> | null;
+  },
+) {
+  if (persistBullfinch) {
+    try {
+      const report = await persistHealthCheckReport({
+        url: snapshot.websiteUrl,
+        instagramHandle: snapshot.instagramHandle,
+        facebookUrl: snapshot.facebookUrl,
+        domain: extractDomain(snapshot.websiteUrl),
+        facts: snapshot.facts,
+        apifyMetrics: snapshot.apifyMetrics,
+        modelVersion: HEALTH_CHECK_MODEL_VERSION,
+        observation: snapshot.observation,
+        strengths: snapshot.strengths,
+        gaps: snapshot.gaps,
+        findings: snapshot.findings,
+        utm: snapshot.utm,
+      });
+      if (report) {
+        payload.report = { publicToken: report.publicToken };
+      }
+    } catch (err) {
+      console.error("Bullfinch report persist failed", err);
+    }
+  }
+  return json(payload);
 }
 
 function absentFacts(): HealthCheckFacts {
@@ -946,20 +1003,45 @@ Deno.serve(async (req) => {
     return json({ error: "Method not allowed" }, 405);
   }
 
-  const apiKey = Deno.env.get("OPENAI_API_KEY");
-  if (!apiKey) {
-    return json(
-      {
-        error:
-          "OPENAI_API_KEY missing. Set it via `supabase secrets set OPENAI_API_KEY=...` and redeploy.",
-      },
-      500
-    );
-  }
-
   try {
     const body = (await req.json()) as Partial<Input>;
     console.log("Raw instagramHandle received:", body.instagramHandle);
+    const origin = req.headers.get("origin") || req.headers.get("Origin");
+    const resolvedEdition = resolveEditionFromRequest({
+      requested: body.edition,
+      origin,
+    });
+    let persistBullfinch = false;
+    if (resolvedEdition === "bullfinch") {
+      const turnstileResult = await verifyTurnstile(
+        body.turnstileToken,
+        clientIpFromRequest(req),
+        { allowedHostname: isAllowedBullfinchTurnstileHostname },
+      );
+      if (!turnstileResult.ok) {
+        return json(
+          {
+            error: "Turnstile verification failed",
+            code: turnstileRejectCode(turnstileResult.errorCodes),
+            errorCodes: turnstileResult.errorCodes,
+          },
+          TURNSTILE_REJECT_STATUS,
+        );
+      }
+      persistBullfinch = true;
+    }
+
+    const apiKey = Deno.env.get("OPENAI_API_KEY");
+    if (!apiKey) {
+      return json(
+        {
+          error:
+            "OPENAI_API_KEY missing. Set it via `supabase secrets set OPENAI_API_KEY=...` and redeploy.",
+        },
+        500
+      );
+    }
+
     const priorRun = normalizePriorRun(body.priorRun);
     const pillarContext = normalizePillarContext(body.pillarContext);
     const websiteUrl = normaliseUrl(body.websiteUrl ?? "");
@@ -1081,13 +1163,27 @@ Deno.serve(async (req) => {
         throw new Error("No readable content found");
       }
     } catch {
-      return json({
-        facts: absentFacts(),
-        apifyMetrics: toApifyMetrics(instagramFetch, facebookFetch),
-        modelVersion: HEALTH_CHECK_MODEL_VERSION,
-        scrapeOk: false,
-        observation: "Could not access your website — check the URL",
-      });
+      const facts = absentFacts();
+      const apify = toApifyMetrics(instagramFetch, facebookFetch);
+      return await jsonWithOptionalReport(
+        {
+          facts,
+          apifyMetrics: apify,
+          modelVersion: HEALTH_CHECK_MODEL_VERSION,
+          scrapeOk: false,
+          observation: "Could not access your website — check the URL",
+        },
+        persistBullfinch,
+        {
+          websiteUrl,
+          instagramHandle: body.instagramHandle?.trim() || "",
+          facebookUrl: body.facebookUrl?.trim() || "",
+          facts,
+          apifyMetrics: apify,
+          observation: "Could not access your website — check the URL",
+          utm: body.utm ?? null,
+        },
+      );
     }
 
     const apifyMetrics = toApifyMetrics(instagramFetch, facebookFetch);
@@ -1155,39 +1251,71 @@ Deno.serve(async (req) => {
         console.warn("Findings generation failed:", findingsErr);
       }
 
-      return json({
-        facts,
-        apifyMetrics,
-        modelVersion: HEALTH_CHECK_MODEL_VERSION,
-        scrapeOk: true,
-        observation: deterministicScores.socialIncomplete
-          ? "Couldn't read your social this time — this score covers Website Clarity and Brand Story only."
-          : "Analysis complete",
-        findings: findingsPayload?.findings,
-        strengths:
-          deterministicScores.website >= 100 || deterministicScores.website > 95
-            ? []
-            : findingsPayload?.strengths,
-        gaps:
-          deterministicScores.website >= 100 || deterministicScores.website > 95
-            ? []
-            : findingsPayload?.gaps,
-        overall: deterministicScores.overall,
-        overallRaw: deterministicScores.overallRaw,
-        capped: deterministicScores.capped,
-        socialIncomplete: deterministicScores.socialIncomplete,
-        overallSummary: deterministicScores.capped
-          ? OVERALL_CAP_FRAMING_COPY
-          : undefined,
-      });
+      const observation = deterministicScores.socialIncomplete
+        ? "Couldn't read your social this time — this score covers Website Clarity and Brand Story only."
+        : "Analysis complete";
+      const strengths =
+        deterministicScores.website >= 100 || deterministicScores.website > 95
+          ? []
+          : findingsPayload?.strengths;
+      const gaps =
+        deterministicScores.website >= 100 || deterministicScores.website > 95
+          ? []
+          : findingsPayload?.gaps;
+
+      return await jsonWithOptionalReport(
+        {
+          facts,
+          apifyMetrics,
+          modelVersion: HEALTH_CHECK_MODEL_VERSION,
+          scrapeOk: true,
+          observation,
+          findings: findingsPayload?.findings,
+          strengths,
+          gaps,
+          overall: deterministicScores.overall,
+          overallRaw: deterministicScores.overallRaw,
+          capped: deterministicScores.capped,
+          socialIncomplete: deterministicScores.socialIncomplete,
+          overallSummary: deterministicScores.capped
+            ? OVERALL_CAP_FRAMING_COPY
+            : undefined,
+        },
+        persistBullfinch,
+        {
+          websiteUrl,
+          instagramHandle: body.instagramHandle?.trim() || "",
+          facebookUrl: body.facebookUrl?.trim() || "",
+          facts,
+          apifyMetrics,
+          observation,
+          strengths,
+          gaps,
+          findings: findingsPayload?.findings,
+          utm: body.utm ?? null,
+        },
+      );
     } catch {
-      return json({
-        facts: absentFacts(),
-        apifyMetrics,
-        modelVersion: HEALTH_CHECK_MODEL_VERSION,
-        scrapeOk: true,
-        observation: "Website found but qualitative extraction was incomplete",
-      });
+      const facts = absentFacts();
+      return await jsonWithOptionalReport(
+        {
+          facts,
+          apifyMetrics,
+          modelVersion: HEALTH_CHECK_MODEL_VERSION,
+          scrapeOk: true,
+          observation: "Website found but qualitative extraction was incomplete",
+        },
+        persistBullfinch,
+        {
+          websiteUrl,
+          instagramHandle: body.instagramHandle?.trim() || "",
+          facebookUrl: body.facebookUrl?.trim() || "",
+          facts,
+          apifyMetrics,
+          observation: "Website found but qualitative extraction was incomplete",
+          utm: body.utm ?? null,
+        },
+      );
     }
   } catch (err) {
     return json({ error: "Unhandled error", message: String(err) }, 500);

@@ -1,0 +1,2 @@
+# JWT is verified at the gateway (anon or user).
+verify_jwt = true

@@ -21,6 +21,7 @@ import { parseScoreWebsiteResponse } from "../lib/healthCheck";
 import { extractDomain } from "../components/healthCheck/HealthCheckReportView";
 import { formatFacebookInput, normaliseFacebookUrl } from "../lib/normaliseFacebookUrl";
 import { IdentityCapture, type IdentityCaptureHandle } from "../components/guest/IdentityCapture";
+import { ScanTurnstile, type ScanTurnstileHandle } from "../components/healthCheck/ScanTurnstile";
 import { LegalAgreementRequiredModal } from "../components/legal/LegalAgreementRequiredModal";
 import { useLegalAgreementGate } from "../hooks/useLegalAgreementGate";
 import {
@@ -37,6 +38,8 @@ import { resolveScopedBrandId } from "../lib/brandScopedReads";
 import { fetchLatestHealthCheck, resolveBrandIdForHealthWrite } from "../lib/healthCheckPersistence";
 import { buildPriorRunPayload } from "../lib/healthCheckPriorRun";
 import { fetchBrandStoryPillarForHealth } from "../lib/healthCheckPillarContext";
+import { useEdition } from "../contexts/EditionContext";
+import { getStoredUtms } from "../lib/utmCapture";
 
 type Step = "welcome" | "inputs" | "loading";
 
@@ -62,6 +65,21 @@ const ANALYSIS_MESSAGES = [
   "Building your personalised recommendations...",
   "Almost there — preparing your report...",
 ] as const;
+
+const SCAN_RETRY_MESSAGE = "We couldn't complete the scan. Please try again.";
+const SCAN_VERIFY_MESSAGE = "Verification failed. Complete the check and try again.";
+const SCAN_URL_MESSAGE = "Add a website URL so we can score your presence.";
+
+function describeScoreWebsiteFailure(
+  error: unknown,
+  data: { error?: unknown } | null | undefined,
+): string {
+  const status = (error as { context?: Response })?.context?.status;
+  if (status === 403) return SCAN_VERIFY_MESSAGE;
+  const fromData = typeof data?.error === "string" ? data.error.trim() : "";
+  if (fromData.toLowerCase().includes("turnstile")) return SCAN_VERIFY_MESSAGE;
+  return SCAN_RETRY_MESSAGE;
+}
 
 function AnalysisMessage({ messages }: { messages: readonly string[] }) {
   const [index, setIndex] = useState(0);
@@ -91,6 +109,7 @@ function AnalysisMessage({ messages }: { messages: readonly string[] }) {
 export default function HealthCheck() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { edition } = useEdition();
   const { activeBrandId, loading: brandLoading, brands } = useBrand();
   const isLoggedIn = Boolean(user && !(user as { is_anonymous?: boolean }).is_anonymous);
   const [step, setStep] = useState<Step>("welcome");
@@ -111,7 +130,14 @@ export default function HealthCheck() {
   const [identityName, setIdentityName] = useState("");
   const [businessNameTouched, setBusinessNameTouched] = useState(false);
   const [leadToken, setLeadToken] = useState<string | null>(null);
+  const [scanError, setScanError] = useState<string | null>(null);
+  const [preparingScan, setPreparingScan] = useState(false);
+  const [identityFieldsSnapshot] = useState(() => ({
+    showName: !getGuestIdentityName(),
+    showEmail: !getGuestIdentityEmail(),
+  }));
   const identityCaptureRef = useRef<IdentityCaptureHandle>(null);
+  const scanTurnstileRef = useRef<ScanTurnstileHandle>(null);
   const { open: legalModalOpen, gate, closeModal, confirmAgreement } = useLegalAgreementGate();
   /** Input fingerprint for the last successful score-website run (not cleared on loading re-entry). */
   const completedScoreKeyRef = useRef<string | null>(null);
@@ -126,6 +152,10 @@ export default function HealthCheck() {
     }) | null;
   } | null>(null);
   const turnstileConfigured = isTurnstileConfigured();
+  const editionRef = useRef(edition);
+  /** Fresh scan-time Turnstile token for score-website — never the identity/lead-capture token. */
+  const scanTurnstileTokenRef = useRef<string | null>(null);
+  editionRef.current = edition;
 
   useEffect(() => {
     const ctx = getGuestContext();
@@ -153,10 +183,16 @@ export default function HealthCheck() {
 
   const resolvedGuestEmail = formData.email.trim() || getGuestIdentityEmail() || "";
   const resolvedGuestName = identityName.trim() || getGuestIdentityName() || "";
+  const showIdentityName = !isLoggedIn && identityFieldsSnapshot.showName;
+  const showIdentityEmail = !isLoggedIn && identityFieldsSnapshot.showEmail;
 
-  const runGuestIdentityAndProceed = () => {
+  const runGuestIdentityAndProceed = async () => {
+    if (preparingScan) return;
+    setScanError(null);
+
+    const identityVisible = !isLoggedIn && (showIdentityName || showIdentityEmail);
     const draft = identityCaptureRef.current?.getDraft();
-    const committed = identityCaptureRef.current?.commitAll();
+    const committed = identityVisible ? identityCaptureRef.current?.commitAll() : undefined;
     const nameForRun =
       committed?.name ||
       draft?.name ||
@@ -170,11 +206,17 @@ export default function HealthCheck() {
       getGuestIdentityEmail() ||
       "";
 
+    const isBullfinch = edition === "bullfinch";
+    const needsScanTurnstile = isBullfinch && turnstileConfigured;
+
     if (!isLoggedIn) {
       if (!nameForRun.length || !emailForRun.length) return;
-      const needsTurnstile =
-        showIdentityEmail && turnstileConfigured && !isGuestLeadCaptured();
-      if (needsTurnstile && !leadToken) return;
+      // Bullfinch scan uses ScanTurnstile, not the identity widget token.
+      if (!isBullfinch) {
+        const needsTurnstile =
+          showIdentityEmail && turnstileConfigured && !isGuestLeadCaptured();
+        if (needsTurnstile && !leadToken) return;
+      }
 
       updateGuestContext({
         identity: {
@@ -191,15 +233,49 @@ export default function HealthCheck() {
     const emailForCapture = isLoggedIn ? user?.email ?? "" : emailForRun;
     const nameForCapture = isLoggedIn ? nameForRun || resolvedGuestName : nameForRun;
 
-    void captureGuestLeadOnce({
-      email: emailForCapture,
-      name: nameForCapture,
-      token: leadToken,
-      source: "health-check",
-    });
-    setCompletedCount(0);
-    setChecklistDone(false);
-    setStep("loading");
+    setPreparingScan(true);
+    try {
+      // IdentityCapture.commitAll already captures when identity is shown.
+      // Only capture here when identity is skipped (returning guest) and not yet captured.
+      if (!isLoggedIn && !identityVisible && !isGuestLeadCaptured()) {
+        if (needsScanTurnstile) {
+          const captureToken = (await scanTurnstileRef.current?.refreshToken()) ?? null;
+          if (!captureToken) {
+            setScanError(SCAN_VERIFY_MESSAGE);
+            return;
+          }
+          await captureGuestLeadOnce({
+            email: emailForCapture,
+            name: nameForCapture,
+            token: captureToken,
+            source: "health-check",
+          });
+        } else {
+          void captureGuestLeadOnce({
+            email: emailForCapture,
+            name: nameForCapture,
+            token: leadToken,
+            source: "health-check",
+          });
+        }
+      }
+
+      let scoreToken: string | null = null;
+      if (needsScanTurnstile) {
+        scoreToken = (await scanTurnstileRef.current?.refreshToken()) ?? null;
+        if (!scoreToken) {
+          setScanError(SCAN_VERIFY_MESSAGE);
+          return;
+        }
+      }
+      scanTurnstileTokenRef.current = scoreToken;
+
+      setCompletedCount(0);
+      setChecklistDone(false);
+      setStep("loading");
+    } finally {
+      setPreparingScan(false);
+    }
   };
 
   const flushGuestIdentityAndProceed = () => {
@@ -210,14 +286,13 @@ export default function HealthCheck() {
     runGuestIdentityAndProceed();
   };
 
-  const [identityFieldsSnapshot] = useState(() => ({
-    showName: !getGuestIdentityName(),
-    showEmail: !getGuestIdentityEmail(),
-  }));
-  const showIdentityName = !isLoggedIn && identityFieldsSnapshot.showName;
-  const showIdentityEmail = !isLoggedIn && identityFieldsSnapshot.showEmail;
-
   const canAnalyse = useMemo(() => {
+    if (edition === "bullfinch") {
+      if (!turnstileConfigured) return false;
+      if (isLoggedIn) return Boolean(user?.email?.trim());
+      // Don't require IdentityCapture leadToken — scan uses ScanTurnstile.
+      return true;
+    }
     if (isLoggedIn) return Boolean(user?.email?.trim());
     // Don't gate on React email/name state — browser autofill often fills the DOM
     // without firing onChange until the first click. Validate in the click handler
@@ -227,6 +302,7 @@ export default function HealthCheck() {
     if (needsTurnstile && !leadToken) return false;
     return true;
   }, [
+    edition,
     isLoggedIn,
     user?.email,
     showIdentityEmail,
@@ -311,8 +387,13 @@ export default function HealthCheck() {
         name: resolvedGuestName,
       });
 
+      let scanFailureMessage: string | null = null;
+
       const apiPromise = (async () => {
-        if (!formData.websiteUrl?.trim()) return;
+        if (!formData.websiteUrl?.trim()) {
+          scanFailureMessage = SCAN_URL_MESSAGE;
+          return;
+        }
 
         if (completedScoreKeyRef.current === scoreInputKey && lastResultsNavigateStateRef.current) {
           websiteScore = lastResultsNavigateStateRef.current.websiteScore;
@@ -345,60 +426,66 @@ export default function HealthCheck() {
             }
           }
 
-          const { data } = await supabase.functions.invoke("score-website", {
+          const { data, error: invokeError } = await supabase.functions.invoke("score-website", {
             body: {
               websiteUrl: formData.websiteUrl.trim(),
               instagramHandle: formData.instagramHandle?.trim() || undefined,
               facebookUrl: facebookUrl || undefined,
+              edition: editionRef.current,
+              turnstileToken: scanTurnstileTokenRef.current,
+              utm: getStoredUtms(),
               ...(priorRun ? { priorRun } : {}),
               ...(pillarContext ? { pillarContext } : {}),
             },
           });
-          if (data && (data.facts !== undefined || data.apifyMetrics !== undefined)) {
-            const parsed = parseScoreWebsiteResponse(data, {
-              websiteUrl: formData.websiteUrl.trim(),
-              instagramHandle: formData.instagramHandle?.trim() || "",
-              facebookUrl: facebookUrl || "",
-              domain: extractDomain(formData.websiteUrl.trim()),
-            });
-            const baseWebsiteScore = {
-              score: parsed.deterministic.scores.websiteClarity,
-              observation: parsed.observation,
-              strengths: parsed.strengths,
-              gaps: parsed.gaps,
-              storyAssessment: null,
-              socialScores: null,
-              findings: parseApiFindings(data.findings),
-              deterministic: parsed.deterministic,
-            };
-
-            const scoresPreview = calculateScores({
-              websiteUrl: formData.websiteUrl.trim(),
-              instagramHandle: formData.instagramHandle?.trim(),
-              facebookUrl: facebookUrl || "",
-              businessName: formData.businessName.trim(),
-              email: emailToUse,
-              websiteScore: baseWebsiteScore,
-            });
-
-            websiteScore = {
-              ...applyFindingsToWebsiteScore(
-                baseWebsiteScore as HealthCheckWebsiteScore,
-                augmentFindingsWithPriorRun(baseWebsiteScore.findings, priorRun, scoresPreview)
-              ),
-              storyAssessment: null,
-              socialScores: null,
-            };
-            completedScoreKeyRef.current = scoreInputKey;
-            lastResultsNavigateStateRef.current = {
-              formData,
-              facebookUrl,
-              email: emailToUse,
-              websiteScore,
-            };
+          const payload = data as { error?: unknown; facts?: unknown } | null;
+          if (invokeError || payload?.error || payload?.facts === undefined) {
+            scanFailureMessage = describeScoreWebsiteFailure(invokeError, payload);
+            return;
           }
+          const parsed = parseScoreWebsiteResponse(data, {
+            websiteUrl: formData.websiteUrl.trim(),
+            instagramHandle: formData.instagramHandle?.trim() || "",
+            facebookUrl: facebookUrl || "",
+            domain: extractDomain(formData.websiteUrl.trim()),
+          });
+          const baseWebsiteScore = {
+            score: parsed.deterministic.scores.websiteClarity,
+            observation: parsed.observation,
+            strengths: parsed.strengths,
+            gaps: parsed.gaps,
+            storyAssessment: null,
+            socialScores: null,
+            findings: parseApiFindings(data.findings),
+            deterministic: parsed.deterministic,
+          };
+
+          const scoresPreview = calculateScores({
+            websiteUrl: formData.websiteUrl.trim(),
+            instagramHandle: formData.instagramHandle?.trim(),
+            facebookUrl: facebookUrl || "",
+            businessName: formData.businessName.trim(),
+            email: emailToUse,
+            websiteScore: baseWebsiteScore,
+          });
+
+          websiteScore = {
+            ...applyFindingsToWebsiteScore(
+              baseWebsiteScore as HealthCheckWebsiteScore,
+              augmentFindingsWithPriorRun(baseWebsiteScore.findings, priorRun, scoresPreview)
+            ),
+            storyAssessment: null,
+            socialScores: null,
+          };
+          completedScoreKeyRef.current = scoreInputKey;
+          lastResultsNavigateStateRef.current = {
+            formData,
+            facebookUrl,
+            email: emailToUse,
+            websiteScore,
+          };
         } catch {
-          // Silent fail — use default scoring
+          scanFailureMessage = SCAN_RETRY_MESSAGE;
         } finally {
           if (scoreInFlightKeyRef.current === scoreInputKey) {
             scoreInFlightKeyRef.current = null;
@@ -414,28 +501,34 @@ export default function HealthCheck() {
 
       await Promise.all([apiPromise, checklistMinPromise]);
 
-      if (!cancelled) {
-        updateGuestContext({
-          identity: {
-            name: resolvedGuestName,
-            email: emailToUse,
-          },
-          business: {
-            businessName: formData.businessName.trim() || undefined,
-            websiteUrl: formData.websiteUrl.trim() || undefined,
-            instagramHandle: formData.instagramHandle.trim() || undefined,
-            facebookUrl: facebookUrl || undefined,
-          },
-        });
-        navigate("/health-check/results", {
-          state: {
-            ...formData,
-            facebookUrl,
-            email: emailToUse,
-            websiteScore,
-          },
-        });
+      if (cancelled) return;
+
+      if (!websiteScore) {
+        setScanError(scanFailureMessage ?? SCAN_RETRY_MESSAGE);
+        setStep("inputs");
+        return;
       }
+
+      updateGuestContext({
+        identity: {
+          name: resolvedGuestName,
+          email: emailToUse,
+        },
+        business: {
+          businessName: formData.businessName.trim() || undefined,
+          websiteUrl: formData.websiteUrl.trim() || undefined,
+          instagramHandle: formData.instagramHandle.trim() || undefined,
+          facebookUrl: facebookUrl || undefined,
+        },
+      });
+      navigate("/health-check/results", {
+        state: {
+          ...formData,
+          facebookUrl,
+          email: emailToUse,
+          websiteScore,
+        },
+      });
     };
 
     void run();
@@ -669,6 +762,22 @@ export default function HealthCheck() {
               Results for {resolvedGuestName} at {resolvedGuestEmail}
             </p>
           )}
+
+          {edition === "bullfinch" && turnstileConfigured ? (
+            <ScanTurnstile ref={scanTurnstileRef} />
+          ) : null}
+
+          {edition === "bullfinch" && !turnstileConfigured ? (
+            <p className="font-['DM_Sans'] text-sm text-amber-700" role="status">
+              Verification isn&apos;t configured in this environment, so the scan is unavailable here.
+            </p>
+          ) : null}
+
+          {scanError ? (
+            <p className="font-['DM_Sans'] text-sm text-red-600" role="alert">
+              {scanError}
+            </p>
+          ) : null}
         </div>
 
         <div className="mt-10 flex items-center gap-3">
@@ -690,10 +799,10 @@ export default function HealthCheck() {
               e.preventDefault();
             }}
             onClick={flushGuestIdentityAndProceed}
-            disabled={!canAnalyse}
+            disabled={!canAnalyse || preparingScan}
             className="rounded-full bg-primary px-8 py-6 font-['DM_Sans'] text-base font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
           >
-            Analyse my presence →
+            {preparingScan ? "Verifying…" : "Analyse my presence →"}
           </Button>
         </div>
       </div>

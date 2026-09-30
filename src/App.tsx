@@ -51,12 +51,14 @@ import TermsOfService from "./pages/TermsOfService";
 import CookiePolicy from "./pages/CookiePolicy";
 import { CookieConsentBanner } from "./components/legal/CookieConsentBanner";
 import { GA_MEASUREMENT_ID, hasAnalyticsConsent } from "./lib/cookieConsent";
+import { useEdition } from "./contexts/EditionContext";
 import OnboardingLayout from "./layouts/OnboardingLayout";
 
 let lastTrackedPath: string | null = null;
 
 function GA4RouteTracker() {
   const location = useLocation();
+  const { edition } = useEdition();
 
   useEffect(() => {
     const track = () => {
@@ -74,13 +76,14 @@ function GA4RouteTracker() {
         page_title: document.title,
         page_location: window.location.href,
         page_path: pagePath,
+        edition,
       });
     };
 
     track();
     window.addEventListener("marktr:analytics-consent-granted", track);
     return () => window.removeEventListener("marktr:analytics-consent-granted", track);
-  }, [location.pathname, location.search, location.hash]);
+  }, [location.pathname, location.search, location.hash, edition]);
 
   return null;
 }

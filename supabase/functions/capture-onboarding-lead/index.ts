@@ -40,7 +40,8 @@ serve(async (req) => {
     const body = await req.json();
     const emailRaw = body?.email ?? "";
     const intent = body?.intent === "convert" ? "convert" : "capture";
-    const token = body?.token ?? null;
+    // Client canonical field is `token` (see leadCapture.ts). Accept turnstileToken as a fallback only.
+    const token = body?.token ?? body?.turnstileToken ?? null;
     const userIdFromBody = body?.userId ?? null;
     const metadata = body?.metadata ?? null;
     const source = body?.source ?? "onboarding";

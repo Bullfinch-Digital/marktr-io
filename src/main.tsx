@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { Analytics } from '@vercel/analytics/react'
 import App from './App.tsx'
+import { EditionProvider } from './contexts/EditionContext'
 import { initCookieConsent } from './lib/cookieConsent'
 import './styles/globals.css'
 import './styles/lockShake.css'
@@ -11,7 +12,9 @@ initCookieConsent()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
-    <Analytics />
+    <EditionProvider>
+      <App />
+      <Analytics />
+    </EditionProvider>
   </StrictMode>,
 )

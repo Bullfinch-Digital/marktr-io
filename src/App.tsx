@@ -95,9 +95,13 @@ function AuthRedirect() {
 export default function App() {
   return (
     <AuthProvider>
-      <AuthModalProvider>
-        <PaywallProvider>
-          <Router>
+      <Router>
+        {/* Auth modals use react-router <Link> (legal copy). They must live
+            inside Router — otherwise Login mounts outside NavigationContext
+            and white-screens: "Cannot destructure property 'basename'".
+            PaywallProvider also calls useAuthModal, so it stays nested here. */}
+        <AuthModalProvider>
+          <PaywallProvider>
             <GA4RouteTracker />
             <OAuthReturnHandler />
             <div className="min-h-screen bg-background">
@@ -308,9 +312,9 @@ export default function App() {
               </Routes>
             </div>
             <CookieConsentBanner />
-          </Router>
-        </PaywallProvider>
-      </AuthModalProvider>
+          </PaywallProvider>
+        </AuthModalProvider>
+      </Router>
     </AuthProvider>
   );
 }

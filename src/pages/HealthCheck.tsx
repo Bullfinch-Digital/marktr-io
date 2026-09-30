@@ -37,6 +37,8 @@ import { resolveScopedBrandId } from "../lib/brandScopedReads";
 import { fetchLatestHealthCheck, resolveBrandIdForHealthWrite } from "../lib/healthCheckPersistence";
 import { buildPriorRunPayload } from "../lib/healthCheckPriorRun";
 import { fetchBrandStoryPillarForHealth } from "../lib/healthCheckPillarContext";
+import { useEdition } from "../contexts/EditionContext";
+import { getStoredUtms } from "../lib/utmCapture";
 
 type Step = "welcome" | "inputs" | "loading";
 
@@ -91,6 +93,7 @@ function AnalysisMessage({ messages }: { messages: readonly string[] }) {
 export default function HealthCheck() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { edition } = useEdition();
   const { activeBrandId, loading: brandLoading, brands } = useBrand();
   const isLoggedIn = Boolean(user && !(user as { is_anonymous?: boolean }).is_anonymous);
   const [step, setStep] = useState<Step>("welcome");
@@ -126,6 +129,10 @@ export default function HealthCheck() {
     }) | null;
   } | null>(null);
   const turnstileConfigured = isTurnstileConfigured();
+  const editionRef = useRef(edition);
+  const leadTokenRef = useRef(leadToken);
+  editionRef.current = edition;
+  leadTokenRef.current = leadToken;
 
   useEffect(() => {
     const ctx = getGuestContext();
@@ -350,6 +357,9 @@ export default function HealthCheck() {
               websiteUrl: formData.websiteUrl.trim(),
               instagramHandle: formData.instagramHandle?.trim() || undefined,
               facebookUrl: facebookUrl || undefined,
+              edition: editionRef.current,
+              turnstileToken: leadTokenRef.current,
+              utm: getStoredUtms(),
               ...(priorRun ? { priorRun } : {}),
               ...(pillarContext ? { pillarContext } : {}),
             },

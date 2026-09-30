@@ -1,11 +1,13 @@
 /** Cloudflare Turnstile siteverify — fail closed. Never log the secret. */
 
-export type TurnstileVerifyResult =
-  | { ok: true }
-  | { ok: false; errorCodes: string[] };
+import {
+  applySiteverifyResult,
+  TURNSTILE_REJECT_STATUS,
+  type TurnstileVerifyResult,
+} from "./siteverifyResult.ts";
 
-/** HTTP status callers must use when `ok` is false. */
-export const TURNSTILE_REJECT_STATUS = 403;
+export type { TurnstileVerifyResult };
+export { TURNSTILE_REJECT_STATUS };
 
 export function clientIpFromRequest(req: Request): string | null {
   const cf = req.headers.get("cf-connecting-ip");
@@ -17,11 +19,13 @@ export function clientIpFromRequest(req: Request): string | null {
 
 /**
  * Verify a Turnstile token against Cloudflare siteverify.
- * Fails closed: missing secret, missing token, success:false, or fetch/parse errors.
+ * Fails closed: missing secret, missing token, success !== true, hostname
+ * mismatch (when `allowedHostname` is set), or fetch/parse errors.
  */
 export async function verifyTurnstile(
   token: string | null | undefined,
   remoteip?: string | null,
+  opts?: { allowedHostname?: (hostname: string) => boolean },
 ): Promise<TurnstileVerifyResult> {
   const secret = Deno.env.get("TURNSTILE_SECRET_KEY") || "";
 
@@ -45,16 +49,14 @@ export async function verifyTurnstile(
       body: form,
     });
     const data = await resp.json();
-    if (data?.success === true) return { ok: true };
-
-    const errorCodes = Array.isArray(data?.["error-codes"]) && data["error-codes"].length
-      ? data["error-codes"].map((code: unknown) => String(code))
-      : ["verification-failed"];
-    console.error("verifyTurnstile failed", {
-      errorCodes,
-      httpStatus: resp.status,
-    });
-    return { ok: false, errorCodes };
+    const result = applySiteverifyResult(data, opts?.allowedHostname);
+    if (!result.ok) {
+      console.error("verifyTurnstile failed", {
+        errorCodes: result.errorCodes,
+        httpStatus: resp.status,
+      });
+    }
+    return result;
   } catch {
     console.error("verifyTurnstile failed", { errorCodes: ["turnstile-request-failed"] });
     return { ok: false, errorCodes: ["turnstile-request-failed"] };
@@ -64,5 +66,6 @@ export async function verifyTurnstile(
 export function turnstileRejectCode(errorCodes: string[]): string {
   if (errorCodes.includes("missing-secret")) return "turnstile_secret_missing";
   if (errorCodes.includes("missing-token")) return "turnstile_token_missing";
+  if (errorCodes.includes("hostname-mismatch")) return "turnstile_hostname_mismatch";
   return "turnstile_failed";
 }

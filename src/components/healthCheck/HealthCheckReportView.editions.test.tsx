@@ -48,4 +48,53 @@ describe("HealthCheckReportView editions", () => {
       unmount();
     },
   );
+
+  it("hides the Brand Story /story link for bullfinch and keeps it for marktr", () => {
+    const scores = {
+      ...healthCheckReportFixtureScores,
+      brandStory: {
+        ...healthCheckReportFixtureScores.brandStory,
+        storyAssessment: {
+          hasFounderStory: false,
+          founderStoryQuality: "none" as const,
+          speaksToSpecificCustomer: false,
+          hasDistinctivePositioning: false,
+          hasEmotionalHook: false,
+          missingElements: ["Founder story"],
+          storySystemSignpost: { copy: "A distinctive story would lift this score." },
+        },
+      },
+    };
+
+    const marktr = render(
+      <EditionProvider edition="marktr">
+        <MemoryRouter>
+          <HealthCheckReportView
+            scores={scores}
+            input={healthCheckReportFixtureInput}
+            showPaywallUpsell={false}
+            showDashboardCta={false}
+          />
+        </MemoryRouter>
+      </EditionProvider>,
+    );
+    expect(marktr.getByText("Find your brand story →")).toBeTruthy();
+    marktr.unmount();
+
+    const bullfinch = render(
+      <EditionProvider edition="bullfinch">
+        <MemoryRouter>
+          <HealthCheckReportView
+            scores={scores}
+            input={healthCheckReportFixtureInput}
+            showPaywallUpsell={false}
+            showDashboardCta={false}
+          />
+        </MemoryRouter>
+      </EditionProvider>,
+    );
+    expect(bullfinch.queryByText("Find your brand story →")).toBeNull();
+    expect(bullfinch.getByText("A distinctive story would lift this score.")).toBeTruthy();
+    bullfinch.unmount();
+  });
 });

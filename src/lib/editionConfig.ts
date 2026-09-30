@@ -1,4 +1,3 @@
-import { GA_MEASUREMENT_ID } from "./cookieConsent";
 import type { Edition } from "./edition";
 
 export type CaptureTiming = "before-scan" | "after-results";
@@ -35,7 +34,7 @@ export const editionConfig: Record<Edition, EditionConfig> = {
     name: "marktr",
     captureTiming: "before-scan",
     gateFindings: false,
-    ga4Id: GA_MEASUREMENT_ID,
+    ga4Id: "G-0EFXQPEYY6",
     showMarktrNav: true,
     showBackToHome: true,
     showStoryLinks: true,
@@ -60,7 +59,7 @@ export const editionConfig: Record<Edition, EditionConfig> = {
     name: "Bullfinch Digital",
     captureTiming: "after-results",
     gateFindings: false,
-    ga4Id: "",
+    ga4Id: "G-0TEERX8V1N",
     showMarktrNav: false,
     showBackToHome: false,
     showStoryLinks: false,

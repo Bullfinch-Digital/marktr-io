@@ -18,12 +18,17 @@ function getTurnstile(): TurnstileApi | undefined {
 
 const TOKEN_TIMEOUT_MS = 15_000;
 
-export const ScanTurnstile = forwardRef<ScanTurnstileHandle, { className?: string }>(
-  function ScanTurnstile({ className = "" }, ref) {
+export const ScanTurnstile = forwardRef<
+  ScanTurnstileHandle,
+  { className?: string; onToken?: (token: string) => void }
+>(
+  function ScanTurnstile({ className = "", onToken }, ref) {
     const containerRef = useRef<HTMLDivElement | null>(null);
     const widgetIdRef = useRef<string | null>(null);
     const tokenRef = useRef<string | null>(null);
     const pendingResolverRef = useRef<((token: string | null) => void) | null>(null);
+    const onTokenRef = useRef(onToken);
+    onTokenRef.current = onToken;
     const [loadError, setLoadError] = useState<string | null>(null);
     const turnstileReady = isTurnstileConfigured();
 
@@ -89,9 +94,11 @@ export const ScanTurnstile = forwardRef<ScanTurnstileHandle, { className?: strin
         try {
           widgetIdRef.current = turnstile.render(el, {
             sitekey,
+            appearance: "interaction-only",
             callback: (value: string) => {
               setLoadError(null);
               tokenRef.current = value;
+              onTokenRef.current?.(value);
               resolvePending(value);
             },
             "expired-callback": () => {
@@ -178,7 +185,7 @@ export const ScanTurnstile = forwardRef<ScanTurnstileHandle, { className?: strin
           aria-label="Security verification"
         />
         {loadError ? (
-          <p className="text-xs text-red-600 font-['DM_Sans']" role="alert">
+          <p className="text-xs text-red-600 font-body" role="alert">
             {loadError}
           </p>
         ) : null}

@@ -86,9 +86,13 @@ export async function upsertOnboardingLead(
   }
 }
 
+/** Shared in-flight capture so concurrent callers (widget callback + commitAll) hit the API once. */
+let captureGuestLeadInFlight: Promise<boolean> | null = null;
+
 /**
  * Idempotent guest lead capture — skips if leadCapturedAt is already set.
  * Anonymous guests require a Turnstile token when Turnstile is configured.
+ * The Edge Function reads the Turnstile value from `body.token` (not `turnstileToken`).
  */
 export async function captureGuestLeadOnce(opts: {
   email: string;
@@ -106,15 +110,25 @@ export async function captureGuestLeadOnce(opts: {
     return false;
   }
 
-  const ok = await upsertOnboardingLead(trimmed, {
-    source: opts.source || "guest",
-    userId: opts.userId ?? null,
-    token: opts.token ?? null,
-    name: opts.name ?? null,
-  });
+  if (captureGuestLeadInFlight) return captureGuestLeadInFlight;
 
-  if (ok) markGuestLeadCaptured();
-  return ok;
+  captureGuestLeadInFlight = (async () => {
+    try {
+      if (isGuestLeadCaptured()) return true;
+      const ok = await upsertOnboardingLead(trimmed, {
+        source: opts.source || "guest",
+        userId: opts.userId ?? null,
+        token: opts.token ?? null,
+        name: opts.name ?? null,
+      });
+      if (ok) markGuestLeadCaptured();
+      return ok;
+    } finally {
+      captureGuestLeadInFlight = null;
+    }
+  })();
+
+  return captureGuestLeadInFlight;
 }
 
 /**

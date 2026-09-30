@@ -1,5 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { computeDeterministicScores, OVERALL_CAP_FRAMING_COPY } from "./deterministicScores.ts";
+import { computeDeterministicScores, HEALTH_CHECK_SCORER_VERSION, OVERALL_CAP_FRAMING_COPY } from "./deterministicScores.ts";
 import {
   extractAllSignals,
   findProductUrl,
@@ -7,6 +7,14 @@ import {
   type AggregateRatingSignal,
 } from "./extractSignals.ts";
 import { isAllowedBullfinchTurnstileHostname } from "../_shared/bullfinchHosts.ts";
+import {
+  FACTS_BOUNDARY_RULES,
+  FACTS_RESPONSE_FORMAT,
+  factsExtractionSeed,
+  pageTextForCache,
+  sha256Hex,
+} from "../_shared/healthCheckFactsExtract.ts";
+import { lookupFactCache, storeFactCache } from "./factCache.ts";
 import { persistHealthCheckReport, resolveEditionFromRequest } from "./persistReport.ts";
 import { clientIpFromRequest, TURNSTILE_REJECT_STATUS, turnstileRejectCode, verifyTurnstile } from "../_shared/verifyTurnstile.ts";
 
@@ -716,6 +724,8 @@ SOCIAL PROFILE (ONLY when Instagram data is present in the input):
 
 If NO social sections appear in the input, set socialReflectsStory="disconnected", igProfileComplete="absent", bioOnMessage="absent".
 
+${FACTS_BOUNDARY_RULES}
+
 Do NOT output scores, points, or findings. Facts only.`;
 
 function hasAnySocialProfile(metrics: ApifySocialMetrics): boolean {
@@ -971,7 +981,7 @@ async function generateFindingsProse(
     body: JSON.stringify({
       model: HEALTH_CHECK_MODEL_VERSION,
       max_tokens: 1400,
-      temperature: 0.2,
+      temperature: 0,
       response_format: { type: "json_object" },
       messages: [
         { role: "system", content: FINDINGS_SYSTEM_PROMPT },
@@ -1048,6 +1058,8 @@ Deno.serve(async (req) => {
     if (!websiteUrl) return json({ error: "websiteUrl is required" }, 400);
 
     let combinedText = "";
+    let homepageSignalsForCache = "";
+    let storySignalsForCache = "";
     let aggregateRatingProof: AggregateRatingSignal | null = null;
     let instagramFetch: InstagramFetchResult = {
       signals: "",
@@ -1131,6 +1143,8 @@ Deno.serve(async (req) => {
 
       const homepageSignals = homepageResult.signals;
       aggregateRatingProof = homepageResult.aggregateRating;
+      homepageSignalsForCache = homepageSignals;
+      storySignalsForCache = storySignals;
 
       instagramFetch = instagramFetchResult;
       console.log("Instagram signals:", instagramFetch.signals || "EMPTY");
@@ -1189,37 +1203,49 @@ Deno.serve(async (req) => {
     const apifyMetrics = toApifyMetrics(instagramFetch, facebookFetch);
 
     try {
-      const aiResp = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: HEALTH_CHECK_MODEL_VERSION,
-          max_tokens: 600,
-          temperature: 0,
-          response_format: { type: "json_object" },
-          messages: [
-            { role: "system", content: FACTS_SYSTEM_PROMPT },
-            {
-              role: "user",
-              content: `Extract facts from this content:\n\n${combinedText}`,
-            },
-          ],
-        }),
-      });
+      const contentHash = await sha256Hex(
+        pageTextForCache(homepageSignalsForCache, storySignalsForCache),
+      );
+      const cached = await lookupFactCache(contentHash, HEALTH_CHECK_SCORER_VERSION);
+      let rawFacts: HealthCheckFacts;
+      if (cached) {
+        rawFacts = normalizeFacts(cached);
+      } else {
+        const seed = await factsExtractionSeed(websiteUrl, HEALTH_CHECK_SCORER_VERSION);
+        const aiResp = await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: HEALTH_CHECK_MODEL_VERSION,
+            max_tokens: 600,
+            temperature: 0,
+            seed,
+            response_format: FACTS_RESPONSE_FORMAT,
+            messages: [
+              { role: "system", content: FACTS_SYSTEM_PROMPT },
+              {
+                role: "user",
+                content: `Extract facts from this content:\n\n${combinedText}`,
+              },
+            ],
+          }),
+        });
 
-      if (!aiResp.ok) throw new Error("OpenAI request failed");
+        if (!aiResp.ok) throw new Error("OpenAI request failed");
 
-      const data = await aiResp.json();
-      const content =
-        data?.choices?.[0]?.message?.content != null
-          ? String(data.choices[0].message.content)
-          : "";
-      if (!content) throw new Error("Empty model response");
+        const data = await aiResp.json();
+        const content =
+          data?.choices?.[0]?.message?.content != null
+            ? String(data.choices[0].message.content)
+            : "";
+        if (!content) throw new Error("Empty model response");
 
-      const rawFacts = parseFactsJson(content);
+        rawFacts = parseFactsJson(content);
+        await storeFactCache(contentHash, HEALTH_CHECK_SCORER_VERSION, rawFacts);
+      }
 
       // Deterministic proof override: a valid JSON-LD AggregateRating (parseable
       // ratingValue + count above the floor) is higher-confidence than the LLM's

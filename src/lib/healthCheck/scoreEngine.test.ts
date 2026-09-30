@@ -12,6 +12,7 @@ import {
   weightedOverallScore,
   OVERALL_CAP,
   OVERALL_CAP_FRAMING_COPY,
+  HEALTH_CHECK_SCORER_VERSION,
   type HealthCheckFacts,
 } from "./index.ts";
 import { computeDeterministicScores } from "../../../supabase/functions/score-website/deterministicScores.ts";
@@ -74,7 +75,7 @@ function testIdenticalRuns() {
     },
   });
 
-  assert.equal(run1.scorerVersion, "1.0.2");
+  assert.equal(run1.scorerVersion, HEALTH_CHECK_SCORER_VERSION);
   assert.deepEqual(run1.scores, run2.scores);
   assert.equal(run1.scores.overall, run2.scores.overall);
   console.log("✓ identical runs produce identical scores", run1.scores);
@@ -380,7 +381,7 @@ function testNoSocialHallucinationScoresZero() {
     },
   });
 
-  assert.equal(run.scorerVersion, "1.0.2");
+  assert.equal(run.scorerVersion, HEALTH_CHECK_SCORER_VERSION);
   assert.equal(run.scores.socialPresence, 0);
   assert.equal(run.scores.contentConsistency, 0);
   assert.equal(run.points.content.socialReflectsStory, 0);

@@ -1,8 +1,8 @@
 /** Pinned OpenAI model — record on every run for determinism scope (§6). */
 export const HEALTH_CHECK_MODEL_VERSION = "gpt-4o-mini-2024-07-18";
 
-/** Scorer rules version — bump when §4 point tables or calibration change. */
-export const HEALTH_CHECK_SCORER_VERSION = "1.0.2";
+/** Scorer rules version — bump when §4 point tables, calibration, or extraction behaviour change. */
+export const HEALTH_CHECK_SCORER_VERSION = "1.0.3";
 
 /** Rubric table weights (§4): Website 30, Story 30, Content 25, Social 15. */
 export const DIMENSION_WEIGHTS = {

@@ -8,6 +8,16 @@ function isValidEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 }
 
+type TurnstileApi = {
+  render: Function;
+  remove: (id: string) => void;
+  reset: (id: string) => void;
+};
+
+function getTurnstile(): TurnstileApi | undefined {
+  return (window as unknown as { turnstile?: TurnstileApi }).turnstile;
+}
+
 type NewsletterSignupProps = {
   source?: string;
   /** Footer shows intro copy; landing is form-only for use on dedicated pages. */
@@ -30,21 +40,37 @@ export function NewsletterSignup({
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
+  /** Do not challenge until the user focuses or types in the email field. */
+  const [widgetRequested, setWidgetRequested] = useState(false);
 
   const widgetContainerRef = useRef<HTMLDivElement | null>(null);
   const widgetIdRef = useRef<string | null>(null);
   const turnstileReady = isTurnstileConfigured();
 
+  const requestWidget = () => {
+    if (turnstileReady) setWidgetRequested(true);
+  };
+
+  const resetWidget = () => {
+    setToken(null);
+    const turnstile = getTurnstile();
+    if (turnstile && widgetIdRef.current) {
+      try {
+        turnstile.reset(widgetIdRef.current);
+      } catch {
+        /* ignore */
+      }
+    }
+  };
+
   useEffect(() => {
-    if (!turnstileReady || done) return;
+    if (!turnstileReady || done || !widgetRequested) return;
 
     const sitekey = (import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined)?.trim();
     if (!sitekey) return;
 
     const renderWidget = () => {
-      const turnstile = (
-        window as unknown as { turnstile?: { render: Function; remove: Function } }
-      ).turnstile;
+      const turnstile = getTurnstile();
       if (!turnstile) return;
       const el = widgetContainerRef.current;
       if (!el || widgetIdRef.current) return;
@@ -70,14 +96,13 @@ export function NewsletterSignup({
     };
 
     const ensureScript = (): Promise<void> => {
-      const win = window as unknown as { turnstile?: unknown };
-      if (win.turnstile) return Promise.resolve();
+      if (getTurnstile()) return Promise.resolve();
       return new Promise((resolve, reject) => {
         const existing = document.querySelector<HTMLScriptElement>(
           'script[src*="challenges.cloudflare.com/turnstile/v0/api.js"]',
         );
         if (existing) {
-          if (win.turnstile) {
+          if (getTurnstile()) {
             resolve();
             return;
           }
@@ -112,9 +137,7 @@ export function NewsletterSignup({
 
     return () => {
       cancelled = true;
-      const turnstile = (
-        window as unknown as { turnstile?: { remove: (id: string) => void } }
-      ).turnstile;
+      const turnstile = getTurnstile();
       if (turnstile && widgetIdRef.current) {
         try {
           turnstile.remove(widgetIdRef.current);
@@ -125,7 +148,7 @@ export function NewsletterSignup({
       }
       setToken(null);
     };
-  }, [turnstileReady, done]);
+  }, [turnstileReady, done, widgetRequested]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -137,16 +160,19 @@ export function NewsletterSignup({
       return;
     }
     if (turnstileReady && !token) {
+      requestWidget();
       setSubmitError("Complete the verification check before continuing.");
       return;
     }
 
+    const submitToken = token;
+    setToken(null);
     setSubmitting(true);
     try {
       const { data, error } = await supabase.functions.invoke("capture-newsletter-signup", {
         body: {
           email: trimmed,
-          token,
+          token: submitToken,
           source,
         },
       });
@@ -162,11 +188,13 @@ export function NewsletterSignup({
         } catch {
           /* ignore */
         }
+        resetWidget();
         setSubmitError(message);
         return;
       }
 
       if (!(data as { ok?: boolean } | null)?.ok) {
+        resetWidget();
         setSubmitError("Something went wrong. Please try again.");
         return;
       }
@@ -174,6 +202,7 @@ export function NewsletterSignup({
       setDone(true);
     } catch (err) {
       console.error("[NewsletterSignup] submit failed", err);
+      resetWidget();
       setSubmitError("Something went wrong. Please try again.");
     } finally {
       setSubmitting(false);
@@ -228,7 +257,11 @@ export function NewsletterSignup({
           autoComplete="email"
           required
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          onFocus={requestWidget}
+          onChange={(e) => {
+            setEmail(e.target.value);
+            if (e.target.value) requestWidget();
+          }}
           placeholder="you@company.com"
           className={
             variant === "landing"
@@ -239,10 +272,12 @@ export function NewsletterSignup({
       </div>
 
       {turnstileReady ? (
-        <div className="space-y-2">
-          <div ref={widgetContainerRef} />
-          {loadError ? <p className="text-sm text-red-600">{loadError}</p> : null}
-        </div>
+        widgetRequested ? (
+          <div className="space-y-2">
+            <div ref={widgetContainerRef} />
+            {loadError ? <p className="text-sm text-red-600">{loadError}</p> : null}
+          </div>
+        ) : null
       ) : (
         <p className="text-sm text-amber-700">
           Verification isn&apos;t configured in this environment, so signup is unavailable here.

@@ -10,9 +10,10 @@ import { isAllowedBullfinchTurnstileHostname } from "../_shared/bullfinchHosts.t
 import {
   FACTS_BOUNDARY_RULES,
   FACTS_RESPONSE_FORMAT,
+  factsCacheContentHash,
   factsExtractionSeed,
   pageTextForCache,
-  sha256Hex,
+  shouldUseFactCache,
 } from "../_shared/healthCheckFactsExtract.ts";
 import { lookupFactCache, storeFactCache } from "./factCache.ts";
 import { persistHealthCheckReport, resolveEditionFromRequest } from "./persistReport.ts";
@@ -1203,10 +1204,29 @@ Deno.serve(async (req) => {
     const apifyMetrics = toApifyMetrics(instagramFetch, facebookFetch);
 
     try {
-      const contentHash = await sha256Hex(
-        pageTextForCache(homepageSignalsForCache, storySignalsForCache),
+      const pageText = pageTextForCache(
+        homepageSignalsForCache,
+        storySignalsForCache,
       );
-      const cached = await lookupFactCache(contentHash, HEALTH_CHECK_SCORER_VERSION);
+      const useFactCache = shouldUseFactCache(pageText);
+      let contentHash: string | null = null;
+      let cached: Record<string, unknown> | null = null;
+      if (!useFactCache) {
+        console.log("health_check_fact_cache skip", {
+          reason: "page-text-too-short",
+          page_text_chars: pageText.length,
+        });
+      } else {
+        contentHash = await factsCacheContentHash({
+          websiteUrl,
+          modelVersion: HEALTH_CHECK_MODEL_VERSION,
+          homepageSignals: homepageSignalsForCache,
+          storySignals: storySignalsForCache,
+          instagramSignals: instagramFetch.signals,
+          facebookSignals: facebookFetch.signals,
+        });
+        cached = await lookupFactCache(contentHash, HEALTH_CHECK_SCORER_VERSION);
+      }
       let rawFacts: HealthCheckFacts;
       if (cached) {
         rawFacts = normalizeFacts(cached);
@@ -1244,7 +1264,9 @@ Deno.serve(async (req) => {
         if (!content) throw new Error("Empty model response");
 
         rawFacts = parseFactsJson(content);
-        await storeFactCache(contentHash, HEALTH_CHECK_SCORER_VERSION, rawFacts);
+        if (useFactCache && contentHash) {
+          await storeFactCache(contentHash, HEALTH_CHECK_SCORER_VERSION, rawFacts);
+        }
       }
 
       // Deterministic proof override: a valid JSON-LD AggregateRating (parseable

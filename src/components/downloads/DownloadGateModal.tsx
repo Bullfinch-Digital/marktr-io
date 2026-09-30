@@ -22,6 +22,16 @@ function isValidEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 }
 
+type TurnstileApi = {
+  render: Function;
+  remove: (id: string) => void;
+  reset: (id: string) => void;
+};
+
+function getTurnstile(): TurnstileApi | undefined {
+  return (window as unknown as { turnstile?: TurnstileApi }).turnstile;
+}
+
 export function DownloadGateModal({ resource, onClose }: Props) {
   const [email, setEmail] = useState("");
   const [token, setToken] = useState<string | null>(null);
@@ -35,6 +45,18 @@ export function DownloadGateModal({ resource, onClose }: Props) {
   const widgetIdRef = useRef<string | null>(null);
   const turnstileReady = isTurnstileConfigured();
 
+  const resetWidget = () => {
+    setToken(null);
+    const turnstile = getTurnstile();
+    if (turnstile && widgetIdRef.current) {
+      try {
+        turnstile.reset(widgetIdRef.current);
+      } catch {
+        /* ignore */
+      }
+    }
+  };
+
   useEffect(() => {
     if (!turnstileReady || downloadUrl) return;
 
@@ -42,9 +64,7 @@ export function DownloadGateModal({ resource, onClose }: Props) {
     if (!sitekey) return;
 
     const renderWidget = () => {
-      const turnstile = (
-        window as unknown as { turnstile?: { render: Function; remove: Function } }
-      ).turnstile;
+      const turnstile = getTurnstile();
       if (!turnstile) return;
       const el = widgetContainerRef.current;
       if (!el || widgetIdRef.current) return;
@@ -70,14 +90,13 @@ export function DownloadGateModal({ resource, onClose }: Props) {
     };
 
     const ensureScript = (): Promise<void> => {
-      const win = window as unknown as { turnstile?: unknown };
-      if (win.turnstile) return Promise.resolve();
+      if (getTurnstile()) return Promise.resolve();
       return new Promise((resolve, reject) => {
         const existing = document.querySelector<HTMLScriptElement>(
           'script[src*="challenges.cloudflare.com/turnstile/v0/api.js"]',
         );
         if (existing) {
-          if (win.turnstile) {
+          if (getTurnstile()) {
             resolve();
             return;
           }
@@ -112,9 +131,7 @@ export function DownloadGateModal({ resource, onClose }: Props) {
 
     return () => {
       cancelled = true;
-      const turnstile = (
-        window as unknown as { turnstile?: { remove: (id: string) => void } }
-      ).turnstile;
+      const turnstile = getTurnstile();
       if (turnstile && widgetIdRef.current) {
         try {
           turnstile.remove(widgetIdRef.current);
@@ -141,6 +158,8 @@ export function DownloadGateModal({ resource, onClose }: Props) {
       return;
     }
 
+    const submitToken = token;
+    setToken(null);
     setSubmitting(true);
     try {
       const { data, error } = await supabase.functions.invoke("request-resource-download", {
@@ -148,7 +167,7 @@ export function DownloadGateModal({ resource, onClose }: Props) {
           resourceId: resource.id,
           slug: resource.slug,
           email: trimmed,
-          token,
+          token: submitToken,
         },
       });
 
@@ -163,6 +182,7 @@ export function DownloadGateModal({ resource, onClose }: Props) {
         } catch {
           /* ignore */
         }
+        resetWidget();
         setSubmitError(message);
         return;
       }
@@ -170,6 +190,7 @@ export function DownloadGateModal({ resource, onClose }: Props) {
       const url = (data as { downloadUrl?: string } | null)?.downloadUrl;
       const expires = (data as { expiresInSeconds?: number } | null)?.expiresInSeconds;
       if (!url) {
+        resetWidget();
         setSubmitError("Download link missing. Please try again.");
         return;
       }
@@ -177,6 +198,7 @@ export function DownloadGateModal({ resource, onClose }: Props) {
       setExpiresInSeconds(typeof expires === "number" ? expires : 600);
     } catch (err) {
       console.error("[DownloadGateModal] submit failed", err);
+      resetWidget();
       setSubmitError("Something went wrong. Please try again.");
     } finally {
       setSubmitting(false);

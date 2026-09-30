@@ -131,6 +131,18 @@ export const IdentityCapture = forwardRef<IdentityCaptureHandle, IdentityCapture
 
         if (!ok && !isGuestLeadCaptured()) {
           setCaptureError("We couldn't save your email just now. You can continue — we'll try again.");
+          setLeadToken(null);
+          leadTokenRef.current = null;
+          onTokenChangeRef.current?.(null);
+          const turnstile = (window as unknown as { turnstile?: { reset: (id: string) => void } })
+            .turnstile;
+          if (turnstile && widgetIdRef.current) {
+            try {
+              turnstile.reset(widgetIdRef.current);
+            } catch {
+              /* ignore */
+            }
+          }
         }
       },
       [captureSource, fieldVisibility.showEmail, turnstileConfigured]

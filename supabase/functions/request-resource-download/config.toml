@@ -1,2 +1,2 @@
-# Public download unlock is gated by Turnstile in the function body.
-verify_jwt = false
+# JWT is verified at the gateway (anon or user). Turnstile still gates download unlock in the function body.
+verify_jwt = true

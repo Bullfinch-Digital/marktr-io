@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-// NOTE: LoginModal can render outside <Router> (it lives under providers),
-// so we must NOT use react-router hooks like useNavigate() here.
+// AuthModalProvider must stay inside <Router>: LegalAgreementCheckbox uses
+// react-router <Link>, and a missing NavigationContext white-screens the app
+// ("Cannot destructure property 'basename'").
 import { supabase } from "../../config/supabase";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";

@@ -99,6 +99,61 @@ export function pageTextForCache(
     .join("\n\n");
 }
 
+/** Skip lookup/store when homepage+about scrape is empty or a thin stub. */
+export const MIN_PAGE_TEXT_CHARS_FOR_FACT_CACHE = 200;
+
+export function shouldUseFactCache(pageText: string): boolean {
+  return pageText.length >= MIN_PAGE_TEXT_CHARS_FOR_FACT_CACHE;
+}
+
+/** Stable URL form so https://Marktr.io/ and https://marktr.io hash the same. */
+export function normaliseWebsiteUrlForCache(url: string): string {
+  const trimmed = url.trim();
+  if (!trimmed) return "";
+  const withScheme = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  try {
+    const parsed = new URL(withScheme);
+    parsed.hash = "";
+    parsed.hostname = parsed.hostname.toLowerCase();
+    const path =
+      parsed.pathname === "/" ? "" : parsed.pathname.replace(/\/+$/, "");
+    return `${parsed.origin}${path}${parsed.search}`;
+  } catch {
+    return trimmed.toLowerCase().replace(/\/+$/, "");
+  }
+}
+
+/**
+ * Material hashed for health_check_fact_cache.content_hash:
+ * normalised URL + model version + page text + IG/FB signals that go into combinedText.
+ */
+export function factsCacheKeyMaterial(input: {
+  websiteUrl: string;
+  modelVersion: string;
+  homepageSignals: string;
+  storySignals: string;
+  instagramSignals?: string;
+  facebookSignals?: string;
+}): string {
+  const pageText = pageTextForCache(input.homepageSignals, input.storySignals);
+  const socialText = pageTextForCache(
+    input.instagramSignals ?? "",
+    input.facebookSignals ?? "",
+  );
+  return [
+    normaliseWebsiteUrlForCache(input.websiteUrl),
+    input.modelVersion,
+    pageText,
+    socialText,
+  ].join("\n");
+}
+
+export async function factsCacheContentHash(
+  input: Parameters<typeof factsCacheKeyMaterial>[0],
+): Promise<string> {
+  return sha256Hex(factsCacheKeyMaterial(input));
+}
+
 export async function sha256Hex(text: string): Promise<string> {
   const digest = await crypto.subtle.digest(
     "SHA-256",

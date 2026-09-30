@@ -4,12 +4,17 @@ import {
   FACTS_JSON_SCHEMA,
   FACTS_PROPERTY_KEYS,
   FACTS_RESPONSE_FORMAT,
+  factsCacheContentHash,
   factsExtractionSeed,
+  MIN_PAGE_TEXT_CHARS_FOR_FACT_CACHE,
   normaliseScrapedText,
   pageTextForCache,
   sha256Hex,
+  shouldUseFactCache,
 } from "../../../supabase/functions/_shared/healthCheckFactsExtract.ts";
-import { HEALTH_CHECK_SCORER_VERSION } from "./constants";
+import { HEALTH_CHECK_MODEL_VERSION, HEALTH_CHECK_SCORER_VERSION } from "./constants";
+
+const LONG_PAGE = "Marktr is a marketing platform for founders. ".repeat(8);
 
 describe("facts extraction schema and cache key", () => {
   it("covers every Health Check fact field with a strict json_schema", () => {
@@ -73,6 +78,69 @@ describe("facts extraction schema and cache key", () => {
       pageTextForCache("We help founders. New proof on the homepage.", ""),
     );
     expect(original).not.toBe(edited);
+  });
+
+  it("does not share a cache key across two URLs with empty scrapes", async () => {
+    const empty = {
+      modelVersion: HEALTH_CHECK_MODEL_VERSION,
+      homepageSignals: "",
+      storySignals: "",
+    };
+    const a = await factsCacheContentHash({
+      ...empty,
+      websiteUrl: "https://empty-a.example",
+    });
+    const b = await factsCacheContentHash({
+      ...empty,
+      websiteUrl: "https://empty-b.example",
+    });
+    expect(a).not.toBe(b);
+    expect(shouldUseFactCache("")).toBe(false);
+    expect(shouldUseFactCache("x".repeat(MIN_PAGE_TEXT_CHARS_FOR_FACT_CACHE - 1))).toBe(
+      false,
+    );
+    expect(shouldUseFactCache("x".repeat(MIN_PAGE_TEXT_CHARS_FOR_FACT_CACHE))).toBe(
+      true,
+    );
+  });
+
+  it("changes the cache key when Instagram signal text is added", async () => {
+    const base = {
+      websiteUrl: "https://www.marktr.io",
+      modelVersion: HEALTH_CHECK_MODEL_VERSION,
+      homepageSignals: LONG_PAGE,
+      storySignals: "",
+    };
+    const withoutHandle = await factsCacheContentHash(base);
+    const withHandle = await factsCacheContentHash({
+      ...base,
+      instagramSignals: "Instagram @marktr — bio: marketing for founders",
+    });
+    expect(withoutHandle).not.toBe(withHandle);
+  });
+
+  it("includes model version and normalised URL in the cache key", async () => {
+    const page = {
+      homepageSignals: LONG_PAGE,
+      storySignals: "About the founders",
+    };
+    const a = await factsCacheContentHash({
+      websiteUrl: "https://www.Marktr.io/",
+      modelVersion: HEALTH_CHECK_MODEL_VERSION,
+      ...page,
+    });
+    const b = await factsCacheContentHash({
+      websiteUrl: "https://www.marktr.io",
+      modelVersion: HEALTH_CHECK_MODEL_VERSION,
+      ...page,
+    });
+    const otherModel = await factsCacheContentHash({
+      websiteUrl: "https://www.marktr.io",
+      modelVersion: "gpt-4o-mini-other",
+      ...page,
+    });
+    expect(a).toBe(b);
+    expect(otherModel).not.toBe(a);
   });
 
   it("tells the model to pick the conservative label on a borderline", () => {

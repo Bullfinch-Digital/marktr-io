@@ -1,9 +1,7 @@
 import type { Edition } from "../../supabase/functions/_shared/bullfinchHosts.ts";
 import {
-  isAllowedBullfinchOrigin,
   isLocalNonProdHost,
   isTeamVercelPreviewHost,
-  resolveEditionFromRequest,
 } from "../../supabase/functions/_shared/bullfinchHosts.ts";
 
 export type { Edition };

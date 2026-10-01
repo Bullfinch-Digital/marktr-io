@@ -448,6 +448,7 @@ export default function HealthCheck() {
           const { data, error: invokeError } = await supabase.functions.invoke("score-website", {
             body: {
               websiteUrl: formData.websiteUrl.trim(),
+              businessName: formData.businessName.trim() || undefined,
               instagramHandle: formData.instagramHandle?.trim() || undefined,
               facebookUrl: facebookUrl || undefined,
               edition: editionRef.current,

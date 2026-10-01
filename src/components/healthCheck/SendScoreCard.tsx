@@ -2,11 +2,12 @@ import { Loader2 } from "lucide-react";
 import { useRef, useState } from "react";
 import { supabase } from "../../config/supabase";
 import type { EditionConfig } from "../../lib/editionConfig";
+import { sendScoreOutcome } from "../../lib/sendScoreOutcome";
 import { ScanTurnstile, type ScanTurnstileHandle } from "./ScanTurnstile";
 
 type SendScoreCopy = NonNullable<EditionConfig["sendScore"]>;
 
-type Phase = "idle" | "checking" | "sent" | "error";
+type Phase = "idle" | "checking" | "sent" | "throttled" | "error";
 
 export function SendScoreCard({
   publicToken,
@@ -47,8 +48,13 @@ export function SendScoreCard({
           turnstileToken: token,
         },
       });
-      const payload = data as { ok?: boolean } | null;
-      if (error || payload?.ok !== true) {
+      const outcome = sendScoreOutcome(data, error);
+      if (outcome === "throttled") {
+        setPhase("throttled");
+        void turnstileRef.current?.refreshToken();
+        return;
+      }
+      if (outcome !== "sent") {
         setPhase("error");
         void turnstileRef.current?.refreshToken();
         return;
@@ -118,6 +124,11 @@ export function SendScoreCard({
             {copy.privacyLabel}
           </a>
         </p>
+        {phase === "throttled" ? (
+          <p className="font-body text-sm text-foreground" role="status">
+            {copy.throttled}
+          </p>
+        ) : null}
         {phase === "error" ? (
           <p className="font-body text-sm text-red-600" role="alert">
             {copy.error}

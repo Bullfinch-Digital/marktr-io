@@ -3,19 +3,25 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { editionConfig } from "./editionConfig";
 import {
+  businessDisplayName,
+  captureFailureBody,
   decideCapture,
   emailContactUrl,
   emailMarktrUrl,
   isReportLeadOrigin,
   reportPageUrl,
-  RESEND_WINDOW_MS,
+  SENDS_PER_IP_PER_HOUR,
+  SENDS_PER_REPORT_PER_HOUR,
+  storedBusinessName,
 } from "../../supabase/functions/_shared/reportLeadCapture.ts";
 import {
   bullfinchScoreEmailCopy,
   renderInternalLeadEmail,
+  renderResendNote,
   renderVisitorScoreEmail,
   type VisitorEmailInput,
 } from "../../supabase/functions/_shared/reportLeadEmail.ts";
+import { sendScoreOutcome } from "./sendScoreOutcome";
 import {
   buildRawMessage,
   createGmailSender,
@@ -24,7 +30,6 @@ import {
 } from "../../supabase/functions/_shared/sendEmail.ts";
 
 const PREVIEW = "https://marktr-app-git-bullfinch-preview-bullfinch-digital.vercel.app";
-const NOW = Date.parse("2026-10-01T18:00:00.000Z");
 
 const baseDecision = {
   originAllowed: true,
@@ -32,8 +37,8 @@ const baseDecision = {
   email: "ada@example.com",
   reportFound: true,
   leadEmail: null as string | null,
-  emailSentAt: null as string | null,
-  nowMs: NOW,
+  recentReportSends: 0,
+  recentIpSends: 0,
 };
 
 function visitor(overrides: Partial<VisitorEmailInput> = {}): VisitorEmailInput {
@@ -55,33 +60,69 @@ function visitor(overrides: Partial<VisitorEmailInput> = {}): VisitorEmailInput 
 }
 
 describe("capture decision", () => {
-  it("sets lead columns only on the first submit", () => {
+  it("keeps the first address and sends the full note only then", () => {
     const first = decideCapture(baseDecision);
-    expect(first).toEqual({ ok: true, send: true, setLead: true });
+    expect(first).toEqual({ ok: true, send: true, setLead: true, internal: "full" });
 
-    const second = decideCapture({
+    const sameAddress = decideCapture({
+      ...baseDecision,
+      leadEmail: "Ada@example.com",
+      email: "ada@example.com",
+      recentReportSends: 1,
+    });
+    expect(sameAddress).toEqual({ ok: true, send: true, setLead: false, internal: "none" });
+
+    const newAddress = decideCapture({
       ...baseDecision,
       leadEmail: "ada@example.com",
-      emailSentAt: new Date(NOW - RESEND_WINDOW_MS - 1).toISOString(),
       email: "someone-else@example.com",
+      recentReportSends: 1,
     });
-    expect(second).toEqual({ ok: true, send: true, setLead: false });
+    expect(newAddress).toEqual({ ok: true, send: true, setLead: false, internal: "resend" });
   });
 
-  it("resends the visitor email at most once per 10 minutes", () => {
-    const recent = decideCapture({
+  it("allows three sends per report per hour and throttles the fourth", () => {
+    const third = decideCapture({
       ...baseDecision,
       leadEmail: "ada@example.com",
-      emailSentAt: new Date(NOW - 5 * 60 * 1000).toISOString(),
+      recentReportSends: SENDS_PER_REPORT_PER_HOUR - 1,
     });
-    expect(recent).toEqual({ ok: true, send: false });
+    expect(third).toMatchObject({ ok: true, send: true });
 
-    const later = decideCapture({
+    const fourth = decideCapture({
       ...baseDecision,
       leadEmail: "ada@example.com",
-      emailSentAt: new Date(NOW - 11 * 60 * 1000).toISOString(),
+      email: "other@example.com",
+      recentReportSends: SENDS_PER_REPORT_PER_HOUR,
     });
-    expect(later).toEqual({ ok: true, send: true, setLead: false });
+    expect(fourth).toEqual({ ok: false, status: 429, error: "throttled" });
+    expect(captureFailureBody("throttled")).toEqual({ ok: false, code: "throttled" });
+  });
+
+  it("caps sends per IP across reports", () => {
+    const allowed = decideCapture({
+      ...baseDecision,
+      recentIpSends: SENDS_PER_IP_PER_HOUR - 1,
+    });
+    expect(allowed).toMatchObject({ ok: true, send: true });
+
+    const blocked = decideCapture({
+      ...baseDecision,
+      recentReportSends: 0,
+      recentIpSends: SENDS_PER_IP_PER_HOUR,
+    });
+    expect(blocked).toEqual({ ok: false, status: 429, error: "throttled" });
+  });
+
+  it("shows the throttle message and never treats a throttle as Sent", () => {
+    expect(editionConfig.bullfinch.sendScore?.throttled).toBe(
+      "We've just sent it. Give it a few minutes and check your spam folder.",
+    );
+    expect(sendScoreOutcome({ ok: false, code: "throttled" }, null)).toBe("throttled");
+    expect(sendScoreOutcome(null, { context: { status: 429 } })).toBe("throttled");
+    expect(sendScoreOutcome({ ok: true, code: "throttled" }, null)).toBe("throttled");
+    expect(sendScoreOutcome({ ok: true }, null)).toBe("sent");
+    expect(sendScoreOutcome({ ok: false, error: "gmail_send_failed" }, null)).toBe("error");
   });
 
   it("rejects origins outside the Bullfinch check host and preview pattern", () => {
@@ -204,6 +245,7 @@ describe("score email templates", () => {
     expect(note.subject).toBe("New health check lead: Phase 4 test (60/100, talk)");
     expect(note.text.startsWith("Open their report\nhttps://check.bullfinchdigital.com/r/tok")).toBe(true);
     expect(note.text).toContain("Business: Phase 4 test");
+    expect(note.subject).toContain("Phase 4 test");
     expect(note.text).toContain("Website: https://example.com");
     expect(note.text).toContain("Email: ada@example.com");
     expect(note.text).toContain("Marketing opt-in: no");
@@ -212,6 +254,40 @@ describe("score email templates", () => {
     expect(note.text).not.toContain("Based on your website and story");
     expect(note.html).toContain(">Open their report</a>");
     expect(visibleText(note.html)).not.toContain("https://check.bullfinchdigital.com");
+  });
+
+  it("falls back to the domain when the report has no business name", () => {
+    const note = renderInternalLeadEmail(copy, {
+      ...visitor(),
+      businessName: "  ",
+      websiteUrl: "https://www.example.com",
+      email: "ada@example.com",
+      marketingOptIn: false,
+      utm: null,
+    });
+    expect(note.text).toContain("Business: example.com");
+    expect(note.text).not.toContain("Business: —");
+    expect(note.subject).toContain("example.com");
+    expect(storedBusinessName("  Phase 4 test 3  ")).toBe("Phase 4 test 3");
+    expect(storedBusinessName("   ")).toBeNull();
+    expect(businessDisplayName(null, "example.com")).toBe("example.com");
+    expect(businessDisplayName("Phase 4 test 3", "example.com")).toBe("Phase 4 test 3");
+  });
+
+  it("sends a one-line note when the report goes to a new address", () => {
+    const note = renderResendNote({
+      businessName: "Phase 4 test 3",
+      domain: "example.com",
+      email: "other@example.com",
+    });
+    expect(note.text).toBe("Phase 4 test 3: report re-sent to a new address other@example.com");
+    expect(note.subject).toBe(note.text);
+    const fallback = renderResendNote({
+      businessName: null,
+      domain: "example.com",
+      email: "other@example.com",
+    });
+    expect(fallback.text).toBe("example.com: report re-sent to a new address other@example.com");
   });
 
   it("uses the production report host, and the preview origin on previews", () => {
@@ -339,5 +415,26 @@ describe("lead email migration", () => {
     expect(sql).toContain("OLD.lead_captured_at IS NOT NULL");
     expect(sql).not.toContain("OLD.email_sent_at");
     expect(sql).not.toMatch(/create policy/i);
+  });
+
+  it("logs every send in a closed table", () => {
+    const sql = readFileSync(
+      path.join(process.cwd(), "supabase/migrations/20261001220000_health_check_report_sends.sql"),
+      "utf8",
+    );
+    expect(sql).toContain("health_check_report_sends");
+    expect(sql).toContain("report_id");
+    expect(sql).toContain("email");
+    expect(sql).toContain("sent_at");
+    expect(sql).toContain("ok");
+    expect(sql).toContain("client_ip");
+    expect(sql).toContain("ENABLE ROW LEVEL SECURITY");
+    expect(sql).not.toMatch(/create policy/i);
+
+    const persist = readFileSync(
+      path.join(process.cwd(), "supabase/functions/score-website/persistReport.ts"),
+      "utf8",
+    );
+    expect(persist).toContain("lead_business: storedBusinessName(opts.businessName)");
   });
 });

@@ -56,6 +56,8 @@ type Input = {
   edition?: "marktr" | "bullfinch";
   turnstileToken?: string | null;
   utm?: Record<string, unknown> | null;
+  /** Business name from the scan form. Stored set-once on the report. */
+  businessName?: string;
 };
 
 /** Pinned model version — same string recorded client-side (§6). */
@@ -173,6 +175,7 @@ async function jsonWithOptionalReport(
     gaps?: string[];
     findings?: FindingsResponse["findings"] | null;
     utm?: Record<string, unknown> | null;
+    businessName?: string;
   },
 ) {
   if (persistBullfinch) {
@@ -181,6 +184,7 @@ async function jsonWithOptionalReport(
         url: snapshot.websiteUrl,
         instagramHandle: snapshot.instagramHandle,
         facebookUrl: snapshot.facebookUrl,
+        businessName: snapshot.businessName,
         domain: extractDomain(snapshot.websiteUrl),
         facts: snapshot.facts,
         apifyMetrics: snapshot.apifyMetrics,
@@ -1197,6 +1201,7 @@ Deno.serve(async (req) => {
           apifyMetrics: apify,
           observation: "Could not access your website — check the URL",
           utm: body.utm ?? null,
+          businessName: body.businessName,
         },
       );
     }
@@ -1341,6 +1346,7 @@ Deno.serve(async (req) => {
           gaps,
           findings: findingsPayload?.findings,
           utm: body.utm ?? null,
+          businessName: body.businessName,
         },
       );
     } catch {
@@ -1362,6 +1368,7 @@ Deno.serve(async (req) => {
           apifyMetrics,
           observation: "Website found but qualitative extraction was incomplete",
           utm: body.utm ?? null,
+          businessName: body.businessName,
         },
       );
     }

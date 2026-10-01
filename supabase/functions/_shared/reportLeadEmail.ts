@@ -280,7 +280,7 @@ export function renderInternalLeadEmail(
         .map(([key, value]) => `${key}=${value}`)
     : [];
   const detailLines = [
-    `Business: ${input.businessName?.trim() || "—"}`,
+    `Business: ${who}`,
     `Website: ${input.websiteUrl}`,
     `Email: ${input.email}`,
     `First name: ${input.firstName?.trim() || "—"}`,
@@ -302,6 +302,18 @@ export function renderInternalLeadEmail(
     text,
     html,
   };
+}
+
+/** One line for a later send to an address other than the first one on record. */
+export function renderResendNote(input: {
+  businessName: string | null;
+  domain: string;
+  email: string;
+}): { subject: string; text: string; html: string } {
+  const who = input.businessName?.trim() || input.domain;
+  const line = `${who}: report re-sent to a new address ${input.email.trim()}`;
+  const html = `<!DOCTYPE html><html><body style="margin:0;padding:24px;background:#ffffff;font-family:${SANS};font-size:14px;line-height:1.5;color:${INK};"><p style="margin:0;">${escapeHtml(line)}</p></body></html>`;
+  return { subject: line, text: line, html };
 }
 
 export function domainFromUrl(url: string): string {

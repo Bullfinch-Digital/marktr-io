@@ -3,7 +3,9 @@ import {
   isTeamVercelPreviewHost,
 } from "./bullfinchHosts.ts";
 
-export const RESEND_WINDOW_MS = 10 * 60 * 1000;
+export const SEND_WINDOW_MS = 60 * 60 * 1000;
+export const SENDS_PER_REPORT_PER_HOUR = 3;
+export const SENDS_PER_IP_PER_HOUR = 10;
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -32,20 +34,21 @@ export function isReportLeadTurnstileHost(hostname: string | null | undefined): 
   return isTeamVercelPreviewHost(host);
 }
 
-export function shouldResendVisitorEmail(
-  emailSentAt: string | null | undefined,
-  nowMs: number,
-): boolean {
-  if (!emailSentAt) return true;
-  const sent = Date.parse(emailSentAt);
-  if (Number.isNaN(sent)) return true;
-  return nowMs - sent >= RESEND_WINDOW_MS;
+export function storedBusinessName(value: string | null | undefined): string | null {
+  const trimmed = value?.trim() ?? "";
+  return trimmed ? trimmed.slice(0, 120) : null;
 }
+
+/** Name on the report, or the domain when the scan stored nothing. */
+export function businessDisplayName(stored: string | null | undefined, domain: string): string {
+  return storedBusinessName(stored) || domain;
+}
+
+export type CaptureInternal = "full" | "resend" | "none";
 
 export type CaptureDecision =
   | { ok: false; status: number; error: string }
-  | { ok: true; send: false }
-  | { ok: true; send: true; setLead: boolean };
+  | { ok: true; send: true; setLead: boolean; internal: CaptureInternal };
 
 export function decideCapture(opts: {
   originAllowed: boolean;
@@ -53,17 +56,34 @@ export function decideCapture(opts: {
   email: string;
   reportFound: boolean;
   leadEmail: string | null;
-  emailSentAt: string | null;
-  nowMs: number;
+  recentReportSends: number;
+  recentIpSends: number;
 }): CaptureDecision {
   if (!opts.originAllowed) return { ok: false, status: 403, error: "origin_not_allowed" };
   if (!opts.turnstileOk) return { ok: false, status: 403, error: "turnstile_failed" };
   if (!opts.reportFound) return { ok: false, status: 404, error: "not_found" };
   if (!isValidLeadEmail(opts.email)) return { ok: false, status: 400, error: "email_invalid" };
-  if (!shouldResendVisitorEmail(opts.emailSentAt, opts.nowMs)) {
-    return { ok: true, send: false };
+  if (
+    opts.recentReportSends >= SENDS_PER_REPORT_PER_HOUR ||
+    opts.recentIpSends >= SENDS_PER_IP_PER_HOUR
+  ) {
+    return { ok: false, status: 429, error: "throttled" };
   }
-  return { ok: true, send: true, setLead: opts.leadEmail == null };
+  const entered = opts.email.trim().toLowerCase();
+  const first = opts.leadEmail?.trim().toLowerCase() ?? "";
+  if (!first) return { ok: true, send: true, setLead: true, internal: "full" };
+  return {
+    ok: true,
+    send: true,
+    setLead: false,
+    internal: first === entered ? "none" : "resend",
+  };
+}
+
+/** Throttle is `{ ok: false, code: "throttled" }`. Other failures stay `{ error }`. */
+export function captureFailureBody(error: string): { ok: false; code: "throttled" } | { error: string } {
+  if (error === "throttled") return { ok: false, code: "throttled" };
+  return { error };
 }
 
 export function reportPageUrl(origin: string | null | undefined, publicToken: string): string {

@@ -1,17 +1,20 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.2";
 import {
+  captureFailureBody,
   decideCapture,
   emailContactUrl,
   emailMarktrUrl,
   isReportLeadOrigin,
   isReportLeadTurnstileHost,
   reportPageUrl,
+  SEND_WINDOW_MS,
 } from "../_shared/reportLeadCapture.ts";
 import {
   bullfinchScoreEmailCopy,
   domainFromUrl,
   renderInternalLeadEmail,
+  renderResendNote,
   renderVisitorScoreEmail,
   socialHandlesMissing,
   type BfEmailRoute,
@@ -60,6 +63,21 @@ function scoreNumber(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
+async function countRecentSends(
+  column: "report_id" | "client_ip",
+  value: string,
+  since: string,
+): Promise<number | null> {
+  const { count, error } = await supabase
+    .from("health_check_report_sends")
+    .select("id", { count: "exact", head: true })
+    .eq(column, value)
+    .eq("ok", true)
+    .gte("sent_at", since);
+  if (error) return null;
+  return count ?? 0;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
@@ -70,9 +88,8 @@ serve(async (req) => {
     const publicToken = typeof body?.publicToken === "string" ? body.publicToken.trim() : "";
     const email = typeof body?.email === "string" ? body.email.trim() : "";
     const firstName = typeof body?.firstName === "string" ? body.firstName.trim().slice(0, 80) : "";
-    const businessName =
-      typeof body?.businessName === "string" ? body.businessName.trim().slice(0, 120) : "";
     const marketingOptIn = body?.marketingOptIn === true;
+    const clientIp = clientIpFromRequest(req);
 
     const turnstile = await verifyTurnstile(body?.turnstileToken, clientIpFromRequest(req), {
       allowedHostname: isReportLeadTurnstileHost,
@@ -85,7 +102,7 @@ serve(async (req) => {
     const { data: row, error: readError } = await supabase
       .from("health_check_reports")
       .select(
-        "public_token,url,overall,website_score,brand_story_score,content_score,social_score,bf_route,scores,utm,lead_email,lead_first_name,lead_business,marketing_opt_in,lead_captured_at,email_sent_at",
+        "id,public_token,url,overall,website_score,brand_story_score,content_score,social_score,bf_route,scores,utm,lead_email,lead_first_name,lead_business,marketing_opt_in,lead_captured_at,email_sent_at",
       )
       .eq("public_token", publicToken)
       .maybeSingle();
@@ -95,21 +112,29 @@ serve(async (req) => {
       return json({ error: "server_error" }, 500);
     }
 
+    const since = new Date(Date.now() - SEND_WINDOW_MS).toISOString();
+    const recentReportSends = row ? await countRecentSends("report_id", row.id, since) : 0;
+    const recentIpSends = row && clientIp ? await countRecentSends("client_ip", clientIp, since) : 0;
+    if (recentReportSends === null || recentIpSends === null) {
+      console.error("capture-report-lead send count failed");
+      return json({ error: "server_error" }, 500);
+    }
+
     const decision = decideCapture({
       originAllowed: isReportLeadOrigin(origin),
       turnstileOk: turnstile.ok,
       email,
       reportFound: Boolean(row),
       leadEmail: row?.lead_email ?? null,
-      emailSentAt: row?.email_sent_at ?? null,
-      nowMs: Date.now(),
+      recentReportSends,
+      recentIpSends,
     });
 
     if (!decision.ok) {
       const status = decision.error === "turnstile_failed" ? TURNSTILE_REJECT_STATUS : decision.status;
-      return json({ error: decision.error }, status);
+      return json(captureFailureBody(decision.error), status);
     }
-    if (!decision.send || !row) return json({ ok: true });
+    if (!row) return json({ error: "not_found" }, 404);
 
     const scores = row.scores as { inputs?: { instagramHandle?: string; facebookUrl?: string } } | null;
     const socialNotChecked = socialHandlesMissing(scores?.inputs);
@@ -145,28 +170,42 @@ serve(async (req) => {
       reportUrl,
       contactUrl,
       marktrUrl: emailMarktrUrl(),
-      businessName: row.lead_business || businessName,
+      businessName: row.lead_business,
       websiteUrl: row.url,
-      email: row.lead_email || email,
+      email,
       marketingOptIn: row.lead_email != null ? row.marketing_opt_in === true : marketingOptIn,
       utm: utmRecord(row.utm),
     });
 
-    const visitorSend = await gmail.send({ to: row.lead_email || email, ...visitor });
-    if (!visitorSend.ok) return json({ error: visitorSend.error }, 502);
-    const internalSend = await gmail.send({
-      to: JON,
-      replyTo: row.lead_email || email,
-      ...internal,
+    const visitorSend = await gmail.send({ to: email, ...visitor });
+    const { error: logError } = await supabase.from("health_check_report_sends").insert({
+      report_id: row.id,
+      email,
+      sent_at: new Date().toISOString(),
+      ok: visitorSend.ok,
+      client_ip: clientIp,
     });
-    if (!internalSend.ok) return json({ error: internalSend.error }, 502);
+    if (logError) console.error("capture-report-lead send log failed");
+    if (!visitorSend.ok) return json({ error: visitorSend.error }, 502);
+
+    if (decision.internal === "full") {
+      const internalSend = await gmail.send({ to: JON, replyTo: email, ...internal });
+      if (!internalSend.ok) console.error("capture-report-lead internal note failed");
+    } else if (decision.internal === "resend") {
+      const note = renderResendNote({
+        businessName: row.lead_business,
+        domain,
+        email,
+      });
+      const noteSend = await gmail.send({ to: JON, replyTo: email, ...note });
+      if (!noteSend.ok) console.error("capture-report-lead resend note failed");
+    }
 
     const nowIso = new Date().toISOString();
     const patch: Record<string, unknown> = { email_sent_at: nowIso };
     if (decision.setLead) {
       patch.lead_email = email;
       patch.lead_first_name = firstName || null;
-      patch.lead_business = businessName || null;
       patch.marketing_opt_in = marketingOptIn;
       patch.marketing_consent = marketingOptIn;
       patch.consent_at = nowIso;

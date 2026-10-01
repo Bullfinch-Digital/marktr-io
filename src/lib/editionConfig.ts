@@ -87,6 +87,7 @@ export type EditionConfig = {
     checking: string;
     success: string;
     error: string;
+    throttled: string;
   };
   /** Visitor and internal score-email copy. Absent on marktr. */
   scoreEmail?: ScoreEmailCopy;
@@ -226,6 +227,7 @@ export const editionConfig: Record<Edition, EditionConfig> = {
       checking: "Checking…",
       success: "Sent. Check your inbox (and spam, just in case).",
       error: "We couldn't send that just now. Please try again.",
+      throttled: "We've just sent it. Give it a few minutes and check your spam folder.",
     },
     scoreEmail: bullfinchScoreEmailCopy,
   },

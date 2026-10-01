@@ -64,7 +64,7 @@ export function SendScoreCard({
 
   if (phase === "sent") {
     return (
-      <section className="mt-6 rounded-2xl border border-border bg-card px-6 py-5">
+      <section className="relative mt-6 rounded-2xl border border-border bg-card px-6 py-5">
         <p className="font-body text-sm text-foreground" role="status">
           {copy.success}
         </p>
@@ -73,7 +73,7 @@ export function SendScoreCard({
   }
 
   return (
-    <section className="mt-6 rounded-2xl border border-border bg-card px-6 py-5">
+    <section className="relative mt-6 rounded-2xl border border-border bg-card px-6 py-5">
       <h2 className="font-display text-2xl font-semibold text-foreground">{copy.heading}</h2>
       <form
         className="mt-4 space-y-4"

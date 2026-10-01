@@ -19,6 +19,8 @@ export type SendEmailInput = {
   subject: string;
   text: string;
   html: string;
+  /** Optional. Never used as From. Newlines are rejected so the header cannot be injected. */
+  replyTo?: string;
 };
 
 export type SendEmailResult =
@@ -42,11 +44,21 @@ function encodeHeader(value: string): string {
   return `=?UTF-8?B?${bytesToBase64(new TextEncoder().encode(value))}?=`;
 }
 
+function safeReplyTo(value: string | undefined): string | null {
+  if (!value) return null;
+  const email = value.trim();
+  if (!email || /[\r\n]/.test(email)) return null;
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 320) return null;
+  return email;
+}
+
 export function buildRawMessage(input: SendEmailInput): string {
   const boundary = "bf-score-email";
+  const replyTo = safeReplyTo(input.replyTo);
   const lines = [
     `From: ${GMAIL_FROM}`,
     `To: ${input.to}`,
+    ...(replyTo ? [`Reply-To: ${replyTo}`] : []),
     `Subject: ${encodeHeader(input.subject)}`,
     "MIME-Version: 1.0",
     `Content-Type: multipart/alternative; boundary="${boundary}"`,

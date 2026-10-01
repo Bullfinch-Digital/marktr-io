@@ -5,8 +5,14 @@ export type ScoreEmailCopy = {
   opening: string;
   notCheckedLine: string;
   notCheckedValue: string;
+  overallLabel: string;
   reportLine: string;
-  signOff: string;
+  reportLinkLabel: string;
+  reportButton: string;
+  wordmarkUrl: string;
+  wordmarkAlt: string;
+  signOffName: string;
+  signOffOrg: string;
   labels: {
     website: string;
     brandStory: string;
@@ -14,8 +20,9 @@ export type ScoreEmailCopy = {
     content: string;
   };
   routes: Record<BfEmailRoute, string>;
-  buttons: Record<BfEmailRoute, string>;
+  routeLinkLabels: { talk: string; diy: string };
   internalSubject: string;
+  internalReportLabel: string;
 };
 
 export const bullfinchScoreEmailCopy: ScoreEmailCopy = {
@@ -23,8 +30,14 @@ export const bullfinchScoreEmailCopy: ScoreEmailCopy = {
   opening: "Hi {greeting}, here's your health check for {domain}.",
   notCheckedLine: "Based on your website and story. Add your Instagram for a full score.",
   notCheckedValue: "Not checked",
-  reportLine: "Your full report, with what's working and what to fix first: {reportUrl}",
-  signOff: "Jon, Bullfinch Digital · Shrewsbury",
+  overallLabel: "Overall",
+  reportLine: "Your full report, with what's working and what to fix first.",
+  reportLinkLabel: "Your full report",
+  reportButton: "See your full report",
+  wordmarkUrl: "https://bullfinchdigital.com/wp-content/uploads/2026/09/bullfinch-wordmark.png",
+  wordmarkAlt: "Bullfinch",
+  signOffName: "Jon Stanford",
+  signOffOrg: "Bullfinch Digital · Shrewsbury",
   labels: {
     website: "Website",
     brandStory: "Brand story",
@@ -32,16 +45,16 @@ export const bullfinchScoreEmailCopy: ScoreEmailCopy = {
     content: "Content",
   },
   routes: {
-    talk: "If you'd like a hand closing the gaps, just reply to this email or check availability: {contactUrl}",
+    talk: "If you'd like a hand closing the gaps, just reply to this email or check availability.",
     polish: "Strong result. If you'd like a second pair of eyes on the next step, just reply.",
-    diy: "If you want to build the foundations yourself, marktr.io walks you through it: {marktrUrl}",
+    diy: "If you want to build the foundations yourself, marktr.io walks you through it.",
   },
-  buttons: {
-    talk: "Check availability",
-    polish: "View your report",
-    diy: "Start free on marktr.io",
+  routeLinkLabels: {
+    talk: "check availability",
+    diy: "marktr.io",
   },
   internalSubject: "New health check lead: {who} ({overall}/100, {route})",
+  internalReportLabel: "Open their report",
 };
 
 export type VisitorEmailInput = {
@@ -73,6 +86,8 @@ const SCORE_LOW = "#B33F30";
 const SCORE_MUTED = "#6B7280";
 const INK = "#0B0B0C";
 const CREAM = "#F8F0E6";
+const SANS = "Arial,Helvetica,sans-serif";
+const ZWJ = "\u200D";
 
 function fill(template: string, vars: Record<string, string>): string {
   return template.replace(/\{(\w+)\}/g, (_, key: string) => vars[key] ?? "");
@@ -103,8 +118,41 @@ function greeting(firstName: string | null): string {
   return name ? name : "there";
 }
 
+/** Stops Gmail turning "example.com" in the greeting into a link. */
+function unlinkDomain(domain: string): string {
+  return domain.replace(/\./g, `.${ZWJ}`);
+}
+
+function linkPhrase(sentence: string, phrase: string, href: string): string {
+  const linked = `<a href="${escapeHtml(href)}" style="color:${INK};">${escapeHtml(phrase)}</a>`;
+  const index = sentence.indexOf(phrase);
+  if (index < 0) return escapeHtml(sentence);
+  return (
+    escapeHtml(sentence.slice(0, index)) +
+    linked +
+    escapeHtml(sentence.slice(index + phrase.length))
+  );
+}
+
 function routeOrTalk(route: BfEmailRoute | null): BfEmailRoute {
   return route === "polish" || route === "diy" || route === "talk" ? route : "talk";
+}
+
+function routePlain(route: BfEmailRoute, copy: ScoreEmailCopy, input: VisitorEmailInput): string[] {
+  const sentence = copy.routes[route];
+  if (route === "talk") {
+    return [sentence, "", "Check availability", input.contactUrl];
+  }
+  if (route === "diy") {
+    return [sentence, "", copy.routeLinkLabels.diy, input.marktrUrl];
+  }
+  return [sentence];
+}
+
+function routeHtml(route: BfEmailRoute, copy: ScoreEmailCopy, input: VisitorEmailInput): string {
+  if (route === "talk") return linkPhrase(copy.routes.talk, copy.routeLinkLabels.talk, input.contactUrl);
+  if (route === "diy") return linkPhrase(copy.routes.diy, copy.routeLinkLabels.diy, input.marktrUrl);
+  return escapeHtml(copy.routes.polish);
 }
 
 export function renderVisitorScoreEmail(
@@ -113,27 +161,35 @@ export function renderVisitorScoreEmail(
 ): { subject: string; text: string; html: string } {
   const route = routeOrTalk(input.route);
   const overallText = input.overall === null ? "—" : String(input.overall);
+  const domain = unlinkDomain(input.domain);
   const vars = {
     overall: overallText,
     greeting: greeting(input.firstName),
-    domain: input.domain,
-    reportUrl: input.reportUrl,
-    contactUrl: input.contactUrl,
-    marktrUrl: input.marktrUrl,
+    domain,
   };
   const lines = [
     fill(copy.opening, vars),
+    "",
+    copy.overallLabel,
+    `${overallText}/100`,
+  ];
+  if (input.socialNotChecked) lines.push("", copy.notCheckedLine);
+  lines.push(
     "",
     `${copy.labels.website}: ${scoreText(input.website, false, copy)}`,
     `${copy.labels.brandStory}: ${scoreText(input.brandStory, false, copy)}`,
     `${copy.labels.social}: ${scoreText(input.social, input.socialNotChecked, copy)}`,
     `${copy.labels.content}: ${scoreText(input.content, input.socialNotChecked, copy)}`,
-  ];
-  if (input.socialNotChecked) lines.push(copy.notCheckedLine);
-  lines.push("", fill(copy.reportLine, vars), "", fill(copy.routes[route], vars), "", copy.signOff);
+    "",
+    copy.reportLinkLabel,
+    input.reportUrl,
+    "",
+    ...routePlain(route, copy, input),
+    "",
+    copy.signOffName,
+    copy.signOffOrg,
+  );
 
-  const buttonHref =
-    route === "talk" ? input.contactUrl : route === "diy" ? input.marktrUrl : input.reportUrl;
   const rows: Array<{ label: string; value: string; color: string }> = [
     {
       label: copy.labels.website,
@@ -168,32 +224,37 @@ export function renderVisitorScoreEmail(
   const scoreRows = rows
     .map(
       (row) =>
-        `<tr><td style="padding:6px 0;font-family:Arial,Helvetica,sans-serif;font-size:16px;color:${INK};">${escapeHtml(row.label)}</td><td align="right" style="padding:6px 0;font-family:Georgia,'Times New Roman',serif;font-size:16px;font-weight:bold;color:${row.color};">${escapeHtml(row.value)}</td></tr>`,
+        `<tr><td style="padding:6px 0;font-family:${SANS};font-size:16px;color:${INK};">${escapeHtml(row.label)}</td><td align="right" style="padding:6px 0;font-family:${SANS};font-size:16px;font-weight:bold;color:${row.color};">${escapeHtml(row.value)}</td></tr>`,
     )
     .join("");
 
+  const overallColor = input.overall === null ? SCORE_MUTED : scoreColor(input.overall);
   const note = input.socialNotChecked
-    ? `<p style="margin:16px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5;color:${SCORE_MUTED};">${escapeHtml(copy.notCheckedLine)}</p>`
+    ? `<p style="margin:12px 0 0;font-family:${SANS};font-size:14px;line-height:1.5;color:${SCORE_MUTED};">${escapeHtml(copy.notCheckedLine)}</p>`
     : "";
 
   const html = `<!DOCTYPE html><html><body style="margin:0;padding:0;background:${CREAM};">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${CREAM};">
 <tr><td align="center" style="padding:32px 16px;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;">
-<tr><td style="font-family:Georgia,'Times New Roman',serif;font-size:28px;line-height:1.2;color:${INK};padding-bottom:24px;">Bullfinch</td></tr>
-<tr><td style="font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.5;color:${INK};">${escapeHtml(fill(copy.opening, vars))}</td></tr>
-<tr><td style="padding-top:20px;">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0">${scoreRows}</table>
+<tr><td style="padding-bottom:24px;"><img src="${escapeHtml(copy.wordmarkUrl)}" alt="${escapeHtml(copy.wordmarkAlt)}" width="140" style="display:block;width:140px;max-width:140px;height:auto;border:0;"></td></tr>
+<tr><td style="font-family:${SANS};font-size:16px;line-height:1.5;color:${INK};">${escapeHtml(fill(copy.opening, vars))}</td></tr>
+<tr><td style="padding-top:24px;">
+<p style="margin:0;font-family:${SANS};font-size:13px;color:${INK};">${escapeHtml(copy.overallLabel)}</p>
+<p style="margin:4px 0 0;font-family:${SANS};font-size:40px;line-height:1;font-weight:bold;color:${overallColor};">${escapeHtml(overallText)}/100</p>
 ${note}
 </td></tr>
-<tr><td style="padding-top:20px;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.5;color:${INK};">${escapeHtml(fill(copy.reportLine, vars).replace(input.reportUrl, "")).trim()} <a href="${escapeHtml(input.reportUrl)}" style="color:${INK};">${escapeHtml(input.reportUrl)}</a></td></tr>
-<tr><td style="padding-top:16px;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.5;color:${INK};">${escapeHtml(fill(copy.routes[route], vars))}</td></tr>
+<tr><td style="padding-top:16px;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0">${scoreRows}</table>
+</td></tr>
+<tr><td style="padding-top:20px;font-family:${SANS};font-size:16px;line-height:1.5;color:${INK};">${escapeHtml(copy.reportLine)}</td></tr>
 <tr><td style="padding-top:24px;">
 <table role="presentation" cellpadding="0" cellspacing="0"><tr><td bgcolor="${INK}" style="border-radius:999px;background:${INK};">
-<a href="${escapeHtml(buttonHref)}" style="display:inline-block;background:${INK};color:#ffffff;text-decoration:none;border-radius:999px;padding:12px 22px;font-family:Arial,Helvetica,sans-serif;font-size:14px;">${escapeHtml(copy.buttons[route])}</a>
+<a href="${escapeHtml(input.reportUrl)}" style="display:inline-block;background:${INK};color:#ffffff;text-decoration:none;border-radius:999px;padding:12px 22px;font-family:${SANS};font-size:14px;">${escapeHtml(copy.reportButton)}</a>
 </td></tr></table>
 </td></tr>
-<tr><td style="padding-top:28px;font-family:Georgia,'Times New Roman',serif;font-size:16px;color:${INK};">${escapeHtml(copy.signOff)}</td></tr>
+<tr><td style="padding-top:16px;font-family:${SANS};font-size:16px;line-height:1.5;color:${INK};">${routeHtml(route, copy, input)}</td></tr>
+<tr><td style="padding-top:28px;font-family:${SANS};font-size:16px;line-height:1.5;color:${INK};">${escapeHtml(copy.signOffName)}<br>${escapeHtml(copy.signOffOrg)}</td></tr>
 </table>
 </td></tr>
 </table>
@@ -213,12 +274,12 @@ export function renderInternalLeadEmail(
   const who = input.businessName?.trim() || input.domain;
   const route = input.route ?? "unknown";
   const overall = input.overall === null ? "—" : String(input.overall);
-  const utmLines = input.utm
+  const utmParts = input.utm
     ? Object.entries(input.utm)
         .filter(([, value]) => value.trim())
-        .map(([key, value]) => `${key}: ${value}`)
+        .map(([key, value]) => `${key}=${value}`)
     : [];
-  const lines = [
+  const detailLines = [
     `Business: ${input.businessName?.trim() || "—"}`,
     `Website: ${input.websiteUrl}`,
     `Email: ${input.email}`,
@@ -229,13 +290,12 @@ export function renderInternalLeadEmail(
     `Social score: ${scoreText(input.social, input.socialNotChecked, copy)}`,
     `Content score: ${scoreText(input.content, input.socialNotChecked, copy)}`,
     `Route: ${route}`,
-    ...(input.socialNotChecked ? [copy.notCheckedLine] : []),
-    ...(utmLines.length ? ["UTMs:", ...utmLines] : ["UTMs: —"]),
-    `Report: ${input.reportUrl}`,
+    utmParts.length ? `UTMs: ${utmParts.join(", ")}` : "UTMs: —",
   ];
-  const text = lines.join("\n");
-  const html = `<!DOCTYPE html><html><body style="margin:0;padding:24px;background:#ffffff;">
-<pre style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5;color:#0B0B0C;white-space:pre-wrap;">${escapeHtml(text)}</pre>
+  const text = [copy.internalReportLabel, input.reportUrl, "", ...detailLines].join("\n");
+  const html = `<!DOCTYPE html><html><body style="margin:0;padding:24px;background:#ffffff;font-family:${SANS};font-size:14px;line-height:1.5;color:${INK};">
+<p style="margin:0 0 16px;font-family:${SANS};font-size:14px;"><a href="${escapeHtml(input.reportUrl)}" style="color:${INK};">${escapeHtml(copy.internalReportLabel)}</a></p>
+<pre style="margin:0;font-family:${SANS};font-size:14px;line-height:1.5;color:${INK};white-space:pre-wrap;">${escapeHtml(detailLines.join("\n"))}</pre>
 </body></html>`;
   return {
     subject: fill(copy.internalSubject, { who, overall, route }),

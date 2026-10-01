@@ -154,7 +154,11 @@ serve(async (req) => {
 
     const visitorSend = await gmail.send({ to: row.lead_email || email, ...visitor });
     if (!visitorSend.ok) return json({ error: visitorSend.error }, 502);
-    const internalSend = await gmail.send({ to: JON, ...internal });
+    const internalSend = await gmail.send({
+      to: JON,
+      replyTo: row.lead_email || email,
+      ...internal,
+    });
     if (!internalSend.ok) return json({ error: internalSend.error }, 502);
 
     const nowIso = new Date().toISOString();

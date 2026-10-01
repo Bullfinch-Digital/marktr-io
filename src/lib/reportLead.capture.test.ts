@@ -121,18 +121,33 @@ describe("score email templates", () => {
     expect(editionConfig.marktr.scoreEmail).toBeUndefined();
     expect(editionConfig.bullfinch.scoreEmail).toBe(bullfinchScoreEmailCopy);
     expect(copy.subject).toBe("Your marketing health check: {overall}/100");
-    expect(copy.signOff).toBe("Jon, Bullfinch Digital · Shrewsbury");
+    expect(copy.signOffName).toBe("Jon Stanford");
+    expect(copy.signOffOrg).toBe("Bullfinch Digital · Shrewsbury");
   });
+
+  function visibleText(html: string): string {
+    return html.replace(/<[^>]+>/g, " ");
+  }
 
   it("renders talk, polish and diy route lines", () => {
     const talk = renderVisitorScoreEmail(copy, visitor());
     expect(talk.subject).toBe("Your marketing health check: 60/100");
-    expect(talk.text).toContain("Hi Ada, here's your health check for example.com.");
+    expect(talk.text).toContain("Hi Ada, here's your health check for example.\u200Dcom.");
+    expect(talk.text).toContain("Overall\n60/100");
     expect(talk.text).toContain("If you'd like a hand closing the gaps");
+    expect(talk.text).toContain("Check availability\n");
     expect(talk.text).toContain("utm_medium=email");
     expect(talk.text).toContain("utm_content=talk");
     expect(talk.text).toContain("report=tok");
-    expect(talk.html).toContain("Check availability");
+    expect(talk.text).toContain("Your full report\nhttps://check.bullfinchdigital.com/r/tok");
+    expect(talk.text).toContain("Jon Stanford\nBullfinch Digital · Shrewsbury");
+    expect(talk.html).toContain('alt="Bullfinch"');
+    expect(talk.html).toContain("width:140px");
+    expect(talk.html).toContain("See your full report");
+    expect(talk.html).toContain(">check availability</a>");
+    expect(talk.html).toContain("font-family:Arial,Helvetica,sans-serif");
+    expect(talk.html).not.toContain("Georgia");
+    expect(visibleText(talk.html)).not.toMatch(/https?:/);
     expect(talk.html).toContain("background:#0B0B0C");
 
     const polish = renderVisitorScoreEmail(
@@ -141,7 +156,9 @@ describe("score email templates", () => {
     );
     expect(polish.text).toContain("Strong result. If you'd like a second pair of eyes");
     expect(polish.text).not.toContain("marktr.io walks you through it");
-    expect(polish.html).toContain("View your report");
+    expect(polish.html).toContain("See your full report");
+    expect(polish.html).not.toContain("check availability");
+    expect(visibleText(polish.html)).not.toMatch(/https?:/);
 
     const diy = renderVisitorScoreEmail(
       copy,
@@ -150,8 +167,11 @@ describe("score email templates", () => {
     expect(diy.text).toContain("marktr.io walks you through it");
     expect(diy.text).toContain("utm_medium=email");
     expect(diy.text).toContain("utm_content=diy");
-    expect(diy.html).toContain("Start free on marktr.io");
-    expect(diy.text).toContain(copy.signOff);
+    expect(diy.text).toContain(`marktr.io\n${emailMarktrUrl()}`);
+    expect(diy.html).toContain(">marktr.io</a>");
+    expect(diy.html).toContain("See your full report");
+    expect(diy.text).toContain("Jon Stanford");
+    expect(visibleText(diy.html)).not.toMatch(/https?:/);
   });
 
   it("says Not checked when no social handles were entered", () => {
@@ -159,17 +179,20 @@ describe("score email templates", () => {
       copy,
       visitor({ socialNotChecked: true, firstName: null }),
     );
-    expect(rendered.text).toContain("Hi there, here's your health check for example.com.");
+    expect(rendered.text).toContain("Hi there, here's your health check for example.\u200Dcom.");
+    expect(rendered.text.indexOf("Based on your website and story. Add your Instagram for a full score.")).toBeLessThan(
+      rendered.text.indexOf("Website: 95"),
+    );
     expect(rendered.text).toContain("Social: Not checked");
     expect(rendered.text).toContain("Content: Not checked");
-    expect(rendered.text).toContain("Website: 95");
-    expect(rendered.text).toContain(
-      "Based on your website and story. Add your Instagram for a full score.",
+    expect(rendered.html.indexOf("Based on your website and story. Add your Instagram for a full score.")).toBeLessThan(
+      rendered.html.indexOf(">Website<"),
     );
     expect(rendered.html).toContain("#6B7280");
+    expect(rendered.html).toContain("Arial,Helvetica,sans-serif");
   });
 
-  it("builds the internal note without putting the address in the subject template fields only", () => {
+  it("builds the internal note with the report link first and UTMs on one line", () => {
     const note = renderInternalLeadEmail(copy, {
       ...visitor({ socialNotChecked: true }),
       businessName: "Phase 4 test",
@@ -179,13 +202,16 @@ describe("score email templates", () => {
       utm: { utm_campaign: "phase4-test", utm_source: "healthcheck" },
     });
     expect(note.subject).toBe("New health check lead: Phase 4 test (60/100, talk)");
+    expect(note.text.startsWith("Open their report\nhttps://check.bullfinchdigital.com/r/tok")).toBe(true);
     expect(note.text).toContain("Business: Phase 4 test");
     expect(note.text).toContain("Website: https://example.com");
     expect(note.text).toContain("Email: ada@example.com");
     expect(note.text).toContain("Marketing opt-in: no");
     expect(note.text).toContain("Social score: Not checked");
-    expect(note.text).toContain("utm_campaign: phase4-test");
-    expect(note.text).toContain("Report: https://check.bullfinchdigital.com/r/tok");
+    expect(note.text).toContain("UTMs: utm_campaign=phase4-test, utm_source=healthcheck");
+    expect(note.text).not.toContain("Based on your website and story");
+    expect(note.html).toContain(">Open their report</a>");
+    expect(visibleText(note.html)).not.toContain("https://check.bullfinchdigital.com");
   });
 
   it("uses the production report host, and the preview origin on previews", () => {
@@ -215,6 +241,25 @@ describe("gmail sender", () => {
     });
     expect(raw.startsWith(`From: ${GMAIL_FROM}`)).toBe(true);
     expect(raw).not.toContain("evil@example.com");
+    expect(raw).not.toContain("Reply-To:");
+    const withReply = buildRawMessage({
+      to: "jon@example.com",
+      replyTo: "ada@example.com",
+      subject: "Hello",
+      text: "plain",
+      html: "<p>html</p>",
+    });
+    expect(withReply).toContain("Reply-To: ada@example.com");
+    expect(withReply.startsWith(`From: ${GMAIL_FROM}`)).toBe(true);
+    const injected = buildRawMessage({
+      to: "jon@example.com",
+      replyTo: "ada@example.com\nBcc: evil@example.com",
+      subject: "Hello",
+      text: "plain",
+      html: "<p>html</p>",
+    });
+    expect(injected).not.toContain("Reply-To:");
+    expect(injected).not.toContain("Bcc:");
     expect(raw).toContain("Content-Type: text/plain");
     expect(raw).toContain("Content-Type: text/html");
 

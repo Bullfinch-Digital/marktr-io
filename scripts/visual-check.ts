@@ -97,6 +97,8 @@ const FINDINGS = [
 ];
 
 const PUBLIC_TOKEN = "visualcheckfixturetoken0000000000000000000";
+const POLISH_TOKEN = "visualcheckpolishfixturetoken000000000000";
+const DIY_TOKEN = "visualcheckdiyfixturetoken000000000000000";
 
 const SCORE_WEBSITE_RESPONSE = {
   facts: FACTS,
@@ -122,48 +124,127 @@ function dimension(name: string, score: number, observation: string) {
   };
 }
 
-/** Mirrors the `scores` jsonb that score-website writes to health_check_reports. */
-const REPORT_ROW = {
-  public_token: PUBLIC_TOKEN,
-  edition: "bullfinch",
-  url: "https://apostlecoffee.co.uk",
-  overall: 58,
-  capped: false,
-  website_score: 82,
-  brand_story_score: 62,
-  content_score: 40,
-  social_score: 22,
-  findings: FINDINGS,
-  bf_route: "talk",
-  scoring_version: "1.0.3",
-  created_at: "2026-09-30T12:00:00.000Z",
-  scores: {
-    websiteClarity: {
-      ...dimension("Website Clarity", 82, FINDINGS[0].finding),
-      strengths: SCORE_WEBSITE_RESPONSE.strengths,
-      gaps: SCORE_WEBSITE_RESPONSE.gaps,
-    },
-    brandStory: dimension("Brand Story", 62, FINDINGS[1].finding),
-    contentConsistency: dimension("Content Consistency", 40, FINDINGS[2].finding),
-    socialPresence: dimension("Social Presence", 22, FINDINGS[3].finding),
-    overall: 58,
-    overallRaw: 58,
+type BfVisualRoute = "talk" | "polish" | "diy";
+
+function buildReportRow(opts: {
+  token: string;
+  route: BfVisualRoute;
+  overall: number;
+  website: number;
+  story: number;
+  content: number;
+  social: number;
+}) {
+  return {
+    public_token: opts.token,
+    edition: "bullfinch",
+    url: "https://apostlecoffee.co.uk",
+    overall: opts.overall,
     capped: false,
-    lowestDimension: "Social Presence",
-    lowestScore: 22,
-    inputs: {
-      websiteUrl: "https://apostlecoffee.co.uk",
-      instagramHandle: "apostlecoffee",
-      facebookUrl: "",
-      domain: "apostlecoffee.co.uk",
+    website_score: opts.website,
+    brand_story_score: opts.story,
+    content_score: opts.content,
+    social_score: opts.social,
+    findings: FINDINGS,
+    bf_route: opts.route,
+    scoring_version: "1.0.3",
+    created_at: "2026-09-30T12:00:00.000Z",
+    scores: {
+      websiteClarity: {
+        ...dimension("Website Clarity", opts.website, FINDINGS[0].finding),
+        strengths: SCORE_WEBSITE_RESPONSE.strengths,
+        gaps: SCORE_WEBSITE_RESPONSE.gaps,
+      },
+      brandStory: dimension("Brand Story", opts.story, FINDINGS[1].finding),
+      contentConsistency: dimension("Content Consistency", opts.content, FINDINGS[2].finding),
+      socialPresence: dimension("Social Presence", opts.social, FINDINGS[3].finding),
+      overall: opts.overall,
+      overallRaw: opts.overall,
+      capped: false,
+      lowestDimension: "Social Presence",
+      lowestScore: opts.social,
+      inputs: {
+        websiteUrl: "https://apostlecoffee.co.uk",
+        instagramHandle: "apostlecoffee",
+        facebookUrl: "",
+        domain: "apostlecoffee.co.uk",
+      },
+      websiteScore: {
+        score: opts.website,
+        observation: "Analysis complete",
+        strengths: SCORE_WEBSITE_RESPONSE.strengths,
+        gaps: SCORE_WEBSITE_RESPONSE.gaps,
+        findings: FINDINGS,
+      },
     },
-    websiteScore: {
-      score: 82,
-      observation: "Analysis complete",
-      strengths: SCORE_WEBSITE_RESPONSE.strengths,
-      gaps: SCORE_WEBSITE_RESPONSE.gaps,
-      findings: FINDINGS,
-    },
+  };
+}
+
+const REPORT_TALK = buildReportRow({
+  token: PUBLIC_TOKEN,
+  route: "talk",
+  overall: 58,
+  website: 82,
+  story: 62,
+  content: 40,
+  social: 22,
+});
+const REPORT_POLISH = buildReportRow({
+  token: POLISH_TOKEN,
+  route: "polish",
+  overall: 81,
+  website: 88,
+  story: 80,
+  content: 72,
+  social: 70,
+});
+const REPORT_DIY = buildReportRow({
+  token: DIY_TOKEN,
+  route: "diy",
+  overall: 22,
+  website: 18,
+  story: 12,
+  content: 0,
+  social: 0,
+});
+
+const REPORTS_BY_TOKEN: Record<string, ReturnType<typeof buildReportRow>> = {
+  [PUBLIC_TOKEN]: REPORT_TALK,
+  [POLISH_TOKEN]: REPORT_POLISH,
+  [DIY_TOKEN]: REPORT_DIY,
+};
+
+const ROUTE_PROOF: Record<
+  BfVisualRoute,
+  { token: string; heading: string; primary: string; hrefIncludes: string[] }
+> = {
+  talk: {
+    token: PUBLIC_TOKEN,
+    heading: "Your reputation's ahead of your marketing.",
+    primary: "Check availability →",
+    hrefIncludes: [
+      `website=${encodeURIComponent("https://apostlecoffee.co.uk")}`,
+      `report=${PUBLIC_TOKEN}`,
+      "utm_content=talk",
+    ],
+  },
+  polish: {
+    token: POLISH_TOKEN,
+    heading: "You're in good shape.",
+    primary: "Get in touch →",
+    hrefIncludes: [
+      `website=${encodeURIComponent("https://apostlecoffee.co.uk")}`,
+      `report=${POLISH_TOKEN}`,
+      "utm_content=polish",
+    ],
+  },
+  diy: {
+    token: DIY_TOKEN,
+    heading: "You're at the building stage.",
+    primary: "Start free on marktr.io →",
+    hrefIncludes: [
+      "https://marktr.io/?utm_source=bullfinch&utm_medium=healthcheck&utm_campaign=bf-healthcheck&utm_content=diy",
+    ],
   },
 };
 
@@ -288,9 +369,18 @@ async function preparePage(
     if (opts.scanDelayMs) await new Promise((r) => setTimeout(r, opts.scanDelayMs));
     await json(route, SCORE_WEBSITE_RESPONSE);
   });
-  await page.route("**/functions/v1/get-health-check-report", (route) =>
-    json(route, { report: REPORT_ROW }),
-  );
+  await page.route("**/functions/v1/get-health-check-report", async (route) => {
+    let token = PUBLIC_TOKEN;
+    try {
+      const body = route.request().postDataJSON() as { publicToken?: string } | null;
+      if (typeof body?.publicToken === "string" && body.publicToken.trim()) {
+        token = body.publicToken.trim();
+      }
+    } catch {
+      /* keep default talk fixture */
+    }
+    await json(route, { report: REPORTS_BY_TOKEN[token] ?? REPORT_TALK });
+  });
   await page.route("**/functions/v1/capture-onboarding-lead", (route) => {
     stubs.leadCaptureCalls += 1;
     return json(route, { ok: true });
@@ -477,26 +567,44 @@ async function captureBullfinch(
   }
 
   {
-    const context = await browser.newContext({ viewport });
-    const page = await context.newPage();
-    await preparePage(page);
+    for (const routeName of ["talk", "polish", "diy"] as const) {
+      const proof = ROUTE_PROOF[routeName];
+      const context = await browser.newContext({ viewport });
+      const page = await context.newPage();
+      await preparePage(page);
 
-    await page.goto(`${baseUrl}/r/${PUBLIC_TOKEN}${q}`, { waitUntil: "networkidle" });
-    await page.getByRole("heading", { name: /how your marketing scores today/i }).waitFor({
-      timeout: 30_000,
-    });
-    const reportTitle = await page.title();
-    if (reportTitle !== "Your Marketing Health Check | Bullfinch Digital") {
-      throw new Error(`Bullfinch report title was "${reportTitle}"`);
+      await page.goto(`${baseUrl}/r/${proof.token}${q}`, { waitUntil: "networkidle" });
+      await page.getByRole("heading", { name: /how your marketing scores today/i }).waitFor({
+        timeout: 30_000,
+      });
+      const reportTitle = await page.title();
+      if (reportTitle !== "Your Marketing Health Check | Bullfinch Digital") {
+        throw new Error(`Bullfinch report title was "${reportTitle}"`);
+      }
+      if (!(await page.getByText("Your Marketing Health Check").first().isVisible())) {
+        throw new Error("Bullfinch report eyebrow missing");
+      }
+      if ((await page.getByText("Your Digital Health Report").count()) > 0) {
+        throw new Error("Bullfinch report still shows the marktr eyebrow");
+      }
+      await page.getByRole("heading", { name: proof.heading }).waitFor();
+      const primaryHref = await page.getByRole("link", { name: proof.primary }).getAttribute("href");
+      for (const snippet of proof.hrefIncludes) {
+        if (!primaryHref?.includes(snippet)) {
+          throw new Error(
+            `Bullfinch ${routeName} primary href missing "${snippet}": ${primaryHref}`,
+          );
+        }
+      }
+      if (routeName !== "diy" && primaryHref && /utm_content=(talk|polish|diy)/.test(primaryHref)) {
+        const content = primaryHref.match(/utm_content=([^&]+)/)?.[1];
+        if (content !== routeName) {
+          throw new Error(`Bullfinch ${routeName} utm_content was ${content}`);
+        }
+      }
+      await shoot(page, path.join(dir, `report-${routeName}-${viewport.name}.png`));
+      await context.close();
     }
-    if (!(await page.getByText("Your Marketing Health Check").first().isVisible())) {
-      throw new Error("Bullfinch report eyebrow missing");
-    }
-    if ((await page.getByText("Your Digital Health Report").count()) > 0) {
-      throw new Error("Bullfinch report still shows the marktr eyebrow");
-    }
-    await shoot(page, path.join(dir, `report-${viewport.name}.png`));
-    await context.close();
   }
 }
 

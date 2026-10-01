@@ -56,6 +56,61 @@ describe("HealthCheckReportView editions", () => {
     },
   );
 
+  it("renders the stored Bullfinch route and never recalculates it from scores", () => {
+    const { getByRole, getByText, queryByText, unmount } = render(
+      <EditionProvider edition="bullfinch">
+        <MemoryRouter>
+          <HealthCheckReportView
+            scores={{
+              ...healthCheckReportFixtureScores,
+              websiteClarity: { ...healthCheckReportFixtureScores.websiteClarity, score: 18 },
+              brandStory: { ...healthCheckReportFixtureScores.brandStory, score: 12 },
+              overall: 22,
+            }}
+            input={healthCheckReportFixtureInput}
+            showPaywallUpsell={false}
+            showDashboardCta={false}
+            bfRoute="talk"
+            publicToken="phase3-token"
+          />
+        </MemoryRouter>
+      </EditionProvider>,
+    );
+
+    expect(getByText("Your reputation's ahead of your marketing.")).toBeTruthy();
+    expect(queryByText("You're at the building stage.")).toBeNull();
+    const primary = getByRole("link", { name: "Check availability →" });
+    expect(primary.getAttribute("href")).toContain("report=phase3-token");
+    expect(primary.getAttribute("href")).toContain("utm_content=talk");
+    expect(primary.getAttribute("href")).toContain(
+      `website=${encodeURIComponent("https://confires.co.uk")}`,
+    );
+    unmount();
+  });
+
+  it("does not show the Bullfinch next-step on marktr, including when a route is passed", () => {
+    const { getByText, queryByText, unmount } = render(
+      <EditionProvider edition="marktr">
+        <MemoryRouter>
+          <HealthCheckReportView
+            scores={healthCheckReportFixtureScores}
+            input={healthCheckReportFixtureInput}
+            showPaywallUpsell
+            showDashboardCta={false}
+            bfRoute="talk"
+            publicToken="should-not-matter"
+          />
+        </MemoryRouter>
+      </EditionProvider>,
+    );
+
+    expect(getByText("Ready to turn these scores into a plan?")).toBeTruthy();
+    expect(queryByText("Your reputation's ahead of your marketing.")).toBeNull();
+    expect(queryByText("You're in good shape.")).toBeNull();
+    expect(queryByText("You're at the building stage.")).toBeNull();
+    unmount();
+  });
+
   it("hides the Brand Story /story link for bullfinch and keeps it for marktr", () => {
     const scores = {
       ...healthCheckReportFixtureScores,

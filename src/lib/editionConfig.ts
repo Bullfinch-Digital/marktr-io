@@ -31,6 +31,7 @@ export type EditionConfig = {
     healthCheck: string;
     healthCheckReport: string;
     description: string;
+    reportEyebrow: string;
   };
   placeholders: {
     instagramHandle: string;
@@ -69,6 +70,7 @@ export const editionConfig: Record<Edition, EditionConfig> = {
       healthCheckReport: "Digital Health Check | marktr",
       description:
         "Score your digital presence in about two minutes. Answer five questions and get a founder-focused health check from marktr.",
+      reportEyebrow: "Your Digital Health Report",
     },
     placeholders: {
       instagramHandle: "marktr.io (or @marktr.io)",
@@ -110,6 +112,7 @@ export const editionConfig: Record<Edition, EditionConfig> = {
       healthCheckReport: "Your Marketing Health Check | Bullfinch Digital",
       description:
         "Find out in a few minutes how well your website, story, content and socials are working, and what to fix first.",
+      reportEyebrow: "Your Marketing Health Check",
     },
     placeholders: {
       instagramHandle: "yourbusiness (or @yourbusiness)",

@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Outlet } from "react-router-dom";
 import { Header } from "../components/layout/Header";
+import { ScrollToTop } from "../components/home/ScrollToTop";
 import { useEdition } from "../contexts/EditionContext";
 import type { EditionConfig } from "../lib/editionConfig";
 
@@ -81,6 +82,7 @@ export default function OnboardingLayout({
 
   return (
     <>
+      {edition === "bullfinch" ? <ScrollToTop /> : null}
       {resolvedHeader}
       <Outlet />
       {resolvedFooter}

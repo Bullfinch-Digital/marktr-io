@@ -22,6 +22,8 @@ describe("editionConfig", () => {
     expect(editionConfig.bullfinch.titles.healthCheckReport).toBe(
       "Your Marketing Health Check | Bullfinch Digital",
     );
+    expect(editionConfig.marktr.titles.reportEyebrow).toBe("Your Digital Health Report");
+    expect(editionConfig.bullfinch.titles.reportEyebrow).toBe("Your Marketing Health Check");
     expect(editionConfig.marktr.placeholders.instagramHandle).toBe("marktr.io (or @marktr.io)");
     expect(editionConfig.bullfinch.placeholders.instagramHandle).toBe(
       "yourbusiness (or @yourbusiness)",

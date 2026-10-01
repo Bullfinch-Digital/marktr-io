@@ -489,6 +489,12 @@ async function captureBullfinch(
     if (reportTitle !== "Your Marketing Health Check | Bullfinch Digital") {
       throw new Error(`Bullfinch report title was "${reportTitle}"`);
     }
+    if (!(await page.getByText("Your Marketing Health Check").first().isVisible())) {
+      throw new Error("Bullfinch report eyebrow missing");
+    }
+    if ((await page.getByText("Your Digital Health Report").count()) > 0) {
+      throw new Error("Bullfinch report still shows the marktr eyebrow");
+    }
     await shoot(page, path.join(dir, `report-${viewport.name}.png`));
     await context.close();
   }

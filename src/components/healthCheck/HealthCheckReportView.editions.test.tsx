@@ -36,13 +36,20 @@ describe("HealthCheckReportView editions", () => {
   it.each(["marktr", "bullfinch"] as const)(
     "renders every fixture dimension and finding for %s",
     (edition) => {
-      const { getByText, getAllByText, unmount } = renderEdition(edition);
+      const { getByText, getAllByText, queryByText, unmount } = renderEdition(edition);
 
       for (const name of DIMENSIONS) {
         expect(getAllByText(name).length).toBeGreaterThan(0);
       }
       for (const finding of HEALTH_CHECK_REPORT_FIXTURE_FINDINGS) {
         expect(getByText(finding)).toBeTruthy();
+      }
+      if (edition === "marktr") {
+        expect(getByText("Your Digital Health Report")).toBeTruthy();
+        expect(queryByText("Your Marketing Health Check")).toBeNull();
+      } else {
+        expect(getByText("Your Marketing Health Check")).toBeTruthy();
+        expect(queryByText("Your Digital Health Report")).toBeNull();
       }
 
       unmount();

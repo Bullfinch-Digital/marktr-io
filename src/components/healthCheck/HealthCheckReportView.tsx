@@ -456,6 +456,7 @@ export function HealthCheckReportView({
   embedded = false,
   pillarMode = false,
 }: HealthCheckReportViewProps) {
+  const { config } = useEdition();
   const displayDomain = input.websiteUrl?.trim()
     ? extractDomain(input.websiteUrl.trim())
     : null;
@@ -474,7 +475,7 @@ export function HealthCheckReportView({
       {!pillarMode && (
         <>
           <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 font-body text-xs font-medium text-primary">
-            Your Digital Health Report
+            {config.titles.reportEyebrow}
           </span>
 
           <h1 className="mt-4 font-display text-4xl font-bold leading-tight text-[#0D1833] sm:text-5xl">

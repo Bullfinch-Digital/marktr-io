@@ -26,9 +26,9 @@ const WAIT_FOR_TOKEN_MS = 10_000;
 
 export const ScanTurnstile = forwardRef<
   ScanTurnstileHandle,
-  { className?: string; onToken?: (token: string) => void }
+  { className?: string; compact?: boolean; onToken?: (token: string) => void }
 >(
-  function ScanTurnstile({ className = "", onToken }, ref) {
+  function ScanTurnstile({ className = "", compact = false, onToken }, ref) {
     const containerRef = useRef<HTMLDivElement | null>(null);
     const widgetIdRef = useRef<string | null>(null);
     const tokenRef = useRef<string | null>(null);
@@ -208,7 +208,8 @@ export const ScanTurnstile = forwardRef<
       <div className={`space-y-2 ${className}`}>
         <div
           ref={containerRef}
-          className="min-h-[65px] flex items-start"
+          data-compact={compact ? "true" : undefined}
+          className={compact ? "flex items-start" : "min-h-[65px] flex items-start"}
           aria-label="Security verification"
         />
         {loadError ? (

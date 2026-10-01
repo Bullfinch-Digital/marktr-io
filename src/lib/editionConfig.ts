@@ -1,3 +1,7 @@
+import {
+  bullfinchScoreEmailCopy,
+  type ScoreEmailCopy,
+} from "../../supabase/functions/_shared/reportLeadEmail.ts";
 import type { BfRoute } from "./bullfinchRouting";
 import type { Edition } from "./edition";
 
@@ -72,6 +76,20 @@ export type EditionConfig = {
   };
   /** Bullfinch next-step copy and URLs. Absent on marktr so the upsell stays put. */
   nextSteps?: Record<BfRoute, NextStepCopy>;
+  sendScore?: {
+    heading: string;
+    emailLabel: string;
+    firstNameLabel: string;
+    marketingOptIn: string;
+    consent: string;
+    privacyLabel: string;
+    button: string;
+    checking: string;
+    success: string;
+    error: string;
+  };
+  /** Visitor and internal score-email copy. Absent on marktr. */
+  scoreEmail?: ScoreEmailCopy;
 };
 
 export const editionConfig: Record<Edition, EditionConfig> = {
@@ -197,5 +215,18 @@ export const editionConfig: Record<Edition, EditionConfig> = {
         },
       },
     },
+    sendScore: {
+      heading: "Send me my score",
+      emailLabel: "Email",
+      firstNameLabel: "First name (optional)",
+      marketingOptIn: "Also send me occasional marketing tips",
+      consent: "We'll email your report and won't share your details.",
+      privacyLabel: "Privacy policy.",
+      button: "Email my score",
+      checking: "Checking…",
+      success: "Sent. Check your inbox (and spam, just in case).",
+      error: "We couldn't send that just now. Please try again.",
+    },
+    scoreEmail: bullfinchScoreEmailCopy,
   },
 };

@@ -1,0 +1,2 @@
+# JWT is verified at the gateway (anon or user). Turnstile still gates the body.
+verify_jwt = true

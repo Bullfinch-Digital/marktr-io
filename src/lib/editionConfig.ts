@@ -1,4 +1,26 @@
+import type { BfRoute } from "./bullfinchRouting";
 import type { Edition } from "./edition";
+
+export type NextStepLink = {
+  label: string;
+  href: string;
+};
+
+export type NextStepCopy = {
+  heading: string;
+  body: string;
+  primary: NextStepLink;
+  secondary: NextStepLink;
+};
+
+export function fillNextStepHref(
+  template: string,
+  vars: { url: string; publicToken: string; route: BfRoute },
+): string {
+  return template.replace(/\{(url|publicToken|route)\}/g, (_, key: keyof typeof vars) =>
+    encodeURIComponent(vars[key]),
+  );
+}
 
 export type CaptureTiming = "before-scan" | "after-results";
 
@@ -38,6 +60,8 @@ export type EditionConfig = {
   };
   /** Display-score bands for colour. marktr keeps the original 70 / 40 split. */
   scoreBands: { high: number; mid: number };
+  /** Bullfinch next-step copy and URLs. Absent on marktr so the upsell stays put. */
+  nextSteps?: Record<BfRoute, NextStepCopy>;
 };
 
 export const editionConfig: Record<Edition, EditionConfig> = {
@@ -118,5 +142,43 @@ export const editionConfig: Record<Edition, EditionConfig> = {
       instagramHandle: "yourbusiness (or @yourbusiness)",
     },
     scoreBands: { high: 75, mid: 50 },
+    nextSteps: {
+      talk: {
+        heading: "Your reputation's ahead of your marketing.",
+        body: "That's exactly the gap Bullfinch closes: the story, the right customer and a system that keeps your content running. We work with a small number of businesses at a time.",
+        primary: {
+          label: "Check availability →",
+          href: "https://bullfinchdigital.com/contact/?website={url}&report={publicToken}&utm_source=healthcheck&utm_medium=results&utm_campaign=bf-healthcheck&utm_content={route}",
+        },
+        secondary: {
+          label: "See how we work →",
+          href: "https://bullfinchdigital.com/#system",
+        },
+      },
+      polish: {
+        heading: "You're in good shape.",
+        body: "A strong score, with a few gains still on the table. If you'd like a second pair of eyes on the next step, we'd be glad to take a look.",
+        primary: {
+          label: "Get in touch →",
+          href: "https://bullfinchdigital.com/contact/?website={url}&report={publicToken}&utm_source=healthcheck&utm_medium=results&utm_campaign=bf-healthcheck&utm_content={route}",
+        },
+        secondary: {
+          label: "Free marketing resources →",
+          href: "https://bullfinchdigital.com/resources/",
+        },
+      },
+      diy: {
+        heading: "You're at the building stage.",
+        body: "The foundations come first, and you can build them yourself. marktr.io walks you through your story, your ideal customer and your content plan at your own pace.",
+        primary: {
+          label: "Start free on marktr.io →",
+          href: "https://marktr.io/?utm_source=bullfinch&utm_medium=healthcheck&utm_campaign=bf-healthcheck&utm_content=diy",
+        },
+        secondary: {
+          label: "Free resources →",
+          href: "https://bullfinchdigital.com/resources/",
+        },
+      },
+    },
   },
 };

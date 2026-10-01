@@ -85,6 +85,8 @@ export default function HealthCheckPublicReport() {
       <HealthCheckReportView
         scores={view.scores}
         input={view.input}
+        bfRoute={view.bfRoute}
+        publicToken={view.publicToken}
         showPaywallUpsell={config.showPaywallUpsell}
         showDashboardCta={false}
       />

@@ -1,3 +1,5 @@
+import type { BfRoute } from "../bullfinchRouting";
+import { isBfRoute } from "../bullfinchRouting";
 import type { HealthCheckInput, HealthCheckScores } from "../healthCheckScoring";
 
 export type PublicHealthCheckReportView = {
@@ -6,6 +8,8 @@ export type PublicHealthCheckReportView = {
     HealthCheckInput,
     "websiteUrl" | "instagramHandle" | "facebookUrl" | "websiteScore"
   >;
+  bfRoute: BfRoute | null;
+  publicToken: string;
 };
 
 function isDimension(value: unknown): boolean {
@@ -52,5 +56,7 @@ export function mapPublicHealthCheckReport(
       facebookUrl: scores.inputs?.facebookUrl ?? "",
       websiteScore: scores.websiteScore ?? null,
     },
+    bfRoute: isBfRoute(row.bf_route) ? row.bf_route : null,
+    publicToken: typeof row.public_token === "string" ? row.public_token : "",
   };
 }

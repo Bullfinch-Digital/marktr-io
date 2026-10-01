@@ -3,7 +3,9 @@ import { GuestResultsNextStepsCta } from "../guest/GuestResultsNextStepsCta";
 import { getLlmFindingForDimension } from "../../lib/healthCheckFindings";
 import { DIMENSION_CAP_FRAMING_COPY } from "../../lib/healthCheck";
 import { useEdition } from "../../contexts/EditionContext";
-import { editionConfig } from "../../lib/editionConfig";
+import { editionConfig, fillNextStepHref } from "../../lib/editionConfig";
+import type { BfRoute } from "../../lib/bullfinchRouting";
+import { isBfRoute } from "../../lib/bullfinchRouting";
 import type { Edition } from "../../lib/edition";
 import type {
   DimensionScore,
@@ -445,7 +447,60 @@ export type HealthCheckReportViewProps = {
   embedded?: boolean;
   /** Pillar mode: skip badge/title intro — parent supplies header chrome. */
   pillarMode?: boolean;
+  /** Stored Bullfinch route. The report never recalculates this. */
+  bfRoute?: BfRoute | null;
+  publicToken?: string;
 };
+
+function StoredNextStep({
+  route,
+  websiteUrl,
+  publicToken,
+}: {
+  route: BfRoute;
+  websiteUrl: string;
+  publicToken: string;
+}) {
+  const { config } = useEdition();
+  const step = config.nextSteps?.[route];
+  if (!step) return null;
+
+  const primaryHref = fillNextStepHref(step.primary.href, {
+    url: websiteUrl,
+    publicToken,
+    route,
+  });
+
+  return (
+    <section
+      className="mt-8 rounded-[18px] border-[1.5px] border-foreground bg-card px-6 py-8 sm:px-8"
+      data-bf-route={route}
+    >
+      <h2 className="font-display text-3xl font-semibold leading-tight text-foreground">
+        {step.heading}
+      </h2>
+      <p className="mt-4 max-w-2xl font-body text-base leading-relaxed text-muted-foreground">
+        {step.body}
+      </p>
+      <a
+        href={primaryHref}
+        className="mt-8 inline-flex items-center justify-center rounded-full bg-primary px-7 py-3 font-body text-sm font-medium text-primary-foreground hover:opacity-90"
+        rel="noopener noreferrer"
+      >
+        {step.primary.label}
+      </a>
+      <div className="mt-4">
+        <a
+          href={step.secondary.href}
+          className="font-body text-sm underline hover:text-foreground"
+          rel="noopener noreferrer"
+        >
+          {step.secondary.label}
+        </a>
+      </div>
+    </section>
+  );
+}
 
 export function HealthCheckReportView({
   scores,
@@ -455,6 +510,8 @@ export function HealthCheckReportView({
   onGoToDashboard,
   embedded = false,
   pillarMode = false,
+  bfRoute = null,
+  publicToken = "",
 }: HealthCheckReportViewProps) {
   const { config } = useEdition();
   const displayDomain = input.websiteUrl?.trim()
@@ -549,6 +606,14 @@ export function HealthCheckReportView({
       </div>
 
       {showPaywallUpsell && <GuestResultsNextStepsCta currentTool="health" className="mt-8" />}
+
+      {isBfRoute(bfRoute) && publicToken ? (
+        <StoredNextStep
+          route={bfRoute}
+          websiteUrl={input.websiteUrl ?? ""}
+          publicToken={publicToken}
+        />
+      ) : null}
 
       {showDashboardCta && (
         <div className="mt-8 rounded-2xl bg-[#0D1833] px-8 py-8 text-white">

@@ -11,6 +11,7 @@ describe("mapPublicHealthCheckReport", () => {
       public_token: "tok",
       url: "https://confires.co.uk",
       overall: 45,
+      bf_route: "talk",
       scores: {
         ...healthCheckReportFixtureScores,
         websiteScore: healthCheckReportFixtureInput.websiteScore,
@@ -26,6 +27,27 @@ describe("mapPublicHealthCheckReport", () => {
     expect(mapped?.input.websiteUrl).toBe("https://confires.co.uk");
     expect(mapped?.input.instagramHandle).toBe("confires");
     expect(mapped?.scores.websiteClarity.name).toBe("Website Clarity");
+    expect(mapped?.bfRoute).toBe("talk");
+    expect(mapped?.publicToken).toBe("tok");
+  });
+
+  it("does not invent a route when bf_route is missing or invalid", () => {
+    const mapped = mapPublicHealthCheckReport({
+      public_token: "tok",
+      url: "https://confires.co.uk",
+      overall: 45,
+      bf_route: "nope",
+      scores: {
+        ...healthCheckReportFixtureScores,
+        websiteScore: healthCheckReportFixtureInput.websiteScore,
+        inputs: {
+          websiteUrl: "https://confires.co.uk",
+          instagramHandle: "confires",
+          facebookUrl: "",
+        },
+      },
+    });
+    expect(mapped?.bfRoute).toBeNull();
   });
 
   it("returns null when scores are missing", () => {

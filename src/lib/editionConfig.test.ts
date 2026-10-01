@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { editionConfig } from "./editionConfig";
+import { editionConfig, fillNextStepHref } from "./editionConfig";
 
 describe("editionConfig", () => {
   it("keeps marktr GA4 and sets the Bullfinch measurement ID", () => {
@@ -30,5 +30,34 @@ describe("editionConfig", () => {
     );
     expect(editionConfig.marktr.scoreBands).toEqual({ high: 70, mid: 40 });
     expect(editionConfig.bullfinch.scoreBands).toEqual({ high: 75, mid: 50 });
+  });
+
+  it("keeps next-step copy and URLs on bullfinch only", () => {
+    expect(editionConfig.marktr.nextSteps).toBeUndefined();
+    expect(editionConfig.bullfinch.nextSteps?.talk.heading).toBe(
+      "Your reputation's ahead of your marketing.",
+    );
+    expect(editionConfig.bullfinch.nextSteps?.polish.heading).toBe("You're in good shape.");
+    expect(editionConfig.bullfinch.nextSteps?.diy.heading).toBe("You're at the building stage.");
+    expect(editionConfig.bullfinch.nextSteps?.talk.primary.href).toContain("report={publicToken}");
+    expect(editionConfig.bullfinch.nextSteps?.talk.primary.href).toContain("utm_content={route}");
+    expect(editionConfig.bullfinch.nextSteps?.diy.primary.href).toBe(
+      "https://marktr.io/?utm_source=bullfinch&utm_medium=healthcheck&utm_campaign=bf-healthcheck&utm_content=diy",
+    );
+  });
+
+  it("URL-encodes website, report token and route in next-step hrefs", () => {
+    const href = fillNextStepHref(
+      editionConfig.bullfinch.nextSteps!.talk.primary.href,
+      {
+        url: "https://confires.co.uk/path?x=1",
+        publicToken: "tok/with space",
+        route: "talk",
+      },
+    );
+    expect(href).toContain(`website=${encodeURIComponent("https://confires.co.uk/path?x=1")}`);
+    expect(href).toContain(`report=${encodeURIComponent("tok/with space")}`);
+    expect(href).toContain("utm_content=talk");
+    expect(href).not.toContain("{url}");
   });
 });

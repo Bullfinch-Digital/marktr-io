@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { render } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { HealthCheckReportView } from "../../components/healthCheck/HealthCheckReportView";
+import { HealthCheckReportView, getScoreColor } from "../../components/healthCheck/HealthCheckReportView";
 import { EditionProvider } from "../../contexts/EditionContext";
 import type { Edition } from "../edition";
 import {
@@ -96,5 +96,20 @@ describe("HealthCheckReportView editions", () => {
     expect(bullfinch.queryByText("Find your brand story →")).toBeNull();
     expect(bullfinch.getByText("A distinctive story would lift this score.")).toBeTruthy();
     bullfinch.unmount();
+  });
+
+  it("keeps marktr score bands at 70/40 and uses 75/50 for bullfinch", () => {
+    document.documentElement.dataset.edition = "marktr";
+    expect(getScoreColor(70)).toContain("--hc-score-high");
+    expect(getScoreColor(69)).toContain("--hc-score-mid");
+    expect(getScoreColor(40)).toContain("--hc-score-mid");
+    expect(getScoreColor(39)).toContain("--hc-score-low");
+
+    document.documentElement.dataset.edition = "bullfinch";
+    expect(getScoreColor(75)).toContain("--hc-score-high");
+    expect(getScoreColor(74)).toContain("--hc-score-mid");
+    expect(getScoreColor(50)).toContain("--hc-score-mid");
+    expect(getScoreColor(49)).toContain("--hc-score-low");
+    document.documentElement.dataset.edition = "marktr";
   });
 });

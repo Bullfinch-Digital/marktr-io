@@ -13,4 +13,20 @@ describe("editionConfig", () => {
     expect(editionConfig.bullfinch.showStoryLinks).toBe(false);
     expect(editionConfig.bullfinch.privacyUrl).toBe("https://bullfinchdigital.com/privacy/");
   });
+
+  it("keeps document titles and the Instagram placeholder in editionConfig", () => {
+    expect(editionConfig.marktr.titles.healthCheck).toBe("Digital Health Check | marktr");
+    expect(editionConfig.bullfinch.titles.healthCheck).toBe(
+      "Free Marketing Health Check | Bullfinch Digital",
+    );
+    expect(editionConfig.bullfinch.titles.healthCheckReport).toBe(
+      "Your Marketing Health Check | Bullfinch Digital",
+    );
+    expect(editionConfig.marktr.placeholders.instagramHandle).toBe("marktr.io (or @marktr.io)");
+    expect(editionConfig.bullfinch.placeholders.instagramHandle).toBe(
+      "yourbusiness (or @yourbusiness)",
+    );
+    expect(editionConfig.marktr.scoreBands).toEqual({ high: 70, mid: 40 });
+    expect(editionConfig.bullfinch.scoreBands).toEqual({ high: 75, mid: 50 });
+  });
 });

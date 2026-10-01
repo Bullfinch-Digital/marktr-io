@@ -3,6 +3,8 @@ import { GuestResultsNextStepsCta } from "../guest/GuestResultsNextStepsCta";
 import { getLlmFindingForDimension } from "../../lib/healthCheckFindings";
 import { DIMENSION_CAP_FRAMING_COPY } from "../../lib/healthCheck";
 import { useEdition } from "../../contexts/EditionContext";
+import { editionConfig } from "../../lib/editionConfig";
+import type { Edition } from "../../lib/edition";
 import type {
   DimensionScore,
   HealthCheckInput,
@@ -10,17 +12,31 @@ import type {
   StoryAssessment,
 } from "../../lib/healthCheckScoring";
 
+function activeEdition(): Edition {
+  if (typeof document === "undefined") return "marktr";
+  return document.documentElement.dataset.edition === "bullfinch" ? "bullfinch" : "marktr";
+}
+
+function scoreBand(score: number): "high" | "mid" | "low" {
+  const { high, mid } = editionConfig[activeEdition()].scoreBands;
+  if (score >= high) return "high";
+  if (score >= mid) return "mid";
+  return "low";
+}
+
 export function getScoreColor(score: number | null) {
   if (score === null) return "text-muted-foreground";
-  if (score >= 70) return "text-[color:var(--hc-score-high)]";
-  if (score >= 40) return "text-[color:var(--hc-score-mid)]";
+  const band = scoreBand(score);
+  if (band === "high") return "text-[color:var(--hc-score-high)]";
+  if (band === "mid") return "text-[color:var(--hc-score-mid)]";
   return "text-[color:var(--hc-score-low)]";
 }
 
 export function getBarColor(score: number | null) {
   if (score === null) return "bg-muted";
-  if (score >= 70) return "bg-[var(--hc-score-high)]";
-  if (score >= 40) return "bg-[var(--hc-score-mid)]";
+  const band = scoreBand(score);
+  if (band === "high") return "bg-[var(--hc-score-high)]";
+  if (band === "mid") return "bg-[var(--hc-score-mid)]";
   return "bg-[var(--hc-score-low)]";
 }
 

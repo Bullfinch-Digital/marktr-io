@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { HealthCheckReportView } from "../components/healthCheck/HealthCheckReportView";
 import { supabase } from "../config/supabase";
 import { useEdition } from "../contexts/EditionContext";
+import { useEditionDocumentMeta } from "../hooks/useEditionDocumentMeta";
 import {
   mapPublicHealthCheckReport,
   type PublicHealthCheckReportView,
@@ -11,6 +12,7 @@ import {
 export default function HealthCheckPublicReport() {
   const { token } = useParams();
   const { config } = useEdition();
+  useEditionDocumentMeta("healthCheckReport");
   const [status, setStatus] = useState<"loading" | "missing" | "error" | "ready">(
     "loading",
   );

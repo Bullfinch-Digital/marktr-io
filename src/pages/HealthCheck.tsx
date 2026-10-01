@@ -40,6 +40,7 @@ import { buildPriorRunPayload } from "../lib/healthCheckPriorRun";
 import { fetchBrandStoryPillarForHealth } from "../lib/healthCheckPillarContext";
 import { useEdition } from "../contexts/EditionContext";
 import { getStoredUtms } from "../lib/utmCapture";
+import { useEditionDocumentMeta } from "../hooks/useEditionDocumentMeta";
 
 type Step = "welcome" | "inputs" | "loading";
 
@@ -110,6 +111,7 @@ export default function HealthCheck() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { edition, config } = useEdition();
+  useEditionDocumentMeta("healthCheck");
   const { activeBrandId, loading: brandLoading, brands } = useBrand();
   const isLoggedIn = Boolean(user && !(user as { is_anonymous?: boolean }).is_anonymous);
   const [step, setStep] = useState<Step>("welcome");
@@ -736,7 +738,7 @@ export default function HealthCheck() {
                     return { ...prev, instagramHandle: val };
                   });
                 }}
-                placeholder="marktr.io (or @marktr.io)"
+                placeholder={config.placeholders.instagramHandle}
                 className="border border-black rounded-design bg-white px-4 py-6 text-foreground placeholder:text-foreground/40"
               />
             </div>

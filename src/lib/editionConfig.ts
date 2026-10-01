@@ -27,6 +27,16 @@ export type EditionConfig = {
     points?: string[];
     button: string;
   };
+  titles: {
+    healthCheck: string;
+    healthCheckReport: string;
+    description: string;
+  };
+  placeholders: {
+    instagramHandle: string;
+  };
+  /** Display-score bands for colour. marktr keeps the original 70 / 40 split. */
+  scoreBands: { high: number; mid: number };
 };
 
 export const editionConfig: Record<Edition, EditionConfig> = {
@@ -54,6 +64,16 @@ export const editionConfig: Record<Edition, EditionConfig> = {
         "Answer 5 quick questions and marktr will score your digital presence across the dimensions that matter most to founders.",
       button: "Start my digital health check →",
     },
+    titles: {
+      healthCheck: "Digital Health Check | marktr",
+      healthCheckReport: "Digital Health Check | marktr",
+      description:
+        "Score your digital presence in about two minutes. Answer five questions and get a founder-focused health check from marktr.",
+    },
+    placeholders: {
+      instagramHandle: "marktr.io (or @marktr.io)",
+    },
+    scoreBands: { high: 70, mid: 40 },
   },
   bullfinch: {
     name: "Bullfinch Digital",
@@ -85,5 +105,15 @@ export const editionConfig: Record<Edition, EditionConfig> = {
       points: ["A score out of 100", "Your biggest gaps", "Where to start"],
       button: "Get my free score →",
     },
+    titles: {
+      healthCheck: "Free Marketing Health Check | Bullfinch Digital",
+      healthCheckReport: "Your Marketing Health Check | Bullfinch Digital",
+      description:
+        "Find out in a few minutes how well your website, story, content and socials are working, and what to fix first.",
+    },
+    placeholders: {
+      instagramHandle: "yourbusiness (or @yourbusiness)",
+    },
+    scoreBands: { high: 75, mid: 50 },
   },
 };

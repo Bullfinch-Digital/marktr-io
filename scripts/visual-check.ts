@@ -127,30 +127,30 @@ const REPORT_ROW = {
   public_token: PUBLIC_TOKEN,
   edition: "bullfinch",
   url: "https://apostlecoffee.co.uk",
-  overall: 51,
+  overall: 58,
   capped: false,
-  website_score: 58,
-  brand_story_score: 46,
-  content_score: 52,
-  social_score: 40,
+  website_score: 82,
+  brand_story_score: 62,
+  content_score: 40,
+  social_score: 22,
   findings: FINDINGS,
   bf_route: "talk",
   scoring_version: "1.0.3",
   created_at: "2026-09-30T12:00:00.000Z",
   scores: {
     websiteClarity: {
-      ...dimension("Website Clarity", 58, FINDINGS[0].finding),
+      ...dimension("Website Clarity", 82, FINDINGS[0].finding),
       strengths: SCORE_WEBSITE_RESPONSE.strengths,
       gaps: SCORE_WEBSITE_RESPONSE.gaps,
     },
-    brandStory: dimension("Brand Story", 46, FINDINGS[1].finding),
-    contentConsistency: dimension("Content Consistency", 52, FINDINGS[2].finding),
-    socialPresence: dimension("Social Presence", 40, FINDINGS[3].finding),
-    overall: 51,
-    overallRaw: 51,
+    brandStory: dimension("Brand Story", 62, FINDINGS[1].finding),
+    contentConsistency: dimension("Content Consistency", 40, FINDINGS[2].finding),
+    socialPresence: dimension("Social Presence", 22, FINDINGS[3].finding),
+    overall: 58,
+    overallRaw: 58,
     capped: false,
     lowestDimension: "Social Presence",
-    lowestScore: 40,
+    lowestScore: 22,
     inputs: {
       websiteUrl: "https://apostlecoffee.co.uk",
       instagramHandle: "apostlecoffee",
@@ -158,7 +158,7 @@ const REPORT_ROW = {
       domain: "apostlecoffee.co.uk",
     },
     websiteScore: {
-      score: 58,
+      score: 82,
       observation: "Analysis complete",
       strengths: SCORE_WEBSITE_RESPONSE.strengths,
       gaps: SCORE_WEBSITE_RESPONSE.gaps,
@@ -228,14 +228,22 @@ const FREEZE_CSS = `
 
 type PageStubs = { leadCaptureCalls: number };
 
-async function preparePage(page: Page, opts: { scanDelayMs?: number } = {}): Promise<PageStubs> {
+async function preparePage(
+  page: Page,
+  opts: { scanDelayMs?: number; showCookieBanner?: boolean } = {},
+): Promise<PageStubs> {
   const stubs: PageStubs = { leadCaptureCalls: 0 };
-  await page.addInitScript(() => {
-    // Analytics consent is pre-decided so the cookie banner never covers a step.
-    localStorage.setItem(
-      "marktr_cookie_consent_v1",
-      JSON.stringify({ essential: true, analytics: false, updatedAt: "2026-09-30T12:00:00.000Z" }),
-    );
+  const showCookieBanner = opts.showCookieBanner === true;
+  await page.addInitScript(
+    ({ showBanner }: { showBanner: boolean }) => {
+      if (!showBanner) {
+        localStorage.setItem(
+          "marktr_cookie_consent_v1",
+          JSON.stringify({ essential: true, analytics: false, updatedAt: "2026-09-30T12:00:00.000Z" }),
+        );
+      } else {
+        localStorage.removeItem("marktr_cookie_consent_v1");
+      }
 
     // Stubbed Turnstile: fixed-size widget that hands back a token immediately,
     // so ScanTurnstile and IdentityCapture never fetch Cloudflare's script.
@@ -264,7 +272,9 @@ async function preparePage(page: Page, opts: { scanDelayMs?: number } = {}): Pro
         callbacks.delete(id);
       },
     };
-  });
+    },
+    { showBanner: showCookieBanner },
+  );
 
   const json = (route: Route, body: unknown, status = 200) =>
     route.fulfill({
@@ -306,6 +316,33 @@ async function shoot(page: Page, file: string) {
 }
 
 // ---------------------------------------------------------------- flows
+
+async function assertAcceptButtonReadable(page: Page) {
+  const btn = page.getByRole("button", { name: "Accept all cookies" });
+  const { color, backgroundColor } = await btn.evaluate((el) => {
+    const s = getComputedStyle(el);
+    return { color: s.color, backgroundColor: s.backgroundColor };
+  });
+  if (color === backgroundColor) {
+    throw new Error(`Accept cookies button has identical text and background: ${color}`);
+  }
+  const lin = (c: number) => {
+    const s = c / 255;
+    return s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+  };
+  const lum = (css: string) => {
+    const [r, g, b] = (css.match(/\d+/g) ?? []).slice(0, 3).map(Number);
+    return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+  };
+  const L1 = Math.max(lum(color), lum(backgroundColor));
+  const L2 = Math.min(lum(color), lum(backgroundColor));
+  const ratio = (L1 + 0.05) / (L2 + 0.05);
+  if (ratio < 4.5) {
+    throw new Error(
+      `Accept cookies button contrast ${ratio.toFixed(2)}:1 (${color} on ${backgroundColor}) is under 4.5:1`,
+    );
+  }
+}
 
 async function fillInputs(page: Page, withIdentity: boolean) {
   await page.getByLabel("Website URL").fill("https://apostlecoffee.co.uk");
@@ -378,10 +415,33 @@ async function captureBullfinch(
   {
     const context = await browser.newContext({ viewport });
     const page = await context.newPage();
+    await preparePage(page, { showCookieBanner: true });
+
+    await page.goto(`${baseUrl}/${q}`, { waitUntil: "networkidle" });
+    await page.getByRole("heading", { name: /is your marketing as good as your business/i }).waitFor();
+    await page.getByRole("dialog", { name: /cookies on bullfinch digital/i }).waitFor();
+    await assertAcceptButtonReadable(page);
+    await shoot(page, path.join(dir, `cookies-visible-${viewport.name}.png`));
+
+    await page.getByRole("button", { name: "Accept all cookies" }).click();
+    await page.getByRole("dialog", { name: /cookies on bullfinch digital/i }).waitFor({
+      state: "detached",
+    });
+    await shoot(page, path.join(dir, `cookies-dismissed-${viewport.name}.png`));
+    await context.close();
+  }
+
+  {
+    const context = await browser.newContext({ viewport });
+    const page = await context.newPage();
     const stubs = await preparePage(page, { scanDelayMs: 30_000 });
 
     await page.goto(`${baseUrl}/${q}`, { waitUntil: "networkidle" });
     await page.getByRole("heading", { name: /is your marketing as good as your business/i }).waitFor();
+    const welcomeTitle = await page.title();
+    if (welcomeTitle !== "Free Marketing Health Check | Bullfinch Digital") {
+      throw new Error(`Bullfinch welcome title was "${welcomeTitle}"`);
+    }
     await shoot(page, path.join(dir, `welcome-${viewport.name}.png`));
 
     await page.getByRole("button", { name: /get my free score/i }).click();
@@ -393,6 +453,13 @@ async function captureBullfinch(
       .count();
     if (identityFields > 0) {
       throw new Error(`Bullfinch inputs step still renders ${identityFields} identity field(s)`);
+    }
+    const igPlaceholder = await page.getByLabel("Instagram handle").getAttribute("placeholder");
+    if (!igPlaceholder?.includes("yourbusiness (or @yourbusiness)")) {
+      throw new Error(`Bullfinch Instagram placeholder was "${igPlaceholder}"`);
+    }
+    if (igPlaceholder?.includes("marktr.io")) {
+      throw new Error(`Bullfinch Instagram placeholder still mentions marktr.io: "${igPlaceholder}"`);
     }
     await shoot(page, path.join(dir, `inputs-${viewport.name}.png`));
 
@@ -418,6 +485,10 @@ async function captureBullfinch(
     await page.getByRole("heading", { name: /how your marketing scores today/i }).waitFor({
       timeout: 30_000,
     });
+    const reportTitle = await page.title();
+    if (reportTitle !== "Your Marketing Health Check | Bullfinch Digital") {
+      throw new Error(`Bullfinch report title was "${reportTitle}"`);
+    }
     await shoot(page, path.join(dir, `report-${viewport.name}.png`));
     await context.close();
   }

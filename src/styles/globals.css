@@ -122,9 +122,16 @@
   --text-dark: var(--bf-ink);
   --neutral-light: var(--bf-cream);
   --warm-grey: var(--bf-periwinkle);
-  --hc-score-high: var(--bf-ink);
-  --hc-score-mid: var(--bf-navy);
-  --hc-score-low: var(--bf-periwinkle);
+  --hc-score-high: #18202d;
+  --hc-score-mid: #9a5510;
+  --hc-score-low: #b33f30;
+}
+
+/* Filled marktr-green buttons become ink fill on Bullfinch. --text-dark is also
+   ink, so `bg-button-green text-text-dark` would paint ink on ink. White type
+   on the fill; attribute+class beats the utility so marktr is untouched. */
+[data-edition="bullfinch"] .bg-button-green {
+  color: #ffffff;
 }
 
 .dark {

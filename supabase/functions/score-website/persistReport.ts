@@ -213,14 +213,10 @@ export async function persistHealthCheckReport(opts: {
   const snapshot = buildScoresSnapshot(opts);
   const publicToken = generatePublicToken();
   const supabase = createClient(supabaseUrl, serviceRoleKey);
-  const socialHandlesProvided = Boolean(
-    opts.instagramHandle.trim() || opts.facebookUrl.trim(),
-  );
   const bfRoute = bullfinchRoute({
     websiteClarity: snapshot.website,
     brandStory: snapshot.brandStory,
     overall: snapshot.overall,
-    socialHandlesProvided,
   });
 
   const { error } = await supabase.from("health_check_reports").insert({

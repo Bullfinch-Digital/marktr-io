@@ -6,17 +6,15 @@ import * as edge from "../../supabase/functions/_shared/bullfinchRouting.ts";
 
 const FIXTURES: client.BullfinchRouteScores[] = [
   { websiteClarity: 82, brandStory: 62, overall: 58 },
-  { websiteClarity: 88, brandStory: 80, overall: 81, socialHandlesProvided: true },
-  { websiteClarity: 18, brandStory: 12, overall: 22, socialHandlesProvided: false },
+  { websiteClarity: 88, brandStory: 80, overall: 81 },
+  { websiteClarity: 18, brandStory: 12, overall: 22 },
   { websiteClarity: 39, brandStory: 40, overall: 40 },
   { websiteClarity: 40, brandStory: 39, overall: 40 },
   { websiteClarity: 10, brandStory: 12, overall: 80 },
-  { websiteClarity: 62, brandStory: 48, overall: 74, socialHandlesProvided: false },
-  { websiteClarity: 62, brandStory: 48, overall: 75, socialHandlesProvided: false },
-  { websiteClarity: 95, brandStory: 95, overall: 60, socialHandlesProvided: false },
-  { websiteClarity: 75, brandStory: 75, overall: 60, socialHandlesProvided: false },
-  { websiteClarity: 95, brandStory: 95, overall: 60, socialHandlesProvided: true },
-  { websiteClarity: 74, brandStory: 95, overall: 60, socialHandlesProvided: false },
+  { websiteClarity: 62, brandStory: 48, overall: 74 },
+  { websiteClarity: 62, brandStory: 48, overall: 75 },
+  { websiteClarity: 95, brandStory: 95, overall: 60 },
+  { websiteClarity: 75, brandStory: 75, overall: 60 },
 ];
 
 describe("bullfinchRoute parity (client module vs edge function)", () => {

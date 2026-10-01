@@ -60,6 +60,16 @@ export type EditionConfig = {
   };
   /** Display-score bands for colour. marktr keeps the original 70 / 40 split. */
   scoreBands: { high: number; mid: number };
+  /**
+   * When true, Social and Content with no handles render as "Not checked"
+   * instead of a zero score. Display only; stored scores are unchanged.
+   */
+  showUnassessedAsNotChecked: boolean;
+  unassessedSocial?: {
+    label: string;
+    cardLine: string;
+    overallNote: string;
+  };
   /** Bullfinch next-step copy and URLs. Absent on marktr so the upsell stays put. */
   nextSteps?: Record<BfRoute, NextStepCopy>;
 };
@@ -100,6 +110,7 @@ export const editionConfig: Record<Edition, EditionConfig> = {
       instagramHandle: "marktr.io (or @marktr.io)",
     },
     scoreBands: { high: 70, mid: 40 },
+    showUnassessedAsNotChecked: false,
   },
   bullfinch: {
     name: "Bullfinch Digital",
@@ -142,6 +153,12 @@ export const editionConfig: Record<Edition, EditionConfig> = {
       instagramHandle: "yourbusiness (or @yourbusiness)",
     },
     scoreBands: { high: 75, mid: 50 },
+    showUnassessedAsNotChecked: true,
+    unassessedSocial: {
+      label: "Not checked",
+      cardLine: "Add your Instagram for a full score",
+      overallNote: "Based on your website and story. Add your Instagram for a full score.",
+    },
     nextSteps: {
       talk: {
         heading: "Your reputation's ahead of your marketing.",

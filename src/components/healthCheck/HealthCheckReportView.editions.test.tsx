@@ -111,6 +111,62 @@ describe("HealthCheckReportView editions", () => {
     unmount();
   });
 
+  it("shows Not checked for Bullfinch when no social handles were entered, and keeps marktr scores", () => {
+    const scores = {
+      ...healthCheckReportFixtureScores,
+      overall: 60,
+      socialPresence: { ...healthCheckReportFixtureScores.socialPresence, score: 0, scoreRaw: 0 },
+      contentConsistency: {
+        ...healthCheckReportFixtureScores.contentConsistency,
+        score: 0,
+        scoreRaw: 0,
+      },
+    };
+    const input = {
+      ...healthCheckReportFixtureInput,
+      instagramHandle: "",
+      facebookUrl: "",
+    };
+
+    const bullfinch = render(
+      <EditionProvider edition="bullfinch">
+        <MemoryRouter>
+          <HealthCheckReportView
+            scores={scores}
+            input={input}
+            showPaywallUpsell={false}
+            showDashboardCta={false}
+          />
+        </MemoryRouter>
+      </EditionProvider>,
+    );
+    expect(bullfinch.getAllByText("Not checked").length).toBeGreaterThanOrEqual(2);
+    expect(bullfinch.getAllByText("Add your Instagram for a full score").length).toBeGreaterThan(0);
+    expect(
+      bullfinch.getByText("Based on your website and story. Add your Instagram for a full score."),
+    ).toBeTruthy();
+    expect(bullfinch.queryByText(HEALTH_CHECK_REPORT_FIXTURE_FINDINGS[2])).toBeNull();
+    expect(bullfinch.queryByText(HEALTH_CHECK_REPORT_FIXTURE_FINDINGS[3])).toBeNull();
+    bullfinch.unmount();
+
+    const marktr = render(
+      <EditionProvider edition="marktr">
+        <MemoryRouter>
+          <HealthCheckReportView
+            scores={scores}
+            input={input}
+            showPaywallUpsell={false}
+            showDashboardCta={false}
+          />
+        </MemoryRouter>
+      </EditionProvider>,
+    );
+    expect(marktr.queryByText("Not checked")).toBeNull();
+    expect(marktr.getAllByText("0").length).toBeGreaterThan(0);
+    expect(marktr.getByText(HEALTH_CHECK_REPORT_FIXTURE_FINDINGS[3])).toBeTruthy();
+    marktr.unmount();
+  });
+
   it("hides the Brand Story /story link for bullfinch and keeps it for marktr", () => {
     const scores = {
       ...healthCheckReportFixtureScores,

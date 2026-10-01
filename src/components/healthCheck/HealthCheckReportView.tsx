@@ -258,14 +258,30 @@ function ScoreCard({
   dataSourceLabel,
   instagramFound,
   llmFinding,
+  unassessed = false,
 }: {
   dimension: DimensionScore;
   dataSourceLabel: string;
   instagramFound: boolean;
   /** Prior-aware LLM finding — when set, replaces static tier copy. */
   llmFinding?: string;
+  unassessed?: boolean;
 }) {
   const { config } = useEdition();
+  const notChecked = unassessed ? config.unassessedSocial : undefined;
+  if (notChecked) {
+    return (
+      <article className="rounded-2xl border border-border bg-white p-6">
+        <p className="font-body text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+          {dimension.name}
+        </p>
+        <p className="mt-3 font-body text-sm font-medium text-[#6B7280]">{notChecked.label}</p>
+        <p className="mt-3 font-body text-sm font-medium leading-relaxed text-[#0D1833]">
+          {notChecked.cardLine}
+        </p>
+      </article>
+    );
+  }
   const detail = DIMENSION_DETAIL[dimension.name];
   const displayScore = dimension.score;
   const tier =
@@ -384,11 +400,15 @@ function ScoreOverviewChip({
   score,
   href,
   featured = false,
+  unassessedLabel,
+  note,
 }: {
   shortName: string;
   score: number | null;
   href?: string;
   featured?: boolean;
+  unassessedLabel?: string;
+  note?: string;
 }) {
   const className = `flex-1 min-w-[100px] rounded-xl border border-border bg-white px-4 py-3 text-center transition-colors ${
     href ? "hover:border-primary/40" : ""
@@ -399,27 +419,36 @@ function ScoreOverviewChip({
       <p className="font-body text-[10px] uppercase tracking-widest text-muted-foreground">
         {shortName}
       </p>
-      <p
-        className={`font-display font-bold ${getScoreColor(score)} ${
-          featured ? "text-3xl" : "text-2xl"
-        }`}
-      >
-        {score === null ? "—" : score}
-        {featured && score !== null && (
-          <span className="ml-0.5 font-body text-sm font-medium text-muted-foreground">
-            /100
-          </span>
-        )}
-      </p>
+      {unassessedLabel ? (
+        <p className="mt-1 font-body text-sm font-medium text-[#6B7280]">{unassessedLabel}</p>
+      ) : (
+        <p
+          className={`font-display font-bold ${getScoreColor(score)} ${
+            featured ? "text-3xl" : "text-2xl"
+          }`}
+        >
+          {score === null ? "—" : score}
+          {featured && score !== null && (
+            <span className="ml-0.5 font-body text-sm font-medium text-muted-foreground">
+              /100
+            </span>
+          )}
+        </p>
+      )}
       {featured && (
         <p className="font-body text-[10px] text-muted-foreground">Overall digital health</p>
       )}
-      <div className="mt-1 h-1 w-full rounded-full bg-muted">
-        <div
-          className={`h-full rounded-full ${getBarColor(score)}`}
-          style={{ width: `${score}%` }}
-        />
-      </div>
+      {note ? (
+        <p className="mt-1 font-body text-[10px] leading-snug text-[#6B7280]">{note}</p>
+      ) : null}
+      {unassessedLabel ? null : (
+        <div className="mt-1 h-1 w-full rounded-full bg-muted">
+          <div
+            className={`h-full rounded-full ${getBarColor(score)}`}
+            style={{ width: `${score}%` }}
+          />
+        </div>
+      )}
     </>
   );
 
@@ -526,6 +555,15 @@ export function HealthCheckReportView({
   ];
 
   const instagramFound = Boolean(input.websiteScore?.socialScores?.instagramFound);
+  const socialNotEntered =
+    config.showUnassessedAsNotChecked &&
+    !input.instagramHandle?.trim() &&
+    !input.facebookUrl?.trim() &&
+    Boolean(config.unassessedSocial);
+  const unassessedCopy = socialNotEntered ? config.unassessedSocial : undefined;
+  const isUnassessedDimension = (name: string) =>
+    Boolean(unassessedCopy) &&
+    (name === "Social Presence" || name === "Content Consistency");
 
   const reportContent = (
     <>
@@ -548,13 +586,21 @@ export function HealthCheckReportView({
       )}
 
       <div className={`flex flex-wrap gap-3 ${pillarMode ? "mt-0" : "mt-8"}`}>
-        <ScoreOverviewChip shortName="Overall" score={scores.overall} featured />
+        <ScoreOverviewChip
+          shortName="Overall"
+          score={scores.overall}
+          featured
+          note={unassessedCopy?.overallNote}
+        />
         {scoreCards.map(({ key, shortName, dimension }) => (
           <ScoreOverviewChip
             key={key}
             shortName={shortName}
             score={dimension.score}
             href={`#section-${key}`}
+            unassessedLabel={
+              isUnassessedDimension(dimension.name) ? unassessedCopy?.label : undefined
+            }
           />
         ))}
       </div>
@@ -600,6 +646,7 @@ export function HealthCheckReportView({
               dataSourceLabel={getDataSourceLabel(dimension.name, input, displayDomain)}
               instagramFound={instagramFound}
               llmFinding={getLlmFindingForDimension(dimension.name, input.websiteScore)}
+              unassessed={isUnassessedDimension(dimension.name)}
             />
           </div>
         ))}

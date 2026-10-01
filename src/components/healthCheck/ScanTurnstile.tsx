@@ -4,6 +4,11 @@ import { isTurnstileConfigured } from "../../lib/leadCapture";
 export type ScanTurnstileHandle = {
   /** Reset the widget and wait for a fresh, unused token (Turnstile tokens are single-use). */
   refreshToken: () => Promise<string | null>;
+  /**
+   * Resolve with the token already issued, or the next one, without resetting
+   * the in-flight interaction-only challenge.
+   */
+  waitForToken: (timeoutMs?: number) => Promise<string | null>;
 };
 
 type TurnstileApi = {
@@ -17,6 +22,7 @@ function getTurnstile(): TurnstileApi | undefined {
 }
 
 const TOKEN_TIMEOUT_MS = 15_000;
+const WAIT_FOR_TOKEN_MS = 10_000;
 
 export const ScanTurnstile = forwardRef<
   ScanTurnstileHandle,
@@ -74,6 +80,27 @@ export const ScanTurnstile = forwardRef<
               pendingResolverRef.current = null;
               resolve(null);
             }
+          });
+        },
+        waitForToken: (timeoutMs = WAIT_FOR_TOKEN_MS) => {
+          const take = (token: string | null) => {
+            if (token && tokenRef.current === token) tokenRef.current = null;
+            return token;
+          };
+          if (tokenRef.current) return Promise.resolve(take(tokenRef.current));
+          return new Promise<string | null>((resolve) => {
+            let settled = false;
+            const finish = (token: string | null) => {
+              if (settled) return;
+              settled = true;
+              window.clearTimeout(timeout);
+              if (pendingResolverRef.current === wrapped) pendingResolverRef.current = null;
+              resolve(take(token));
+            };
+            const timeout = window.setTimeout(() => finish(tokenRef.current), timeoutMs);
+            const wrapped = (token: string | null) => finish(token ?? tokenRef.current);
+            pendingResolverRef.current = wrapped;
+            if (tokenRef.current) finish(tokenRef.current);
           });
         },
       }),

@@ -134,12 +134,14 @@ export default function HealthCheck() {
   const [leadToken, setLeadToken] = useState<string | null>(null);
   const [scanError, setScanError] = useState<string | null>(null);
   const [preparingScan, setPreparingScan] = useState(false);
+  const [awaitingTurnstile, setAwaitingTurnstile] = useState(false);
   const [identityFieldsSnapshot] = useState(() => ({
     showName: !getGuestIdentityName(),
     showEmail: !getGuestIdentityEmail(),
   }));
   const identityCaptureRef = useRef<IdentityCaptureHandle>(null);
   const scanTurnstileRef = useRef<ScanTurnstileHandle>(null);
+  const awaitingTurnstileRef = useRef(false);
   const { open: legalModalOpen, gate, closeModal, confirmAgreement } = useLegalAgreementGate();
   /** Input fingerprint for the last successful score-website run (not cleared on loading re-entry). */
   const completedScoreKeyRef = useRef<string | null>(null);
@@ -189,7 +191,7 @@ export default function HealthCheck() {
   const showIdentityEmail = !isLoggedIn && identityFieldsSnapshot.showEmail;
 
   const runGuestIdentityAndProceed = async () => {
-    if (preparingScan) return;
+    if (preparingScan || awaitingTurnstileRef.current) return;
     setScanError(null);
 
     const identityVisible =
@@ -238,6 +240,22 @@ export default function HealthCheck() {
     const emailForCapture = isLoggedIn ? user?.email ?? "" : emailForRun;
     const nameForCapture = isLoggedIn ? nameForRun || resolvedGuestName : nameForRun;
 
+    let scoreToken: string | null = null;
+    if (needsScanTurnstile) {
+      awaitingTurnstileRef.current = true;
+      setAwaitingTurnstile(true);
+      try {
+        scoreToken = (await scanTurnstileRef.current?.waitForToken(10_000)) ?? null;
+      } finally {
+        awaitingTurnstileRef.current = false;
+        setAwaitingTurnstile(false);
+      }
+      if (!scoreToken) {
+        setScanError(SCAN_VERIFY_MESSAGE);
+        return;
+      }
+    }
+
     setPreparingScan(true);
     try {
       // IdentityCapture.commitAll already captures when identity is shown.
@@ -270,14 +288,6 @@ export default function HealthCheck() {
         }
       }
 
-      let scoreToken: string | null = null;
-      if (needsScanTurnstile) {
-        scoreToken = (await scanTurnstileRef.current?.refreshToken()) ?? null;
-        if (!scoreToken) {
-          setScanError(SCAN_VERIFY_MESSAGE);
-          return;
-        }
-      }
       scanTurnstileTokenRef.current = scoreToken;
 
       setCompletedCount(0);
@@ -849,9 +859,19 @@ export default function HealthCheck() {
             }}
             onClick={flushGuestIdentityAndProceed}
             disabled={!canAnalyse || preparingScan}
+            aria-busy={awaitingTurnstile || preparingScan}
             className="rounded-full bg-primary px-8 py-6 font-body text-base font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
           >
-            {preparingScan ? "Verifying…" : "Analyse my presence →"}
+            {awaitingTurnstile ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
+                Checking…
+              </>
+            ) : preparingScan ? (
+              "Verifying…"
+            ) : (
+              "Analyse my presence →"
+            )}
           </Button>
         </div>
         {config.captureTiming === "after-results" ? (

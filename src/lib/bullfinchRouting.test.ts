@@ -21,6 +21,8 @@ describe("bullfinchRoute", () => {
       diyWebsiteClarity: 40,
       diyBrandStory: 40,
       strongScore: 75,
+      noSocialWebsiteClarity: 75,
+      noSocialBrandStory: 75,
     });
   });
 
@@ -62,10 +64,80 @@ describe("bullfinchRoute", () => {
 
   it("routes polish when overall is at least 75 and the site is not thin", () => {
     expect(
-      bullfinchRoute(scores({ websiteClarity: 82, brandStory: 70, overall: 75 })),
+      bullfinchRoute(
+        scores({
+          websiteClarity: 82,
+          brandStory: 70,
+          overall: 75,
+          socialHandlesProvided: true,
+        }),
+      ),
     ).toBe("polish");
     expect(
-      bullfinchRoute(scores({ websiteClarity: 82, brandStory: 70, overall: 74 })),
+      bullfinchRoute(
+        scores({
+          websiteClarity: 82,
+          brandStory: 70,
+          overall: 74,
+          socialHandlesProvided: true,
+        }),
+      ),
+    ).toBe("talk");
+  });
+
+  it("routes polish when no social handles were provided and the site scores are both at least 75", () => {
+    expect(
+      bullfinchRoute(
+        scores({
+          websiteClarity: 95,
+          brandStory: 95,
+          overall: 60,
+          socialHandlesProvided: false,
+        }),
+      ),
+    ).toBe("polish");
+    expect(
+      bullfinchRoute(
+        scores({
+          websiteClarity: 75,
+          brandStory: 75,
+          overall: 60,
+          socialHandlesProvided: false,
+        }),
+      ),
+    ).toBe("polish");
+  });
+
+  it("does not use the no-handles polish rule when a handle was entered or a site score is below 75", () => {
+    expect(
+      bullfinchRoute(
+        scores({
+          websiteClarity: 95,
+          brandStory: 95,
+          overall: 60,
+          socialHandlesProvided: true,
+        }),
+      ),
+    ).toBe("talk");
+    expect(
+      bullfinchRoute(
+        scores({
+          websiteClarity: 74,
+          brandStory: 95,
+          overall: 60,
+          socialHandlesProvided: false,
+        }),
+      ),
+    ).toBe("talk");
+    expect(
+      bullfinchRoute(
+        scores({
+          websiteClarity: 95,
+          brandStory: 74,
+          overall: 60,
+          socialHandlesProvided: false,
+        }),
+      ),
     ).toBe("talk");
   });
 

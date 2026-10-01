@@ -211,7 +211,7 @@ export const ScanTurnstile = forwardRef<
           data-compact={compact ? "true" : undefined}
           className={
             compact
-              ? "absolute left-[-9999px] top-0 h-[65px] w-[300px]"
+              ? "pointer-events-none absolute left-0 top-0 h-[65px] w-[300px] opacity-0"
               : "min-h-[65px] flex items-start"
           }
           aria-label="Security verification"

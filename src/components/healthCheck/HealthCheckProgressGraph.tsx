@@ -56,7 +56,7 @@ function ProgressTooltip({
 
   return (
     <div className="rounded-lg border border-border bg-white px-3 py-2 shadow-sm">
-      <p className="font-['DM_Sans'] text-xs text-muted-foreground">
+      <p className="font-body text-xs text-muted-foreground">
         {formatHealthCheckDate(point.createdAt)}
       </p>
       {mode === "all" ? (
@@ -64,7 +64,7 @@ function ProgressTooltip({
           {SINGLE_METRICS.map((key) => (
             <li
               key={key}
-              className="font-['DM_Sans'] text-xs"
+              className="font-body text-xs"
               style={{ color: HEALTH_PROGRESS_LINE_COLORS[key] }}
             >
               {HEALTH_PROGRESS_METRIC_LABELS[key]}: {point[key]}
@@ -73,7 +73,7 @@ function ProgressTooltip({
         </ul>
       ) : (
         <p
-          className="mt-0.5 font-['Fraunces'] text-lg font-bold"
+          className="mt-0.5 font-display text-lg font-bold"
           style={{ color: HEALTH_PROGRESS_LINE_COLORS[mode] }}
         >
           {point[mode]}
@@ -104,7 +104,7 @@ function MetricToggle({
             key={id}
             type="button"
             onClick={() => onChange(id)}
-            className={`rounded-full border px-2.5 py-1 font-['DM_Sans'] text-[10px] transition-colors ${
+            className={`rounded-full border px-2.5 py-1 font-body text-[10px] transition-colors ${
               selected
                 ? "border-[#0D1833] bg-[#0D1833] text-white"
                 : "border-border bg-white text-muted-foreground hover:border-[#0D1833]/40 hover:text-foreground"
@@ -132,10 +132,10 @@ export function HealthCheckProgressGraph({ rows, loading = false }: HealthCheckP
     <section className="mt-8 border-t border-border pt-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 className="font-['Fraunces'] text-lg font-semibold text-[#0D1833]">
+          <h2 className="font-display text-lg font-semibold text-[#0D1833]">
             Progress over time
           </h2>
-          <p className="mt-1 font-['DM_Sans'] text-xs text-muted-foreground">
+          <p className="mt-1 font-body text-xs text-muted-foreground">
             Same scoring method only — a rise means your site improved.
           </p>
         </div>
@@ -145,9 +145,9 @@ export function HealthCheckProgressGraph({ rows, loading = false }: HealthCheckP
       </div>
 
       {loading ? (
-        <p className="mt-4 font-['DM_Sans'] text-xs text-muted-foreground">Loading…</p>
+        <p className="mt-4 font-body text-xs text-muted-foreground">Loading…</p>
       ) : !showTrend ? (
-        <p className="mt-4 font-['DM_Sans'] text-sm text-muted-foreground">
+        <p className="mt-4 font-body text-sm text-muted-foreground">
           Run another health check to see your progress over time.
         </p>
       ) : (

@@ -2,6 +2,9 @@ import { Link } from "react-router-dom";
 import { GuestResultsNextStepsCta } from "../guest/GuestResultsNextStepsCta";
 import { getLlmFindingForDimension } from "../../lib/healthCheckFindings";
 import { DIMENSION_CAP_FRAMING_COPY } from "../../lib/healthCheck";
+import { useEdition } from "../../contexts/EditionContext";
+import { editionConfig } from "../../lib/editionConfig";
+import type { Edition } from "../../lib/edition";
 import type {
   DimensionScore,
   HealthCheckInput,
@@ -9,18 +12,32 @@ import type {
   StoryAssessment,
 } from "../../lib/healthCheckScoring";
 
+function activeEdition(): Edition {
+  if (typeof document === "undefined") return "marktr";
+  return document.documentElement.dataset.edition === "bullfinch" ? "bullfinch" : "marktr";
+}
+
+function scoreBand(score: number): "high" | "mid" | "low" {
+  const { high, mid } = editionConfig[activeEdition()].scoreBands;
+  if (score >= high) return "high";
+  if (score >= mid) return "mid";
+  return "low";
+}
+
 export function getScoreColor(score: number | null) {
   if (score === null) return "text-muted-foreground";
-  if (score >= 70) return "text-[#2D7A5F]";
-  if (score >= 40) return "text-[#BA7517]";
-  return "text-[#E24B4A]";
+  const band = scoreBand(score);
+  if (band === "high") return "text-[color:var(--hc-score-high)]";
+  if (band === "mid") return "text-[color:var(--hc-score-mid)]";
+  return "text-[color:var(--hc-score-low)]";
 }
 
 export function getBarColor(score: number | null) {
   if (score === null) return "bg-muted";
-  if (score >= 70) return "bg-[#2D7A5F]";
-  if (score >= 40) return "bg-[#BA7517]";
-  return "bg-[#E24B4A]";
+  const band = scoreBand(score);
+  if (band === "high") return "bg-[var(--hc-score-high)]";
+  if (band === "mid") return "bg-[var(--hc-score-mid)]";
+  return "bg-[var(--hc-score-low)]";
 }
 
 const DIMENSION_DETAIL: Record<
@@ -156,18 +173,24 @@ export function getDataSourceLabel(
   }
 }
 
-function BrandStoryPanel({ sa }: { sa: StoryAssessment }) {
+function BrandStoryPanel({
+  sa,
+  showStoryLinks,
+}: {
+  sa: StoryAssessment;
+  showStoryLinks: boolean;
+}) {
   const signpost = sa.storySystemSignpost;
 
   return (
     <div className="mt-4 rounded-xl border border-[#D4871A]/20 bg-[#FDF0CC] p-4">
-      <p className="mb-3 font-['DM_Sans'] text-[10px] font-medium uppercase tracking-widest text-[#BA7517]">
+      <p className="mb-3 font-body text-[10px] font-medium uppercase tracking-widest text-[#BA7517]">
         Brand story assessment
       </p>
 
       <div className="mb-3 flex items-center gap-2">
         <span
-          className={`inline-flex rounded-full px-2.5 py-1 font-['DM_Sans'] text-xs font-medium ${
+          className={`inline-flex rounded-full px-2.5 py-1 font-body text-xs font-medium ${
             sa.founderStoryQuality === "compelling"
               ? "bg-[#2D7A5F] text-white"
               : sa.founderStoryQuality === "good"
@@ -189,14 +212,14 @@ function BrandStoryPanel({ sa }: { sa: StoryAssessment }) {
 
       {sa.missingElements?.length > 0 && (
         <div>
-          <p className="mb-2 font-['DM_Sans'] text-[10px] font-medium uppercase tracking-widest text-[#BA7517]">
+          <p className="mb-2 font-body text-[10px] font-medium uppercase tracking-widest text-[#BA7517]">
             Missing story elements
           </p>
           <div className="flex flex-wrap gap-1.5">
             {sa.missingElements.map((el) => (
               <span
                 key={el}
-                className="rounded-full border border-[#D4871A]/30 bg-white px-2.5 py-1 font-['DM_Sans'] text-[10px] text-[#0D1833]"
+                className="rounded-full border border-[#D4871A]/30 bg-white px-2.5 py-1 font-body text-[10px] text-[#0D1833]"
               >
                 {el}
               </span>
@@ -205,17 +228,23 @@ function BrandStoryPanel({ sa }: { sa: StoryAssessment }) {
         </div>
       )}
 
-      {signpost ? (
+      {signpost && showStoryLinks ? (
         <div className="mt-3 border-t border-[#D4871A]/20 pt-3">
-          <p className="font-['DM_Sans'] text-xs leading-relaxed text-[#0D1833]">
+          <p className="font-body text-xs leading-relaxed text-[#0D1833]">
             {signpost.copy}
           </p>
           <Link
             to="/story"
-            className="mt-2 inline-flex font-['DM_Sans'] text-xs font-medium text-primary underline underline-offset-2"
+            className="mt-2 inline-flex font-body text-xs font-medium text-primary underline underline-offset-2"
           >
             Find your brand story →
           </Link>
+        </div>
+      ) : signpost ? (
+        <div className="mt-3 border-t border-[#D4871A]/20 pt-3">
+          <p className="font-body text-xs leading-relaxed text-[#0D1833]">
+            {signpost.copy}
+          </p>
         </div>
       ) : null}
     </div>
@@ -234,6 +263,7 @@ function ScoreCard({
   /** Prior-aware LLM finding — when set, replaces static tier copy. */
   llmFinding?: string;
 }) {
+  const { config } = useEdition();
   const detail = DIMENSION_DETAIL[dimension.name];
   const displayScore = dimension.score;
   const tier =
@@ -274,14 +304,14 @@ function ScoreCard({
 
   return (
     <article className="rounded-2xl border border-border bg-white p-6">
-      <p className="font-['DM_Sans'] text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+      <p className="font-body text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
         {dimension.name}
       </p>
-      <p className="mb-1 font-['DM_Sans'] text-[9px] uppercase tracking-widest text-muted-foreground/70">
+      <p className="mb-1 font-body text-[9px] uppercase tracking-widest text-muted-foreground/70">
         Assessed: {dataSourceLabel}
       </p>
       <p
-        className={`font-['Fraunces'] text-4xl font-bold leading-none ${getScoreColor(displayScore)}`}
+        className={`font-display text-4xl font-bold leading-none ${getScoreColor(displayScore)}`}
       >
         {displayScore === null ? "—" : displayScore}
       </p>
@@ -291,24 +321,24 @@ function ScoreCard({
           style={{ width: `${displayScore ?? 0}%` }}
         />
       </div>
-      <p className="mt-3 font-['DM_Sans'] text-sm font-medium leading-relaxed text-[#0D1833]">
+      <p className="mt-3 font-body text-sm font-medium leading-relaxed text-[#0D1833]">
         {headline}
       </p>
       {detailTier && !useLlmNarrative && !showCapFraming && !dimension.unmeasured && (
         <>
-          <p className="mt-2 font-['DM_Sans'] text-xs leading-relaxed text-muted-foreground">
+          <p className="mt-2 font-body text-xs leading-relaxed text-muted-foreground">
             {detailTier.meaning}
           </p>
           <div className="mt-3 rounded-lg border border-border bg-background px-3 py-2">
-            <p className="mb-1 font-['DM_Sans'] text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+            <p className="mb-1 font-body text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
               Recommended action
             </p>
-            <p className="font-['DM_Sans'] text-xs leading-relaxed text-[#0D1833]">
+            <p className="font-body text-xs leading-relaxed text-[#0D1833]">
               {detailTier.action}
             </p>
           </div>
           {socialNote && (
-            <p className="mt-2 font-['DM_Sans'] text-xs leading-relaxed text-muted-foreground">
+            <p className="mt-2 font-body text-xs leading-relaxed text-muted-foreground">
               {socialNote}
             </p>
           )}
@@ -318,31 +348,31 @@ function ScoreCard({
       dimension.strengths?.length &&
       !showCapFraming ? (
         <div className="mt-3 space-y-2">
-          <p className="font-['DM_Sans'] text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+          <p className="font-body text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
             What&apos;s working
           </p>
           {dimension.strengths.map((s, i) => (
             <div key={i} className="flex items-start gap-2">
               <span className="mt-0.5 text-xs text-[#2D7A5F]">✓</span>
-              <p className="font-['DM_Sans'] text-xs leading-relaxed text-[#0D1833]">{s}</p>
+              <p className="font-body text-xs leading-relaxed text-[#0D1833]">{s}</p>
             </div>
           ))}
           {!suppressGaps && dimension.gaps?.length ? (
             <>
-              <p className="mt-3 font-['DM_Sans'] text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+              <p className="mt-3 font-body text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
                 Key gaps
               </p>
               {dimension.gaps.map((g, i) => (
                 <div key={i} className="flex items-start gap-2">
                   <span className="mt-0.5 text-xs text-primary">→</span>
-                  <p className="font-['DM_Sans'] text-xs leading-relaxed text-[#0D1833]">{g}</p>
+                  <p className="font-body text-xs leading-relaxed text-[#0D1833]">{g}</p>
                 </div>
               ))}
             </>
           ) : null}
         </div>
       ) : null}
-      {sa && <BrandStoryPanel sa={sa} />}
+      {sa && <BrandStoryPanel sa={sa} showStoryLinks={config.showStoryLinks} />}
     </article>
   );
 }
@@ -364,23 +394,23 @@ function ScoreOverviewChip({
 
   const content = (
     <>
-      <p className="font-['DM_Sans'] text-[10px] uppercase tracking-widest text-muted-foreground">
+      <p className="font-body text-[10px] uppercase tracking-widest text-muted-foreground">
         {shortName}
       </p>
       <p
-        className={`font-['Fraunces'] font-bold ${getScoreColor(score)} ${
+        className={`font-display font-bold ${getScoreColor(score)} ${
           featured ? "text-3xl" : "text-2xl"
         }`}
       >
         {score === null ? "—" : score}
         {featured && score !== null && (
-          <span className="ml-0.5 font-['DM_Sans'] text-sm font-medium text-muted-foreground">
+          <span className="ml-0.5 font-body text-sm font-medium text-muted-foreground">
             /100
           </span>
         )}
       </p>
       {featured && (
-        <p className="font-['DM_Sans'] text-[10px] text-muted-foreground">Overall digital health</p>
+        <p className="font-body text-[10px] text-muted-foreground">Overall digital health</p>
       )}
       <div className="mt-1 h-1 w-full rounded-full bg-muted">
         <div
@@ -426,6 +456,7 @@ export function HealthCheckReportView({
   embedded = false,
   pillarMode = false,
 }: HealthCheckReportViewProps) {
+  const { config } = useEdition();
   const displayDomain = input.websiteUrl?.trim()
     ? extractDomain(input.websiteUrl.trim())
     : null;
@@ -443,15 +474,15 @@ export function HealthCheckReportView({
     <>
       {!pillarMode && (
         <>
-          <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 font-['DM_Sans'] text-xs font-medium text-primary">
-            Your Digital Health Report
+          <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 font-body text-xs font-medium text-primary">
+            {config.titles.reportEyebrow}
           </span>
 
-          <h1 className="mt-4 font-['Fraunces'] text-4xl font-bold leading-tight text-[#0D1833] sm:text-5xl">
+          <h1 className="mt-4 font-display text-4xl font-bold leading-tight text-[#0D1833] sm:text-5xl">
             Here&apos;s how your marketing scores today.
           </h1>
 
-          <p className="mt-4 font-['DM_Sans'] text-base text-muted-foreground">
+          <p className="mt-4 font-body text-base text-muted-foreground">
             {displayDomain
               ? `Based on publicly visible data for ${displayDomain}`
               : "Based on your answers"}
@@ -472,13 +503,13 @@ export function HealthCheckReportView({
       </div>
 
       {scores.socialIncompleteSummary ? (
-        <p className="mt-4 rounded-xl border border-[#BA7517]/30 bg-[#FDF0CC] px-4 py-3 font-['DM_Sans'] text-sm text-[#0D1833]">
+        <p className="mt-4 rounded-xl border border-[#BA7517]/30 bg-[#FDF0CC] px-4 py-3 font-body text-sm text-[#0D1833]">
           {scores.socialIncompleteSummary}
         </p>
       ) : null}
 
       {scores.overallSummary ? (
-        <p className="mt-4 font-['DM_Sans'] text-sm leading-relaxed text-muted-foreground">
+        <p className="mt-4 font-body text-sm leading-relaxed text-muted-foreground">
           {scores.overallSummary}
         </p>
       ) : null}
@@ -486,10 +517,10 @@ export function HealthCheckReportView({
       {showDashboardCta && (
         <div className="mt-6 flex flex-col gap-4 rounded-2xl border border-primary/20 bg-primary/5 px-6 py-5 sm:flex-row sm:items-center">
           <div className="flex-1">
-            <p className="font-['DM_Sans'] text-sm font-semibold text-foreground">
+            <p className="font-body text-sm font-semibold text-foreground">
               Your scores are saved to your dashboard.
             </p>
-            <p className="mt-1 font-['DM_Sans'] text-sm text-muted-foreground">
+            <p className="mt-1 font-body text-sm text-muted-foreground">
               Head to your dashboard to track progress, connect your social accounts and get a
               step-by-step plan to improve every score.
             </p>
@@ -497,7 +528,7 @@ export function HealthCheckReportView({
           <button
             type="button"
             onClick={() => onGoToDashboard?.()}
-            className="shrink-0 whitespace-nowrap rounded-full bg-primary px-5 py-2.5 font-['DM_Sans'] text-sm font-semibold text-white transition-colors hover:bg-primary/90"
+            className="shrink-0 whitespace-nowrap rounded-full bg-primary px-5 py-2.5 font-body text-sm font-semibold text-white transition-colors hover:bg-primary/90"
           >
             Go to dashboard →
           </button>
@@ -521,15 +552,15 @@ export function HealthCheckReportView({
 
       {showDashboardCta && (
         <div className="mt-8 rounded-2xl bg-[#0D1833] px-8 py-8 text-white">
-          <h2 className="mb-3 font-['Fraunces'] text-3xl font-semibold">Your scores are saved.</h2>
-          <p className="mb-6 max-w-lg font-['DM_Sans'] text-sm text-white/70">
+          <h2 className="mb-3 font-display text-3xl font-semibold">Your scores are saved.</h2>
+          <p className="mb-6 max-w-lg font-body text-sm text-white/70">
             Connect your Instagram and Facebook in the dashboard to unlock real engagement data and a
             step-by-step improvement plan.
           </p>
           <button
             type="button"
             onClick={() => onGoToDashboard?.()}
-            className="rounded-full bg-primary px-6 py-3 font-['DM_Sans'] text-sm font-semibold text-white transition-colors hover:bg-primary/90"
+            className="rounded-full bg-primary px-6 py-3 font-body text-sm font-semibold text-white transition-colors hover:bg-primary/90"
           >
             Go to your dashboard →
           </button>

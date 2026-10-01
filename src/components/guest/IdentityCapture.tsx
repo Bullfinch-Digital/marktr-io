@@ -297,7 +297,7 @@ export const IdentityCapture = forwardRef<IdentityCaptureHandle, IdentityCapture
       <div className={`space-y-6 ${className}`}>
         {fieldVisibility.showName && (
           <div className="space-y-2">
-            <Label htmlFor="guest-identity-name" className="font-['DM_Sans'] text-sm text-[#0D1833]">
+            <Label htmlFor="guest-identity-name" className="font-body text-sm text-[#0D1833]">
               What should we call you?
             </Label>
             <Input
@@ -326,7 +326,7 @@ export const IdentityCapture = forwardRef<IdentityCaptureHandle, IdentityCapture
 
         {fieldVisibility.showEmail && (
           <div className="space-y-2">
-            <Label htmlFor="guest-identity-email" className="font-['DM_Sans'] text-sm text-[#0D1833]">
+            <Label htmlFor="guest-identity-email" className="font-body text-sm text-[#0D1833]">
               Where should we send your results?
             </Label>
             <Input
@@ -365,13 +365,13 @@ export const IdentityCapture = forwardRef<IdentityCaptureHandle, IdentityCapture
         )}
 
         {loadError ? (
-          <p className="text-xs text-red-600 font-['DM_Sans']" role="alert">
+          <p className="text-xs text-red-600 font-body" role="alert">
             {loadError}
           </p>
         ) : null}
 
         {captureError ? (
-          <p className="text-xs text-amber-700 font-['DM_Sans']" role="status">
+          <p className="text-xs text-amber-700 font-body" role="status">
             {captureError}
           </p>
         ) : null}

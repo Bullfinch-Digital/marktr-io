@@ -63,6 +63,11 @@
     }
   ],
   "rewrites": [
+    {
+      "source": "/(.*)",
+      "has": [{ "type": "host", "value": "check.bullfinchdigital.com" }],
+      "destination": "/bullfinch.html"
+    },
     { "source": "/yt:slug([a-zA-Z0-9-]+)", "destination": "/api/redirect?slug=yt:slug" },
     {
       "source": "/resources/:slug",

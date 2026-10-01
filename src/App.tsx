@@ -50,19 +50,21 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import CookiePolicy from "./pages/CookiePolicy";
 import { CookieConsentBanner } from "./components/legal/CookieConsentBanner";
-import { GA_MEASUREMENT_ID, hasAnalyticsConsent } from "./lib/cookieConsent";
+import { hasAnalyticsConsent } from "./lib/cookieConsent";
 import { useEdition } from "./contexts/EditionContext";
 import OnboardingLayout from "./layouts/OnboardingLayout";
+import HealthCheckPublicReport from "./pages/HealthCheckPublicReport";
 
 let lastTrackedPath: string | null = null;
 
 function GA4RouteTracker() {
   const location = useLocation();
-  const { edition } = useEdition();
+  const { edition, config } = useEdition();
 
   useEffect(() => {
     const track = () => {
       if (!hasAnalyticsConsent()) return;
+      if (!config.ga4Id) return;
 
       const pagePath = `${location.pathname}${location.search}${location.hash}`;
       if (lastTrackedPath === pagePath) return;
@@ -72,7 +74,7 @@ function GA4RouteTracker() {
       if (!gtag) return;
 
       gtag("event", "page_view", {
-        send_to: GA_MEASUREMENT_ID,
+        send_to: config.ga4Id,
         page_title: document.title,
         page_location: window.location.href,
         page_path: pagePath,
@@ -83,7 +85,7 @@ function GA4RouteTracker() {
     track();
     window.addEventListener("marktr:analytics-consent-granted", track);
     return () => window.removeEventListener("marktr:analytics-consent-granted", track);
-  }, [location.pathname, location.search, location.hash, edition]);
+  }, [location.pathname, location.search, location.hash, edition, config.ga4Id]);
 
   return null;
 }
@@ -95,19 +97,26 @@ function AuthRedirect() {
   return <Navigate to={isRealUser ? "/dashboard" : "/"} replace />;
 }
 
-export default function App() {
+function AppRoutes() {
+  const { edition } = useEdition();
+  const location = useLocation();
+
+  if (edition === "bullfinch") {
+    return (
+      <Routes>
+        <Route element={<OnboardingLayout />}>
+          <Route path="/" element={<HealthCheck />} />
+          <Route path="/r/:token" element={<HealthCheckPublicReport />} />
+        </Route>
+        <Route
+          path="*"
+          element={<Navigate to={{ pathname: "/", search: location.search }} replace />}
+        />
+      </Routes>
+    );
+  }
+
   return (
-    <AuthProvider>
-      <Router>
-        {/* Auth modals use react-router <Link> (legal copy). They must live
-            inside Router — otherwise Login mounts outside NavigationContext
-            and white-screens: "Cannot destructure property 'basename'".
-            PaywallProvider also calls useAuthModal, so it stays nested here. */}
-        <AuthModalProvider>
-          <PaywallProvider>
-            <GA4RouteTracker />
-            <OAuthReturnHandler />
-            <div className="min-h-screen bg-background">
               <Routes>
             {/* Public Routes with Header/Footer */}
             <Route path="/" element={
@@ -313,6 +322,23 @@ export default function App() {
               </>
             } />
               </Routes>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <Router>
+        {/* Auth modals use react-router <Link> (legal copy). They must live
+            inside Router — otherwise Login mounts outside NavigationContext
+            and white-screens: "Cannot destructure property 'basename'".
+            PaywallProvider also calls useAuthModal, so it stays nested here. */}
+        <AuthModalProvider>
+          <PaywallProvider>
+            <GA4RouteTracker />
+            <OAuthReturnHandler />
+            <div className="min-h-screen bg-background">
+              <AppRoutes />
             </div>
             <CookieConsentBanner />
           </PaywallProvider>

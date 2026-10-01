@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,500&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,500&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=Inter:wght@300;400;500;600;700&family=Newsreader:wght@300;400&family=Inter+Tight:wght@300;400;500;600&display=swap');
 @import "tailwindcss";
 
 @custom-variant dark (&:is(.dark *));
@@ -7,6 +7,18 @@
 
 :root {
   --font-size: 16px;
+  /* Utility stacks behind font-display / font-body. marktr deliberately has no
+     fallback here: the old font-['Fraunces'] and font-['DM_Sans'] utilities
+     emitted a bare family name, and any fallback changes which font supplies
+     glyphs those two fonts lack (→, ✓), which would not be pixel-identical. */
+  --font-display-stack: Fraunces;
+  --font-body-stack: "DM Sans";
+  /* Base-layer stacks — these always carried fallbacks. */
+  --font-display-family: "Fraunces", serif;
+  --font-body-family: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --hc-score-high: #2d7a5f;
+  --hc-score-mid: #ba7517;
+  --hc-score-low: #e24b4a;
 
   --background: #f5f4f0;
   --foreground: #0d1833;
@@ -75,6 +87,51 @@
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
+}
+
+[data-edition="bullfinch"] {
+  --bf-lime: #e4f356;
+  --bf-lime-soft: #ebfd84;
+  --bf-periwinkle: #a9b7dc;
+  --bf-cream: #f8f0e6;
+  --bf-paper: #fffff7;
+  --bf-ink: #0b0b0c;
+  --bf-navy: #18202d;
+  --font-display-stack: "Newsreader", Georgia, serif;
+  --font-body-stack: "Inter Tight", "Helvetica Neue", Arial, sans-serif;
+  --font-display-family: "Newsreader", Georgia, serif;
+  --font-body-family: "Inter Tight", "Helvetica Neue", Arial, sans-serif;
+  --background: var(--bf-cream);
+  --foreground: var(--bf-ink);
+  --card: var(--bf-paper);
+  --card-foreground: var(--bf-ink);
+  --primary: var(--bf-ink);
+  --primary-foreground: #ffffff;
+  --secondary: var(--bf-lime-soft);
+  --secondary-foreground: var(--bf-ink);
+  --muted: var(--bf-periwinkle);
+  --muted-foreground: var(--bf-navy);
+  --accent: var(--bf-lime-soft);
+  --accent-foreground: var(--bf-ink);
+  --border: var(--bf-ink);
+  --input-background: var(--bf-paper);
+  --ring: var(--bf-ink);
+  --radius: 18px;
+  --button-green: var(--bf-ink);
+  --accent-grey: var(--bf-periwinkle);
+  --text-dark: var(--bf-ink);
+  --neutral-light: var(--bf-cream);
+  --warm-grey: var(--bf-periwinkle);
+  --hc-score-high: #18202d;
+  --hc-score-mid: #9a5510;
+  --hc-score-low: #b33f30;
+}
+
+/* Filled marktr-green buttons become ink fill on Bullfinch. --text-dark is also
+   ink, so `bg-button-green text-text-dark` would paint ink on ink. White type
+   on the fill; attribute+class beats the utility so marktr is untouched. */
+[data-edition="bullfinch"] .bg-button-green {
+  color: #ffffff;
 }
 
 .dark {
@@ -198,6 +255,9 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+
+  --font-display: var(--font-display-stack);
+  --font-body: var(--font-body-stack);
 }
 
 @layer base {
@@ -207,15 +267,15 @@
 
   body {
     @apply bg-background text-foreground;
-    font-family: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-family: var(--font-body-family);
   }
 
   h1, h2, h4, h5, h6 {
-    font-family: "Fraunces", serif;
+    font-family: var(--font-display-family);
   }
 
   h3 {
-    font-family: "DM Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: var(--font-body-family);
   }
 }
 

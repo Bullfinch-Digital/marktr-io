@@ -1,5 +1,8 @@
 /** UK PECR-aligned cookie consent (analytics opt-in). */
 
+import { getEdition } from "./edition";
+import { editionConfig } from "./editionConfig";
+
 export const COOKIE_CONSENT_STORAGE_KEY = "marktr_cookie_consent_v1";
 export const GA_MEASUREMENT_ID = "G-0EFXQPEYY6";
 
@@ -41,11 +44,14 @@ export function saveCookieConsent(analytics: boolean): CookieConsentChoice {
   return choice;
 }
 
-function loadGtagScript(): void {
-  if (document.querySelector('script[src*="googletagmanager.com/gtag/js"]')) return;
+function loadGtagScript(measurementId: string): void {
+  if (!measurementId) return;
+  if (document.querySelector(`script[src*="googletagmanager.com/gtag/js?id=${measurementId}"]`)) {
+    return;
+  }
   const script = document.createElement("script");
   script.async = true;
-  script.src = `https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`;
+  script.src = `https://www.googletagmanager.com/gtag/js?id=${measurementId}`;
   document.head.appendChild(script);
 }
 
@@ -89,8 +95,10 @@ export function applyAnalyticsConsent(granted: boolean): void {
 }
 
 function enableAnalytics(): void {
-  loadGtagScript();
-  gtag()?.("config", GA_MEASUREMENT_ID, { send_page_view: false });
+  const measurementId = editionConfig[getEdition()].ga4Id;
+  if (!measurementId) return;
+  loadGtagScript(measurementId);
+  gtag()?.("config", measurementId, { send_page_view: false });
 }
 
 export function hasAnalyticsConsent(): boolean {

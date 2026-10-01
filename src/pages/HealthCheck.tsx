@@ -40,6 +40,7 @@ import { buildPriorRunPayload } from "../lib/healthCheckPriorRun";
 import { fetchBrandStoryPillarForHealth } from "../lib/healthCheckPillarContext";
 import { useEdition } from "../contexts/EditionContext";
 import { getStoredUtms } from "../lib/utmCapture";
+import { useEditionDocumentMeta } from "../hooks/useEditionDocumentMeta";
 
 type Step = "welcome" | "inputs" | "loading";
 
@@ -98,7 +99,7 @@ function AnalysisMessage({ messages }: { messages: readonly string[] }) {
 
   return (
     <p
-      className="max-w-xs text-center font-['DM_Sans'] text-sm leading-relaxed text-muted-foreground transition-opacity duration-300"
+      className="max-w-xs text-center font-body text-sm leading-relaxed text-muted-foreground transition-opacity duration-300"
       style={{ opacity: visible ? 1 : 0 }}
     >
       {messages[index]}
@@ -109,7 +110,8 @@ function AnalysisMessage({ messages }: { messages: readonly string[] }) {
 export default function HealthCheck() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { edition } = useEdition();
+  const { edition, config } = useEdition();
+  useEditionDocumentMeta("healthCheck");
   const { activeBrandId, loading: brandLoading, brands } = useBrand();
   const isLoggedIn = Boolean(user && !(user as { is_anonymous?: boolean }).is_anonymous);
   const [step, setStep] = useState<Step>("welcome");
@@ -190,7 +192,10 @@ export default function HealthCheck() {
     if (preparingScan) return;
     setScanError(null);
 
-    const identityVisible = !isLoggedIn && (showIdentityName || showIdentityEmail);
+    const identityVisible =
+      !isLoggedIn &&
+      config.captureTiming === "before-scan" &&
+      (showIdentityName || showIdentityEmail);
     const draft = identityCaptureRef.current?.getDraft();
     const committed = identityVisible ? identityCaptureRef.current?.commitAll() : undefined;
     const nameForRun =
@@ -209,7 +214,7 @@ export default function HealthCheck() {
     const isBullfinch = edition === "bullfinch";
     const needsScanTurnstile = isBullfinch && turnstileConfigured;
 
-    if (!isLoggedIn) {
+    if (!isLoggedIn && config.captureTiming === "before-scan") {
       if (!nameForRun.length || !emailForRun.length) return;
       // Bullfinch scan uses ScanTurnstile, not the identity widget token.
       if (!isBullfinch) {
@@ -226,7 +231,7 @@ export default function HealthCheck() {
       });
       setIdentityName(nameForRun);
       setFormData((prev) => ({ ...prev, email: emailForRun }));
-    } else if (!user?.email?.trim()) {
+    } else if (config.captureTiming === "before-scan" && !user?.email?.trim()) {
       return;
     }
 
@@ -237,7 +242,12 @@ export default function HealthCheck() {
     try {
       // IdentityCapture.commitAll already captures when identity is shown.
       // Only capture here when identity is skipped (returning guest) and not yet captured.
-      if (!isLoggedIn && !identityVisible && !isGuestLeadCaptured()) {
+      if (
+        !isLoggedIn &&
+        config.captureTiming === "before-scan" &&
+        !identityVisible &&
+        !isGuestLeadCaptured()
+      ) {
         if (needsScanTurnstile) {
           const captureToken = (await scanTurnstileRef.current?.refreshToken()) ?? null;
           if (!captureToken) {
@@ -279,7 +289,7 @@ export default function HealthCheck() {
   };
 
   const flushGuestIdentityAndProceed = () => {
-    if (!isLoggedIn && showIdentityEmail) {
+    if (!isLoggedIn && showIdentityEmail && config.captureTiming === "before-scan") {
       gate(identityCaptureRef.current?.isLegalAgreed() ?? false, runGuestIdentityAndProceed);
       return;
     }
@@ -289,8 +299,6 @@ export default function HealthCheck() {
   const canAnalyse = useMemo(() => {
     if (edition === "bullfinch") {
       if (!turnstileConfigured) return false;
-      if (isLoggedIn) return Boolean(user?.email?.trim());
-      // Don't require IdentityCapture leadToken — scan uses ScanTurnstile.
       return true;
     }
     if (isLoggedIn) return Boolean(user?.email?.trim());
@@ -375,6 +383,7 @@ export default function HealthCheck() {
         storyAssessment?: StoryAssessment | null;
         socialScores?: SocialScores | null;
       } | null = null;
+      let publicToken = "";
 
       const facebookUrl = normaliseFacebookUrl(formData.facebookUrl);
       const emailToUse = isLoggedIn ? user?.email ?? "" : resolvedGuestEmail;
@@ -438,11 +447,20 @@ export default function HealthCheck() {
               ...(pillarContext ? { pillarContext } : {}),
             },
           });
-          const payload = data as { error?: unknown; facts?: unknown } | null;
+          const payload = data as {
+            error?: unknown;
+            facts?: unknown;
+            findings?: unknown;
+            report?: { publicToken?: string };
+          } | null;
           if (invokeError || payload?.error || payload?.facts === undefined) {
             scanFailureMessage = describeScoreWebsiteFailure(invokeError, payload);
             return;
           }
+          publicToken =
+            typeof payload.report?.publicToken === "string"
+              ? payload.report.publicToken.trim()
+              : "";
           const parsed = parseScoreWebsiteResponse(data, {
             websiteUrl: formData.websiteUrl.trim(),
             instagramHandle: formData.instagramHandle?.trim() || "",
@@ -509,6 +527,18 @@ export default function HealthCheck() {
         return;
       }
 
+      if (editionRef.current === "bullfinch") {
+        if (!publicToken) {
+          setScanError(SCAN_RETRY_MESSAGE);
+          setStep("inputs");
+          return;
+        }
+        navigate(`/r/${encodeURIComponent(publicToken)}${window.location.search}`, {
+          replace: true,
+        });
+        return;
+      }
+
       updateGuestContext({
         identity: {
           name: resolvedGuestName,
@@ -541,17 +571,19 @@ export default function HealthCheck() {
 
   const renderWelcome = () => (
     <section className="mx-auto flex min-h-screen w-full max-w-3xl flex-col justify-center px-6 py-12">
+      {config.showBackToHome ? (
       <div className="mb-8">
         <Link
           to="/"
-          className="inline-flex items-center gap-2 font-['DM_Sans'] text-sm text-muted-foreground hover:text-foreground transition-colors"
+          className="inline-flex items-center gap-2 font-body text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to home
         </Link>
       </div>
+      ) : null}
 
-      {existingRun && !rerunPromptDismissed ? (
+      {existingRun && !rerunPromptDismissed && edition === "marktr" ? (
         <AlreadyCompletedPrompt
           toolName="Digital Health Check"
           reportPath="/health-report"
@@ -560,24 +592,39 @@ export default function HealthCheck() {
         />
       ) : (
         <div className="rounded-3xl border border-border bg-white p-8 shadow-sm sm:p-12">
-          <h1 className="font-['Fraunces'] text-4xl font-bold leading-tight text-[#0D1833] sm:text-5xl">
-            Let&apos;s check your digital health.
+          {config.start.eyebrow ? (
+            <p className="font-body text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
+              {config.start.eyebrow}
+            </p>
+          ) : null}
+          <h1 className="font-display text-4xl font-bold leading-tight text-[#0D1833] sm:text-5xl">
+            {config.start.h1}
           </h1>
-          <p className="mt-5 max-w-2xl font-['DM_Sans'] text-base leading-relaxed text-muted-foreground sm:text-lg">
-            Answer 5 quick questions and marktr will score your digital presence across the
-            dimensions that matter most to founders.
+          <p className="mt-5 max-w-2xl font-body text-base leading-relaxed text-muted-foreground sm:text-lg">
+            {config.start.lede}
           </p>
+          {config.start.points?.length ? (
+            <ul className="mt-6 space-y-2">
+              {config.start.points.map((point) => (
+                <li key={point} className="font-body text-sm text-foreground">
+                  {point}
+                </li>
+              ))}
+            </ul>
+          ) : null}
 
           <Button
             onClick={() => setStep("inputs")}
-            className="mt-10 rounded-full bg-primary px-8 py-6 font-['DM_Sans'] text-base font-medium text-primary-foreground hover:opacity-90"
+            className="mt-10 rounded-full bg-primary px-8 py-6 font-body text-base font-medium text-primary-foreground hover:opacity-90"
           >
-            Start my digital health check →
+            {config.start.button}
           </Button>
 
-          <p className="mt-4 font-['DM_Sans'] text-sm text-muted-foreground">
+          {edition === "marktr" ? (
+          <p className="mt-4 font-body text-sm text-muted-foreground">
             {isLoggedIn ? "Takes about 2 minutes." : "Takes about 2 minutes. No account needed."}
           </p>
+          ) : null}
         </div>
       )}
     </section>
@@ -587,24 +634,26 @@ export default function HealthCheck() {
     <section className="mx-auto flex min-h-screen w-full max-w-3xl flex-col justify-center px-6 py-12">
       <div className="rounded-3xl border border-border bg-white p-8 shadow-sm sm:p-12">
         <div className="mb-8">
+          {config.showBackToHome ? (
           <Link
             to="/"
-            className="inline-flex items-center gap-2 font-['DM_Sans'] text-sm text-muted-foreground hover:text-foreground transition-colors"
+            className="inline-flex items-center gap-2 font-body text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to home
           </Link>
+          ) : null}
         </div>
-        <h1 className="font-['Fraunces'] text-4xl font-bold leading-tight text-[#0D1833] sm:text-5xl">
+        <h1 className="font-display text-4xl font-bold leading-tight text-[#0D1833] sm:text-5xl">
           Where can we find you online?
         </h1>
-        <p className="mt-5 max-w-2xl font-['DM_Sans'] text-base leading-relaxed text-muted-foreground sm:text-lg">
+        <p className="mt-5 max-w-2xl font-body text-base leading-relaxed text-muted-foreground sm:text-lg">
           Share what you have — even one URL gives us useful data.
         </p>
 
         <div className="mt-8 space-y-6">
           <div className="space-y-2">
-            <Label htmlFor="businessName" className="font-['DM_Sans'] text-sm text-[#0D1833]">
+            <Label htmlFor="businessName" className="font-body text-sm text-[#0D1833]">
               Business name
             </Label>
             <Input
@@ -624,10 +673,10 @@ export default function HealthCheck() {
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label htmlFor="websiteUrl" className="font-['DM_Sans'] text-sm text-[#0D1833]">
+              <Label htmlFor="websiteUrl" className="font-body text-sm text-[#0D1833]">
                 Website URL
               </Label>
-              <span className="font-['DM_Sans'] text-xs text-muted-foreground">optional</span>
+              <span className="font-body text-xs text-muted-foreground">optional</span>
             </div>
             <div className="flex items-start gap-2">
               <VoiceInput
@@ -656,10 +705,10 @@ export default function HealthCheck() {
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label htmlFor="instagramHandle" className="font-['DM_Sans'] text-sm text-[#0D1833]">
+              <Label htmlFor="instagramHandle" className="font-body text-sm text-[#0D1833]">
                 Instagram handle
               </Label>
-              <span className="font-['DM_Sans'] text-xs text-muted-foreground">optional</span>
+              <span className="font-body text-xs text-muted-foreground">optional</span>
             </div>
             <div className="flex items-start gap-2">
               <VoiceInput
@@ -689,19 +738,19 @@ export default function HealthCheck() {
                     return { ...prev, instagramHandle: val };
                   });
                 }}
-                placeholder="marktr.io (or @marktr.io)"
+                placeholder={config.placeholders.instagramHandle}
                 className="border border-black rounded-design bg-white px-4 py-6 text-foreground placeholder:text-foreground/40"
               />
             </div>
-            <p className="font-['DM_Sans'] text-xs text-muted-foreground">Public profile only</p>
+            <p className="font-body text-xs text-muted-foreground">Public profile only</p>
           </div>
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label htmlFor="facebookUrl" className="font-['DM_Sans'] text-sm text-[#0D1833]">
+              <Label htmlFor="facebookUrl" className="font-body text-sm text-[#0D1833]">
                 Facebook page URL
               </Label>
-              <span className="font-['DM_Sans'] text-xs text-muted-foreground">optional</span>
+              <span className="font-body text-xs text-muted-foreground">optional</span>
             </div>
             <div className="flex items-start gap-2">
               <VoiceInput
@@ -733,7 +782,7 @@ export default function HealthCheck() {
             </div>
           </div>
 
-          {!isLoggedIn && (showIdentityName || showIdentityEmail) && (
+          {config.captureTiming === "before-scan" && !isLoggedIn && (showIdentityName || showIdentityEmail) && (
             <IdentityCapture
               ref={identityCaptureRef}
               captureSource="health-check"
@@ -757,24 +806,24 @@ export default function HealthCheck() {
             />
           )}
 
-          {!isLoggedIn && hasGuestIdentity() && (
-            <p className="font-['DM_Sans'] text-sm text-muted-foreground">
+          {config.captureTiming === "before-scan" && !isLoggedIn && hasGuestIdentity() && (
+            <p className="font-body text-sm text-muted-foreground">
               Results for {resolvedGuestName} at {resolvedGuestEmail}
             </p>
           )}
 
           {edition === "bullfinch" && turnstileConfigured ? (
-            <ScanTurnstile ref={scanTurnstileRef} />
+            <ScanTurnstile ref={scanTurnstileRef} onToken={() => setScanError(null)} />
           ) : null}
 
           {edition === "bullfinch" && !turnstileConfigured ? (
-            <p className="font-['DM_Sans'] text-sm text-amber-700" role="status">
+            <p className="font-body text-sm text-amber-700" role="status">
               Verification isn&apos;t configured in this environment, so the scan is unavailable here.
             </p>
           ) : null}
 
           {scanError ? (
-            <p className="font-['DM_Sans'] text-sm text-red-600" role="alert">
+            <p className="font-body text-sm text-red-600" role="alert">
               {scanError}
             </p>
           ) : null}
@@ -785,7 +834,7 @@ export default function HealthCheck() {
             type="button"
             variant="ghost"
             onClick={() => setStep("welcome")}
-            className="rounded-full p-0 font-['DM_Sans'] text-sm text-muted-foreground hover:bg-transparent hover:text-foreground"
+            className="rounded-full p-0 font-body text-sm text-muted-foreground hover:bg-transparent hover:text-foreground"
           >
             <ArrowLeft className="mr-1 h-4 w-4" />
             Back
@@ -800,11 +849,24 @@ export default function HealthCheck() {
             }}
             onClick={flushGuestIdentityAndProceed}
             disabled={!canAnalyse || preparingScan}
-            className="rounded-full bg-primary px-8 py-6 font-['DM_Sans'] text-base font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
+            className="rounded-full bg-primary px-8 py-6 font-body text-base font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
           >
             {preparingScan ? "Verifying…" : "Analyse my presence →"}
           </Button>
         </div>
+        {config.captureTiming === "after-results" ? (
+          <p className="mt-4 font-body text-xs text-muted-foreground">
+            By running the check you agree to our{" "}
+            <a
+              href={config.privacyUrl}
+              className="underline hover:text-foreground"
+              rel="noopener noreferrer"
+            >
+              privacy policy
+            </a>
+            .
+          </p>
+        ) : null}
       </div>
     </section>
   );
@@ -812,8 +874,10 @@ export default function HealthCheck() {
   const renderLoading = () => (
     <section className="mx-auto flex min-h-screen w-full max-w-3xl flex-col justify-center px-6 py-12">
       <div className="rounded-3xl border border-border bg-white p-8 shadow-sm sm:p-12">
-        <h1 className="font-['Fraunces'] text-4xl font-bold leading-tight text-[#0D1833] sm:text-5xl">
-          marktr is checking your presence...
+        <h1 className="font-display text-4xl font-bold leading-tight text-[#0D1833] sm:text-5xl">
+          {edition === "bullfinch"
+            ? "Checking your presence..."
+            : "marktr is checking your presence..."}
         </h1>
 
         <div className="mt-8 space-y-4">
@@ -830,7 +894,7 @@ export default function HealthCheck() {
                   <Loader2 className="h-5 w-5 text-muted-foreground/40" />
                 )}
                 <p
-                  className={`font-['DM_Sans'] text-sm ${
+                  className={`font-body text-sm ${
                     done ? "text-foreground" : active ? "text-muted-foreground" : "text-muted-foreground/60"
                   }`}
                 >
@@ -865,7 +929,7 @@ export default function HealthCheck() {
   return (
     <>
       <LegalAgreementRequiredModal
-        open={legalModalOpen}
+        open={config.captureTiming === "before-scan" && legalModalOpen}
         onClose={closeModal}
         onAgree={() => {
           identityCaptureRef.current?.acceptLegalAgreement();

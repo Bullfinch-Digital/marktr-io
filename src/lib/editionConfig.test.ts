@@ -30,6 +30,9 @@ describe("editionConfig", () => {
     );
     expect(editionConfig.marktr.scoreBands).toEqual({ high: 70, mid: 40 });
     expect(editionConfig.bullfinch.scoreBands).toEqual({ high: 75, mid: 50 });
+    expect(editionConfig.marktr.showUnassessedAsNotChecked).toBe(false);
+    expect(editionConfig.bullfinch.showUnassessedAsNotChecked).toBe(true);
+    expect(editionConfig.bullfinch.unassessedSocial?.label).toBe("Not checked");
   });
 
   it("keeps next-step copy and URLs on bullfinch only", () => {

@@ -134,6 +134,8 @@ function buildReportRow(opts: {
   story: number;
   content: number;
   social: number;
+  instagramHandle?: string;
+  facebookUrl?: string;
 }) {
   return {
     public_token: opts.token,
@@ -165,8 +167,8 @@ function buildReportRow(opts: {
       lowestScore: opts.social,
       inputs: {
         websiteUrl: "https://apostlecoffee.co.uk",
-        instagramHandle: "apostlecoffee",
-        facebookUrl: "",
+        instagramHandle: opts.instagramHandle ?? "apostlecoffee",
+        facebookUrl: opts.facebookUrl ?? "",
         domain: "apostlecoffee.co.uk",
       },
       websiteScore: {
@@ -183,11 +185,13 @@ function buildReportRow(opts: {
 const REPORT_TALK = buildReportRow({
   token: PUBLIC_TOKEN,
   route: "talk",
-  overall: 58,
-  website: 82,
-  story: 62,
-  content: 40,
-  social: 22,
+  overall: 60,
+  website: 95,
+  story: 95,
+  content: 0,
+  social: 0,
+  instagramHandle: "",
+  facebookUrl: "",
 });
 const REPORT_POLISH = buildReportRow({
   token: POLISH_TOKEN,
@@ -595,6 +599,32 @@ async function captureBullfinch(
             `Bullfinch ${routeName} primary href missing "${snippet}": ${primaryHref}`,
           );
         }
+      }
+      if (routeName === "talk") {
+        if ((await page.getByText("Not checked").count()) < 2) {
+          throw new Error("Bullfinch no-handles report did not show Not checked");
+        }
+        if (
+          !(await page
+            .getByText("Based on your website and story. Add your Instagram for a full score.")
+            .isVisible())
+        ) {
+          throw new Error("Bullfinch overall note missing");
+        }
+        if ((await page.getByText(FINDINGS[3].finding).count()) > 0) {
+          throw new Error("Bullfinch no-handles report still shows the social finding");
+        }
+      }
+      if (routeName === "polish") {
+        if ((await page.getByText("Not checked").count()) > 0) {
+          throw new Error("Bullfinch report with handles showed Not checked");
+        }
+        if (!(await page.getByText("70").first().isVisible())) {
+          throw new Error("Bullfinch polish social score missing");
+        }
+      }
+      if (routeName === "diy" && (await page.getByText("Not checked").count()) > 0) {
+        throw new Error("Bullfinch diy report with a handle showed Not checked");
       }
       if (routeName !== "diy" && primaryHref && /utm_content=(talk|polish|diy)/.test(primaryHref)) {
         const content = primaryHref.match(/utm_content=([^&]+)/)?.[1];

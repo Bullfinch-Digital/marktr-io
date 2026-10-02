@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { GuestResultsNextStepsCta } from "../guest/GuestResultsNextStepsCta";
+import { SendScoreCard } from "./SendScoreCard";
 import { getLlmFindingForDimension } from "../../lib/healthCheckFindings";
 import { DIMENSION_CAP_FRAMING_COPY } from "../../lib/healthCheck";
 import { useEdition } from "../../contexts/EditionContext";
@@ -604,6 +605,14 @@ export function HealthCheckReportView({
           />
         ))}
       </div>
+
+      {config.sendScore && publicToken ? (
+        <SendScoreCard
+          publicToken={publicToken}
+          copy={config.sendScore}
+          privacyUrl={config.privacyUrl}
+        />
+      ) : null}
 
       {scores.socialIncompleteSummary ? (
         <p className="mt-4 rounded-xl border border-[#BA7517]/30 bg-[#FDF0CC] px-4 py-3 font-body text-sm text-[#0D1833]">

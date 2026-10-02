@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.2";
 import { bullfinchRoute } from "../_shared/bullfinchRouting.ts";
+import { storedBusinessName } from "../_shared/reportLeadCapture.ts";
 import { generatePublicToken } from "../_shared/publicToken.ts";
 import { computeDeterministicScores, HEALTH_CHECK_SCORER_VERSION } from "./deterministicScores.ts";
 
@@ -193,6 +194,7 @@ export async function persistHealthCheckReport(opts: {
   url: string;
   instagramHandle: string;
   facebookUrl: string;
+  businessName?: string | null;
   domain: string;
   facts: HealthCheckFacts;
   apifyMetrics: ApifySocialMetrics;
@@ -223,6 +225,7 @@ export async function persistHealthCheckReport(opts: {
     edition: "bullfinch",
     public_token: publicToken,
     url: opts.url,
+    lead_business: storedBusinessName(opts.businessName),
     overall: snapshot.overall,
     capped: snapshot.capped,
     website_score: snapshot.website,

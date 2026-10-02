@@ -7,8 +7,8 @@
  * only exist on the current tree.
  *
  * No network call reaches Supabase, Cloudflare or OpenAI: score-website,
- * get-health-check-report, capture-onboarding-lead and auth are all fulfilled
- * from fixtures, and Turnstile is replaced by a stub widget.
+ * get-health-check-report, capture-onboarding-lead, capture-report-lead and auth
+ * are all fulfilled from fixtures, and Turnstile is replaced by a stub widget.
  *
  *   npm run visual-check
  *   BASELINE_REF=origin/app-full-dev-070526 npm run visual-check
@@ -337,6 +337,13 @@ async function preparePage(
     (window as unknown as { turnstile: unknown }).turnstile = {
       render(el: HTMLElement, opts: { callback?: (token: string) => void }) {
         const id = `stub-${(seq += 1)}`;
+        if (el.dataset.compact === "true") {
+          if (opts?.callback) {
+            callbacks.set(id, opts.callback);
+            setTimeout(() => opts.callback?.(`stub-token-${id}`), 0);
+          }
+          return id;
+        }
         const box = document.createElement("div");
         box.textContent = "Turnstile (stubbed)";
         box.setAttribute(
@@ -389,6 +396,7 @@ async function preparePage(
     stubs.leadCaptureCalls += 1;
     return json(route, { ok: true });
   });
+  await page.route("**/functions/v1/capture-report-lead", (route) => json(route, { ok: true }));
   await page.route("**/auth/v1/**", (route) => json(route, { session: null, user: null }));
   await page.route("**challenges.cloudflare.com/**", (route) =>
     route.fulfill({ status: 200, contentType: "application/javascript", body: "" }),
@@ -493,6 +501,9 @@ async function captureMarktr(
     await page.getByRole("heading", { name: /how your marketing scores today/i }).waitFor({
       timeout: 30_000,
     });
+    if ((await page.getByRole("heading", { name: "Send me my score" }).count()) > 0) {
+      throw new Error("marktr results rendered the Bullfinch send-score card");
+    }
     await shoot(page, path.join(dir, `results-${viewport.name}.png`));
     await context.close();
   }
@@ -632,9 +643,60 @@ async function captureBullfinch(
           throw new Error(`Bullfinch ${routeName} utm_content was ${content}`);
         }
       }
+      await page.getByRole("heading", { name: "Send me my score" }).waitFor();
+      await page
+        .getByText(
+          "We'll email your report, and Jon may get in touch about your results. You can ask us to stop at any time.",
+        )
+        .waitFor();
+      const policyHref = await page.getByRole("link", { name: "Privacy policy." }).getAttribute("href");
+      if (policyHref !== "https://bullfinchdigital.com/privacy/") {
+        throw new Error(`Send-score privacy link was ${policyHref}`);
+      }
+      const tips = page.getByRole("checkbox", { name: "Also send me occasional marketing tips" });
+      if (await tips.isChecked()) {
+        throw new Error("Send-score marketing checkbox should start unticked");
+      }
       await shoot(page, path.join(dir, `report-${routeName}-${viewport.name}.png`));
       await context.close();
     }
+  }
+
+  {
+    const context = await browser.newContext({ viewport });
+    const page = await context.newPage();
+    await preparePage(page);
+    await page.goto(`${baseUrl}/r/${PUBLIC_TOKEN}${q}`, { waitUntil: "networkidle" });
+    await page.getByRole("heading", { name: "Send me my score" }).waitFor();
+    await page.getByLabel("Email").fill("visual-check@example.com");
+    await page.getByRole("button", { name: "Email my score" }).click();
+    await page.getByText("Sent. Check your inbox (and spam, just in case).").waitFor();
+    await shoot(page, path.join(dir, `report-send-sent-${viewport.name}.png`));
+    await context.close();
+  }
+
+  {
+    const context = await browser.newContext({ viewport });
+    const page = await context.newPage();
+    await preparePage(page);
+    await page.route("**/functions/v1/capture-report-lead", (route) =>
+      route.fulfill({
+        status: 502,
+        contentType: "application/json",
+        headers: { "Access-Control-Allow-Origin": "*" },
+        body: JSON.stringify({ error: "gmail_send_failed" }),
+      }),
+    );
+    await page.goto(`${baseUrl}/r/${PUBLIC_TOKEN}${q}`, { waitUntil: "networkidle" });
+    await page.getByRole("heading", { name: "Send me my score" }).waitFor();
+    await page.getByLabel("Email").fill("visual-check@example.com");
+    await page.getByRole("button", { name: "Email my score" }).click();
+    await page.getByText("We couldn't send that just now. Please try again.").waitFor();
+    if ((await page.getByRole("button", { name: "Email my score" }).count()) !== 1) {
+      throw new Error("Send-score error state hid the retry button");
+    }
+    await shoot(page, path.join(dir, `report-send-error-${viewport.name}.png`));
+    await context.close();
   }
 }
 

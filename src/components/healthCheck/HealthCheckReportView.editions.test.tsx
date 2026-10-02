@@ -85,6 +85,8 @@ describe("HealthCheckReportView editions", () => {
     expect(primary.getAttribute("href")).toContain(
       `website=${encodeURIComponent("https://confires.co.uk")}`,
     );
+    expect(getByText("Send me my score")).toBeTruthy();
+    expect(getByText("Also send me occasional marketing tips")).toBeTruthy();
     unmount();
   });
 
@@ -108,6 +110,7 @@ describe("HealthCheckReportView editions", () => {
     expect(queryByText("Your reputation's ahead of your marketing.")).toBeNull();
     expect(queryByText("You're in good shape.")).toBeNull();
     expect(queryByText("You're at the building stage.")).toBeNull();
+    expect(queryByText("Send me my score")).toBeNull();
     unmount();
   });
 

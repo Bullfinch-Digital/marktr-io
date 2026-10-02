@@ -38,6 +38,7 @@ import { resolveScopedBrandId } from "../lib/brandScopedReads";
 import { fetchLatestHealthCheck, resolveBrandIdForHealthWrite } from "../lib/healthCheckPersistence";
 import { buildPriorRunPayload } from "../lib/healthCheckPriorRun";
 import { fetchBrandStoryPillarForHealth } from "../lib/healthCheckPillarContext";
+import { scanErrorCode, track } from "../lib/bullfinchAnalytics";
 import { useEdition } from "../contexts/EditionContext";
 import { getStoredUtms } from "../lib/utmCapture";
 import { useEditionDocumentMeta } from "../hooks/useEditionDocumentMeta";
@@ -193,6 +194,11 @@ export default function HealthCheck() {
   const runGuestIdentityAndProceed = async () => {
     if (preparingScan || awaitingTurnstileRef.current) return;
     setScanError(null);
+    if (edition === "bullfinch") {
+      track("bf_check_start", {
+        has_social: Boolean(formData.instagramHandle.trim() || formData.facebookUrl.trim()),
+      });
+    }
 
     const identityVisible =
       !isLoggedIn &&
@@ -252,6 +258,7 @@ export default function HealthCheck() {
       }
       if (!scoreToken) {
         setScanError(SCAN_VERIFY_MESSAGE);
+        track("bf_check_error", { code: "turnstile" });
         return;
       }
     }
@@ -270,6 +277,7 @@ export default function HealthCheck() {
           const captureToken = (await scanTurnstileRef.current?.refreshToken()) ?? null;
           if (!captureToken) {
             setScanError(SCAN_VERIFY_MESSAGE);
+            track("bf_check_error", { code: "turnstile" });
             return;
           }
           await captureGuestLeadOnce({
@@ -407,6 +415,7 @@ export default function HealthCheck() {
       });
 
       let scanFailureMessage: string | null = null;
+      let failureCode: "turnstile" | "scan_failed" | "throttled" | null = null;
 
       const apiPromise = (async () => {
         if (!formData.websiteUrl?.trim()) {
@@ -466,6 +475,10 @@ export default function HealthCheck() {
           } | null;
           if (invokeError || payload?.error || payload?.facts === undefined) {
             scanFailureMessage = describeScoreWebsiteFailure(invokeError, payload);
+            failureCode = scanErrorCode(
+              (invokeError as { context?: { status?: number } } | null)?.context?.status,
+              payload,
+            );
             return;
           }
           publicToken =
@@ -515,6 +528,7 @@ export default function HealthCheck() {
           };
         } catch {
           scanFailureMessage = SCAN_RETRY_MESSAGE;
+          failureCode = "scan_failed";
         } finally {
           if (scoreInFlightKeyRef.current === scoreInputKey) {
             scoreInFlightKeyRef.current = null;
@@ -534,6 +548,9 @@ export default function HealthCheck() {
 
       if (!websiteScore) {
         setScanError(scanFailureMessage ?? SCAN_RETRY_MESSAGE);
+        if (editionRef.current === "bullfinch") {
+          track("bf_check_error", { code: failureCode ?? "scan_failed" });
+        }
         setStep("inputs");
         return;
       }
@@ -541,11 +558,13 @@ export default function HealthCheck() {
       if (editionRef.current === "bullfinch") {
         if (!publicToken) {
           setScanError(SCAN_RETRY_MESSAGE);
+          track("bf_check_error", { code: "scan_failed" });
           setStep("inputs");
           return;
         }
         navigate(`/r/${encodeURIComponent(publicToken)}${window.location.search}`, {
           replace: true,
+          state: { reportSource: "scan" },
         });
         return;
       }

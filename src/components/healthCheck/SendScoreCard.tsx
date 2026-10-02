@@ -1,6 +1,8 @@
 import { Loader2 } from "lucide-react";
 import { useRef, useState } from "react";
 import { supabase } from "../../config/supabase";
+import { track } from "../../lib/bullfinchAnalytics";
+import type { BfRoute } from "../../lib/bullfinchRouting";
 import type { EditionConfig } from "../../lib/editionConfig";
 import { sendScoreOutcome } from "../../lib/sendScoreOutcome";
 import { ScanTurnstile, type ScanTurnstileHandle } from "./ScanTurnstile";
@@ -13,10 +15,12 @@ export function SendScoreCard({
   publicToken,
   copy,
   privacyUrl,
+  route = null,
 }: {
   publicToken: string;
   copy: SendScoreCopy;
   privacyUrl: string;
+  route?: BfRoute | null;
 }) {
   const turnstileRef = useRef<ScanTurnstileHandle>(null);
   const busyRef = useRef(false);
@@ -58,6 +62,9 @@ export function SendScoreCard({
         setPhase("error");
         void turnstileRef.current?.refreshToken();
         return;
+      }
+      if (route) {
+        track("bf_email_capture", { route, marketing_opt_in: marketingOptIn });
       }
       setPhase("sent");
     } catch {

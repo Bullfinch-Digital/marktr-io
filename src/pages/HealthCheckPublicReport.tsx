@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 import { HealthCheckReportView } from "../components/healthCheck/HealthCheckReportView";
 import { supabase } from "../config/supabase";
 import { useEdition } from "../contexts/EditionContext";
@@ -8,9 +8,11 @@ import {
   mapPublicHealthCheckReport,
   type PublicHealthCheckReportView,
 } from "../lib/healthCheck/publicReport";
+import { trackReportArrival, whenAnalyticsConsented } from "../lib/bullfinchAnalytics";
 
 export default function HealthCheckPublicReport() {
   const { token } = useParams();
+  const location = useLocation();
   const { config } = useEdition();
   useEditionDocumentMeta("healthCheckReport");
   const [status, setStatus] = useState<"loading" | "missing" | "error" | "ready">(
@@ -54,6 +56,22 @@ export default function HealthCheckPublicReport() {
       cancelled = true;
     };
   }, [token]);
+
+  useEffect(() => {
+    if (status !== "ready" || !view) return;
+    const fromScan =
+      (location.state as { reportSource?: string } | null)?.reportSource === "scan";
+    const hasSocial = Boolean(view.input.instagramHandle?.trim() || view.input.facebookUrl?.trim());
+    return whenAnalyticsConsented(() => {
+      trackReportArrival({
+        token: token?.trim() ?? "",
+        fromScan,
+        overall: view.scores.overall,
+        route: view.bfRoute,
+        hasSocial,
+      });
+    });
+  }, [status, view, location.state, token]);
 
   if (status === "loading") {
     return (

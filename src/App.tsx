@@ -50,6 +50,8 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import CookiePolicy from "./pages/CookiePolicy";
 import { CookieConsentBanner } from "./components/legal/CookieConsentBanner";
+import { trackBullfinchPageView } from "./lib/bullfinchAnalytics";
+import { applyBullfinchDocumentTitle } from "./lib/editionDocumentTitle";
 import { hasAnalyticsConsent } from "./lib/cookieConsent";
 import { useEdition } from "./contexts/EditionContext";
 import OnboardingLayout from "./layouts/OnboardingLayout";
@@ -69,6 +71,12 @@ function GA4RouteTracker() {
       const pagePath = `${location.pathname}${location.search}${location.hash}`;
       if (lastTrackedPath === pagePath) return;
       lastTrackedPath = pagePath;
+
+      if (edition === "bullfinch") {
+        const title = applyBullfinchDocumentTitle(location.pathname) ?? document.title;
+        trackBullfinchPageView({ measurementId: config.ga4Id, title });
+        return;
+      }
 
       const gtag = (window as Window & { gtag?: (...args: unknown[]) => void }).gtag;
       if (!gtag) return;

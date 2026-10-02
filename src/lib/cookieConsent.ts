@@ -2,6 +2,7 @@
 
 import { getEdition, type Edition } from "./edition";
 import { editionConfig } from "./editionConfig";
+import { applyBullfinchDocumentTitle } from "./editionDocumentTitle";
 
 export const COOKIE_CONSENT_STORAGE_KEY = "marktr_cookie_consent_v1";
 export const GA_MEASUREMENT_ID = "G-0EFXQPEYY6";
@@ -112,6 +113,7 @@ export function ga4ConfigFields(
 
 function enableAnalytics(): void {
   const edition = getEdition();
+  applyBullfinchDocumentTitle();
   const measurementId = editionConfig[edition].ga4Id;
   if (!measurementId) return;
   const otherId =

@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { editionConfig } from "./editionConfig";
 import { COOKIE_CONSENT_STORAGE_KEY, ga4ConfigFields, initCookieConsent, saveCookieConsent } from "./cookieConsent";
+import { applyBullfinchDocumentTitle } from "./editionDocumentTitle";
 import {
   analyticsUrl,
   bullfinchPageView,
@@ -123,6 +124,26 @@ describe("bullfinch analytics", () => {
     expect(analyticsUrl("https://check.bullfinchdigital.com/r/secret-token?utm_source=email")).toBe(
       "https://check.bullfinchdigital.com/r/?utm_source=email",
     );
+  });
+
+  it("sets the Bullfinch document title before gtag config", () => {
+    document.title = "marktr — your marketing team, built in";
+    setPath("/?edition=bullfinch");
+    const titlesAtConfig: string[] = [];
+    (window as Window & { gtag?: (...args: unknown[]) => void }).gtag = (...args: unknown[]) => {
+      if (args[0] === "config") titlesAtConfig.push(document.title);
+    };
+    initCookieConsent();
+    saveCookieConsent(true);
+    expect(titlesAtConfig).toEqual([editionConfig.bullfinch.titles.healthCheck]);
+
+    setPath(`/r/${"d".repeat(24)}?edition=bullfinch`);
+    expect(applyBullfinchDocumentTitle()).toBe(editionConfig.bullfinch.titles.healthCheckReport);
+
+    setPath("/");
+    document.title = "marktr — your marketing team, built in";
+    expect(applyBullfinchDocumentTitle()).toBeNull();
+    expect(document.title).toBe("marktr — your marketing team, built in");
   });
 
   it("loads one GA4 property, and only after analytics consent", () => {

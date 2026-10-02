@@ -63,6 +63,16 @@ function scoreNumber(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
+async function successfulSendEmails(reportId: string): Promise<string[] | null> {
+  const { data, error } = await supabase
+    .from("health_check_report_sends")
+    .select("email")
+    .eq("report_id", reportId)
+    .eq("ok", true);
+  if (error) return null;
+  return (data ?? []).map((row: { email?: string | null }) => row.email ?? "");
+}
+
 async function countRecentSends(
   column: "report_id" | "client_ip",
   value: string,
@@ -115,7 +125,8 @@ serve(async (req) => {
     const since = new Date(Date.now() - SEND_WINDOW_MS).toISOString();
     const recentReportSends = row ? await countRecentSends("report_id", row.id, since) : 0;
     const recentIpSends = row && clientIp ? await countRecentSends("client_ip", clientIp, since) : 0;
-    if (recentReportSends === null || recentIpSends === null) {
+    const successfulEmails = row ? await successfulSendEmails(row.id) : [];
+    if (recentReportSends === null || recentIpSends === null || successfulEmails === null) {
       console.error("capture-report-lead send count failed");
       return json({ error: "server_error" }, 500);
     }
@@ -128,6 +139,7 @@ serve(async (req) => {
       leadEmail: row?.lead_email ?? null,
       recentReportSends,
       recentIpSends,
+      successfulEmails,
     });
 
     if (!decision.ok) {

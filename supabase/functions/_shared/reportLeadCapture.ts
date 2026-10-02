@@ -44,6 +44,16 @@ export function businessDisplayName(stored: string | null | undefined, domain: s
   return storedBusinessName(stored) || domain;
 }
 
+export function normaliseLeadEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
+
+/** True when this report already has a successful send to the same address. */
+export function emailAlreadySent(email: string, successfulEmails: readonly string[]): boolean {
+  const entered = normaliseLeadEmail(email);
+  return successfulEmails.some((value) => normaliseLeadEmail(value) === entered);
+}
+
 export type CaptureInternal = "full" | "resend" | "none";
 
 export type CaptureDecision =
@@ -58,25 +68,28 @@ export function decideCapture(opts: {
   leadEmail: string | null;
   recentReportSends: number;
   recentIpSends: number;
+  /** Addresses with ok = true on health_check_report_sends for this report. */
+  successfulEmails: readonly string[];
 }): CaptureDecision {
   if (!opts.originAllowed) return { ok: false, status: 403, error: "origin_not_allowed" };
   if (!opts.turnstileOk) return { ok: false, status: 403, error: "turnstile_failed" };
   if (!opts.reportFound) return { ok: false, status: 404, error: "not_found" };
-  if (!isValidLeadEmail(opts.email)) return { ok: false, status: 400, error: "email_invalid" };
+  const entered = normaliseLeadEmail(opts.email);
+  if (!isValidLeadEmail(entered)) return { ok: false, status: 400, error: "email_invalid" };
   if (
     opts.recentReportSends >= SENDS_PER_REPORT_PER_HOUR ||
     opts.recentIpSends >= SENDS_PER_IP_PER_HOUR
   ) {
     return { ok: false, status: 429, error: "throttled" };
   }
-  const entered = opts.email.trim().toLowerCase();
-  const first = opts.leadEmail?.trim().toLowerCase() ?? "";
+  const first = opts.leadEmail ? normaliseLeadEmail(opts.leadEmail) : "";
   if (!first) return { ok: true, send: true, setLead: true, internal: "full" };
+  const alreadySent = emailAlreadySent(entered, opts.successfulEmails);
   return {
     ok: true,
     send: true,
     setLead: false,
-    internal: first === entered ? "none" : "resend",
+    internal: alreadySent || first === entered ? "none" : "resend",
   };
 }
 

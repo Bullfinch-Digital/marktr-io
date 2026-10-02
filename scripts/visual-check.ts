@@ -644,6 +644,15 @@ async function captureBullfinch(
         }
       }
       await page.getByRole("heading", { name: "Send me my score" }).waitFor();
+      await page
+        .getByText(
+          "We'll email your report, and Jon may get in touch about your results. You can ask us to stop at any time.",
+        )
+        .waitFor();
+      const policyHref = await page.getByRole("link", { name: "Privacy policy." }).getAttribute("href");
+      if (policyHref !== "https://bullfinchdigital.com/privacy/") {
+        throw new Error(`Send-score privacy link was ${policyHref}`);
+      }
       const tips = page.getByRole("checkbox", { name: "Also send me occasional marketing tips" });
       if (await tips.isChecked()) {
         throw new Error("Send-score marketing checkbox should start unticked");

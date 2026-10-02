@@ -6,6 +6,7 @@ import {
   businessDisplayName,
   captureFailureBody,
   decideCapture,
+  emailAlreadySent,
   emailContactUrl,
   emailMarktrUrl,
   isReportLeadOrigin,
@@ -39,6 +40,7 @@ const baseDecision = {
   leadEmail: null as string | null,
   recentReportSends: 0,
   recentIpSends: 0,
+  successfulEmails: [] as string[],
 };
 
 function visitor(overrides: Partial<VisitorEmailInput> = {}): VisitorEmailInput {
@@ -79,6 +81,38 @@ describe("capture decision", () => {
       recentReportSends: 1,
     });
     expect(newAddress).toEqual({ ok: true, send: true, setLead: false, internal: "resend" });
+  });
+
+  it("sends the re-send note once for hello+typo@ then hello@ then hello@ again", () => {
+    const typo = "hello+typo@bullfinchdigital.com";
+    const corrected = "hello@bullfinchdigital.com";
+
+    const first = decideCapture({
+      ...baseDecision,
+      email: typo,
+      successfulEmails: [],
+    });
+    expect(first).toEqual({ ok: true, send: true, setLead: true, internal: "full" });
+
+    const second = decideCapture({
+      ...baseDecision,
+      leadEmail: typo,
+      email: corrected,
+      recentReportSends: 1,
+      successfulEmails: [typo],
+    });
+    expect(second).toEqual({ ok: true, send: true, setLead: false, internal: "resend" });
+    expect(emailAlreadySent(corrected, [typo])).toBe(false);
+
+    const third = decideCapture({
+      ...baseDecision,
+      leadEmail: typo,
+      email: "  Hello@bullfinchdigital.com  ",
+      recentReportSends: 2,
+      successfulEmails: [typo, corrected],
+    });
+    expect(third).toEqual({ ok: true, send: true, setLead: false, internal: "none" });
+    expect(emailAlreadySent("  Hello@bullfinchdigital.com  ", [corrected])).toBe(true);
   });
 
   it("allows three sends per report per hour and throttles the fourth", () => {
@@ -156,6 +190,16 @@ describe("capture decision", () => {
 
 describe("score email templates", () => {
   const copy = editionConfig.bullfinch.scoreEmail!;
+
+  it("states that Jon may get in touch, with the privacy policy linked", () => {
+    const card = editionConfig.bullfinch.sendScore;
+    expect(card?.heading).toBe("Send me my score");
+    expect(card?.marketingOptIn).toBe("Also send me occasional marketing tips");
+    expect(`${card?.consent} ${card?.privacyLabel}`).toBe(
+      "We'll email your report, and Jon may get in touch about your results. You can ask us to stop at any time. Privacy policy.",
+    );
+    expect(editionConfig.bullfinch.privacyUrl).toBe("https://bullfinchdigital.com/privacy/");
+  });
 
   it("keeps the copy on the Bullfinch edition only", () => {
     expect(editionConfig.marktr.sendScore).toBeUndefined();
@@ -249,6 +293,7 @@ describe("score email templates", () => {
     expect(note.text).toContain("Website: https://example.com");
     expect(note.text).toContain("Email: ada@example.com");
     expect(note.text).toContain("Marketing opt-in: no");
+    expect(note.text).toContain("Follow-up: OK to contact (submitted email)");
     expect(note.text).toContain("Social score: Not checked");
     expect(note.text).toContain("UTMs: utm_campaign=phase4-test, utm_source=healthcheck");
     expect(note.text).not.toContain("Based on your website and story");
@@ -282,6 +327,7 @@ describe("score email templates", () => {
     });
     expect(note.text).toBe("Phase 4 test 3: report re-sent to a new address other@example.com");
     expect(note.subject).toBe(note.text);
+    expect(note.text).not.toContain("Follow-up:");
     const fallback = renderResendNote({
       businessName: null,
       domain: "example.com",

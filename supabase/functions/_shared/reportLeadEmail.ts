@@ -285,6 +285,7 @@ export function renderInternalLeadEmail(
     `Email: ${input.email}`,
     `First name: ${input.firstName?.trim() || "—"}`,
     `Marketing opt-in: ${input.marketingOptIn ? "yes" : "no"}`,
+    "Follow-up: OK to contact (submitted email)",
     `Website score: ${scoreText(input.website, false, copy)}`,
     `Brand story score: ${scoreText(input.brandStory, false, copy)}`,
     `Social score: ${scoreText(input.social, input.socialNotChecked, copy)}`,
@@ -304,7 +305,7 @@ export function renderInternalLeadEmail(
   };
 }
 
-/** One line for a later send to an address other than the first one on record. */
+/** One line the first time a later send goes to an address this report has not already reached. */
 export function renderResendNote(input: {
   businessName: string | null;
   domain: string;

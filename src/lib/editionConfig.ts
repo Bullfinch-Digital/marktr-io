@@ -221,7 +221,8 @@ export const editionConfig: Record<Edition, EditionConfig> = {
       emailLabel: "Email",
       firstNameLabel: "First name (optional)",
       marketingOptIn: "Also send me occasional marketing tips",
-      consent: "We'll email your report and won't share your details.",
+      consent:
+        "We'll email your report, and Jon may get in touch about your results. You can ask us to stop at any time.",
       privacyLabel: "Privacy policy.",
       button: "Email my score",
       checking: "Checking…",

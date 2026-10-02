@@ -8,7 +8,7 @@ import {
   mapPublicHealthCheckReport,
   type PublicHealthCheckReportView,
 } from "../lib/healthCheck/publicReport";
-import { track, whenAnalyticsConsented } from "../lib/bullfinchAnalytics";
+import { trackReportArrival, whenAnalyticsConsented } from "../lib/bullfinchAnalytics";
 
 export default function HealthCheckPublicReport() {
   const { token } = useParams();
@@ -59,22 +59,19 @@ export default function HealthCheckPublicReport() {
 
   useEffect(() => {
     if (status !== "ready" || !view) return;
-    const source =
-      (location.state as { reportSource?: string } | null)?.reportSource === "scan"
-        ? "scan"
-        : "link";
+    const fromScan =
+      (location.state as { reportSource?: string } | null)?.reportSource === "scan";
     const hasSocial = Boolean(view.input.instagramHandle?.trim() || view.input.facebookUrl?.trim());
     return whenAnalyticsConsented(() => {
-      track("bf_report_view", { source });
-      if (source === "scan" && view.bfRoute) {
-        track("bf_check_complete", {
-          overall: view.scores.overall,
-          route: view.bfRoute,
-          has_social: hasSocial,
-        });
-      }
+      trackReportArrival({
+        token: token?.trim() ?? "",
+        fromScan,
+        overall: view.scores.overall,
+        route: view.bfRoute,
+        hasSocial,
+      });
     });
-  }, [status, view, location.state]);
+  }, [status, view, location.state, token]);
 
   if (status === "loading") {
     return (

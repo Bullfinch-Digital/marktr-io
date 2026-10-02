@@ -519,7 +519,7 @@ function StoredNextStep({
         rel="noopener noreferrer"
         onClick={() => {
           const target = ctaTarget(step.primary.href);
-          if (target) track("bf_cta_click", { route, target });
+          if (target) track("bf_cta_click", { route, target }, { beacon: true });
         }}
       >
         {step.primary.label}
@@ -531,7 +531,7 @@ function StoredNextStep({
           rel="noopener noreferrer"
           onClick={() => {
             const target = ctaTarget(step.secondary.href);
-            if (target) track("bf_cta_click", { route, target });
+            if (target) track("bf_cta_click", { route, target }, { beacon: true });
           }}
         >
           {step.secondary.label}

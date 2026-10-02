@@ -47,6 +47,38 @@ export function bullfinchPageView(url: {
   };
 }
 
+/** Replace a /r/{token} path in a page URL or referrer. Query string is kept. */
+export function stripReportToken(href: string): string {
+  if (!href) return "";
+  try {
+    const url = new URL(href);
+    return bullfinchPageView(url).page_location;
+  } catch {
+    return href.replace(/\/r\/[^/?#]+/g, "/r/");
+  }
+}
+
+const SCAN_SEEN_PREFIX = "bf_scan_seen:";
+
+/** scan only the first time this report is opened from a scan. Refresh and email links are link. */
+export function reportArrivalSource(token: string, fromScan: boolean): "scan" | "link" {
+  if (!fromScan || !token) return "link";
+  try {
+    if (sessionStorage.getItem(SCAN_SEEN_PREFIX + token) === "1") return "link";
+  } catch {
+    return "scan";
+  }
+  return "scan";
+}
+
+function markScanReportSeen(token: string): void {
+  try {
+    sessionStorage.setItem(SCAN_SEEN_PREFIX + token, "1");
+  } catch {
+    /* sessionStorage can throw in private mode; the events already fired. */
+  }
+}
+
 /** Vercel pageviews have no custom properties. Strip a Bullfinch report token from the URL. */
 export function analyticsUrl(href: string): string {
   if (getEdition() !== "bullfinch") return href;
@@ -115,16 +147,76 @@ function gtag(): GtagFn | undefined {
   return (window as Window & { gtag?: GtagFn }).gtag;
 }
 
-/** Bullfinch events only. Does nothing until analytics consent, and never on marktr. */
-export function track(name: string, params: Record<string, unknown> = {}): void {
+/** Hit-level dl/dr. Must run before every Bullfinch event so the token never leaves the browser. */
+export function setBullfinchGaLocation(): void {
   if (getEdition() !== "bullfinch") return;
-  if (!hasAnalyticsConsent()) return;
   const send = gtag();
   if (!send) return;
+  const view = bullfinchPageView(window.location);
+  send("set", {
+    page_location: view.page_location,
+    page_referrer: stripReportToken(document.referrer),
+  });
+}
+
+/** Bullfinch events only. Does nothing until analytics consent, and never on marktr. */
+export function track(
+  name: string,
+  params: Record<string, unknown> = {},
+  options?: { beacon?: boolean },
+): boolean {
+  if (getEdition() !== "bullfinch") return false;
+  if (!hasAnalyticsConsent()) return false;
+  const send = gtag();
+  if (!send) return false;
+  setBullfinchGaLocation();
   send("event", name, {
     ...sanitizeEventParams(params),
+    ...(options?.beacon ? { transport_type: "beacon" } : {}),
     send_to: BULLFINCH_GA4_ID,
   });
+  return true;
+}
+
+/** Sets the hit location first, then sends one page_view. marktr does not use this. */
+export function trackBullfinchPageView(input: {
+  measurementId: string;
+  title: string;
+}): boolean {
+  if (getEdition() !== "bullfinch") return false;
+  if (!hasAnalyticsConsent()) return false;
+  const send = gtag();
+  if (!send) return false;
+  setBullfinchGaLocation();
+  const view = bullfinchPageView(window.location);
+  send("event", "page_view", {
+    send_to: input.measurementId,
+    page_title: input.title,
+    page_location: view.page_location,
+    page_path: view.page_path,
+    edition: "bullfinch",
+  });
+  return true;
+}
+
+/** First open after a scan is source scan plus a completion. Later loads of that token are link only. */
+export function trackReportArrival(input: {
+  token: string;
+  fromScan: boolean;
+  overall: number;
+  route: string | null;
+  hasSocial: boolean;
+}): void {
+  const source = reportArrivalSource(input.token, input.fromScan);
+  const sent = track("bf_report_view", { source });
+  if (source === "scan" && input.route) {
+    track("bf_check_complete", {
+      overall: input.overall,
+      route: input.route,
+      has_social: input.hasSocial,
+    });
+  }
+  if (source === "scan" && sent) markScanReportSeen(input.token);
 }
 
 /** Run now, and again if the visitor accepts analytics after the page has loaded. */

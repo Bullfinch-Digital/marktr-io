@@ -5,9 +5,12 @@ import {
   analyticsUrl,
   bullfinchPageView,
   ctaTarget,
+  reportArrivalSource,
   sanitizeEventParams,
   scanErrorCode,
   track,
+  trackBullfinchPageView,
+  trackReportArrival,
 } from "./bullfinchAnalytics";
 
 const BULLFINCH_ID = editionConfig.bullfinch.ga4Id;
@@ -26,6 +29,7 @@ function grantAnalytics() {
 
 afterEach(() => {
   localStorage.clear();
+  sessionStorage.clear();
   document.head.querySelectorAll('script[src*="googletagmanager"]').forEach((node) => node.remove());
   delete (window as Window & { gtag?: unknown; dataLayer?: unknown }).gtag;
   delete (window as Window & { dataLayer?: unknown }).dataLayer;
@@ -43,8 +47,9 @@ describe("bullfinch analytics", () => {
 
     grantAnalytics();
     track("bf_check_start", { has_social: true, email: "ada@example.com", website: "https://example.com" });
-    expect(gtag).toHaveBeenCalledTimes(1);
-    expect(gtag.mock.calls[0]).toEqual([
+    expect(gtag).toHaveBeenCalledTimes(2);
+    expect(gtag.mock.calls[0][0]).toBe("set");
+    expect(gtag.mock.calls[1]).toEqual([
       "event",
       "bf_check_start",
       { has_social: true, send_to: BULLFINCH_ID },
@@ -157,6 +162,69 @@ describe("bullfinch analytics", () => {
     );
     expect(scripts.some((src) => src.includes(BULLFINCH_ID))).toBe(false);
     expect(scripts.filter((src) => src.includes(MARKTR_ID))).toHaveLength(1);
+  });
+
+  it("sets a token-free page location and referrer before any Bullfinch hit", () => {
+    const token = "a".repeat(43);
+    const referrerToken = "b".repeat(32);
+    setPath(`/r/${token}?edition=bullfinch&utm_campaign=phase5`);
+    const referrer = `https://check.bullfinchdigital.com/r/${referrerToken}?utm_source=email`;
+    const descriptor = Object.getOwnPropertyDescriptor(Document.prototype, "referrer");
+    Object.defineProperty(document, "referrer", { configurable: true, get: () => referrer });
+    grantAnalytics();
+    const gtag = vi.fn();
+    (window as Window & { gtag?: typeof gtag }).gtag = gtag;
+
+    trackBullfinchPageView({ measurementId: BULLFINCH_ID, title: "Report" });
+    track("bf_email_capture", { route: "talk", marketing_opt_in: false });
+    track("bf_cta_click", { route: "talk", target: "contact" }, { beacon: true });
+
+    const payload = JSON.stringify(gtag.mock.calls);
+    expect(payload).not.toMatch(/\/r\/[A-Za-z0-9_-]{20,}/);
+    expect(payload).toContain("utm_campaign=phase5");
+    expect(payload).toContain("utm_source=email");
+    expect(payload).toContain('"transport_type":"beacon"');
+    expect(gtag.mock.calls[0]).toEqual([
+      "set",
+      {
+        page_location: `${window.location.origin}/r/?edition=bullfinch&utm_campaign=phase5`,
+        page_referrer: "https://check.bullfinchdigital.com/r/?utm_source=email",
+      },
+    ]);
+    expect(gtag.mock.calls[0][0]).toBe("set");
+    expect(gtag.mock.calls[1][0]).toBe("event");
+
+    if (descriptor) Object.defineProperty(document, "referrer", descriptor);
+    else delete (document as { referrer?: string }).referrer;
+  });
+
+  it("counts a scan completion once per report token", () => {
+    setPath("/?edition=bullfinch");
+    grantAnalytics();
+    const gtag = vi.fn();
+    (window as Window & { gtag?: typeof gtag }).gtag = gtag;
+    const token = "c".repeat(43);
+    const arrival = {
+      token,
+      fromScan: true,
+      overall: 60,
+      route: "talk",
+      hasSocial: false,
+    };
+
+    trackReportArrival(arrival);
+    trackReportArrival(arrival);
+    trackReportArrival({ ...arrival, fromScan: false });
+
+    const events = gtag.mock.calls.filter((call) => call[0] === "event");
+    expect(events.map((call) => [call[1], call[2].source ?? call[2].route])).toEqual([
+      ["bf_report_view", "scan"],
+      ["bf_check_complete", "talk"],
+      ["bf_report_view", "link"],
+      ["bf_report_view", "link"],
+    ]);
+    expect(events.some((call) => call[1] === "bf_check_complete" && call !== events[1])).toBe(false);
+    expect(reportArrivalSource(token, true)).toBe("link");
   });
 
   it("shares the Bullfinch cookie domain only on bullfinchdigital.com", () => {

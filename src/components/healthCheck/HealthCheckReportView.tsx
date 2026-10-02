@@ -3,6 +3,7 @@ import { GuestResultsNextStepsCta } from "../guest/GuestResultsNextStepsCta";
 import { SendScoreCard } from "./SendScoreCard";
 import { getLlmFindingForDimension } from "../../lib/healthCheckFindings";
 import { DIMENSION_CAP_FRAMING_COPY } from "../../lib/healthCheck";
+import { ctaTarget, track } from "../../lib/bullfinchAnalytics";
 import { useEdition } from "../../contexts/EditionContext";
 import { editionConfig, fillNextStepHref } from "../../lib/editionConfig";
 import type { BfRoute } from "../../lib/bullfinchRouting";
@@ -516,6 +517,10 @@ function StoredNextStep({
         href={primaryHref}
         className="mt-8 inline-flex items-center justify-center rounded-full bg-primary px-7 py-3 font-body text-sm font-medium text-primary-foreground hover:opacity-90"
         rel="noopener noreferrer"
+        onClick={() => {
+          const target = ctaTarget(step.primary.href);
+          if (target) track("bf_cta_click", { route, target });
+        }}
       >
         {step.primary.label}
       </a>
@@ -524,6 +529,10 @@ function StoredNextStep({
           href={step.secondary.href}
           className="font-body text-sm underline hover:text-foreground"
           rel="noopener noreferrer"
+          onClick={() => {
+            const target = ctaTarget(step.secondary.href);
+            if (target) track("bf_cta_click", { route, target });
+          }}
         >
           {step.secondary.label}
         </a>
@@ -611,6 +620,7 @@ export function HealthCheckReportView({
           publicToken={publicToken}
           copy={config.sendScore}
           privacyUrl={config.privacyUrl}
+          route={bfRoute}
         />
       ) : null}
 

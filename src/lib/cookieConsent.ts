@@ -1,6 +1,6 @@
 /** UK PECR-aligned cookie consent (analytics opt-in). */
 
-import { getEdition } from "./edition";
+import { getEdition, type Edition } from "./edition";
 import { editionConfig } from "./editionConfig";
 
 export const COOKIE_CONSENT_STORAGE_KEY = "marktr_cookie_consent_v1";
@@ -94,11 +94,31 @@ export function applyAnalyticsConsent(granted: boolean): void {
   }
 }
 
+export function usesSharedBullfinchCookieDomain(hostname: string): boolean {
+  const host = hostname.trim().toLowerCase();
+  return host === "bullfinchdigital.com" || host.endsWith(".bullfinchdigital.com");
+}
+
+/** marktr stays send_page_view off. Bullfinch shares cookies with bullfinchdigital.com. */
+export function ga4ConfigFields(
+  edition: Edition,
+  hostname: string,
+): { send_page_view: false; cookie_domain?: string } {
+  if (edition === "bullfinch" && usesSharedBullfinchCookieDomain(hostname)) {
+    return { send_page_view: false, cookie_domain: "bullfinchdigital.com" };
+  }
+  return { send_page_view: false };
+}
+
 function enableAnalytics(): void {
-  const measurementId = editionConfig[getEdition()].ga4Id;
+  const edition = getEdition();
+  const measurementId = editionConfig[edition].ga4Id;
   if (!measurementId) return;
+  const otherId =
+    edition === "bullfinch" ? editionConfig.marktr.ga4Id : editionConfig.bullfinch.ga4Id;
+  if (otherId && document.querySelector(`script[src*="id=${otherId}"]`)) return;
   loadGtagScript(measurementId);
-  gtag()?.("config", measurementId, { send_page_view: false });
+  gtag()?.("config", measurementId, ga4ConfigFields(edition, window.location.hostname));
 }
 
 export function hasAnalyticsConsent(): boolean {

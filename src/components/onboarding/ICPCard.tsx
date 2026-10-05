@@ -75,9 +75,9 @@ export function ICPCard({
         <div className="text-center mb-6 pb-6 border-b border-warm-grey">
           <h2 className="font-['Fraunces'] mb-2">{data.name}</h2>
           {data.industry && (
-            <p className="font-['Inter'] text-sm text-foreground/60 mb-2">{data.industry}</p>
+            <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/60 mb-2">{data.industry}</p>
           )}
-          <p className="font-['Inter'] text-[15px] text-foreground/70 italic">{data.description}</p>
+          <p className="font-['Plus_Jakarta_Sans'] text-[15px] text-foreground/70 italic">{data.description}</p>
         </div>
 
         {/* Free Sections */}
@@ -88,7 +88,7 @@ export function ICPCard({
               {/* Goals & Motivations */}
               <div>
                 <h3 className="font-['Fraunces'] mb-3">Goals & Motivations</h3>
-                <ul className="space-y-2 font-['Inter'] text-[15px] text-foreground/80">
+                <ul className="space-y-2 font-['Plus_Jakarta_Sans'] text-[15px] text-foreground/80">
                   {data.goals.map((goal, index) => (
                     <li key={index}>• {goal}</li>
                   ))}
@@ -98,7 +98,7 @@ export function ICPCard({
               {/* Pain Points */}
               <div>
                 <h3 className="font-['Fraunces'] mb-3">Pain Points</h3>
-                <ul className="space-y-2 font-['Inter'] text-[15px] text-foreground/80">
+                <ul className="space-y-2 font-['Plus_Jakarta_Sans'] text-[15px] text-foreground/80">
                   {data.pain_points.map((point, index) => (
                     <li key={index}>• {point}</li>
                   ))}
@@ -109,7 +109,7 @@ export function ICPCard({
               {data.decision_makers && data.decision_makers.length > 0 && (
                 <div>
                   <h3 className="font-['Fraunces'] mb-3">Decision Makers</h3>
-                  <ul className="space-y-2 font-['Inter'] text-[15px] text-foreground/80">
+                  <ul className="space-y-2 font-['Plus_Jakarta_Sans'] text-[15px] text-foreground/80">
                     {data.decision_makers.map((maker, index) => (
                       <li key={index}>• {maker}</li>
                     ))}
@@ -121,7 +121,7 @@ export function ICPCard({
               {data.budget && (
                 <div>
                   <h3 className="font-['Fraunces'] mb-3">Budget</h3>
-                  <p className="font-['Inter'] text-[15px] text-foreground/80">{data.budget}</p>
+                  <p className="font-['Plus_Jakarta_Sans'] text-[15px] text-foreground/80">{data.budget}</p>
                 </div>
               )}
 
@@ -164,7 +164,7 @@ export function ICPCard({
                 {/* Goals & Motivations */}
                 <div>
                   <h3 className="font-['Fraunces'] mb-3">Goals & Motivations</h3>
-                  <ul className="space-y-2 font-['Inter'] text-[15px] text-foreground/80">
+                  <ul className="space-y-2 font-['Plus_Jakarta_Sans'] text-[15px] text-foreground/80">
                     {data.goals.map((goal, index) => (
                       <li key={index}>• {goal}</li>
                     ))}
@@ -174,7 +174,7 @@ export function ICPCard({
                 {/* Pain Points */}
                 <div>
                   <h3 className="font-['Fraunces'] mb-3">Pain Points</h3>
-                  <ul className="space-y-2 font-['Inter'] text-[15px] text-foreground/80">
+                  <ul className="space-y-2 font-['Plus_Jakarta_Sans'] text-[15px] text-foreground/80">
                     {data.pain_points.map((point, index) => (
                       <li key={index}>• {point}</li>
                     ))}
@@ -184,7 +184,7 @@ export function ICPCard({
                 {/* Decision Makers */}
                 <div>
                   <h3 className="font-['Fraunces'] mb-3">Decision Makers</h3>
-                  <ul className="space-y-2 font-['Inter'] text-[15px] text-foreground/80">
+                  <ul className="space-y-2 font-['Plus_Jakarta_Sans'] text-[15px] text-foreground/80">
                     <li>• Decision makers and stakeholders</li>
                   </ul>
                 </div>
@@ -195,7 +195,7 @@ export function ICPCard({
                 {/* Additional locked sections placeholder */}
                 <div>
                   <h3 className="font-['Fraunces'] mb-3">Behaviour & Online Habits</h3>
-                  <ul className="space-y-2 font-['Inter'] text-[15px] text-foreground/80">
+                  <ul className="space-y-2 font-['Plus_Jakarta_Sans'] text-[15px] text-foreground/80">
                     <li>• Active on social platforms daily</li>
                     <li>• Reads industry blogs and newsletters</li>
                   </ul>
@@ -203,7 +203,7 @@ export function ICPCard({
 
                 <div>
                   <h3 className="font-['Fraunces'] mb-3">Brand Affinities</h3>
-                  <ul className="space-y-2 font-['Inter'] text-[15px] text-foreground/80">
+                  <ul className="space-y-2 font-['Plus_Jakarta_Sans'] text-[15px] text-foreground/80">
                     <li>• Popular industry tools and platforms</li>
                     <li>• Follows thought leaders</li>
                   </ul>
@@ -211,7 +211,7 @@ export function ICPCard({
 
                 <div>
                   <h3 className="font-['Fraunces'] mb-3">Messaging That Resonates</h3>
-                  <ul className="space-y-2 font-['Inter'] text-[15px] text-foreground/80">
+                  <ul className="space-y-2 font-['Plus_Jakarta_Sans'] text-[15px] text-foreground/80">
                     <li>• Value-driven language</li>
                     <li>• Results-focused messaging</li>
                   </ul>
@@ -228,7 +228,7 @@ export function ICPCard({
                 <div>
                   <h3 className="font-['Fraunces'] mb-3">Digital Tools & Platforms</h3>
                   <div className="blur-sm select-none pointer-events-none">
-                    <ul className="space-y-2 font-['Inter'] text-[15px] text-foreground/80">
+                    <ul className="space-y-2 font-['Plus_Jakarta_Sans'] text-[15px] text-foreground/80">
                       {data.tech_stack.map((tech, index) => (
                         <li key={index}>• {tech}</li>
                       ))}
@@ -242,7 +242,7 @@ export function ICPCard({
                 <div>
                   <h3 className="font-['Fraunces'] mb-3">Challenges</h3>
                   <div className="blur-sm select-none pointer-events-none">
-                    <ul className="space-y-2 font-['Inter'] text-[15px] text-foreground/80">
+                    <ul className="space-y-2 font-['Plus_Jakarta_Sans'] text-[15px] text-foreground/80">
                       {data.challenges.map((challenge, index) => (
                         <li key={index}>• {challenge}</li>
                       ))}
@@ -269,7 +269,7 @@ export function ICPCard({
                 <div>
                   <h3 className="font-['Fraunces'] mb-3">Opportunities</h3>
                   <div className="blur-sm select-none pointer-events-none">
-                    <ul className="space-y-2 font-['Inter'] text-[15px] text-foreground/80">
+                    <ul className="space-y-2 font-['Plus_Jakarta_Sans'] text-[15px] text-foreground/80">
                       {data.opportunities.map((opportunity, index) => (
                         <li key={index}>• {opportunity}</li>
                       ))}

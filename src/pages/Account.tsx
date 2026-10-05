@@ -264,16 +264,16 @@ export default function Account() {
             <div className="flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
               <div className="flex-1">
-                <h3 className="font-['Inter'] font-semibold text-amber-900 mb-1">
+                <h3 className="font-['Plus_Jakarta_Sans'] font-semibold text-amber-900 mb-1">
                   Your email change is pending.
                 </h3>
-                <p className="font-['Inter'] text-sm text-amber-800">
+                <p className="font-['Plus_Jakarta_Sans'] text-sm text-amber-800">
                   We've sent a confirmation link to:{" "}
                   <span className="font-medium">
                     {user?.user_metadata?.email_change || (user as any)?.new_email}
                   </span>
                 </p>
-                <p className="font-['Inter'] text-sm text-amber-700 mt-1">
+                <p className="font-['Plus_Jakarta_Sans'] text-sm text-amber-700 mt-1">
                   Please check your inbox to complete the update.
                 </p>
               </div>

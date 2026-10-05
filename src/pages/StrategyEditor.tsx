@@ -389,7 +389,7 @@ function StrategyEditorBody() {
               ×
             </button>
             <h2>Save changes before leaving?</h2>
-            <p className="font-['Inter'] text-sm text-foreground/80">
+            <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/80">
               You have unsaved edits to this strategy. Save as a new version, or discard your
               changes.
             </p>
@@ -413,7 +413,7 @@ function StrategyEditorBody() {
       {isDirty ? (
         <div className="fixed inset-x-0 bottom-0 z-40 border-t border-black/15 bg-white/95 backdrop-blur-sm px-6 py-3 shadow-[0_-4px_16px_rgba(0,0,0,0.08)]">
           <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-between gap-3">
-            <span className="font-['Inter'] text-sm text-amber-800">Unsaved changes</span>
+            <span className="font-['Plus_Jakarta_Sans'] text-sm text-amber-800">Unsaved changes</span>
             <div className="flex flex-wrap items-center gap-2">
               <Button
                 type="button"
@@ -442,7 +442,7 @@ function StrategyEditorBody() {
           <Link
             to="/strategy"
             data-allow-navigation={isDirty ? undefined : "true"}
-            className="inline-flex items-center gap-2 font-['Inter'] text-sm text-foreground/70 hover:text-foreground"
+            className="inline-flex items-center gap-2 font-['Plus_Jakarta_Sans'] text-sm text-foreground/70 hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to Strategy
@@ -450,21 +450,21 @@ function StrategyEditorBody() {
         </div>
 
         {loading ? (
-          <p className="font-['Inter'] text-sm text-foreground/60">Loading strategy…</p>
+          <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/60">Loading strategy…</p>
         ) : error || !strategy ? (
           <div className="rounded-design border border-black/15 bg-accent-grey/20 p-6">
-            <p className="font-['Inter'] text-sm text-red-700">{error || "Strategy not found."}</p>
+            <p className="font-['Plus_Jakarta_Sans'] text-sm text-red-700">{error || "Strategy not found."}</p>
           </div>
         ) : (
           <>
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="min-w-0">
                 {isArchived ? (
-                  <span className="inline-flex rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 font-['Inter'] text-[11px] text-amber-900 mb-2">
+                  <span className="inline-flex rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 font-['Plus_Jakarta_Sans'] text-[11px] text-amber-900 mb-2">
                     Archived (read-only)
                   </span>
                 ) : null}
-                <p className="font-['Inter'] text-xs text-foreground/55">
+                <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/55">
                   Version {strategy.version}
                 </p>
               </div>
@@ -496,7 +496,7 @@ function StrategyEditorBody() {
                     variant="outline"
                     disabled={isPermanentDeleting}
                     onClick={() => setPermanentDeleteOpen(true)}
-                    className="border-red-300 text-red-700 hover:bg-red-50 rounded-design font-['Inter'] text-sm gap-1.5"
+                    className="border-red-300 text-red-700 hover:bg-red-50 rounded-design font-['Plus_Jakarta_Sans'] text-sm gap-1.5"
                   >
                     <Trash2 className="h-4 w-4" />
                     Delete permanently

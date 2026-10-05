@@ -88,7 +88,7 @@ export function TagInput({
   return (
     <div className={clsx("space-y-2", className)}>
       {label && (
-        <label className="font-['Inter'] text-sm text-foreground/70">
+        <label className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70">
           {label}
         </label>
       )}
@@ -101,7 +101,7 @@ export function TagInput({
         {tags.map((tag, idx) => (
           <span
             key={`${tag}-${idx}`}
-            className="inline-flex items-center gap-2 rounded-full border border-black px-3 py-1 bg-accent-grey/20 text-sm font-['Inter']"
+            className="inline-flex items-center gap-2 rounded-full border border-black px-3 py-1 bg-accent-grey/20 text-sm font-['Plus_Jakarta_Sans']"
           >
             {tag}
             {!disabled && (
@@ -124,7 +124,7 @@ export function TagInput({
           onPaste={handlePaste}
           disabled={disabled}
           placeholder={tags.length === 0 ? placeholder : ""}
-          className="flex-1 min-w-[120px] bg-transparent outline-none font-['Inter'] text-sm text-foreground placeholder:text-foreground/40"
+          className="flex-1 min-w-[120px] bg-transparent outline-none font-['Plus_Jakarta_Sans'] text-sm text-foreground placeholder:text-foreground/40"
         />
       </div>
     </div>

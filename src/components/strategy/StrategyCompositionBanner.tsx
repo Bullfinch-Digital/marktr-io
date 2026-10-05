@@ -28,7 +28,7 @@ function AimChip({ aim }: { aim: CompositionAim }) {
 
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 font-['Inter'] text-[11px] ${
+      className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 font-['Plus_Jakarta_Sans'] text-[11px] ${
         isDeleted
           ? "border-red-300 bg-red-50 text-red-900"
           : isArchived
@@ -51,7 +51,7 @@ function PersonaChip({ icp }: { icp: CompositionIcp }) {
 
   return (
     <span
-      className={`inline-flex items-center rounded-full border px-2.5 py-1 font-['Inter'] text-[11px] ${
+      className={`inline-flex items-center rounded-full border px-2.5 py-1 font-['Plus_Jakarta_Sans'] text-[11px] ${
         isDeleted
           ? "border-red-300 bg-red-50 text-red-900"
           : isArchived
@@ -78,7 +78,7 @@ function ChipGroup({
   return (
     <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1.5">
       <span
-        className={`font-['Inter'] font-medium text-foreground/50 shrink-0 ${
+        className={`font-['Plus_Jakarta_Sans'] font-medium text-foreground/50 shrink-0 ${
           compact ? "text-[10px]" : "text-xs"
         }`}
       >
@@ -101,7 +101,7 @@ export function StrategyCompositionBanner({
   return (
     <div className={compact ? "space-y-2" : "space-y-3"}>
       <p
-        className={`font-['Inter'] text-foreground/75 ${
+        className={`font-['Plus_Jakarta_Sans'] text-foreground/75 ${
           compact ? "text-xs" : "text-sm"
         }`}
       >
@@ -113,7 +113,7 @@ export function StrategyCompositionBanner({
           {aims.length > 0 ? (
             aims.map((aim) => <AimChip key={aim.lineage_id} aim={aim} />)
           ) : (
-            <span className="font-['Inter'] text-[11px] text-foreground/45">None linked</span>
+            <span className="font-['Plus_Jakarta_Sans'] text-[11px] text-foreground/45">None linked</span>
           )}
         </ChipGroup>
 
@@ -121,20 +121,20 @@ export function StrategyCompositionBanner({
           {icps.length > 0 ? (
             icps.map((icp) => <PersonaChip key={icp.lineage_id} icp={icp} />)
           ) : (
-            <span className="font-['Inter'] text-[11px] text-foreground/45">None linked</span>
+            <span className="font-['Plus_Jakarta_Sans'] text-[11px] text-foreground/45">None linked</span>
           )}
         </ChipGroup>
       </div>
 
       {hasDeleted ? (
-        <p className="font-['Inter'] text-xs text-red-950 bg-red-100 border border-red-300 rounded-design px-3 py-2 max-w-2xl">
+        <p className="font-['Plus_Jakarta_Sans'] text-xs text-red-950 bg-red-100 border border-red-300 rounded-design px-3 py-2 max-w-2xl">
           This strategy targets a permanently deleted aim or persona — it can&apos;t be recovered.
           Review this strategy.
         </p>
       ) : null}
 
       {hasArchived ? (
-        <p className="font-['Inter'] text-xs text-red-900 bg-red-50 border border-red-200 rounded-design px-3 py-2 max-w-2xl">
+        <p className="font-['Plus_Jakarta_Sans'] text-xs text-red-900 bg-red-50 border border-red-200 rounded-design px-3 py-2 max-w-2xl">
           This strategy targets an archived aim or persona — review it before acting on it.
         </p>
       ) : null}

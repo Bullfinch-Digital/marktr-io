@@ -29,7 +29,7 @@ export function BusinessDescriptionScreen({
       <p className="text-foreground/70 max-w-md">Just like you'd explain it to a friend.</p>
 
       {pulledFromStory ? (
-        <p className="text-xs text-muted-foreground font-['DM_Sans']">
+        <p className="text-xs text-muted-foreground font-['Plus_Jakarta_Sans']">
           Pulled from your brand story — edit anything.
         </p>
       ) : null}

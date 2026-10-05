@@ -114,7 +114,7 @@ export default function MyBrands() {
         <div className="mb-8 flex items-center justify-between">
           <div>
             <h1 className="font-['Fraunces'] text-3xl lg:text-4xl mb-2">My Brands</h1>
-            <p className="font-['Inter'] text-foreground/70">
+            <p className="font-['Plus_Jakarta_Sans'] text-foreground/70">
               Manage the business details you use to generate new ICPs.
             </p>
           </div>
@@ -141,7 +141,7 @@ export default function MyBrands() {
           <div className="mb-6 bg-red-50 border border-red-200 rounded-design p-4 flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
             <div className="flex-1">
-              <p className="text-sm text-red-800 font-['Inter']">
+              <p className="text-sm text-red-800 font-['Plus_Jakarta_Sans']">
                 Couldn’t load your brands. {String(error)}
               </p>
             </div>
@@ -162,7 +162,7 @@ export default function MyBrands() {
                 <Building2 className="w-10 h-10 text-foreground" />
               </div>
               <h2 className="font-['Fraunces'] text-2xl mb-3">Add your first brand</h2>
-              <p className="font-['Inter'] text-foreground/70 mb-6">
+              <p className="font-['Plus_Jakarta_Sans'] text-foreground/70 mb-6">
                 Create a brand once, then generate new ICPs without repeating the onboarding flow.
               </p>
               <Button
@@ -185,7 +185,7 @@ export default function MyBrands() {
                   placeholder="Search brands..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 border-black rounded-design font-['Inter']"
+                  className="pl-10 border-black rounded-design font-['Plus_Jakarta_Sans']"
                 />
               </div>
             </div>
@@ -265,7 +265,7 @@ export default function MyBrands() {
                   <h3 className="font-['Fraunces'] text-xl mb-3">
                     You've reached your free collection limit
                   </h3>
-                  <p className="font-['Inter'] text-foreground/70 mb-6">
+                  <p className="font-['Plus_Jakarta_Sans'] text-foreground/70 mb-6">
                     Unlock unlimited collections, advanced organisation, and team collaboration.
                   </p>
                   <Button

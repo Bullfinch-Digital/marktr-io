@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, Check } from "lucide-react";
+import { Check } from "lucide-react";
 
 const benefits = [
   {
@@ -25,81 +25,44 @@ const benefits = [
   },
 ] as const;
 
-const GRID_TEXTURE_STYLE = {
-  backgroundImage:
-    "linear-gradient(to right, rgba(13,24,51,0.05) 1px, transparent 1px), linear-gradient(to bottom, rgba(13,24,51,0.05) 1px, transparent 1px)",
-  backgroundSize: "18px 18px",
-} as const;
-
-const BRAND_STORY_TYPEWRITER =
-  "For the homeowner who wants their property to last — MC Seamless Guttering is the specialist contractor that puts craft before cost.";
-
-function HomeHealthBarsIllustration() {
-  const [barsOn, setBarsOn] = useState(false);
-  useEffect(() => {
-    const id = requestAnimationFrame(() => setBarsOn(true));
-    return () => cancelAnimationFrame(id);
-  }, []);
-  const rows = [
-    { label: "Website", pct: 68, delay: 0 },
-    { label: "Content", pct: 45, delay: 150 },
-    { label: "Audience", pct: 31, delay: 300 },
-    { label: "Engagement", pct: 72, delay: 450 },
-    { label: "Channels", pct: 55, delay: 600 },
-  ] as const;
-  return (
-    <div className="flex h-full flex-col justify-center gap-2.5 px-4 py-3">
-      {rows.map((r) => (
-        <div key={r.label}>
-          <div className="font-['Plus_Jakarta_Sans'] text-[9px] text-[#101A26]">{r.label}</div>
-          <div className="mt-0.5 h-1.5 w-full overflow-hidden rounded-full bg-white/30">
-            <div
-              className="h-full rounded-full bg-[#101A26]/60 transition-[width] duration-700 ease-out"
-              style={{
-                width: barsOn ? `${r.pct}%` : "0%",
-                transitionDelay: `${r.delay}ms`,
-              }}
-            />
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function HomeTypewriterStory() {
-  const [text, setText] = useState("");
-  useEffect(() => {
-    let cancelled = false;
-    const full = BRAND_STORY_TYPEWRITER;
-    const charDelay = Math.max(10, Math.floor(4000 / full.length));
-    const run = async () => {
-      while (!cancelled) {
-        for (let i = 0; i <= full.length; i++) {
-          if (cancelled) return;
-          setText(full.slice(0, i));
-          await new Promise<void>((resolve) => setTimeout(resolve, charDelay));
-        }
-        await new Promise<void>((resolve) => setTimeout(resolve, 2000));
-        if (cancelled) return;
-        setText("");
-        await new Promise<void>((resolve) => setTimeout(resolve, 400));
-      }
-    };
-    void run();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-  return (
-    <div className="mx-4 mt-3 min-h-[80px] rounded-xl bg-white/60 p-4">
-      <p className="font-['Fraunces'] text-sm italic leading-relaxed text-[#101A26]">
-        {text}
-        <span className="home-typewriter-cursor font-['Plus_Jakarta_Sans'] not-italic">|</span>
-      </p>
-    </div>
-  );
-}
+const WAYS_IN = [
+  {
+    step: "01",
+    href: "/onboarding-build",
+    eyebrow: "Know your customer",
+    title: "Start with who you sell to",
+    description:
+      "Define your ideal customer profile once. Every piece of content is written for them, not everyone.",
+    image: "/images/graphics/start-with-your-ideal-customer.png",
+    imageAlt: "Ideal customer profiles in marktr",
+    tags: ["Ideal customer", "Free"],
+    recommended: true,
+  },
+  {
+    step: "02",
+    href: "/health-check",
+    eyebrow: "Check your digital health",
+    title: "See where you stand",
+    description:
+      "Score your digital presence across 5 dimensions — and see exactly where to focus.",
+    image: "/images/graphics/replace-your-agency.png",
+    imageAlt: "Digital health scores in marktr",
+    tags: ["Five scores", "Free"],
+    recommended: false,
+  },
+  {
+    step: "03",
+    href: "/story",
+    eyebrow: "Find your brand story",
+    title: "Say what makes you different",
+    description:
+      "Discover the narrative that makes your business impossible to ignore — in minutes.",
+    image: "/images/graphics/generate-content-in-your-voice.png",
+    imageAlt: "Brand story questions in marktr",
+    tags: ["Brand story", "Free"],
+    recommended: false,
+  },
+] as const;
 
 export default function Home() {
   const [activeBenefit, setActiveBenefit] = useState(0);
@@ -129,78 +92,32 @@ export default function Home() {
         />
         <div className="relative z-10 mx-auto grid min-h-[100dvh] max-w-7xl items-center gap-14 px-6 py-20 lg:grid-cols-5 lg:gap-12 lg:py-10">
           <div className="lg:col-span-3">
-            <span className="mb-6 inline-flex items-center rounded-full border border-[#101A26] bg-[#E8F455] px-4 py-1.5 font-['Plus_Jakarta_Sans'] text-xs font-medium text-[#101A26]">
-              Your marketing team, built in
-            </span>
-
-            <h1 className="max-w-4xl font-['Fraunces'] text-5xl font-bold leading-[1.05] text-[#101A26] sm:text-6xl lg:text-7xl">
-              Marketing that knows your customer.
+            <h1 className="flex max-w-4xl flex-col items-start gap-3">
+              <span className="inline-block rounded-full bg-[#E8F455] px-5 py-2 font-['Fraunces'] text-4xl font-bold leading-none text-[#101A26] sm:px-7 sm:py-3 sm:text-5xl lg:text-6xl">
+                Marketing that
+              </span>
+              <span className="inline-block rounded-full bg-[#E8F455] px-5 py-2 font-['Fraunces'] text-4xl font-bold leading-none text-[#101A26] sm:px-7 sm:py-3 sm:text-5xl lg:text-6xl">
+                knows your customer.
+              </span>
             </h1>
 
-            <p className="mt-7 max-w-2xl font-['Plus_Jakarta_Sans'] text-lg leading-relaxed text-muted-foreground sm:text-xl">
+            <p className="mt-7 max-w-2xl font-['Plus_Jakarta_Sans'] text-lg leading-relaxed text-[#101A26]/80 sm:text-xl">
               Three ways in. One platform. Choose the starting point that speaks to you — each one is free and takes under 5 minutes.
             </p>
 
-            <div className="mt-10 grid max-w-2xl gap-4 sm:grid-cols-3">
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
               <Link
                 to="/onboarding-build"
-                className="group flex flex-col gap-3 rounded-2xl border border-[#101A26]/15 bg-white/90 p-5 text-left shadow-sm backdrop-blur-sm transition-colors hover:border-[#101A26]/40"
+                className="inline-flex items-center justify-center rounded-full bg-[#101A26] px-7 py-3 font-['Plus_Jakarta_Sans'] text-sm font-medium text-white hover:opacity-90"
               >
-                <span className="flex h-10 w-10 items-center justify-center rounded-full border border-[#101A26] font-['Plus_Jakarta_Sans'] text-sm font-medium text-[#101A26]">
-                  01
-                </span>
-                <div>
-                  <p className="font-['Fraunces'] text-base font-bold leading-snug text-[#101A26]">
-                    Know your customer
-                  </p>
-                  <p className="mt-1 font-['Plus_Jakarta_Sans'] text-xs leading-relaxed text-muted-foreground">
-                    Generate your ideal customer profile — free
-                  </p>
-                </div>
-                <span className="mt-auto font-['Plus_Jakarta_Sans'] text-xs font-medium text-primary">
-                  Start free →
-                </span>
+                Know your customer
               </Link>
-
-              <Link
-                to="/health-check"
-                className="group flex flex-col gap-3 rounded-2xl border border-[#101A26]/15 bg-white/90 p-5 text-left shadow-sm backdrop-blur-sm transition-colors hover:border-[#101A26]/40"
+              <a
+                href="#ways-in"
+                className="inline-flex items-center justify-center rounded-full border border-[#101A26] bg-white/70 px-7 py-3 font-['Plus_Jakarta_Sans'] text-sm font-medium text-[#101A26] hover:bg-white"
               >
-                <span className="flex h-10 w-10 items-center justify-center rounded-full border border-[#101A26] font-['Plus_Jakarta_Sans'] text-sm font-medium text-[#101A26]">
-                  02
-                </span>
-                <div>
-                  <p className="font-['Fraunces'] text-base font-bold leading-snug text-[#101A26]">
-                    Check your digital health
-                  </p>
-                  <p className="mt-1 font-['Plus_Jakarta_Sans'] text-xs leading-relaxed text-muted-foreground">
-                    Score your digital presence across 5 dimensions — free
-                  </p>
-                </div>
-                <span className="mt-auto font-['Plus_Jakarta_Sans'] text-xs font-medium text-primary">
-                  Start free →
-                </span>
-              </Link>
-
-              <Link
-                to="/story"
-                className="group flex flex-col gap-3 rounded-2xl border border-[#101A26]/15 bg-white/90 p-5 text-left shadow-sm backdrop-blur-sm transition-colors hover:border-[#101A26]/40"
-              >
-                <span className="flex h-10 w-10 items-center justify-center rounded-full border border-[#101A26] font-['Plus_Jakarta_Sans'] text-sm font-medium text-[#101A26]">
-                  03
-                </span>
-                <div>
-                  <p className="font-['Fraunces'] text-base font-bold leading-snug text-[#101A26]">
-                    Find your brand story
-                  </p>
-                  <p className="mt-1 font-['Plus_Jakarta_Sans'] text-xs leading-relaxed text-muted-foreground">
-                    Discover the story that makes your business impossible to ignore — free
-                  </p>
-                </div>
-                <span className="mt-auto font-['Plus_Jakarta_Sans'] text-xs font-medium text-primary">
-                  Start free →
-                </span>
-              </Link>
+                See how it works
+              </a>
             </div>
 
             <p className="mt-6 font-['Plus_Jakarta_Sans'] text-xs text-muted-foreground">
@@ -265,115 +182,68 @@ export default function Home() {
         </div>
       </section>
 
-      {/* SECTION 3 — Three module cards */}
-      <section id="modules" className="bg-[#FBFAF0] px-6 py-20 lg:py-28">
+      {/* SECTION 3 — Three ways in */}
+      <section id="ways-in" className="bg-[#FBFAF0] px-6 py-20 lg:py-28">
         <div className="mx-auto max-w-6xl text-center">
           <h2 className="mx-auto max-w-4xl font-['Fraunces'] text-4xl font-bold leading-tight text-[#101A26] sm:text-5xl lg:text-6xl">
             Everything your marketing team does.
             <br className="hidden sm:block" />
             Built into one platform.
           </h2>
+          <p className="mx-auto mt-4 max-w-2xl font-['Plus_Jakarta_Sans'] text-base text-[#101A26]/75">
+            Start in any order. Most people begin with their customer.
+          </p>
         </div>
 
-        <div className="mx-auto mt-14 grid max-w-6xl gap-8 lg:grid-cols-3">
-          {/* CARD 1 — Know your customer */}
-          <Link
-            to="/onboarding-build"
-            className="group block cursor-pointer rounded-2xl bg-[var(--feature-amber)] shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
-          >
-            <div
-              className="relative h-[200px] overflow-hidden rounded-t-2xl bg-[#E8D4A0]/55"
-              style={GRID_TEXTURE_STYLE}
-            >
-              <div className="flex h-full items-end justify-between gap-2 px-3 pb-5 pt-8 sm:px-5">
-                <div
-                  className="flex flex-col items-center"
-                  style={{ animation: "float-1 3s ease-in-out infinite" }}
-                >
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#E8650A] font-['Plus_Jakarta_Sans'] text-xs font-bold text-white">
-                    PR
-                  </div>
-                  <span className="mt-2 max-w-[92px] rounded-full bg-white px-2 py-0.5 text-center font-['Plus_Jakarta_Sans'] text-[8px] font-medium leading-tight text-[#101A26]">
-                    Preventative Homeowner
+        <div className="relative mx-auto mt-14 max-w-6xl">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute left-8 right-8 top-9 hidden border-t border-dashed border-[#101A26]/40 lg:block"
+          />
+          <div className="grid gap-8 lg:grid-cols-3">
+            {WAYS_IN.map((way) => (
+              <Link
+                key={way.step}
+                to={way.href}
+                className="relative flex flex-col overflow-hidden rounded-[24px] border border-[#101A26]/10 bg-white shadow-sm transition-transform hover:-translate-y-1"
+              >
+                <div className="relative h-52 overflow-hidden bg-[#FBFAF0]">
+                  <img
+                    src={way.image}
+                    alt={way.imageAlt}
+                    className="h-full w-full object-cover object-top"
+                  />
+                  <span className="absolute left-4 top-4 flex h-10 w-10 items-center justify-center rounded-full border border-[#101A26] bg-[#FBFAF0] font-['Plus_Jakarta_Sans'] text-sm font-medium text-[#101A26]">
+                    {way.step}
                   </span>
                 </div>
-                <div
-                  className="flex flex-col items-center pb-6"
-                  style={{ animation: "float-2 4s ease-in-out infinite" }}
-                >
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#2D7A5F] font-['Plus_Jakarta_Sans'] text-xs font-bold text-white">
-                    RE
+                <div className="flex flex-1 flex-col p-6 text-left">
+                  {way.recommended ? (
+                    <p className="font-['Plus_Jakarta_Sans'] text-[11px] font-medium uppercase tracking-[0.14em] text-[#101A26]/70">
+                      Recommended starting point
+                    </p>
+                  ) : null}
+                  <p className="mt-2 font-['Plus_Jakarta_Sans'] text-[11px] font-medium uppercase tracking-[0.16em] text-[#101A26]/55">
+                    {way.eyebrow}
+                  </p>
+                  <h3 className="mt-2 font-['Fraunces'] text-2xl font-bold text-[#101A26]">{way.title}</h3>
+                  <p className="mt-2 font-['Plus_Jakarta_Sans'] text-sm leading-relaxed text-[#101A26]/80">
+                    {way.description}
+                  </p>
+                  <div className="mt-5 flex flex-wrap gap-2">
+                    {way.tags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="rounded-full border border-[#101A26] bg-[#E8F455] px-3 py-1 font-['Plus_Jakarta_Sans'] text-xs font-medium text-[#101A26]"
+                      >
+                        {tag}
+                      </span>
+                    ))}
                   </div>
-                  <span className="mt-2 max-w-[92px] rounded-full bg-white px-2 py-0.5 text-center font-['Plus_Jakarta_Sans'] text-[8px] font-medium leading-tight text-[#101A26]">
-                    Renovation Specialist
-                  </span>
                 </div>
-                <div
-                  className="flex flex-col items-center pt-4"
-                  style={{ animation: "float-3 3.5s ease-in-out infinite" }}
-                >
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#101A26] font-['Plus_Jakarta_Sans'] text-xs font-bold text-white">
-                    LA
-                  </div>
-                  <span className="mt-2 max-w-[92px] rounded-full bg-white px-2 py-0.5 text-center font-['Plus_Jakarta_Sans'] text-[8px] font-medium leading-tight text-[#101A26]">
-                    Landlord
-                  </span>
-                </div>
-              </div>
-            </div>
-            <div className="p-6">
-              <h3 className="font-['Fraunces'] text-xl font-bold text-[#101A26]">Know your customer</h3>
-              <p className="mt-2 font-['Plus_Jakarta_Sans'] text-sm leading-relaxed text-[#101A26]/85">
-                Define your ideal customer profile once. Every piece of content is written for them, not everyone.
-              </p>
-              <ArrowRight className="mt-4 h-5 w-5 text-[#E8650A]" strokeWidth={2} />
-            </div>
-          </Link>
-
-          {/* CARD 2 — Check your digital health */}
-          <Link
-            to="/health-check"
-            className="group block cursor-pointer rounded-2xl bg-[var(--feature-teal)] shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
-          >
-            <div
-              className="relative h-[200px] overflow-hidden rounded-t-2xl bg-[#B8DDD4]/55"
-              style={GRID_TEXTURE_STYLE}
-            >
-              <HomeHealthBarsIllustration />
-            </div>
-            <div className="p-6">
-              <h3 className="font-['Fraunces'] text-xl font-bold text-[#101A26]">Check your digital health</h3>
-              <p className="mt-2 font-['Plus_Jakarta_Sans'] text-sm leading-relaxed text-[#101A26]/85">
-                Score your digital presence across 5 dimensions — and see exactly where to focus.
-              </p>
-              <ArrowRight className="mt-4 h-5 w-5 text-[#E8650A]" strokeWidth={2} />
-            </div>
-          </Link>
-
-          {/* CARD 3 — Find your brand story */}
-          <Link
-            to="/story"
-            className="group block cursor-pointer rounded-2xl bg-[var(--feature-coral)] shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
-          >
-            <div
-              className="relative h-[200px] overflow-hidden rounded-t-2xl bg-[#E8D0C4]/55"
-              style={GRID_TEXTURE_STYLE}
-            >
-              <div className="px-4 pt-4">
-                <p className="font-['Plus_Jakarta_Sans'] text-[9px] uppercase tracking-widest text-muted-foreground">
-                  YOUR BRAND STORY
-                </p>
-                <HomeTypewriterStory />
-              </div>
-            </div>
-            <div className="p-6">
-              <h3 className="font-['Fraunces'] text-xl font-bold text-[#101A26]">Find your brand story</h3>
-              <p className="mt-2 font-['Plus_Jakarta_Sans'] text-sm leading-relaxed text-[#101A26]/85">
-                Discover the narrative that makes your business impossible to ignore — in minutes.
-              </p>
-              <ArrowRight className="mt-4 h-5 w-5 text-[#E8650A]" strokeWidth={2} />
-            </div>
-          </Link>
+              </Link>
+            ))}
+          </div>
         </div>
       </section>
 

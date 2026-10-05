@@ -9,7 +9,7 @@ export function ClosingMessage() {
           </h2>
 
           {/* Subline */}
-          <div className="text-foreground/70 font-['Inter'] text-[20px] space-y-4">
+          <div className="text-foreground/70 font-['Plus_Jakarta_Sans'] text-[20px] space-y-4">
             <p>
               Stop throwing time and money at audiences who don't care.
             </p>

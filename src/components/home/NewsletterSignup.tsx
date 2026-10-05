@@ -19,7 +19,7 @@ export function NewsletterSignup() {
           <h2 className="font-['Fraunces'] text-3xl md:text-4xl font-bold mb-4">
             Stay Updated
           </h2>
-          <p className="font-['Inter'] text-lg text-foreground/70 mb-8">
+          <p className="font-['Plus_Jakarta_Sans'] text-lg text-foreground/70 mb-8">
             Get the latest tips and insights on building better ICPs.
           </p>
           <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
@@ -28,7 +28,7 @@ export function NewsletterSignup() {
               placeholder="Enter your email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="flex-1 border-black rounded-design font-['Inter']"
+              className="flex-1 border-black rounded-design font-['Plus_Jakarta_Sans']"
               required
             />
             <Button

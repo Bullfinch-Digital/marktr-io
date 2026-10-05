@@ -154,11 +154,11 @@ export function BrandCard({
           <h3 className="font-['Fraunces'] text-xl mb-1 truncate">
             {brand.name || "Untitled Brand"}
           </h3>
-          <p className="font-['Inter'] text-sm text-foreground/70 mb-2">
+          <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70 mb-2">
             {brand.business_type ? `${brand.business_type} • ` : ""}
             {brand.country ? brand.country : "No location set yet"}
           </p>
-          <p className="text-xs text-foreground/50 font-['Inter']">
+          <p className="text-xs text-foreground/50 font-['Plus_Jakarta_Sans']">
             Last updated: {lastUpdated}
           </p>
         </div>

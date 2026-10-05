@@ -133,7 +133,7 @@ export default function Collections() {
                       <h1 className="font-['Fraunces'] text-3xl lg:text-4xl mb-2">
                         Collections
                       </h1>
-                      <p className="font-['Inter'] text-foreground/70 max-w-2xl">
+                      <p className="font-['Plus_Jakarta_Sans'] text-foreground/70 max-w-2xl">
                         Organise your ICPs into groups for campaigns, products, or teams.
                       </p>
                     </div>
@@ -156,7 +156,7 @@ export default function Collections() {
                         placeholder="Search collections..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-10 border-black rounded-design font-['Inter']"
+                        className="pl-10 border-black rounded-design font-['Plus_Jakarta_Sans']"
                       />
                     </div>
                   )}
@@ -174,7 +174,7 @@ export default function Collections() {
                       <h2 className="font-['Fraunces'] text-2xl mb-3">
                         No Collections Yet
                       </h2>
-                      <p className="font-['Inter'] text-foreground/70 mb-6 max-w-md mx-auto">
+                      <p className="font-['Plus_Jakarta_Sans'] text-foreground/70 mb-6 max-w-md mx-auto">
                         Organise your ICPs into groups for campaigns, products, or teams.
                       </p>
                       <Button
@@ -210,7 +210,7 @@ export default function Collections() {
                           <h3 className="font-['Fraunces'] text-xl mb-3">
                             You've reached your free collection limit
                           </h3>
-                          <p className="font-['Inter'] text-foreground/70 mb-6">
+                          <p className="font-['Plus_Jakarta_Sans'] text-foreground/70 mb-6">
                             Unlock unlimited collections, advanced organisation, and team collaboration.
                           </p>
                           <Button
@@ -228,7 +228,7 @@ export default function Collections() {
                 {/* No Results */}
                 {!showEmptyState && filteredCollections.length === 0 && (
                   <div className="text-center py-16">
-                    <p className="font-['Inter'] text-foreground/60">
+                    <p className="font-['Plus_Jakarta_Sans'] text-foreground/60">
                       No collections found matching "{searchQuery}"
                     </p>
                   </div>

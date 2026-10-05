@@ -81,7 +81,7 @@ export function HowItWorks() {
               {/* Card Container */}
               <div className="bg-transparent border border-black rounded-design p-6 pt-16 text-center group hover:shadow-lg transition-all">
                 <h3 className="mb-4 font-['Fraunces'] font-bold text-xl">{step.title}</h3>
-                <div className="text-foreground/80 font-['Inter'] text-left">
+                <div className="text-foreground/80 font-['Plus_Jakarta_Sans'] text-left">
                   <p className="mb-3">{step.intro}</p>
                   
                   {step.bullets.length > 0 && (

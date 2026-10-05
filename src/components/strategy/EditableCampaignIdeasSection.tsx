@@ -54,7 +54,7 @@ export function EditableCampaignIdeasSection({ ideas, isLocked = false, onChange
             className="rounded-design border border-black/15 bg-white p-4 space-y-3"
           >
             <div className="flex items-center justify-between gap-2">
-              <p className="font-['Inter'] text-xs font-medium text-foreground/55">
+              <p className="font-['Plus_Jakarta_Sans'] text-xs font-medium text-foreground/55">
                 Idea {index + 1}
               </p>
               {!isLocked ? (
@@ -90,41 +90,41 @@ export function EditableCampaignIdeasSection({ ideas, isLocked = false, onChange
             </div>
 
             <div className="space-y-2">
-              <label className="font-['Inter'] text-xs text-foreground/60">Name</label>
+              <label className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/60">Name</label>
               <Input
                 value={idea.name}
                 disabled={isLocked}
                 onChange={(e) => updateIdea(index, { name: e.target.value })}
-                className="border-black rounded-design font-['Inter'] text-sm"
+                className="border-black rounded-design font-['Plus_Jakarta_Sans'] text-sm"
               />
             </div>
             <div className="space-y-2">
-              <label className="font-['Inter'] text-xs text-foreground/60">Hook</label>
+              <label className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/60">Hook</label>
               <Textarea
                 value={idea.hook}
                 disabled={isLocked}
                 onChange={(e) => updateIdea(index, { hook: e.target.value })}
                 rows={2}
-                className="border-black rounded-design font-['Inter'] text-sm resize-none"
+                className="border-black rounded-design font-['Plus_Jakarta_Sans'] text-sm resize-none"
               />
             </div>
             <div className="space-y-2">
-              <label className="font-['Inter'] text-xs text-foreground/60">Angle</label>
+              <label className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/60">Angle</label>
               <Textarea
                 value={idea.angle}
                 disabled={isLocked}
                 onChange={(e) => updateIdea(index, { angle: e.target.value })}
                 rows={2}
-                className="border-black rounded-design font-['Inter'] text-sm resize-none"
+                className="border-black rounded-design font-['Plus_Jakarta_Sans'] text-sm resize-none"
               />
             </div>
             <div className="space-y-2">
-              <label className="font-['Inter'] text-xs text-foreground/60">CTA</label>
+              <label className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/60">CTA</label>
               <Input
                 value={idea.cta}
                 disabled={isLocked}
                 onChange={(e) => updateIdea(index, { cta: e.target.value })}
-                className="border-black rounded-design font-['Inter'] text-sm"
+                className="border-black rounded-design font-['Plus_Jakarta_Sans'] text-sm"
               />
             </div>
           </div>

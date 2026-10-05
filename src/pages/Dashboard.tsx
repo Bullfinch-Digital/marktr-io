@@ -494,7 +494,7 @@ export default function Dashboard() {
               {getGreeting()}
               {greetingName}.
             </h1>
-            <p className="mt-1 font-['DM_Sans'] text-base text-muted-foreground">
+            <p className="mt-1 font-['Plus_Jakarta_Sans'] text-base text-muted-foreground">
               Your brand cockpit — health, story, customers, strategy, and content.
             </p>
           </header>
@@ -514,13 +514,13 @@ export default function Dashboard() {
                       aria-hidden
                     />
                     {hasHealth ? (
-                      <p className="font-['DM_Sans'] text-sm text-[#2D7A5F]">
+                      <p className="font-['Plus_Jakarta_Sans'] text-sm text-[#2D7A5F]">
                         Overall score{" "}
                         <span className="font-['Fraunces'] text-xl font-bold">{overallScore}</span>
                         /100
                       </p>
                     ) : (
-                      <p className="font-['DM_Sans'] text-sm text-muted-foreground">Not started yet</p>
+                      <p className="font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground">Not started yet</p>
                     )}
                   </div>
                 }
@@ -537,7 +537,7 @@ export default function Dashboard() {
                       aria-hidden
                     />
                     <p
-                      className={`font-['DM_Sans'] text-sm ${hasStory ? "text-[#E8650A]" : "text-muted-foreground"}`}
+                      className={`font-['Plus_Jakarta_Sans'] text-sm ${hasStory ? "text-[#E8650A]" : "text-muted-foreground"}`}
                     >
                       {hasStory ? "Brand story ready" : "Not started yet"}
                     </p>
@@ -556,7 +556,7 @@ export default function Dashboard() {
                       aria-hidden
                     />
                     <p
-                      className={`font-['DM_Sans'] text-sm ${hasICPs ? "text-[#D4871A]" : "text-muted-foreground"}`}
+                      className={`font-['Plus_Jakarta_Sans'] text-sm ${hasICPs ? "text-[#D4871A]" : "text-muted-foreground"}`}
                     >
                       {hasICPs ? `${icps.length} profiles` : "Not started yet"}
                     </p>
@@ -607,7 +607,7 @@ export default function Dashboard() {
               <h2 className="font-['Fraunces'] text-2xl font-bold text-[#0D1833]">Your ICPs</h2>
               <Link
                 to="/icps"
-                className="font-['DM_Sans'] text-sm font-medium text-primary hover:underline"
+                className="font-['Plus_Jakarta_Sans'] text-sm font-medium text-primary hover:underline"
               >
                 View all →
               </Link>
@@ -624,13 +624,13 @@ export default function Dashboard() {
               </div>
             ) : previewIcps.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-border bg-white p-8 text-center">
-                <p className="font-['DM_Sans'] text-sm text-muted-foreground">
+                <p className="font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground">
                   No customer profiles yet.
                 </p>
                 <button
                   type="button"
                   onClick={handleCreateNew}
-                  className="mt-3 font-['DM_Sans'] text-sm font-semibold text-primary hover:underline"
+                  className="mt-3 font-['Plus_Jakarta_Sans'] text-sm font-semibold text-primary hover:underline"
                 >
                   Create your first ICP →
                 </button>
@@ -667,13 +667,13 @@ export default function Dashboard() {
               <h2 className="font-['Fraunces'] text-2xl font-bold text-[#0D1833]">Latest strategy</h2>
               <Link
                 to="/strategy"
-                className="font-['DM_Sans'] text-sm font-medium text-primary hover:underline"
+                className="font-['Plus_Jakarta_Sans'] text-sm font-medium text-primary hover:underline"
               >
                 View all →
               </Link>
             </div>
             {strategiesLoading ? (
-              <p className="mt-4 font-['DM_Sans'] text-sm text-muted-foreground">Loading…</p>
+              <p className="mt-4 font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground">Loading…</p>
             ) : latestStrategy ? (
               <button
                 type="button"
@@ -683,19 +683,19 @@ export default function Dashboard() {
                 <p className="font-['Fraunces'] text-lg font-bold text-[#0D1833] truncate">
                   {latestStrategy.title}
                 </p>
-                <p className="mt-1 font-['DM_Sans'] text-xs text-muted-foreground">
+                <p className="mt-1 font-['Plus_Jakarta_Sans'] text-xs text-muted-foreground">
                   v{latestStrategy.version} · updated {formatDate(latestStrategy.updated_at)} ·{" "}
                   {campaignIdeaCount} campaign idea{campaignIdeaCount === 1 ? "" : "s"}
                 </p>
               </button>
             ) : (
               <div className="mt-4">
-                <p className="font-['DM_Sans'] text-sm text-muted-foreground">
+                <p className="font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground">
                   No strategy versions yet.
                 </p>
                 <Link
                   to="/strategy"
-                  className="mt-2 inline-block font-['DM_Sans'] text-sm font-semibold text-primary hover:underline"
+                  className="mt-2 inline-block font-['Plus_Jakarta_Sans'] text-sm font-semibold text-primary hover:underline"
                 >
                   Create a strategy →
                 </Link>
@@ -709,15 +709,15 @@ export default function Dashboard() {
               <h2 className="font-['Fraunces'] text-2xl font-bold text-[#0D1833]">Content in draft</h2>
               <Link
                 to="/content"
-                className="font-['DM_Sans'] text-sm font-medium text-primary hover:underline"
+                className="font-['Plus_Jakarta_Sans'] text-sm font-medium text-primary hover:underline"
               >
                 Open Content →
               </Link>
             </div>
             {contentLoading ? (
-              <p className="mt-4 font-['DM_Sans'] text-sm text-muted-foreground">Loading…</p>
+              <p className="mt-4 font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground">Loading…</p>
             ) : draftItems.length === 0 ? (
-              <p className="mt-4 font-['DM_Sans'] text-sm text-muted-foreground">
+              <p className="mt-4 font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground">
                 No draft content yet.
               </p>
             ) : (
@@ -726,7 +726,7 @@ export default function Dashboard() {
                   {draftCountsByType.map(([type, count]) => (
                     <span
                       key={type}
-                      className="rounded-full border border-border bg-background px-3 py-1 font-['DM_Sans'] text-xs text-[#0D1833]"
+                      className="rounded-full border border-border bg-background px-3 py-1 font-['Plus_Jakarta_Sans'] text-xs text-[#0D1833]"
                     >
                       {CONTENT_TYPE_LABELS[type]}: {count}
                     </span>
@@ -739,13 +739,13 @@ export default function Dashboard() {
                         to={`/content/${item.id}`}
                         className="flex items-center justify-between gap-3 rounded-xl border border-border bg-background px-4 py-3 transition-colors hover:border-primary/40"
                       >
-                        <span className="min-w-0 truncate font-['DM_Sans'] text-sm text-[#0D1833]">
+                        <span className="min-w-0 truncate font-['Plus_Jakarta_Sans'] text-sm text-[#0D1833]">
                           {CONTENT_TYPE_LABELS[item.type]}
                           {item.composition?.persona?.name
                             ? ` · ${item.composition.persona.name}`
                             : ""}
                         </span>
-                        <span className="shrink-0 font-['DM_Sans'] text-xs text-muted-foreground">
+                        <span className="shrink-0 font-['Plus_Jakarta_Sans'] text-xs text-muted-foreground">
                           {formatDate(item.updated_at)}
                         </span>
                       </Link>
@@ -759,7 +759,7 @@ export default function Dashboard() {
           {/* 6. Next action — single derived card, omitted when nothing actionable */}
           {nextAction ? (
             <section>
-              <p className="mb-4 font-['DM_Sans'] text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+              <p className="mb-4 font-['Plus_Jakarta_Sans'] text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
                 What to do next
               </p>
               <button
@@ -767,19 +767,19 @@ export default function Dashboard() {
                 onClick={() => navigate(nextAction.href)}
                 className="group flex w-full items-center gap-4 rounded-xl border border-border bg-white p-5 text-left transition-colors hover:border-primary/40"
               >
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-primary font-['DM_Sans'] text-sm font-medium text-primary">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-primary font-['Plus_Jakarta_Sans'] text-sm font-medium text-primary">
                   1
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="mb-0.5 flex items-center gap-2">
-                    <span className="font-['DM_Sans'] text-sm font-medium text-[#0D1833]">
+                    <span className="font-['Plus_Jakarta_Sans'] text-sm font-medium text-[#0D1833]">
                       {nextAction.label}
                     </span>
                     <span className="rounded-full border border-primary/30 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-primary">
                       {nextAction.tag}
                     </span>
                   </div>
-                  <p className="font-['DM_Sans'] text-xs leading-relaxed text-muted-foreground">
+                  <p className="font-['Plus_Jakarta_Sans'] text-xs leading-relaxed text-muted-foreground">
                     {nextAction.desc}
                   </p>
                 </div>

@@ -19,7 +19,7 @@ export function BlurredLockCard({ children, onUpgrade, className }: BlurredLockC
       {/* Lock Overlay */}
       <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/60 backdrop-blur-sm z-10">
         <Lock className="w-8 h-8 text-foreground/60 mb-4" />
-        <p className="font-['Inter'] text-sm text-foreground/70 mb-4">
+        <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70 mb-4">
           Upgrade to unlock this feature
         </p>
         {onUpgrade && (

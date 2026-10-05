@@ -132,7 +132,7 @@ export function DashboardSidebar({
                 />
                 {!isCollapsed && (
                   <span
-                    className={`font-['Inter'] text-sm truncate ${
+                    className={`font-['Plus_Jakarta_Sans'] text-sm truncate ${
                       isActive ? "text-sidebar-foreground" : "text-[color:var(--sidebar-muted)]"
                     }`}
                   >
@@ -202,7 +202,7 @@ export function DashboardSidebar({
                 }}
               >
                 <Icon className="w-4 h-4 shrink-0" />
-                <span className="font-['Inter'] text-center line-clamp-2 w-full">{item.label}</span>
+                <span className="font-['Plus_Jakarta_Sans'] text-center line-clamp-2 w-full">{item.label}</span>
               </Link>
             );
           })}

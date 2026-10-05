@@ -28,8 +28,8 @@ const normalizeList = (items?: string[] | null) =>
 
 const DetailCard = ({ label, value }: { label: string; value?: string | null }) => (
   <div className="export-card export-border border border-black rounded-design p-4 bg-white">
-    <p className="export-muted font-['Inter'] text-xs text-foreground/60 mb-1">{label}</p>
-    <p className="font-['Inter'] text-sm text-foreground">
+    <p className="export-muted font-['Plus_Jakarta_Sans'] text-xs text-foreground/60 mb-1">{label}</p>
+    <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground">
       {value && value.trim().length ? value : "—"}
     </p>
   </div>
@@ -41,13 +41,13 @@ const SectionCard = ({ title, items }: { title: string; items?: string[] | null 
     <div data-export-block className="export-card export-border border border-black rounded-design p-4 bg-white">
       <h3 className="font-['Fraunces'] text-lg mb-2">{title}</h3>
       {list.length ? (
-        <ul className="list-disc list-inside text-sm text-foreground/80 font-['Inter'] space-y-1">
+        <ul className="list-disc list-inside text-sm text-foreground/80 font-['Plus_Jakarta_Sans'] space-y-1">
           {list.map((item, index) => (
             <li key={`${title}-${index}`}>{item}</li>
           ))}
         </ul>
       ) : (
-        <p className="text-sm text-foreground/60 font-['Inter']">—</p>
+        <p className="text-sm text-foreground/60 font-['Plus_Jakarta_Sans']">—</p>
       )}
     </div>
   );
@@ -72,11 +72,11 @@ export function ICPExportLayout({ data }: ICPExportLayoutProps) {
           <div className="flex items-start justify-between gap-6">
             <div>
               <h1 className="font-['Fraunces'] text-3xl">ICP Profile</h1>
-              <p className="export-muted font-['Inter'] text-sm text-foreground/60">
+              <p className="export-muted font-['Plus_Jakarta_Sans'] text-sm text-foreground/60">
                 Generated on {exportedAt}
               </p>
               {icpUrl ? (
-                <p className="font-['Inter'] text-sm mt-2">
+                <p className="font-['Plus_Jakarta_Sans'] text-sm mt-2">
                   <a
                     href={icpUrl}
                     className="export-link underline"
@@ -90,7 +90,7 @@ export function ICPExportLayout({ data }: ICPExportLayoutProps) {
               ) : null}
             </div>
             <div className="text-right">
-              <p className="export-muted font-['Inter'] text-xs text-foreground/60">ICP Generator</p>
+              <p className="export-muted font-['Plus_Jakarta_Sans'] text-xs text-foreground/60">ICP Generator</p>
             </div>
           </div>
         </div>
@@ -110,20 +110,20 @@ export function ICPExportLayout({ data }: ICPExportLayoutProps) {
                 )}
               </div>
               <div className="space-y-1">
-                <p className="export-muted font-['Inter'] text-xs text-foreground/60">Brand</p>
+                <p className="export-muted font-['Plus_Jakarta_Sans'] text-xs text-foreground/60">Brand</p>
                 <p className="font-['Fraunces'] text-lg">{brandLine}</p>
               </div>
             </div>
 
             <div className="space-y-4">
               <div className="export-card export-border border border-black rounded-design p-4 bg-white">
-                <p className="export-muted font-['Inter'] text-xs text-foreground/60 mb-1">Name</p>
+                <p className="export-muted font-['Plus_Jakarta_Sans'] text-xs text-foreground/60 mb-1">Name</p>
                 <p className="font-['Fraunces'] text-2xl">{displayName}</p>
               </div>
 
               <div className="export-card export-border border border-black rounded-design p-4 bg-white">
-                <p className="export-muted font-['Inter'] text-xs text-foreground/60 mb-1">Description</p>
-                <p className="font-['Inter'] text-sm text-foreground whitespace-pre-wrap">
+                <p className="export-muted font-['Plus_Jakarta_Sans'] text-xs text-foreground/60 mb-1">Description</p>
+                <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground whitespace-pre-wrap">
                   {description}
                 </p>
               </div>

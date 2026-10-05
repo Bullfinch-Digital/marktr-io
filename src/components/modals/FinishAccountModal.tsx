@@ -338,7 +338,7 @@ export function FinishAccountModal({
       <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
         <div className="bg-background border border-black rounded-design shadow-2xl w-full max-w-md p-6 text-center">
           <div className="w-10 h-10 mx-auto mb-3 border-4 border-button-green border-t-transparent rounded-full animate-spin" />
-          <p className="font-['Inter'] text-sm text-foreground/70">
+          <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70">
             Preparing your account…
           </p>
         </div>
@@ -351,7 +351,7 @@ export function FinishAccountModal({
       <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
         <div className="bg-background border border-black rounded-design shadow-2xl w-full max-w-md p-6">
           <div className="space-y-3">
-            <div className="text-red-600 font-['Inter']">{error}</div>
+            <div className="text-red-600 font-['Plus_Jakarta_Sans']">{error}</div>
             <div className="flex gap-2">
               <Button
                 variant="outline"
@@ -383,7 +383,7 @@ export function FinishAccountModal({
     return (
       <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
         <div className="bg-background border border-black rounded-design shadow-2xl w-full max-w-md p-6 text-center">
-          <p className="font-['Inter'] text-sm text-foreground/70 mb-4">
+          <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70 mb-4">
             We couldn't find your checkout details.
           </p>
           <Button
@@ -404,7 +404,7 @@ export function FinishAccountModal({
           <h2 className="font-['Fraunces'] text-2xl mb-2">
             Welcome Back
           </h2>
-          <p className="font-['Inter'] text-sm text-foreground/70 mb-4">
+          <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70 mb-4">
             We found an account for {email}. Log in to access your ICP Dashboard.
           </p>
           <Button
@@ -436,7 +436,7 @@ export function FinishAccountModal({
             <h2 className="font-['Fraunces'] text-2xl mb-1">
               Finish your account
             </h2>
-            <p className="font-['Inter'] text-sm text-foreground/70">
+            <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70">
               Your trial is ready — set a password to unlock it.
             </p>
           </div>
@@ -507,7 +507,7 @@ export function FinishAccountModal({
 
           {formError && (
             <div className="space-y-3">
-              <p className="text-sm text-red-600 font-['Inter']">{formError}</p>
+              <p className="text-sm text-red-600 font-['Plus_Jakarta_Sans']">{formError}</p>
 
               <Button
                 type="button"
@@ -549,7 +549,7 @@ export function FinishAccountModal({
             </div>
           )}
           {success && (
-            <p className="text-sm text-button-green font-['Inter']">{success}</p>
+            <p className="text-sm text-button-green font-['Plus_Jakarta_Sans']">{success}</p>
           )}
 
           <LegalAgreementCheckbox

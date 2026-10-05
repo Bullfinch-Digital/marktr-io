@@ -276,7 +276,7 @@ export default function ResourcePost() {
                     key={idx}
                     className="mt-10 flex flex-col items-center text-center"
                   >
-                    <p className="mb-8 text-lg font-['Inter'] text-foreground/70 font-bold">
+                    <p className="mb-8 text-lg font-['Plus_Jakarta_Sans'] text-foreground/70 font-bold">
                       Start free and see who your real customers are...
                     </p>
                     <div className="flex flex-col gap-3 items-center">

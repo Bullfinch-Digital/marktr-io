@@ -210,10 +210,10 @@ function StrategyPageBody() {
           <div>
             <div className="flex items-center gap-2 text-foreground/55 mb-2">
               <Target className="h-4 w-4" />
-              <span className="font-['Inter'] text-xs uppercase tracking-wide">Strategy</span>
+              <span className="font-['Plus_Jakarta_Sans'] text-xs uppercase tracking-wide">Strategy</span>
             </div>
             <h1 className="font-['Fraunces'] text-4xl font-bold text-[#0D1833]">Strategy</h1>
-            <p className="font-['Inter'] text-sm text-foreground/70 mt-2 max-w-2xl">
+            <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70 mt-2 max-w-2xl">
               Aims and marketing strategies for <strong>{activeBrandName}</strong>. Generate once,
               then refine through edits and version history.
             </p>
@@ -231,13 +231,13 @@ function StrategyPageBody() {
         </div>
 
         {!brandReady ? (
-          <p className="font-['Inter'] text-sm text-foreground/60">Loading brand context…</p>
+          <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/60">Loading brand context…</p>
         ) : !scopedBrandId ? (
           <div className="rounded-design border border-black/15 bg-accent-grey/20 p-6">
-            <p className="font-['Inter'] text-sm text-foreground/70">
+            <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70">
               Select a brand from the header to manage aims and strategies.
             </p>
-            <Link to="/my-brands" className="inline-block mt-3 font-['Inter'] text-sm text-primary underline">
+            <Link to="/my-brands" className="inline-block mt-3 font-['Plus_Jakarta_Sans'] text-sm text-primary underline">
               Go to Brands →
             </Link>
           </div>
@@ -258,7 +258,7 @@ function StrategyPageBody() {
             >
               <div>
                 <h2 className="font-['Fraunces'] text-2xl text-[#0D1833]">Strategies</h2>
-                <p className="font-['Inter'] text-sm text-foreground/70 mt-1">
+                <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70 mt-1">
                   {strategiesDormant
                     ? "Strategies connect your aims to your personas. Add at least one aim above to get started."
                     : "Current strategies for this brand. Each shows which aims and personas it serves."}
@@ -278,13 +278,13 @@ function StrategyPageBody() {
                 />
               ) : null}
 
-              {error ? <p className="font-['Inter'] text-sm text-red-700">{error}</p> : null}
+              {error ? <p className="font-['Plus_Jakarta_Sans'] text-sm text-red-700">{error}</p> : null}
 
               {isLoading ? (
-                <p className="font-['Inter'] text-sm text-foreground/60">Loading strategies…</p>
+                <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/60">Loading strategies…</p>
               ) : strategiesDormant ? (
                 <div className="rounded-design border border-dashed border-black/15 bg-accent-grey/10 px-4 py-5">
-                  <p className="font-['Inter'] text-sm text-foreground/60">
+                  <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/60">
                     Your strategies will appear here once you have aims to build from.
                   </p>
                 </div>
@@ -293,7 +293,7 @@ function StrategyPageBody() {
                   <p className="font-['Fraunces'] text-xl text-[#0D1833]">
                     Build your first strategy
                   </p>
-                  <p className="font-['Inter'] text-sm text-foreground/70 mt-2 max-w-md mx-auto">
+                  <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70 mt-2 max-w-md mx-auto">
                     Pick the aims and personas this strategy should serve. marktr generates a
                     structured plan you can refine — not endless regeneration.
                   </p>
@@ -308,7 +308,7 @@ function StrategyPageBody() {
                     </Button>
                   ) : null}
                   {brandIcps.length === 0 ? (
-                    <p className="font-['Inter'] text-xs text-foreground/55 mt-3">
+                    <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/55 mt-3">
                       You&apos;ll also need at least one persona — create one in the ICP pillar first.
                     </p>
                   ) : null}
@@ -329,7 +329,7 @@ function StrategyPageBody() {
                 <button
                   type="button"
                   onClick={() => setArchivedOpen((open) => !open)}
-                  className="inline-flex items-center gap-1.5 font-['Inter'] text-xs text-foreground/55 hover:text-foreground/80 transition-colors"
+                  className="inline-flex items-center gap-1.5 font-['Plus_Jakarta_Sans'] text-xs text-foreground/55 hover:text-foreground/80 transition-colors"
                 >
                   <Archive className="h-3.5 w-3.5" />
                   Archived
@@ -342,7 +342,7 @@ function StrategyPageBody() {
                 </button>
 
                 {restoreNudge ? (
-                  <p className="mt-3 font-['Inter'] text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-design px-3 py-2 max-w-2xl">
+                  <p className="mt-3 font-['Plus_Jakarta_Sans'] text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-design px-3 py-2 max-w-2xl">
                     {restoreNudge}
                   </p>
                 ) : null}
@@ -350,7 +350,7 @@ function StrategyPageBody() {
                 {archivedOpen ? (
                   <div className="mt-4 rounded-design border border-black/15 bg-accent-grey/20 px-4 py-3">
                     {archivedStrategies.length === 0 ? (
-                      <p className="font-['Inter'] text-xs text-foreground/50">Nothing archived.</p>
+                      <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/50">Nothing archived.</p>
                     ) : (
                       <ul className="space-y-4">
                         {archivedStrategies.map((strategy) => {
@@ -364,12 +364,12 @@ function StrategyPageBody() {
                                 <div className="min-w-0">
                                   <Link
                                     to={`/strategy/${strategy.id}`}
-                                    className="font-['Inter'] text-sm text-foreground truncate hover:underline block"
+                                    className="font-['Plus_Jakarta_Sans'] text-sm text-foreground truncate hover:underline block"
                                   >
                                     {strategy.title}
                                   </Link>
                                   {strategy.deleted_at ? (
-                                    <p className="font-['Inter'] text-xs text-foreground/50">
+                                    <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/50">
                                       Archived {formatArchivedDate(strategy.deleted_at)}
                                     </p>
                                   ) : null}
@@ -379,7 +379,7 @@ function StrategyPageBody() {
                                     type="button"
                                     variant="outline"
                                     size="sm"
-                                    className="border-black rounded-design font-['Inter'] text-xs h-8"
+                                    className="border-black rounded-design font-['Plus_Jakarta_Sans'] text-xs h-8"
                                     onClick={() =>
                                       setArchivedSnapshotLineageId(
                                         snapshotOpen ? null : strategy.lineage_id
@@ -397,7 +397,7 @@ function StrategyPageBody() {
                                       restoringLineageId === strategy.lineage_id || isPermanentDeleting
                                     }
                                     onClick={() => void handleRestoreArchived(strategy)}
-                                    className="border-black rounded-design font-['Inter'] text-xs h-8"
+                                    className="border-black rounded-design font-['Plus_Jakarta_Sans'] text-xs h-8"
                                   >
                                     <RotateCcw className="h-3.5 w-3.5 mr-1" />
                                     {restoringLineageId === strategy.lineage_id
@@ -412,7 +412,7 @@ function StrategyPageBody() {
                                       restoringLineageId === strategy.lineage_id || isPermanentDeleting
                                     }
                                     onClick={() => setPermanentDeleteTarget(strategy)}
-                                    className="border-red-300 text-red-700 hover:bg-red-50 rounded-design font-['Inter'] text-xs h-8"
+                                    className="border-red-300 text-red-700 hover:bg-red-50 rounded-design font-['Plus_Jakarta_Sans'] text-xs h-8"
                                   >
                                     <Trash2 className="h-3.5 w-3.5 mr-1" />
                                     Delete permanently

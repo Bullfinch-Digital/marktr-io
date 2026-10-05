@@ -158,7 +158,7 @@ export function StrategyCreatePanel({
     return (
       <div className="rounded-design border border-black bg-white p-6 lg:p-8 shadow-md">
         <h3 className="font-['Fraunces'] text-2xl text-[#0D1833]">Generating your strategy…</h3>
-        <p className="font-['Inter'] text-sm text-foreground/65 mt-2">
+        <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/65 mt-2">
           This usually takes about 30 seconds. You can refine the result after it&apos;s ready.
         </p>
         <div className="mt-6 space-y-3">
@@ -175,7 +175,7 @@ export function StrategyCreatePanel({
                   <Loader2 className="h-5 w-5 text-muted-foreground/40" />
                 )}
                 <p
-                  className={`font-['Inter'] text-sm ${
+                  className={`font-['Plus_Jakarta_Sans'] text-sm ${
                     done
                       ? "text-foreground"
                       : active
@@ -198,7 +198,7 @@ export function StrategyCreatePanel({
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h3 className="font-['Fraunces'] text-2xl text-[#0D1833]">New strategy</h3>
-          <p className="font-['Inter'] text-sm text-foreground/70 mt-1">
+          <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70 mt-1">
             Select 1–3 aims and 1–5 personas. marktr generates a structured strategy you can
             refine through edits and versions — not endless regeneration.
           </p>
@@ -210,7 +210,7 @@ export function StrategyCreatePanel({
 
       {showThinBrandNudge && brand?.id ? (
         <div className="rounded-design border border-amber-200 bg-amber-50/80 px-4 py-3">
-          <p className="font-['Inter'] text-sm text-amber-900">
+          <p className="font-['Plus_Jakarta_Sans'] text-sm text-amber-900">
             Your brand story isn&apos;t set up yet — strategies are much sharper when marktr knows
             your brand.{" "}
             <Link
@@ -226,8 +226,8 @@ export function StrategyCreatePanel({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="space-y-2">
           <div className="flex items-center justify-between gap-2">
-            <p className="font-['Inter'] text-sm text-foreground">Aims (1–3)</p>
-            <p className="font-['Inter'] text-xs text-foreground/50">{aimCount}/3 selected</p>
+            <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground">Aims (1–3)</p>
+            <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/50">{aimCount}/3 selected</p>
           </div>
           <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
             {aims.length ? (
@@ -253,29 +253,29 @@ export function StrategyCreatePanel({
                       className="mt-1"
                     />
                     <span className="min-w-0">
-                      <span className="font-['Inter'] text-sm text-foreground block truncate">
+                      <span className="font-['Plus_Jakarta_Sans'] text-sm text-foreground block truncate">
                         {a.title}
                       </span>
-                      <span className="font-['Inter'] text-xs text-foreground/55">{a.aim_type}</span>
+                      <span className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/55">{a.aim_type}</span>
                     </span>
                   </label>
                 );
               })
             ) : (
-              <p className="font-['Inter'] text-xs text-foreground/50">
+              <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/50">
                 Add at least one aim above before generating a strategy.
               </p>
             )}
           </div>
           {aimCapMessage ? (
-            <p className="font-['Inter'] text-xs text-red-700">{aimCapMessage}</p>
+            <p className="font-['Plus_Jakarta_Sans'] text-xs text-red-700">{aimCapMessage}</p>
           ) : null}
         </div>
 
         <div className="space-y-2">
           <div className="flex items-center justify-between gap-2">
-            <p className="font-['Inter'] text-sm text-foreground">Personas (1–5)</p>
-            <p className="font-['Inter'] text-xs text-foreground/50">{icpCount}/5 selected</p>
+            <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground">Personas (1–5)</p>
+            <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/50">{icpCount}/5 selected</p>
           </div>
           <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
             {icps.length ? (
@@ -303,10 +303,10 @@ export function StrategyCreatePanel({
                       className="mt-1"
                     />
                     <span className="min-w-0">
-                      <span className="font-['Inter'] text-sm text-foreground block truncate">
+                      <span className="font-['Plus_Jakarta_Sans'] text-sm text-foreground block truncate">
                         {icp.name}
                       </span>
-                      <span className="font-['Inter'] text-xs text-foreground/55">
+                      <span className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/55">
                         {icp.industry || "Industry not set"}
                       </span>
                     </span>
@@ -314,20 +314,20 @@ export function StrategyCreatePanel({
                 );
               })
             ) : (
-              <p className="font-['Inter'] text-xs text-foreground/50">
+              <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/50">
                 No current personas for this brand. Create ICPs first.
               </p>
             )}
           </div>
           {icpCapMessage ? (
-            <p className="font-['Inter'] text-xs text-red-700">{icpCapMessage}</p>
+            <p className="font-['Plus_Jakarta_Sans'] text-xs text-red-700">{icpCapMessage}</p>
           ) : null}
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div className="space-y-2">
-          <label className="font-['Inter'] text-sm text-foreground/70">Title (optional)</label>
+          <label className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70">Title (optional)</label>
           <Input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
@@ -336,7 +336,7 @@ export function StrategyCreatePanel({
           />
         </div>
         <div className="space-y-2">
-          <label className="font-['Inter'] text-sm text-foreground/70">Preferred channel (optional)</label>
+          <label className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70">Preferred channel (optional)</label>
           <Input
             value={channel}
             onChange={(e) => setChannel(e.target.value)}
@@ -347,7 +347,7 @@ export function StrategyCreatePanel({
       </div>
 
       <div className="space-y-2">
-        <label className="font-['Inter'] text-sm text-foreground/70">Tone (optional)</label>
+        <label className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70">Tone (optional)</label>
         <Input
           value={tone}
           onChange={(e) => setTone(e.target.value)}
@@ -366,13 +366,13 @@ export function StrategyCreatePanel({
           Generate strategy
         </Button>
         {selectedAimTitles.length > 0 ? (
-          <p className="font-['Inter'] text-xs text-foreground/60">
+          <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/60">
             Serving: {selectedAimTitles.join(", ")}
           </p>
         ) : null}
       </div>
 
-      {error ? <p className="font-['Inter'] text-sm text-red-700">{error}</p> : null}
+      {error ? <p className="font-['Plus_Jakarta_Sans'] text-sm text-red-700">{error}</p> : null}
     </div>
   );
 }

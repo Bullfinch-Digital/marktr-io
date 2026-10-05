@@ -152,11 +152,11 @@ export function CollectionCard({
               ))}
             </div>
           ) : null}
-          <p className="font-['Inter'] text-sm text-foreground/70">
+          <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70">
             {collection.icpCount ?? 0} ICPs
           </p>
           {formattedDate && (
-            <p className="font-['Inter'] text-xs text-foreground/50 mt-1">
+            <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/50 mt-1">
               Created {formattedDate}
             </p>
           )}

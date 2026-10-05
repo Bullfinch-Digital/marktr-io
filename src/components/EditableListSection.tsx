@@ -129,7 +129,7 @@ export function EditableListSection({
                     if (e.key === "Enter") saveEdit(index);
                     if (e.key === "Escape") cancelEdit();
                   }}
-                  className="flex-1 border-black rounded-design font-['Inter'] text-sm"
+                  className="flex-1 border-black rounded-design font-['Plus_Jakarta_Sans'] text-sm"
                   autoFocus
                 />
                 <button
@@ -152,7 +152,7 @@ export function EditableListSection({
             ) : (
               <>
                 <span
-                  className="font-['Inter'] text-sm text-foreground/80 flex-1 cursor-pointer hover:text-foreground transition-colors py-1 px-2 -mx-2 rounded hover:bg-accent-grey/20"
+                  className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/80 flex-1 cursor-pointer hover:text-foreground transition-colors py-1 px-2 -mx-2 rounded hover:bg-accent-grey/20"
                   onClick={() => !isLocked && startEditing(index, item)}
                   title={!isLocked ? "Click to edit" : ""}
                 >
@@ -192,7 +192,7 @@ export function EditableListSection({
             onChange={(e) => setNewItem(e.target.value)}
             onKeyPress={(e) => e.key === "Enter" && addItem()}
             placeholder={`Add ${title.toLowerCase()}...`}
-            className="flex-1 border-black rounded-design font-['Inter'] text-sm"
+            className="flex-1 border-black rounded-design font-['Plus_Jakarta_Sans'] text-sm"
           />
           <Button
             type="button"

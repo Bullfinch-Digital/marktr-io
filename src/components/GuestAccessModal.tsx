@@ -34,15 +34,15 @@ export function GuestAccessModal({
           {title}
         </h2>
 
-        <p className="text-base font-['Inter'] text-foreground/80 mb-3">
+        <p className="text-base font-['Plus_Jakarta_Sans'] text-foreground/80 mb-3">
           Free 7 Day Trial
         </p>
 
-        <p className="text-base font-['Inter'] text-foreground/70 mb-5">
+        <p className="text-base font-['Plus_Jakarta_Sans'] text-foreground/70 mb-5">
           {description}
         </p>
 
-        <ul className="text-sm font-['Inter'] text-foreground/80 space-y-2 mb-6 list-disc list-inside">
+        <ul className="text-sm font-['Plus_Jakarta_Sans'] text-foreground/80 space-y-2 mb-6 list-disc list-inside">
           <li>Edit and refine your ICPs as your strategy evolves.</li>
           <li>Organise ICPs into brands and collections.</li>
           <li>Unlock marketing insights.</li>
@@ -82,7 +82,7 @@ export function GuestAccessModal({
           </button>
         </div>
 
-        <p className="mt-5 text-center text-[11px] leading-snug text-foreground/60 font-['Inter']">
+        <p className="mt-5 text-center text-[11px] leading-snug text-foreground/60 font-['Plus_Jakarta_Sans']">
           Free to start. No spam. Your ICPs stay private.
         </p>
       </div>

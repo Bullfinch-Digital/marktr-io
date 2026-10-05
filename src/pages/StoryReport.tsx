@@ -249,12 +249,12 @@ export default function StoryReport() {
   if (!scopedBrandId) {
     return (
       <DashboardShell contentClassName="mx-auto max-w-2xl px-6 py-12">
-        <p className="font-['DM_Sans'] text-muted-foreground">
+        <p className="font-['Plus_Jakarta_Sans'] text-muted-foreground">
           Select or create a brand to view your brand story.
         </p>
         <Link
           to="/dashboard"
-          className="mt-6 inline-flex rounded-full bg-primary px-6 py-3 font-['DM_Sans'] text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          className="mt-6 inline-flex rounded-full bg-primary px-6 py-3 font-['Plus_Jakarta_Sans'] text-sm font-medium text-primary-foreground hover:bg-primary/90"
         >
           Go to dashboard
         </Link>
@@ -265,20 +265,20 @@ export default function StoryReport() {
   if (!story) {
     return (
       <DashboardShell contentClassName="mx-auto max-w-2xl px-6 py-12">
-        <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 font-['DM_Sans'] text-xs font-medium text-primary">
+        <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 font-['Plus_Jakarta_Sans'] text-xs font-medium text-primary">
           Brand Story
         </span>
         <h1 className="mt-4 font-['Fraunces'] text-4xl font-bold text-[#0D1833]">
           Set up your brand story
         </h1>
-        <p className="mt-4 font-['DM_Sans'] text-base text-muted-foreground">
+        <p className="mt-4 font-['Plus_Jakarta_Sans'] text-base text-muted-foreground">
           {activeBrand?.name
             ? `Tell us about ${activeBrand.name} — we'll turn your answers into a founding story, point of view, and positioning you can edit anytime.`
             : "Answer seven questions and we'll write the story behind your brand."}
         </p>
         <Button
           type="button"
-          className="mt-8 rounded-full bg-primary px-6 py-6 font-['DM_Sans']"
+          className="mt-8 rounded-full bg-primary px-6 py-6 font-['Plus_Jakarta_Sans']"
           onClick={() => navigate("/story")}
         >
           Build your brand story →
@@ -296,7 +296,7 @@ export default function StoryReport() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/60">
           <div className="flex flex-col items-center gap-3 rounded-2xl border border-border bg-white px-8 py-6 shadow-lg">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="font-['DM_Sans'] text-sm text-muted-foreground">
+            <p className="font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground">
               {regenerating ? "Regenerating your story…" : "Saving your story…"}
             </p>
           </div>
@@ -305,11 +305,11 @@ export default function StoryReport() {
 
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 font-['DM_Sans'] text-xs font-medium text-primary">
+          <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 font-['Plus_Jakarta_Sans'] text-xs font-medium text-primary">
             Your Brand Story
           </span>
           {activeBrand?.name && (
-            <p className="mt-2 font-['DM_Sans'] text-xs text-muted-foreground">
+            <p className="mt-2 font-['Plus_Jakarta_Sans'] text-xs text-muted-foreground">
               {activeBrand.name}
             </p>
           )}
@@ -317,7 +317,7 @@ export default function StoryReport() {
             This is your story.
           </h1>
           {latestDate && (
-            <p className="mt-2 font-['DM_Sans'] text-xs text-muted-foreground">
+            <p className="mt-2 font-['Plus_Jakarta_Sans'] text-xs text-muted-foreground">
               Last updated {formatStoryDate(latestDate)}
             </p>
           )}
@@ -329,7 +329,7 @@ export default function StoryReport() {
               <Button
                 type="button"
                 variant="outline"
-                className="rounded-full border-black font-['DM_Sans'] text-sm"
+                className="rounded-full border-black font-['Plus_Jakarta_Sans'] text-sm"
                 onClick={startEditing}
                 disabled={saving || regenerating}
               >
@@ -339,7 +339,7 @@ export default function StoryReport() {
               <Button
                 type="button"
                 variant="outline"
-                className="rounded-full border-black font-['DM_Sans'] text-sm"
+                className="rounded-full border-black font-['Plus_Jakarta_Sans'] text-sm"
                 onClick={() => void handleRegenerate()}
                 disabled={saving || regenerating}
               >
@@ -352,7 +352,7 @@ export default function StoryReport() {
               <Button
                 type="button"
                 variant="outline"
-                className="rounded-full border-black font-['DM_Sans'] text-sm"
+                className="rounded-full border-black font-['Plus_Jakarta_Sans'] text-sm"
                 onClick={cancelEditing}
                 disabled={saving}
               >
@@ -360,7 +360,7 @@ export default function StoryReport() {
               </Button>
               <Button
                 type="button"
-                className="rounded-full bg-primary font-['DM_Sans'] text-sm"
+                className="rounded-full bg-primary font-['Plus_Jakarta_Sans'] text-sm"
                 onClick={() => void handleSaveEdits()}
                 disabled={saving}
               >
@@ -371,20 +371,20 @@ export default function StoryReport() {
         </div>
       </div>
 
-      <p className="mt-4 font-['DM_Sans'] text-base text-muted-foreground">
+      <p className="mt-4 font-['Plus_Jakarta_Sans'] text-base text-muted-foreground">
         {isEditing
           ? "Update any section below. Saving writes your latest story — you can always look back at earlier versions."
           : "Based on everything you've shared, here's the foundation marktr uses for your brand."}
       </p>
 
       {actionError && (
-        <p className="mt-4 font-['DM_Sans'] text-sm text-destructive">{actionError}</p>
+        <p className="mt-4 font-['Plus_Jakarta_Sans'] text-sm text-destructive">{actionError}</p>
       )}
 
       <div className="mt-8 space-y-4">
         {STORY_SECTIONS.map(({ key, label }) => (
           <article key={key} className="rounded-2xl border border-border bg-white p-6">
-            <p className="font-['DM_Sans'] text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+            <p className="font-['Plus_Jakarta_Sans'] text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
               {label}
             </p>
             {isEditing && editDraft ? (
@@ -415,7 +415,7 @@ export default function StoryReport() {
         <button
           type="button"
           onClick={toggleHistory}
-          className="inline-flex items-center gap-1.5 font-['DM_Sans'] text-xs text-muted-foreground hover:text-foreground"
+          className="inline-flex items-center gap-1.5 font-['Plus_Jakarta_Sans'] text-xs text-muted-foreground hover:text-foreground"
         >
           <History className="h-3.5 w-3.5" />
           Past versions
@@ -428,7 +428,7 @@ export default function StoryReport() {
         <Button
           type="button"
           variant="outline"
-          className="rounded-full border-black font-['DM_Sans'] text-sm"
+          className="rounded-full border-black font-['Plus_Jakarta_Sans'] text-sm"
           onClick={() => navigate("/story")}
         >
           Re-run questionnaire →
@@ -438,9 +438,9 @@ export default function StoryReport() {
       {historyOpen && (
         <div className="mt-4 rounded-xl border border-border bg-muted/30 px-4 py-3">
           {historyLoading ? (
-            <p className="font-['DM_Sans'] text-xs text-muted-foreground">Loading…</p>
+            <p className="font-['Plus_Jakarta_Sans'] text-xs text-muted-foreground">Loading…</p>
           ) : historyRows.length <= 1 ? (
-            <p className="font-['DM_Sans'] text-xs text-muted-foreground">
+            <p className="font-['Plus_Jakarta_Sans'] text-xs text-muted-foreground">
               No earlier versions yet.
             </p>
           ) : (
@@ -450,7 +450,7 @@ export default function StoryReport() {
                   key={row.id}
                   className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 py-2 last:border-0"
                 >
-                  <span className="font-['DM_Sans'] text-xs text-foreground/80">
+                  <span className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/80">
                     {formatStoryDate(row.created_at)}
                     {index === 0 ? (
                       <span className="ml-2 text-muted-foreground">(current)</span>
@@ -459,7 +459,7 @@ export default function StoryReport() {
                   {index > 0 && (
                     <button
                       type="button"
-                      className="font-['DM_Sans'] text-xs text-primary underline-offset-2 hover:underline"
+                      className="font-['Plus_Jakarta_Sans'] text-xs text-primary underline-offset-2 hover:underline"
                       onClick={() => void handleRestore(row)}
                       disabled={saving || regenerating}
                     >
@@ -476,7 +476,7 @@ export default function StoryReport() {
       <div className="mt-10">
         <Button
           type="button"
-          className="rounded-full bg-primary px-6 py-3 font-['DM_Sans'] text-sm"
+          className="rounded-full bg-primary px-6 py-3 font-['Plus_Jakarta_Sans'] text-sm"
           onClick={() => navigate("/dashboard")}
         >
           Go to your dashboard →

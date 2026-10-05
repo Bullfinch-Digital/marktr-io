@@ -30,7 +30,7 @@ export function GuestTrialPromptModal({
         <div className="flex items-start justify-between gap-4 mb-6">
           <div>
             <h2 className="font-['Fraunces'] text-2xl mb-1">{heading}</h2>
-            <p className="font-['Inter'] text-sm text-foreground/70">{subheading}</p>
+            <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70">{subheading}</p>
           </div>
           <button
             type="button"
@@ -45,7 +45,7 @@ export function GuestTrialPromptModal({
         <Button
           type="button"
           onClick={handleStartTrial}
-          className="w-full bg-button-green hover:bg-button-green/90 text-foreground border border-black rounded-design px-4 py-3 font-['DM_Sans'] text-sm font-medium"
+          className="w-full bg-button-green hover:bg-button-green/90 text-foreground border border-black rounded-design px-4 py-3 font-['Plus_Jakarta_Sans'] text-sm font-medium"
         >
           {ctaLabel}
         </Button>
@@ -53,7 +53,7 @@ export function GuestTrialPromptModal({
         <button
           type="button"
           onClick={onClose}
-          className="mt-4 w-full text-sm text-foreground/60 hover:text-foreground transition-colors font-['Inter']"
+          className="mt-4 w-full text-sm text-foreground/60 hover:text-foreground transition-colors font-['Plus_Jakarta_Sans']"
         >
           Not now
         </button>

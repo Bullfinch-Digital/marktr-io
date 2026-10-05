@@ -6,7 +6,7 @@ export function ClosingCTA() {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col items-center text-center">
           {/* CTA Text */}
-          <p className="mb-8 text-lg font-['Inter'] text-foreground/70 font-bold">
+          <p className="mb-8 text-lg font-['Plus_Jakarta_Sans'] text-foreground/70 font-bold">
             Start free and see who your real customers are...
           </p>
 

@@ -7,15 +7,11 @@
 
 :root {
   --font-size: 16px;
-  /* Utility stacks behind font-display / font-body. marktr deliberately has no
-     fallback here: the old font-['Fraunces'] and font-['DM_Sans'] utilities
-     emitted a bare family name, and any fallback changes which font supplies
-     glyphs those two fonts lack (→, ✓), which would not be pixel-identical. */
+  /* Utility stacks behind font-display / font-body. */
   --font-display-stack: Fraunces;
-  --font-body-stack: "DM Sans";
-  /* Base-layer stacks — these always carried fallbacks. */
+  --font-body-stack: "Plus Jakarta Sans";
   --font-display-family: "Fraunces", serif;
-  --font-body-family: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-body-family: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --hc-score-high: #2d7a5f;
   --hc-score-mid: #ba7517;
   --hc-score-low: #e24b4a;
@@ -270,12 +266,8 @@
     font-family: var(--font-body-family);
   }
 
-  h1, h2, h4, h5, h6 {
+  h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-display-family);
-  }
-
-  h3 {
-    font-family: var(--font-body-family);
   }
 }
 

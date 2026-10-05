@@ -63,7 +63,7 @@ export function IntroMessage() {
           </h2>
 
           {/* Subline */}
-          <p className="text-foreground/70 font-['Inter'] text-[20px]">
+          <p className="text-foreground/70 font-['Plus_Jakarta_Sans'] text-[20px]">
             When you know exactly who you're speaking to, every post, ad, and email becomes easier, and more effective.
           </p>
 
@@ -98,11 +98,11 @@ export function IntroMessage() {
               {/* Testimonial Container */}
               <div className="bg-transparent border border-black rounded-design p-8 pt-20 text-center">
                 <h3 className="font-['Fraunces'] font-bold mb-4 text-[24px]">Charlotte</h3>
-                <p className="font-['Inter'] text-foreground/80 mb-4 text-[20px] min-h-[120px]">
+                <p className="font-['Plus_Jakarta_Sans'] text-foreground/80 mb-4 text-[20px] min-h-[120px]">
                   {displayedText}
                 </p>
                 <p 
-                  className={`font-['Inter'] text-sm text-foreground/60 text-[16px] transition-opacity duration-500 ${
+                  className={`font-['Plus_Jakarta_Sans'] text-sm text-foreground/60 text-[16px] transition-opacity duration-500 ${
                     showFounder ? 'opacity-100' : 'opacity-0'
                   }`}
                 >

@@ -47,7 +47,7 @@ export function AuthHero({ title, subtitle, intervalMs = 2000 }: AuthHeroProps) 
               );
             })
           ) : (
-            <div className="absolute inset-0 flex items-center justify-center text-xs text-foreground/60 font-['Inter']">
+            <div className="absolute inset-0 flex items-center justify-center text-xs text-foreground/60 font-['Plus_Jakarta_Sans']">
               Loading...
             </div>
           )}

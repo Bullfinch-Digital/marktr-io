@@ -25,7 +25,7 @@ export default function StrategyArchiveModal({
         onClick={(e) => e.stopPropagation()}
       >
         <h2 id="strategy-archive-title">Archive this strategy?</h2>
-        <p className="font-['Inter'] text-sm text-foreground/80">
+        <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/80">
           It&apos;ll move to Archived, where you can restore it anytime. Its aim and persona links
           are preserved.
         </p>

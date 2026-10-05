@@ -165,8 +165,8 @@ export default function StoryResults() {
     return (
       <GuestPreviewShell>
         <div className="mx-auto max-w-2xl">
-          <p className="font-['DM_Sans'] text-sm text-destructive">{error || "Could not load your story."}</p>
-          <Link to="/story" className="mt-4 inline-block font-['DM_Sans'] text-sm text-primary underline">
+          <p className="font-['Plus_Jakarta_Sans'] text-sm text-destructive">{error || "Could not load your story."}</p>
+          <Link to="/story" className="mt-4 inline-block font-['Plus_Jakarta_Sans'] text-sm text-primary underline">
             Start over
           </Link>
         </div>
@@ -184,23 +184,23 @@ export default function StoryResults() {
   return (
     <GuestPreviewShell>
       <section className="mx-auto max-w-2xl">
-        <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 font-['DM_Sans'] text-xs font-medium text-primary">
+        <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 font-['Plus_Jakarta_Sans'] text-xs font-medium text-primary">
           Your Brand Story
         </span>
 
         <h1 className="mt-4 font-['Fraunces'] text-4xl font-bold text-[#0D1833] sm:text-5xl">This is your story.</h1>
 
-        <p className="mt-4 font-['DM_Sans'] text-base text-muted-foreground">
+        <p className="mt-4 font-['Plus_Jakarta_Sans'] text-base text-muted-foreground">
           Based on everything you&apos;ve shared, here&apos;s the foundation marktr will use to create everything for you.
         </p>
 
         {showDashboardCta && (
           <div className="mt-8 flex flex-col gap-4 rounded-2xl border border-primary/20 bg-primary/5 px-6 py-5 sm:flex-row sm:items-center">
             <div className="flex-1">
-              <p className="font-['DM_Sans'] text-sm font-semibold text-foreground">
+              <p className="font-['Plus_Jakarta_Sans'] text-sm font-semibold text-foreground">
                 Your story is saved to your dashboard.
               </p>
-              <p className="mt-1 font-['DM_Sans'] text-sm text-muted-foreground">
+              <p className="mt-1 font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground">
                 Head to your dashboard to refine your story, connect your accounts, and build content
                 that sounds like you.
               </p>
@@ -208,7 +208,7 @@ export default function StoryResults() {
             <button
               type="button"
               onClick={() => navigate("/dashboard")}
-              className="shrink-0 whitespace-nowrap rounded-full bg-primary px-5 py-2.5 font-['DM_Sans'] text-sm font-semibold text-white transition-colors hover:bg-primary/90"
+              className="shrink-0 whitespace-nowrap rounded-full bg-primary px-5 py-2.5 font-['Plus_Jakarta_Sans'] text-sm font-semibold text-white transition-colors hover:bg-primary/90"
             >
               Go to dashboard →
             </button>
@@ -218,7 +218,7 @@ export default function StoryResults() {
         <div className="mt-10 space-y-4">
           {cards.map(({ label, body }) => (
             <article key={label} className="rounded-2xl border border-border bg-white p-6">
-              <p className="font-['DM_Sans'] text-[10px] uppercase tracking-[0.16em] text-muted-foreground">{label}</p>
+              <p className="font-['Plus_Jakarta_Sans'] text-[10px] uppercase tracking-[0.16em] text-muted-foreground">{label}</p>
               <p className="mt-3 font-['Fraunces'] text-lg leading-relaxed text-[#0D1833]">{body}</p>
             </article>
           ))}
@@ -234,14 +234,14 @@ export default function StoryResults() {
         {showDashboardCta && (
           <div className="mt-10 rounded-2xl bg-[#0D1833] px-8 py-8 text-white">
             <h2 className="mb-3 font-['Fraunces'] text-3xl font-semibold">Your story is saved.</h2>
-            <p className="mb-6 max-w-lg font-['DM_Sans'] text-sm text-white/70">
+            <p className="mb-6 max-w-lg font-['Plus_Jakarta_Sans'] text-sm text-white/70">
               Use your dashboard to refine each section, generate content from your story, and keep
               everything you publish sounding like you.
             </p>
             <button
               type="button"
               onClick={() => navigate("/dashboard")}
-              className="rounded-full bg-primary px-6 py-3 font-['DM_Sans'] text-sm font-semibold text-white transition-colors hover:bg-primary/90"
+              className="rounded-full bg-primary px-6 py-3 font-['Plus_Jakarta_Sans'] text-sm font-semibold text-white transition-colors hover:bg-primary/90"
             >
               Go to your dashboard →
             </button>

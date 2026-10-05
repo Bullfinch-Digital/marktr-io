@@ -66,13 +66,13 @@ export function GuestICPCard({ icp }: GuestICPCardProps) {
           <h3 className="font-['Fraunces'] text-lg mb-1 truncate">{icp.name}</h3>
 
           {metaLine && (
-            <p className="font-['Inter'] text-xs text-foreground/60 mb-3 truncate">
+            <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/60 mb-3 truncate">
               {metaLine}
             </p>
           )}
 
           {icp.description && (
-            <p className="font-['Inter'] text-sm text-foreground/70 mb-3 line-clamp-2">
+            <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70 mb-3 line-clamp-2">
               {icp.description}
             </p>
           )}
@@ -82,7 +82,7 @@ export function GuestICPCard({ icp }: GuestICPCardProps) {
               {bullets.map((item, idx) => (
                 <li
                   key={`guest-icp-bullet-${idx}`}
-                  className="font-['Inter'] text-xs text-foreground/70 flex gap-1.5"
+                  className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/70 flex gap-1.5"
                 >
                   <span className="text-foreground/40 shrink-0">•</span>
                   <span className="line-clamp-2">{item}</span>
@@ -94,12 +94,12 @@ export function GuestICPCard({ icp }: GuestICPCardProps) {
           <div className="mt-auto pt-2">
             <Button
               type="button"
-              className="w-full rounded-design border border-black bg-button-green hover:bg-button-green/90 text-foreground font-['DM_Sans'] text-sm"
+              className="w-full rounded-design border border-black bg-button-green hover:bg-button-green/90 text-foreground font-['Plus_Jakarta_Sans'] text-sm"
               onClick={handleViewProfile}
             >
               View full profile →
             </Button>
-            <p className="mt-2 font-['Inter'] text-xs text-foreground/50 text-center">
+            <p className="mt-2 font-['Plus_Jakarta_Sans'] text-xs text-foreground/50 text-center">
               Edit, refine and unlock strategy with your free trial
             </p>
           </div>

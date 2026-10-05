@@ -25,7 +25,7 @@ export default function IcpArchiveModal({
         onClick={(e) => e.stopPropagation()}
       >
         <h2 id="icp-archive-title">Archive this customer profile?</h2>
-        <p className="font-['Inter'] text-sm text-foreground/80">
+        <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/80">
           It&apos;ll move to Archived, where you can restore it anytime.
         </p>
         <div className="modal-buttons">

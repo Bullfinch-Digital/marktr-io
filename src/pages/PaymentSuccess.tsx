@@ -47,7 +47,7 @@ export default function PaymentSuccess() {
           <h1 className="font-['Fraunces'] text-3xl lg:text-4xl mb-3">
             Upgrade Complete 🎉
           </h1>
-          <p className="font-['Inter'] text-lg text-foreground/80 mb-8 max-w-lg mx-auto">
+          <p className="font-['Plus_Jakarta_Sans'] text-lg text-foreground/80 mb-8 max-w-lg mx-auto">
             Your full customer strategy is now unlocked.
           </p>
 
@@ -59,37 +59,37 @@ export default function PaymentSuccess() {
                 <div className="w-5 h-5 bg-button-green rounded-full border border-black flex items-center justify-center flex-shrink-0 mt-0.5">
                   <CheckCircle2 className="w-3 h-3" />
                 </div>
-                <span className="font-['Inter'] text-sm">All 3 ICPs unlocked</span>
+                <span className="font-['Plus_Jakarta_Sans'] text-sm">All 3 ICPs unlocked</span>
               </div>
               <div className="flex items-start gap-3">
                 <div className="w-5 h-5 bg-button-green rounded-full border border-black flex items-center justify-center flex-shrink-0 mt-0.5">
                   <CheckCircle2 className="w-3 h-3" />
                 </div>
-                <span className="font-['Inter'] text-sm">Full psychographic insights</span>
+                <span className="font-['Plus_Jakarta_Sans'] text-sm">Full psychographic insights</span>
               </div>
               <div className="flex items-start gap-3">
                 <div className="w-5 h-5 bg-button-green rounded-full border border-black flex items-center justify-center flex-shrink-0 mt-0.5">
                   <CheckCircle2 className="w-3 h-3" />
                 </div>
-                <span className="font-['Inter'] text-sm">Content strategy included</span>
+                <span className="font-['Plus_Jakarta_Sans'] text-sm">Content strategy included</span>
               </div>
               <div className="flex items-start gap-3">
                 <div className="w-5 h-5 bg-button-green rounded-full border border-black flex items-center justify-center flex-shrink-0 mt-0.5">
                   <CheckCircle2 className="w-3 h-3" />
                 </div>
-                <span className="font-['Inter'] text-sm">Meta Ads audience export</span>
+                <span className="font-['Plus_Jakarta_Sans'] text-sm">Meta Ads audience export</span>
               </div>
               <div className="flex items-start gap-3">
                 <div className="w-5 h-5 bg-button-green rounded-full border border-black flex items-center justify-center flex-shrink-0 mt-0.5">
                   <CheckCircle2 className="w-3 h-3" />
                 </div>
-                <span className="font-['Inter'] text-sm">Unlimited ICP creation</span>
+                <span className="font-['Plus_Jakarta_Sans'] text-sm">Unlimited ICP creation</span>
               </div>
               <div className="flex items-start gap-3">
                 <div className="w-5 h-5 bg-button-green rounded-full border border-black flex items-center justify-center flex-shrink-0 mt-0.5">
                   <CheckCircle2 className="w-3 h-3" />
                 </div>
-                <span className="font-['Inter'] text-sm">Collections & tagging</span>
+                <span className="font-['Plus_Jakarta_Sans'] text-sm">Collections & tagging</span>
               </div>
             </div>
           </div>
@@ -99,10 +99,10 @@ export default function PaymentSuccess() {
             <div className="flex items-start gap-3 text-left">
               <CreditCard className="w-5 h-5 text-foreground/60 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="font-['Inter'] text-sm text-foreground/70">
+                <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70">
                   You'll next be charged on <strong>{getRenewalDate()}</strong>.
                 </p>
-                <p className="font-['Inter'] text-xs text-foreground/60 mt-1">
+                <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/60 mt-1">
                   Manage billing anytime from your account settings.
                 </p>
               </div>
@@ -113,14 +113,14 @@ export default function PaymentSuccess() {
           <div className="space-y-4">
             <Button
               onClick={handleGoToDashboard}
-              className="w-full bg-button-green hover:bg-button-green/90 text-foreground border border-black rounded-design py-6 text-lg transition-all hover:scale-[1.02] hover:shadow-lg font-['Inter']"
+              className="w-full bg-button-green hover:bg-button-green/90 text-foreground border border-black rounded-design py-6 text-lg transition-all hover:scale-[1.02] hover:shadow-lg font-['Plus_Jakarta_Sans']"
             >
               Go to Dashboard
             </Button>
 
             <button
               onClick={handleViewBilling}
-              className="w-full font-['Inter'] text-sm text-foreground/70 hover:text-foreground transition-colors py-2"
+              className="w-full font-['Plus_Jakarta_Sans'] text-sm text-foreground/70 hover:text-foreground transition-colors py-2"
             >
               View Billing Settings
             </button>
@@ -129,7 +129,7 @@ export default function PaymentSuccess() {
 
         {/* Support Link */}
         <div className="text-center mt-6">
-          <p className="font-['Inter'] text-sm text-foreground/60">
+          <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/60">
             Need help?{" "}
             <a href="#" className="underline hover:text-foreground transition-colors">
               Contact Support

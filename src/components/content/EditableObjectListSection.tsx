@@ -74,7 +74,7 @@ export function EditableObjectListSection<T extends Record<string, unknown>>({
             className="rounded-design border border-black/15 bg-white p-4 space-y-3"
           >
             <div className="flex items-center justify-between gap-2">
-              <p className="font-['Inter'] text-xs font-medium text-foreground/55">
+              <p className="font-['Plus_Jakarta_Sans'] text-xs font-medium text-foreground/55">
                 {itemLabel} {index + 1}
               </p>
               {!isLocked ? (
@@ -113,7 +113,7 @@ export function EditableObjectListSection<T extends Record<string, unknown>>({
               const value = String(item[field.key] ?? "");
               return (
                 <div key={field.key} className="space-y-2">
-                  <label className="font-['Inter'] text-xs text-foreground/60">{field.label}</label>
+                  <label className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/60">{field.label}</label>
                   {field.multiline ? (
                     <Textarea
                       value={value}
@@ -122,7 +122,7 @@ export function EditableObjectListSection<T extends Record<string, unknown>>({
                         updateItem(index, { [field.key]: e.target.value } as Partial<T>)
                       }
                       rows={2}
-                      className="border-black rounded-design font-['Inter'] text-sm resize-none"
+                      className="border-black rounded-design font-['Plus_Jakarta_Sans'] text-sm resize-none"
                     />
                   ) : (
                     <Input
@@ -131,7 +131,7 @@ export function EditableObjectListSection<T extends Record<string, unknown>>({
                       onChange={(e) =>
                         updateItem(index, { [field.key]: e.target.value } as Partial<T>)
                       }
-                      className="border-black rounded-design font-['Inter'] text-sm"
+                      className="border-black rounded-design font-['Plus_Jakarta_Sans'] text-sm"
                     />
                   )}
                 </div>

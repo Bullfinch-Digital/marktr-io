@@ -37,7 +37,7 @@ export function MarktrStepCard({
           </div>
         ) : (
           <div
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-muted-foreground/20 bg-muted/30 font-['DM_Sans'] text-sm font-semibold text-muted-foreground"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-muted-foreground/20 bg-muted/30 font-['Plus_Jakarta_Sans'] text-sm font-semibold text-muted-foreground"
             aria-hidden
           >
             {step}
@@ -48,7 +48,7 @@ export function MarktrStepCard({
             Step {step} — {title}
           </h3>
           {summary}
-          <p className="mt-3 font-['DM_Sans'] text-sm font-semibold text-primary">
+          <p className="mt-3 font-['Plus_Jakarta_Sans'] text-sm font-semibold text-primary">
             {complete ? "View results →" : "Start →"}
           </p>
         </div>

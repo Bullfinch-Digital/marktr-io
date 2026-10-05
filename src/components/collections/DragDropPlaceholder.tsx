@@ -26,7 +26,7 @@ export function DragDropPlaceholder({
         `}>
           <MoveVertical className={`w-8 h-8 ${isDragging ? 'text-foreground' : 'text-foreground/40'}`} />
         </div>
-        <p className={`font-['Inter'] ${isDragging ? 'text-foreground' : 'text-foreground/60'}`}>
+        <p className={`font-['Plus_Jakarta_Sans'] ${isDragging ? 'text-foreground' : 'text-foreground/60'}`}>
           {text}
         </p>
       </div>

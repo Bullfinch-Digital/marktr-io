@@ -67,7 +67,7 @@ export function StrategyEditForm({
   const titleSection = (
     <SectionCard bare={bare}>
       <div className="space-y-2">
-        <label className="font-['Inter'] text-sm text-foreground/70">Strategy title</label>
+        <label className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70">Strategy title</label>
         <Input
           value={title}
           disabled={isLocked}
@@ -82,7 +82,7 @@ export function StrategyEditForm({
     <SectionCard bare={bare}>
       <h3 className="font-['Fraunces'] text-lg">Positioning</h3>
       <div className="space-y-2">
-        <label className="font-['Inter'] text-sm text-foreground/70">One-liner</label>
+        <label className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70">One-liner</label>
         <Textarea
           value={strategy.positioning?.one_liner ?? ""}
           disabled={isLocked}
@@ -92,7 +92,7 @@ export function StrategyEditForm({
         />
       </div>
       <div className="space-y-2">
-        <label className="font-['Inter'] text-sm text-foreground/70">Why us</label>
+        <label className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70">Why us</label>
         <Textarea
           value={strategy.positioning?.why_us ?? ""}
           disabled={isLocked}
@@ -148,7 +148,7 @@ export function StrategyEditForm({
     <SectionCard bare={bare}>
       <h3 className="font-['Fraunces'] text-lg">Channel plan</h3>
       <div className="space-y-2">
-        <label className="font-['Inter'] text-sm text-foreground/70">Primary channel</label>
+        <label className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70">Primary channel</label>
         <Input
           value={strategy.channel_plan?.primary_channel ?? ""}
           disabled={isLocked}
@@ -175,7 +175,7 @@ export function StrategyEditForm({
     <SectionCard bare={bare}>
       <h3 className="font-['Fraunces'] text-lg">Offer</h3>
       <div className="space-y-2">
-        <label className="font-['Inter'] text-sm text-foreground/70">Recommended offer</label>
+        <label className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70">Recommended offer</label>
         <Textarea
           value={strategy.offer?.recommended_offer ?? ""}
           disabled={isLocked}
@@ -185,7 +185,7 @@ export function StrategyEditForm({
         />
       </div>
       <div className="space-y-2">
-        <label className="font-['Inter'] text-sm text-foreground/70">Lead magnet idea (optional)</label>
+        <label className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70">Lead magnet idea (optional)</label>
         <Input
           value={strategy.offer?.lead_magnet_idea ?? ""}
           disabled={isLocked}
@@ -227,7 +227,7 @@ export function StrategyEditForm({
       <h3 className="font-['Fraunces'] text-lg mb-1">Ad assets</h3>
       {!strategy.ad_assets ? (
         <div>
-          <p className="font-['Inter'] text-sm text-foreground/60 mb-3">
+          <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/60 mb-3">
             No ad assets in this strategy yet.
           </p>
           {!isLocked ? (

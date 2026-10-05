@@ -39,7 +39,7 @@ export function StrategyRosterCard({ strategy, onArchive, readOnly = false }: Pr
           onClick={() => navigate(`/strategy/${strategy.id}`)}
         >
           <h3 className="font-['Fraunces'] text-xl text-[#0D1833] truncate">{strategy.title}</h3>
-          <p className="font-['Inter'] text-xs text-foreground/55 mt-1">
+          <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/55 mt-1">
             v{strategy.version} · updated {formatDate(strategy.updated_at)}
           </p>
         </button>
@@ -95,12 +95,12 @@ export function StrategyRosterCard({ strategy, onArchive, readOnly = false }: Pr
         <StrategyCompositionBanner aims={strategy.aims} icps={strategy.icps} compact />
       </div>
 
-      <p className="font-['Inter'] text-sm text-foreground/75 mt-3 line-clamp-2">{previewText}</p>
+      <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/75 mt-3 line-clamp-2">{previewText}</p>
 
       <button
         type="button"
         onClick={() => setExpanded((v) => !v)}
-        className="mt-3 inline-flex items-center gap-1 font-['Inter'] text-xs text-foreground/55 hover:text-foreground/80"
+        className="mt-3 inline-flex items-center gap-1 font-['Plus_Jakarta_Sans'] text-xs text-foreground/55 hover:text-foreground/80"
       >
         {expanded ? "Hide preview" : "Expand preview"}
         {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}

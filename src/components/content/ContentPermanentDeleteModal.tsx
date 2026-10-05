@@ -29,7 +29,7 @@ export default function ContentPermanentDeleteModal({
         onClick={(e) => e.stopPropagation()}
       >
         <h2 id="content-permanent-delete-title">Permanently delete this content?</h2>
-        <p className="font-['Inter'] text-sm text-foreground/80">
+        <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/80">
           This will permanently delete <strong>{displayName}</strong> and all its versions. This
           cannot be undone.
         </p>

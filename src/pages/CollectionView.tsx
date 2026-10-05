@@ -345,7 +345,7 @@ export default function CollectionView() {
             {/* Back Button */}
             <Link 
               to="/collections"
-              className="inline-flex items-center gap-2 font-['Inter'] text-foreground/70 hover:text-foreground transition-colors mb-6"
+              className="inline-flex items-center gap-2 font-['Plus_Jakarta_Sans'] text-foreground/70 hover:text-foreground transition-colors mb-6"
             >
               <ArrowLeft className="w-4 h-4" />
               Back to Collections
@@ -406,7 +406,7 @@ export default function CollectionView() {
                       </Button>
                     </div>
                   )}
-                  <p className="font-['Inter'] text-foreground/70 mt-2">
+                  <p className="font-['Plus_Jakarta_Sans'] text-foreground/70 mt-2">
                     {icpsInCollection.length} {icpsInCollection.length === 1 ? 'ICP' : 'ICPs'} in this collection
                   </p>
                 </div>
@@ -433,7 +433,7 @@ export default function CollectionView() {
             {/* Edit Tags */}
             <div className="bg-background border border-black rounded-design p-6 mb-8">
               <h3 className="font-['Fraunces'] text-xl mb-3">Edit Tags</h3>
-              <p className="font-['Inter'] text-sm text-foreground/70 mb-3">
+              <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70 mb-3">
                 Add up to 3 tags to organise this collection.
               </p>
               <EditTags
@@ -452,7 +452,7 @@ export default function CollectionView() {
                     placeholder="Search ICPs in this collection..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 border-black rounded-design font-['Inter']"
+                    className="pl-10 border-black rounded-design font-['Plus_Jakarta_Sans']"
                   />
                 </div>
               </div>
@@ -470,7 +470,7 @@ export default function CollectionView() {
                   <h2 className="font-['Fraunces'] text-2xl mb-3">
                     This Collection is Empty
                   </h2>
-                  <p className="font-['Inter'] text-foreground/70 mb-6 max-w-md mx-auto">
+                  <p className="font-['Plus_Jakarta_Sans'] text-foreground/70 mb-6 max-w-md mx-auto">
                     Add ICPs to start organising your audience.
                   </p>
                   <Button
@@ -514,7 +514,7 @@ export default function CollectionView() {
                       <h3 className="font-['Fraunces'] text-xl mb-3">
                         Unlock all ICPs in this collection
                       </h3>
-                      <p className="font-['Inter'] text-foreground/70 mb-6">
+                      <p className="font-['Plus_Jakarta_Sans'] text-foreground/70 mb-6">
                         Upgrade to view and manage unlimited ICPs in your collections.
                       </p>
                       <Button
@@ -532,7 +532,7 @@ export default function CollectionView() {
             {/* No Results */}
             {!showEmptyState && filteredICPs.length === 0 && (
               <div className="text-center py-16">
-                <p className="font-['Inter'] text-foreground/60">
+                <p className="font-['Plus_Jakarta_Sans'] text-foreground/60">
                   No ICPs found matching "{searchQuery}"
                 </p>
               </div>

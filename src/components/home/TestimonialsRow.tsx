@@ -97,10 +97,10 @@ export function TestimonialsRow() {
               {/* Testimonial Container */}
               <div className="bg-transparent border border-black rounded-design p-6 pt-16 text-center h-full flex flex-col">
                 <h3 className="font-['Fraunces'] mb-2 text-[18px]">{testimonial.name}</h3>
-                <p className="font-['Inter'] text-foreground/80 mb-4 text-[15px] flex-grow">
+                <p className="font-['Plus_Jakarta_Sans'] text-foreground/80 mb-4 text-[15px] flex-grow">
                   "{testimonial.quote}"
                 </p>
-                <p className="font-['Inter'] text-sm text-foreground/60 text-[14px]">
+                <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/60 text-[14px]">
                   {testimonial.role}, {testimonial.company}
                 </p>
               </div>

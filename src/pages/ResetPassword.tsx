@@ -86,13 +86,13 @@ export default function ResetPassword() {
       <div className="min-h-screen flex items-center justify-center bg-background px-4">
         <div className="max-w-md w-full text-center">
           <h1 className="font-['Fraunces'] text-2xl mb-3">Reset link expired or invalid</h1>
-          <p className="font-['Inter'] text-sm text-foreground/70 mb-4">
+          <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70 mb-4">
             Try requesting a new password reset from the login page.
           </p>
           <button
             type="button"
             onClick={() => navigate("/login")}
-            className="font-['Inter'] px-4 py-2 border border-black rounded-design bg-button-green hover:bg-button-green/90"
+            className="font-['Plus_Jakarta_Sans'] px-4 py-2 border border-black rounded-design bg-button-green hover:bg-button-green/90"
           >
             Back to login
           </button>
@@ -105,13 +105,13 @@ export default function ResetPassword() {
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="max-w-md w-full border border-black rounded-design p-6 bg-white shadow-md">
         <h1 className="font-['Fraunces'] text-2xl mb-2">Choose a new password</h1>
-        <p className="font-['Inter'] text-sm text-foreground/70 mb-4">
+        <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70 mb-4">
           You&apos;re almost done. Enter your new password below.
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <label className="font-['Inter'] text-sm" htmlFor="new-password">
+            <label className="font-['Plus_Jakarta_Sans'] text-sm" htmlFor="new-password">
               New password
             </label>
             <input
@@ -119,12 +119,12 @@ export default function ResetPassword() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full border border-black rounded-design px-3 py-2 font-['Inter']"
+              className="w-full border border-black rounded-design px-3 py-2 font-['Plus_Jakarta_Sans']"
               required
             />
           </div>
           <div className="space-y-2">
-            <label className="font-['Inter'] text-sm" htmlFor="confirm-password">
+            <label className="font-['Plus_Jakarta_Sans'] text-sm" htmlFor="confirm-password">
               Confirm new password
             </label>
             <input
@@ -132,7 +132,7 @@ export default function ResetPassword() {
               type="password"
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
-              className="w-full border border-black rounded-design px-3 py-2 font-['Inter']"
+              className="w-full border border-black rounded-design px-3 py-2 font-['Plus_Jakarta_Sans']"
               required
             />
           </div>
@@ -143,7 +143,7 @@ export default function ResetPassword() {
           <button
             type="submit"
             disabled={submitting}
-            className="mt-2 w-full font-['Inter'] px-4 py-2 border border-black rounded-design bg-button-green hover:bg-button-green/90 disabled:opacity-60"
+            className="mt-2 w-full font-['Plus_Jakarta_Sans'] px-4 py-2 border border-black rounded-design bg-button-green hover:bg-button-green/90 disabled:opacity-60"
           >
             {submitting ? "Updating..." : "Update password"}
           </button>

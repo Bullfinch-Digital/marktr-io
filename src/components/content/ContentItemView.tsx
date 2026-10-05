@@ -24,7 +24,7 @@ type Props = {
 function SectionLabel({ bare, children }: { bare: boolean; children: React.ReactNode }) {
   if (bare) return null;
   return (
-    <p className="font-['Inter'] text-xs uppercase tracking-wide text-foreground/55">{children}</p>
+    <p className="font-['Plus_Jakarta_Sans'] text-xs uppercase tracking-wide text-foreground/55">{children}</p>
   );
 }
 
@@ -51,7 +51,7 @@ function ScalarBlock({
     return wrapSection(
       <>
         <SectionLabel bare={bare}>{label}</SectionLabel>
-        <p className={`font-['Inter'] text-sm text-foreground/45 ${bare ? "" : "mt-2"}`}>—</p>
+        <p className={`font-['Plus_Jakarta_Sans'] text-sm text-foreground/45 ${bare ? "" : "mt-2"}`}>—</p>
       </>,
       bare
     );
@@ -64,7 +64,7 @@ function ScalarBlock({
         className={`whitespace-pre-wrap ${
           emphasize
             ? "font-['Fraunces'] text-lg text-foreground"
-            : "font-['Inter'] text-sm text-foreground/80"
+            : "font-['Plus_Jakarta_Sans'] text-sm text-foreground/80"
         } ${bare ? "" : "mt-2"}`}
       >
         {value}
@@ -102,7 +102,7 @@ function ObjectListBlock<T extends Record<string, string>>({
               key={`${label}-${index}`}
               className="rounded-design border border-black/10 bg-accent-grey/10 p-3"
             >
-              <p className="font-['Inter'] text-xs font-medium text-foreground/55 mb-2">
+              <p className="font-['Plus_Jakarta_Sans'] text-xs font-medium text-foreground/55 mb-2">
                 {label.replace(/s$/, "")} {index + 1}
               </p>
               {fields.map((field) => {
@@ -110,10 +110,10 @@ function ObjectListBlock<T extends Record<string, string>>({
                 if (!value.trim()) return null;
                 return (
                   <div key={field.key} className="mt-1.5 first:mt-0">
-                    <p className="font-['Inter'] text-xs font-medium text-foreground/60">
+                    <p className="font-['Plus_Jakarta_Sans'] text-xs font-medium text-foreground/60">
                       {field.label}
                     </p>
-                    <p className="font-['Inter'] text-sm text-foreground/80 whitespace-pre-wrap">
+                    <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/80 whitespace-pre-wrap">
                       {value}
                     </p>
                   </div>
@@ -123,7 +123,7 @@ function ObjectListBlock<T extends Record<string, string>>({
           ))}
         </div>
       ) : (
-        <p className="font-['Inter'] text-sm text-foreground/60 mt-2">{emptyMessage}</p>
+        <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/60 mt-2">{emptyMessage}</p>
       )}
     </>,
     bare

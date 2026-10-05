@@ -75,7 +75,7 @@ export default function GuestHealthPreview() {
   return (
     <GuestPreviewShell>
       <section className="mx-auto max-w-3xl">
-        <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 font-['DM_Sans'] text-xs font-medium text-primary">
+        <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 font-['Plus_Jakarta_Sans'] text-xs font-medium text-primary">
           Your Digital Health Report
         </span>
 
@@ -83,14 +83,14 @@ export default function GuestHealthPreview() {
           Your digital health findings
         </h1>
 
-        <p className="mt-4 font-['DM_Sans'] text-base leading-relaxed text-muted-foreground">
+        <p className="mt-4 font-['Plus_Jakarta_Sans'] text-base leading-relaxed text-muted-foreground">
           Here&apos;s the honest snapshot of where your digital presence is right now — the strong
           bits and the gaps. The good news: every one of these is fixable.
         </p>
 
         <div className="mt-8 flex flex-wrap gap-3">
           <div className="min-w-[120px] flex-[1.2] rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-center">
-            <p className="font-['DM_Sans'] text-[10px] uppercase tracking-widest text-muted-foreground">
+            <p className="font-['Plus_Jakarta_Sans'] text-[10px] uppercase tracking-widest text-muted-foreground">
               Overall
             </p>
             <p
@@ -104,7 +104,7 @@ export default function GuestHealthPreview() {
               key={dimension}
               className="min-w-[100px] flex-1 rounded-xl border border-border bg-white px-4 py-3 text-center"
             >
-              <p className="font-['DM_Sans'] text-[10px] uppercase tracking-widest text-muted-foreground">
+              <p className="font-['Plus_Jakarta_Sans'] text-[10px] uppercase tracking-widest text-muted-foreground">
                 {dimension.replace("Website Clarity", "Clarity").replace("Content Consistency", "Content")}
               </p>
               <p className={`font-['Fraunces'] text-2xl font-bold leading-none ${getScoreColor(score)}`}>
@@ -129,7 +129,7 @@ export default function GuestHealthPreview() {
                   style={{ width: `${score}%` }}
                 />
               </div>
-              <p className="mt-4 font-['DM_Sans'] text-sm leading-relaxed text-foreground/80">{finding}</p>
+              <p className="mt-4 font-['Plus_Jakarta_Sans'] text-sm leading-relaxed text-foreground/80">{finding}</p>
             </article>
           ))}
         </div>
@@ -138,14 +138,14 @@ export default function GuestHealthPreview() {
           <h2 className="font-['Fraunces'] text-2xl font-bold text-white sm:text-3xl">
             Turn these findings into a plan
           </h2>
-          <p className="mt-4 font-['DM_Sans'] text-sm leading-relaxed text-white/70">
+          <p className="mt-4 font-['Plus_Jakarta_Sans'] text-sm leading-relaxed text-white/70">
             Start your free trial to turn these findings into a plan — and watch the scores climb as
             you work through it.
           </p>
           <Button
             type="button"
             onClick={() => openPaywall()}
-            className="mt-6 rounded-full bg-primary px-7 py-3 font-['DM_Sans'] text-sm font-medium text-primary-foreground hover:opacity-90"
+            className="mt-6 rounded-full bg-primary px-7 py-3 font-['Plus_Jakarta_Sans'] text-sm font-medium text-primary-foreground hover:opacity-90"
           >
             Start your 14-day free trial →
           </Button>

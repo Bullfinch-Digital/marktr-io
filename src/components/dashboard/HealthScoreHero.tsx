@@ -45,21 +45,21 @@ export function HealthScoreHero({
         <h2 className="font-['Fraunces'] text-2xl font-bold text-[#0D1833]">
           Your digital health scores
         </h2>
-        <p className="font-['DM_Sans'] text-sm text-muted-foreground">
+        <p className="font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground">
           Run a health check to see Website, Brand Story, Content, and Social scores.
         </p>
         {onStartHealthCheck ? (
           <button
             type="button"
             onClick={onStartHealthCheck}
-            className="font-['DM_Sans'] text-sm font-semibold text-primary hover:underline"
+            className="font-['Plus_Jakarta_Sans'] text-sm font-semibold text-primary hover:underline"
           >
             Run health check →
           </button>
         ) : (
           <Link
             to="/health-check"
-            className="font-['DM_Sans'] text-sm font-semibold text-primary hover:underline"
+            className="font-['Plus_Jakarta_Sans'] text-sm font-semibold text-primary hover:underline"
           >
             Run health check →
           </Link>
@@ -76,7 +76,7 @@ export function HealthScoreHero({
         </h2>
         <Link
           to={reportHref}
-          className="font-['DM_Sans'] text-sm font-medium text-primary hover:underline"
+          className="font-['Plus_Jakarta_Sans'] text-sm font-medium text-primary hover:underline"
         >
           {reportLinkLabel}
         </Link>
@@ -88,13 +88,13 @@ export function HealthScoreHero({
             <p className={`font-['Fraunces'] text-3xl font-bold leading-none ${scoreColor(score)}`}>
               {score}
             </p>
-            <p className="mt-2 font-['DM_Sans'] text-[10px] leading-tight text-muted-foreground">
+            <p className="mt-2 font-['Plus_Jakarta_Sans'] text-[10px] leading-tight text-muted-foreground">
               {label}
             </p>
             {rerunHref ? (
               <Link
                 to={rerunHref}
-                className="mt-2 inline-block font-['DM_Sans'] text-[10px] font-medium text-primary hover:underline"
+                className="mt-2 inline-block font-['Plus_Jakarta_Sans'] text-[10px] font-medium text-primary hover:underline"
               >
                 Re-run →
               </Link>
@@ -106,9 +106,9 @@ export function HealthScoreHero({
       <div className="pt-2 text-center">
         <p className="font-['Fraunces'] text-4xl font-bold text-[#0D1833]">
           {overall}
-          <span className="font-['DM_Sans'] text-lg font-normal text-muted-foreground">/100</span>
+          <span className="font-['Plus_Jakarta_Sans'] text-lg font-normal text-muted-foreground">/100</span>
         </p>
-        <p className="font-['DM_Sans'] text-sm text-muted-foreground">Overall digital health</p>
+        <p className="font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground">Overall digital health</p>
       </div>
     </div>
   );

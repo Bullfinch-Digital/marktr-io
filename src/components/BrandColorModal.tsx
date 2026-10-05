@@ -67,7 +67,7 @@ export default function BrandColorModal({ open, id, currentColor, onClose, onSav
 
         <div className="flex justify-end gap-2 mt-6">
           <button
-            className="border border-black rounded-design px-4 py-2 bg-background hover:bg-foreground/5 font-['Inter'] text-sm"
+            className="border border-black rounded-design px-4 py-2 bg-background hover:bg-foreground/5 font-['Plus_Jakarta_Sans'] text-sm"
             onClick={(e) => {
               e.stopPropagation();
               onClose();
@@ -76,7 +76,7 @@ export default function BrandColorModal({ open, id, currentColor, onClose, onSav
             Cancel
           </button>
           <button
-            className="border border-black rounded-design px-4 py-2 bg-button-green hover:bg-button-green/90 font-['Inter'] text-sm"
+            className="border border-black rounded-design px-4 py-2 bg-button-green hover:bg-button-green/90 font-['Plus_Jakarta_Sans'] text-sm"
             onClick={(e) => {
               e.stopPropagation();
               save();

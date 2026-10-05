@@ -92,7 +92,7 @@ export function BrandAimVersionHistorySection({
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className="inline-flex items-center gap-1.5 font-['Inter'] text-xs text-foreground/55 hover:text-foreground/80 transition-colors"
+        className="inline-flex items-center gap-1.5 font-['Plus_Jakarta_Sans'] text-xs text-foreground/55 hover:text-foreground/80 transition-colors"
       >
         <History className="h-3.5 w-3.5" />
         Version history
@@ -100,12 +100,12 @@ export function BrandAimVersionHistorySection({
         {open ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
       </button>
 
-      {error ? <p className="mt-2 font-['Inter'] text-xs text-red-700">{error}</p> : null}
+      {error ? <p className="mt-2 font-['Plus_Jakarta_Sans'] text-xs text-red-700">{error}</p> : null}
 
       {open ? (
         <div className="mt-3 rounded-design border border-black/15 bg-accent-grey/20 px-4 py-3">
           {loading ? (
-            <p className="font-['Inter'] text-xs text-foreground/50">Loading version history…</p>
+            <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/50">Loading version history…</p>
           ) : (
             <ul className="space-y-3">
               {visibleItems.map((row) => {
@@ -126,13 +126,13 @@ export function BrandAimVersionHistorySection({
                         }
                         className="text-left min-w-0 flex-1"
                       >
-                        <p className="font-['Inter'] text-sm text-foreground">
+                        <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground">
                           Version {row.version ?? "?"}
                           {isCurrent ? (
                             <span className="ml-2 text-xs text-foreground/50">(current)</span>
                           ) : null}
                         </p>
-                        <p className="font-['Inter'] text-xs text-foreground/50">{dateLabel}</p>
+                        <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/50">{dateLabel}</p>
                       </button>
 
                       {!isCurrent && !disabled ? (
@@ -140,7 +140,7 @@ export function BrandAimVersionHistorySection({
                           type="button"
                           disabled={!!restoringId}
                           onClick={() => void handleRestore(row)}
-                          className="font-['Inter'] text-xs text-foreground/70 underline-offset-2 hover:underline disabled:opacity-50"
+                          className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/70 underline-offset-2 hover:underline disabled:opacity-50"
                         >
                           {restoringId === row.id ? "Restoring…" : "Restore this version"}
                         </button>
@@ -149,14 +149,14 @@ export function BrandAimVersionHistorySection({
 
                     {isExpanded ? (
                       <div className="mt-3 rounded-design border border-black/10 bg-white/80 px-3 py-2 space-y-1">
-                        <p className="font-['Inter'] text-sm font-medium text-foreground">
+                        <p className="font-['Plus_Jakarta_Sans'] text-sm font-medium text-foreground">
                           {row.title}
                         </p>
-                        <p className="font-['Inter'] text-xs text-foreground/55">
+                        <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/55">
                           {AIM_TYPE_LABELS[row.aim_type]}
                         </p>
                         {row.description ? (
-                          <p className="font-['Inter'] text-xs text-foreground/70 whitespace-pre-wrap">
+                          <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/70 whitespace-pre-wrap">
                             {row.description}
                           </p>
                         ) : null}
@@ -170,7 +170,7 @@ export function BrandAimVersionHistorySection({
                   <button
                     type="button"
                     onClick={showMore}
-                    className="font-['Inter'] text-xs text-foreground/55 hover:text-foreground/80 underline-offset-2 hover:underline"
+                    className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/55 hover:text-foreground/80 underline-offset-2 hover:underline"
                   >
                     Show more ({remaining} older version{remaining === 1 ? "" : "s"})
                   </button>

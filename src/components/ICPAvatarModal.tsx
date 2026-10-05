@@ -79,7 +79,7 @@ export default function ICPAvatarModal({
       <Card className="relative w-[92%] max-w-lg border border-black rounded-design bg-background p-6 shadow-xl">
         <div className="mb-4">
           <h3 className="font-['Fraunces'] text-2xl">Choose an avatar</h3>
-          <p className="font-['Inter'] text-sm text-foreground/70 mt-1">
+          <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70 mt-1">
             Showing options from <span className="font-medium">{folder.gender}</span> /{" "}
             <span className="font-medium">{folder.ageRange}</span>
           </p>
@@ -109,7 +109,7 @@ export default function ICPAvatarModal({
         </div>
 
         {error && (
-          <div className="mb-4 text-sm font-['Inter'] text-red-700 bg-red-50 border border-red-200 rounded-design p-3">
+          <div className="mb-4 text-sm font-['Plus_Jakarta_Sans'] text-red-700 bg-red-50 border border-red-200 rounded-design p-3">
             {error}
           </div>
         )}

@@ -76,7 +76,7 @@ export function Stats() {
               >
                 {formatNumber(counts[index])}
               </div>
-              <div className="text-sm text-foreground/60 font-['Inter']">{stat.label}</div>
+              <div className="text-sm text-foreground/60 font-['Plus_Jakarta_Sans']">{stat.label}</div>
             </div>
           ))}
         </div>

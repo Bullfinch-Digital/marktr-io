@@ -116,7 +116,7 @@ export function ICPCarouselScreen({ onUnlockAll, onEmailICP }: ICPCarouselScreen
           <h1 className="font-['Fraunces'] mb-4 text-4xl sm:text-5xl">
             Your Ideal Customer Profiles
           </h1>
-          <p className="font-['Inter'] text-foreground/70 max-w-2xl mx-auto text-lg">
+          <p className="font-['Plus_Jakarta_Sans'] text-foreground/70 max-w-2xl mx-auto text-lg">
             We've generated 3 detailed ICPs based on your responses. The first one is free — unlock all 3 to get the complete picture.
           </p>
         </div>
@@ -219,7 +219,7 @@ export function ICPCarouselScreen({ onUnlockAll, onEmailICP }: ICPCarouselScreen
           >
             Unlock the full ICP Generator
           </Button>
-          <p className="font-['Inter'] text-sm text-foreground/60 mt-4">
+          <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/60 mt-4">
             Unlock unlimited brands and collections, full customer intelligence, content strategy, exports, and collaboration tools.
           </p>
         </div>

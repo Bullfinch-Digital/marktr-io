@@ -50,7 +50,7 @@ export function LegalAgreementRequiredModal({
           Agreement required
         </h2>
 
-        <p className="mt-4 font-['Inter'] text-sm text-foreground/80 leading-relaxed">
+        <p className="mt-4 font-['Plus_Jakarta_Sans'] text-sm text-foreground/80 leading-relaxed">
           To continue, please confirm you agree to our Terms of Use, Privacy Policy, and Cookie
           Policy.
         </p>

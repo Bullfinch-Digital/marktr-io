@@ -214,14 +214,14 @@ function ContentPageBody() {
   };
 
   if (!brandReady) {
-    return <p className="font-['Inter'] text-sm text-foreground/60">Loading…</p>;
+    return <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/60">Loading…</p>;
   }
 
   if (!scopedBrandId) {
     return (
       <div className="max-w-xl">
         <h1 className="font-['Fraunces'] text-3xl text-[#0D1833]">Content</h1>
-        <p className="font-['Inter'] text-sm text-foreground/70 mt-3">
+        <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70 mt-3">
           Choose a brand to manage content.{" "}
           <Link to="/my-brands" className="underline underline-offset-2">
             Go to brands
@@ -237,7 +237,7 @@ function ContentPageBody() {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h1 className="font-['Fraunces'] text-3xl lg:text-4xl text-[#0D1833]">Content</h1>
-            <p className="font-['Inter'] text-sm text-foreground/65 mt-2 max-w-xl">
+            <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/65 mt-2 max-w-xl">
               Pieces your strategy calls for — written for one persona at a time, ready to film
               on a phone.
             </p>
@@ -255,7 +255,7 @@ function ContentPageBody() {
         </div>
 
         {error ? (
-          <p className="font-['Inter'] text-sm text-red-700 bg-red-50 border border-red-200 rounded-design px-3 py-2">
+          <p className="font-['Plus_Jakarta_Sans'] text-sm text-red-700 bg-red-50 border border-red-200 rounded-design px-3 py-2">
             {error}
           </p>
         ) : null}
@@ -289,20 +289,20 @@ function ContentPageBody() {
         ) : null}
 
         {isLoading ? (
-          <p className="font-['Inter'] text-sm text-foreground/60">Loading content…</p>
+          <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/60">Loading content…</p>
         ) : items.length === 0 && !showCreate ? (
           <div className="rounded-design border border-dashed border-black/20 bg-accent-grey/10 px-6 py-12 text-center">
             <FileText className="h-8 w-8 text-foreground/35 mx-auto mb-3" />
             <h2 className="font-['Fraunces'] text-xl text-[#0D1833]">
               Content comes from a strategy
             </h2>
-            <p className="font-['Inter'] text-sm text-foreground/65 mt-2 max-w-md mx-auto">
+            <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/65 mt-2 max-w-md mx-auto">
               Pick a strategy and we&apos;ll show you what to make — or create a piece freehand.
             </p>
             <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
               <Link
                 to="/strategy"
-                className="inline-flex items-center h-10 px-4 rounded-design border border-black font-['Inter'] text-sm hover:bg-accent-grey/30"
+                className="inline-flex items-center h-10 px-4 rounded-design border border-black font-['Plus_Jakarta_Sans'] text-sm hover:bg-accent-grey/30"
               >
                 Go to Strategy
               </Link>
@@ -320,13 +320,13 @@ function ContentPageBody() {
             <div className="flex flex-wrap items-end justify-between gap-3">
               <div className="flex flex-wrap gap-2 items-end">
               <label className="space-y-1">
-                <span className="font-['Inter'] text-[10px] uppercase tracking-wide text-foreground/45">
+                <span className="font-['Plus_Jakarta_Sans'] text-[10px] uppercase tracking-wide text-foreground/45">
                   Strategy
                 </span>
                 <select
                   value={filterStrategy}
                   onChange={(e) => setFilterStrategy(e.target.value)}
-                  className="block h-9 rounded-design border border-black/20 bg-white px-2 font-['Inter'] text-xs"
+                  className="block h-9 rounded-design border border-black/20 bg-white px-2 font-['Plus_Jakarta_Sans'] text-xs"
                 >
                   <option value="">All</option>
                   {strategyFilterOptions.map((opt) => (
@@ -337,13 +337,13 @@ function ContentPageBody() {
                 </select>
               </label>
               <label className="space-y-1">
-                <span className="font-['Inter'] text-[10px] uppercase tracking-wide text-foreground/45">
+                <span className="font-['Plus_Jakarta_Sans'] text-[10px] uppercase tracking-wide text-foreground/45">
                   Campaign idea
                 </span>
                 <select
                   value={filterIdea}
                   onChange={(e) => setFilterIdea(e.target.value)}
-                  className="block h-9 rounded-design border border-black/20 bg-white px-2 font-['Inter'] text-xs"
+                  className="block h-9 rounded-design border border-black/20 bg-white px-2 font-['Plus_Jakarta_Sans'] text-xs"
                 >
                   <option value="">All</option>
                   {ideaFilterOptions.map((opt) => (
@@ -354,13 +354,13 @@ function ContentPageBody() {
                 </select>
               </label>
               <label className="space-y-1">
-                <span className="font-['Inter'] text-[10px] uppercase tracking-wide text-foreground/45">
+                <span className="font-['Plus_Jakarta_Sans'] text-[10px] uppercase tracking-wide text-foreground/45">
                   Type
                 </span>
                 <select
                   value={filterType}
                   onChange={(e) => setFilterType(e.target.value)}
-                  className="block h-9 rounded-design border border-black/20 bg-white px-2 font-['Inter'] text-xs"
+                  className="block h-9 rounded-design border border-black/20 bg-white px-2 font-['Plus_Jakarta_Sans'] text-xs"
                 >
                   <option value="">All</option>
                   {CONTENT_ITEM_TYPES.map((type) => (
@@ -371,13 +371,13 @@ function ContentPageBody() {
                 </select>
               </label>
               <label className="space-y-1">
-                <span className="font-['Inter'] text-[10px] uppercase tracking-wide text-foreground/45">
+                <span className="font-['Plus_Jakarta_Sans'] text-[10px] uppercase tracking-wide text-foreground/45">
                   Status
                 </span>
                 <select
                   value={filterStatus}
                   onChange={(e) => setFilterStatus(e.target.value)}
-                  className="block h-9 rounded-design border border-black/20 bg-white px-2 font-['Inter'] text-xs"
+                  className="block h-9 rounded-design border border-black/20 bg-white px-2 font-['Plus_Jakarta_Sans'] text-xs"
                 >
                   <option value="">All</option>
                   <option value="draft">Draft</option>
@@ -408,7 +408,7 @@ function ContentPageBody() {
                 />
               ))}
               {filteredItems.length === 0 ? (
-                <p className="font-['Inter'] text-sm text-foreground/55">
+                <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/55">
                   No pieces match these filters.
                 </p>
               ) : null}
@@ -421,7 +421,7 @@ function ContentPageBody() {
             <button
               type="button"
               onClick={() => setArchivedOpen((v) => !v)}
-              className="inline-flex items-center gap-1.5 font-['Inter'] text-sm text-foreground/60 hover:text-foreground/80"
+              className="inline-flex items-center gap-1.5 font-['Plus_Jakarta_Sans'] text-sm text-foreground/60 hover:text-foreground/80"
             >
               <Archive className="h-4 w-4" />
               Archived ({archivedItems.length})
@@ -444,7 +444,7 @@ function ContentPageBody() {
                         <h3 className="font-['Fraunces'] text-lg text-[#0D1833] truncate">
                           {item.title}
                         </h3>
-                        <p className="font-['Inter'] text-xs text-foreground/50 mt-1">
+                        <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/50 mt-1">
                           {CONTENT_TYPE_LABELS[item.type]} · archived{" "}
                           {formatArchivedDate(item.deleted_at || item.updated_at)}
                         </p>

@@ -20,7 +20,7 @@ export function ArchiveActionTooltip({ children }: Props) {
         <TooltipTrigger asChild>{children}</TooltipTrigger>
         <TooltipContent
           side="top"
-          className="max-w-xs border-black rounded-design font-['Inter'] text-xs"
+          className="max-w-xs border-black rounded-design font-['Plus_Jakarta_Sans'] text-xs"
         >
           {ARCHIVE_ACTION_TOOLTIP}
         </TooltipContent>

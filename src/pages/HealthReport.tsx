@@ -49,7 +49,7 @@ import {
 function HistoryScoreChip({ label, score }: { label: string; score: number }) {
   return (
     <span
-      className={`inline-flex items-center rounded-full border border-border bg-white px-2 py-0.5 font-['DM_Sans'] text-[10px] ${getScoreColor(score)}`}
+      className={`inline-flex items-center rounded-full border border-border bg-white px-2 py-0.5 font-['Plus_Jakarta_Sans'] text-[10px] ${getScoreColor(score)}`}
     >
       {label} {score}
     </span>
@@ -338,12 +338,12 @@ export default function HealthReport() {
   if (!scopedBrandId) {
     return (
       <DashboardShell contentClassName="mx-auto max-w-2xl px-6 py-12">
-        <p className="font-['DM_Sans'] text-muted-foreground">
+        <p className="font-['Plus_Jakarta_Sans'] text-muted-foreground">
           Select or create a brand to view your digital health check.
         </p>
         <Link
           to="/dashboard"
-          className="mt-6 inline-flex rounded-full bg-primary px-6 py-3 font-['DM_Sans'] text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          className="mt-6 inline-flex rounded-full bg-primary px-6 py-3 font-['Plus_Jakarta_Sans'] text-sm font-medium text-primary-foreground hover:bg-primary/90"
         >
           Go to dashboard
         </Link>
@@ -354,20 +354,20 @@ export default function HealthReport() {
   if (!currentRow) {
     return (
       <DashboardShell contentClassName="mx-auto max-w-2xl px-6 py-12">
-        <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 font-['DM_Sans'] text-xs font-medium text-primary">
+        <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 font-['Plus_Jakarta_Sans'] text-xs font-medium text-primary">
           Digital Health Check
         </span>
         <h1 className="mt-4 font-['Fraunces'] text-4xl font-bold text-[#0D1833]">
           Run your first health check
         </h1>
-        <p className="mt-4 font-['DM_Sans'] text-base text-muted-foreground">
+        <p className="mt-4 font-['Plus_Jakarta_Sans'] text-base text-muted-foreground">
           {activeBrand?.name
             ? `See how ${activeBrand.name}'s website and socials score across clarity, story, content, and presence.`
             : "Score your website and socials across the dimensions that matter most to founders."}
         </p>
         <Button
           type="button"
-          className="mt-8 rounded-full bg-primary px-6 py-6 font-['DM_Sans']"
+          className="mt-8 rounded-full bg-primary px-6 py-6 font-['Plus_Jakarta_Sans']"
           onClick={() => navigate("/health-check")}
         >
           Run your digital health check →
@@ -379,7 +379,7 @@ export default function HealthReport() {
   if (!parsedStored) {
     return (
       <DashboardShell contentClassName="mx-auto max-w-2xl px-6 py-12">
-        <p className="font-['DM_Sans'] text-muted-foreground">
+        <p className="font-['Plus_Jakarta_Sans'] text-muted-foreground">
           We couldn&apos;t read this health check. Try running a new check.
         </p>
         <Button
@@ -408,10 +408,10 @@ export default function HealthReport() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/60">
           <div className="flex flex-col items-center gap-3 rounded-2xl border border-border bg-white px-8 py-6 shadow-lg">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="font-['DM_Sans'] text-sm text-muted-foreground">
+            <p className="font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground">
               Re-analysing your website and socials…
             </p>
-            <p className="font-['DM_Sans'] text-xs text-muted-foreground">
+            <p className="font-['Plus_Jakarta_Sans'] text-xs text-muted-foreground">
               This usually takes about a minute.
             </p>
           </div>
@@ -420,20 +420,20 @@ export default function HealthReport() {
 
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 font-['DM_Sans'] text-xs font-medium text-primary">
+          <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 font-['Plus_Jakarta_Sans'] text-xs font-medium text-primary">
             Digital Health Check
           </span>
           {activeBrand?.name && (
-            <p className="mt-2 font-['DM_Sans'] text-xs text-muted-foreground">{activeBrand.name}</p>
+            <p className="mt-2 font-['Plus_Jakarta_Sans'] text-xs text-muted-foreground">{activeBrand.name}</p>
           )}
           <h1 className="mt-2 font-['Fraunces'] text-3xl font-bold text-[#0D1833] sm:text-4xl">
             Your digital health
           </h1>
-          <p className="mt-2 font-['DM_Sans'] text-xs text-muted-foreground">
+          <p className="mt-2 font-['Plus_Jakarta_Sans'] text-xs text-muted-foreground">
             Last run: {formatHealthCheckDate(currentRow.created_at)}
           </p>
           {displayDomain && (
-            <p className="mt-1 font-['DM_Sans'] text-xs text-muted-foreground">
+            <p className="mt-1 font-['Plus_Jakarta_Sans'] text-xs text-muted-foreground">
               {displayDomain}
               {snapshot.instagram_handle ? ` · @${snapshot.instagram_handle.replace(/^@/, "")}` : ""}
             </p>
@@ -443,7 +443,7 @@ export default function HealthReport() {
         <Button
           type="button"
           variant="outline"
-          className="rounded-full border-black font-['DM_Sans'] text-sm"
+          className="rounded-full border-black font-['Plus_Jakarta_Sans'] text-sm"
           onClick={() => setConfirmOpen(true)}
           disabled={reanalysing || !websiteUrl}
         >
@@ -452,12 +452,12 @@ export default function HealthReport() {
         </Button>
       </div>
 
-      <p className="mt-4 font-['DM_Sans'] text-base text-muted-foreground">
+      <p className="mt-4 font-['Plus_Jakarta_Sans'] text-base text-muted-foreground">
         Scores reflect what&apos;s live on your site and socials right now — measured, not guessed.
       </p>
 
       {actionError && (
-        <p className="mt-4 font-['DM_Sans'] text-sm text-destructive">{actionError}</p>
+        <p className="mt-4 font-['Plus_Jakarta_Sans'] text-sm text-destructive">{actionError}</p>
       )}
 
       <div className="mt-8">
@@ -482,7 +482,7 @@ export default function HealthReport() {
         <button
           type="button"
           onClick={toggleHistory}
-          className="inline-flex items-center gap-1.5 font-['DM_Sans'] text-xs text-muted-foreground hover:text-foreground"
+          className="inline-flex items-center gap-1.5 font-['Plus_Jakarta_Sans'] text-xs text-muted-foreground hover:text-foreground"
         >
           <History className="h-3.5 w-3.5" />
           Past checks
@@ -495,7 +495,7 @@ export default function HealthReport() {
         <Button
           type="button"
           variant="outline"
-          className="rounded-full border-black font-['DM_Sans'] text-sm"
+          className="rounded-full border-black font-['Plus_Jakarta_Sans'] text-sm"
           onClick={() => navigate("/health-check")}
         >
           New health check →
@@ -505,9 +505,9 @@ export default function HealthReport() {
       {historyOpen && (
         <div className="mt-4 rounded-xl border border-border bg-muted/30 px-4 py-3">
           {historyLoading ? (
-            <p className="font-['DM_Sans'] text-xs text-muted-foreground">Loading…</p>
+            <p className="font-['Plus_Jakarta_Sans'] text-xs text-muted-foreground">Loading…</p>
           ) : historyRows.length === 0 ? (
-            <p className="font-['DM_Sans'] text-xs text-muted-foreground">No past checks yet.</p>
+            <p className="font-['Plus_Jakarta_Sans'] text-xs text-muted-foreground">No past checks yet.</p>
           ) : (
             <ul className="space-y-3">
               {historyRows.map((row, index) => {
@@ -519,7 +519,7 @@ export default function HealthReport() {
                     className="border-b border-border/60 pb-3 last:border-0 last:pb-0"
                   >
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                      <span className="font-['DM_Sans'] text-xs text-foreground/80">
+                      <span className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/80">
                         {formatHealthCheckDate(row.created_at)}
                         {index === 0 ? (
                           <span className="ml-2 text-muted-foreground">(latest)</span>
@@ -553,7 +553,7 @@ export default function HealthReport() {
       <div className="mt-10">
         <Button
           type="button"
-          className="rounded-full bg-primary px-6 py-3 font-['DM_Sans'] text-sm"
+          className="rounded-full bg-primary px-6 py-3 font-['Plus_Jakarta_Sans'] text-sm"
           onClick={() => navigate("/dashboard")}
         >
           Go to your dashboard →
@@ -565,7 +565,7 @@ export default function HealthReport() {
           <AlertDialogHeader>
             <AlertDialogTitle>Re-analyse your digital health?</AlertDialogTitle>
             <AlertDialogDescription asChild>
-              <div className="space-y-3 font-['DM_Sans'] text-sm text-muted-foreground">
+              <div className="space-y-3 font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground">
                 <p>
                   This re-analyses your live website and socials — takes about a minute. We&apos;ll
                   use the same URLs as your last check

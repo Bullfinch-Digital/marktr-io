@@ -73,12 +73,12 @@ function SectionShell({
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-black/5 px-4 py-2">
         <div className="flex items-center gap-2">
           {sectionId !== "title" ? (
-            <p className="font-['Inter'] text-xs uppercase tracking-wide text-foreground/55">
+            <p className="font-['Plus_Jakarta_Sans'] text-xs uppercase tracking-wide text-foreground/55">
               {SECTION_LABELS[sectionId]}
             </p>
           ) : null}
           {isStaged && !isEditing ? (
-            <span className="font-['Inter'] text-[11px] text-amber-800 bg-amber-100 border border-amber-200 rounded-full px-2 py-0.5">
+            <span className="font-['Plus_Jakarta_Sans'] text-[11px] text-amber-800 bg-amber-100 border border-amber-200 rounded-full px-2 py-0.5">
               Unsaved
             </span>
           ) : null}
@@ -109,7 +109,7 @@ function SectionShell({
               <button
                 type="button"
                 onClick={onStartEdit}
-                className="inline-flex items-center gap-1.5 font-['Inter'] text-xs text-foreground/60 hover:text-foreground transition-colors px-2 py-1 rounded hover:bg-accent-grey/30"
+                className="inline-flex items-center gap-1.5 font-['Plus_Jakarta_Sans'] text-xs text-foreground/60 hover:text-foreground transition-colors px-2 py-1 rounded hover:bg-accent-grey/30"
               >
                 <Plus className="h-3 w-3" />
                 Edit

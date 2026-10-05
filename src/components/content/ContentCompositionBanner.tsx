@@ -20,7 +20,7 @@ function StrategyChip({ strategy }: { strategy: ContentCompositionStrategy }) {
 
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 font-['Inter'] text-[11px] ${
+      className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 font-['Plus_Jakarta_Sans'] text-[11px] ${
         isDeleted
           ? "border-red-300 bg-red-50 text-red-900"
           : isArchived
@@ -43,7 +43,7 @@ function CampaignIdeaChip({ idea }: { idea: ContentCompositionCampaignIdea }) {
 
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 font-['Inter'] text-[11px] ${
+      className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 font-['Plus_Jakarta_Sans'] text-[11px] ${
         isRemoved
           ? "border-amber-300 bg-amber-50 text-amber-900"
           : "border-black/20 bg-accent-grey/30 text-foreground/80"
@@ -61,7 +61,7 @@ function PersonaChip({ persona }: { persona: ContentCompositionPersona }) {
 
   return (
     <span
-      className={`inline-flex items-center rounded-full border px-2.5 py-1 font-['Inter'] text-[11px] ${
+      className={`inline-flex items-center rounded-full border px-2.5 py-1 font-['Plus_Jakarta_Sans'] text-[11px] ${
         isDeleted
           ? "border-red-300 bg-red-50 text-red-900"
           : isArchived
@@ -90,7 +90,7 @@ function ChipGroup({
   return (
     <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1.5">
       <span
-        className={`font-['Inter'] font-medium text-foreground/50 shrink-0 ${
+        className={`font-['Plus_Jakarta_Sans'] font-medium text-foreground/50 shrink-0 ${
           compact ? "text-[10px]" : "text-xs"
         }`}
       >
@@ -112,7 +112,7 @@ export function ContentCompositionBanner({
   return (
     <div className={compact ? "space-y-2" : "space-y-3"}>
       <p
-        className={`font-['Inter'] text-foreground/75 ${
+        className={`font-['Plus_Jakarta_Sans'] text-foreground/75 ${
           compact ? "text-xs" : "text-sm"
         }`}
       >
@@ -134,14 +134,14 @@ export function ContentCompositionBanner({
       </div>
 
       {hasDeleted ? (
-        <p className="font-['Inter'] text-xs text-red-950 bg-red-100 border border-red-300 rounded-design px-3 py-2 max-w-2xl">
+        <p className="font-['Plus_Jakarta_Sans'] text-xs text-red-950 bg-red-100 border border-red-300 rounded-design px-3 py-2 max-w-2xl">
           This content targets a permanently deleted strategy or persona — it can&apos;t be
           recovered. Review this piece.
         </p>
       ) : null}
 
       {hasArchived ? (
-        <p className="font-['Inter'] text-xs text-red-900 bg-red-50 border border-red-200 rounded-design px-3 py-2 max-w-2xl">
+        <p className="font-['Plus_Jakarta_Sans'] text-xs text-red-900 bg-red-50 border border-red-200 rounded-design px-3 py-2 max-w-2xl">
           This content targets an archived strategy or persona, or a campaign idea that was
           removed — review it before acting on it.
         </p>

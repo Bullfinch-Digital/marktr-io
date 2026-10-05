@@ -1040,7 +1040,7 @@ export default function OnboardingBuild() {
               <div className="mb-6">
                 <Link
                   to="/"
-                  className="inline-flex items-center gap-2 font-['Inter'] text-sm text-foreground/70 hover:text-foreground transition-colors"
+                  className="inline-flex items-center gap-2 font-['Plus_Jakarta_Sans'] text-sm text-foreground/70 hover:text-foreground transition-colors"
                 >
                   <Home className="w-4 h-4" />
                   Go back to homepage
@@ -1085,11 +1085,11 @@ export default function OnboardingBuild() {
                     </Button>
                     {currentStep === "9_EmailCapture" && !isLoggedIn && (
                       <div className="mt-2 space-y-1">
-                        <p className="text-xs text-foreground/60 font-['Inter']">
+                        <p className="text-xs text-foreground/60 font-['Plus_Jakarta_Sans']">
                           No spam. Just your ICP and access to your dashboard.
                         </p>
                         {turnstileConfigured && !leadToken && (
-                          <p className="text-xs text-foreground/80 font-['Inter']">
+                          <p className="text-xs text-foreground/80 font-['Plus_Jakarta_Sans']">
                             Complete the verification box above, then continue.
                           </p>
                         )}

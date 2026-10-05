@@ -132,7 +132,7 @@ export default function TeamSettings() {
         {/* Page Header */}
         <div className="mb-8">
           <h1 className="font-['Fraunces'] text-4xl sm:text-5xl mb-3">Team Settings</h1>
-          <p className="font-['Inter'] text-lg text-foreground/70">
+          <p className="font-['Plus_Jakarta_Sans'] text-lg text-foreground/70">
             Manage your team members, roles, and seats.
           </p>
         </div>
@@ -143,11 +143,11 @@ export default function TeamSettings() {
             <div>
               <div className="flex items-center gap-3 mb-2">
                 <h2 className="font-['Fraunces'] text-2xl">Team Plan</h2>
-                <span className="font-['Inter'] text-sm bg-background px-3 py-1 rounded-full border border-black">
+                <span className="font-['Plus_Jakarta_Sans'] text-sm bg-background px-3 py-1 rounded-full border border-black">
                   Active
                 </span>
               </div>
-              <p className="font-['Inter'] text-sm text-foreground/70">
+              <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70">
                 <span className="font-bold text-foreground">
                   {seatsUsed} of {totalSeats} seats used
                 </span>
@@ -184,7 +184,7 @@ export default function TeamSettings() {
               <h3 className="font-['Fraunces'] text-lg mb-3">{item.role}</h3>
               <ul className="space-y-2">
                 {item.permissions.map((permission, idx) => (
-                  <li key={idx} className="font-['Inter'] text-sm text-foreground/80 flex items-start gap-2">
+                  <li key={idx} className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/80 flex items-start gap-2">
                     <span className="text-button-green mt-0.5">•</span>
                     {permission}
                   </li>
@@ -205,11 +205,11 @@ export default function TeamSettings() {
             <table className="w-full">
               <thead className="border-b border-warm-grey">
                 <tr>
-                  <th className="text-left p-4 font-['Inter'] text-sm">Member</th>
-                  <th className="text-left p-4 font-['Inter'] text-sm">Email</th>
-                  <th className="text-left p-4 font-['Inter'] text-sm">Role</th>
-                  <th className="text-left p-4 font-['Inter'] text-sm">Status</th>
-                  <th className="text-right p-4 font-['Inter'] text-sm">Actions</th>
+                  <th className="text-left p-4 font-['Plus_Jakarta_Sans'] text-sm">Member</th>
+                  <th className="text-left p-4 font-['Plus_Jakarta_Sans'] text-sm">Email</th>
+                  <th className="text-left p-4 font-['Plus_Jakarta_Sans'] text-sm">Role</th>
+                  <th className="text-left p-4 font-['Plus_Jakarta_Sans'] text-sm">Status</th>
+                  <th className="text-right p-4 font-['Plus_Jakarta_Sans'] text-sm">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -228,22 +228,22 @@ export default function TeamSettings() {
                         >
                           {member.name.charAt(0)}
                         </div>
-                        <span className="font-['Inter'] text-sm font-medium">
+                        <span className="font-['Plus_Jakarta_Sans'] text-sm font-medium">
                           {member.name}
                         </span>
                       </div>
                     </td>
-                    <td className="p-4 font-['Inter'] text-sm text-foreground/70">
+                    <td className="p-4 font-['Plus_Jakarta_Sans'] text-sm text-foreground/70">
                       {member.email}
                     </td>
                     <td className="p-4">
-                      <span className="font-['Inter'] text-xs bg-background px-3 py-1 rounded-full border border-black inline-block">
+                      <span className="font-['Plus_Jakarta_Sans'] text-xs bg-background px-3 py-1 rounded-full border border-black inline-block">
                         {member.role}
                       </span>
                     </td>
                     <td className="p-4">
                       <span
-                        className={`font-['Inter'] text-xs px-3 py-1 rounded-full border border-black inline-flex items-center gap-1 ${
+                        className={`font-['Plus_Jakarta_Sans'] text-xs px-3 py-1 rounded-full border border-black inline-flex items-center gap-1 ${
                           member.status === "Active"
                             ? "bg-button-green/20"
                             : "bg-[#FFD336]/20"
@@ -265,14 +265,14 @@ export default function TeamSettings() {
                           </button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem className="font-['Inter'] text-sm">
+                          <DropdownMenuItem className="font-['Plus_Jakarta_Sans'] text-sm">
                             Change Role
                           </DropdownMenuItem>
-                          <DropdownMenuItem className="font-['Inter'] text-sm">
+                          <DropdownMenuItem className="font-['Plus_Jakarta_Sans'] text-sm">
                             Resend Invite
                           </DropdownMenuItem>
                           <DropdownMenuItem
-                            className="font-['Inter'] text-sm text-red-600"
+                            className="font-['Plus_Jakarta_Sans'] text-sm text-red-600"
                             onClick={() => {
                               setSelectedMember(member);
                               setShowRemoveModal(true);
@@ -306,16 +306,16 @@ export default function TeamSettings() {
                     {member.name.charAt(0)}
                   </div>
                   <div className="flex-grow">
-                    <h3 className="font-['Inter'] font-medium mb-1">{member.name}</h3>
-                    <p className="font-['Inter'] text-sm text-foreground/70 mb-2">
+                    <h3 className="font-['Plus_Jakarta_Sans'] font-medium mb-1">{member.name}</h3>
+                    <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70 mb-2">
                       {member.email}
                     </p>
                     <div className="flex flex-wrap gap-2">
-                      <span className="font-['Inter'] text-xs bg-background px-3 py-1 rounded-full border border-black">
+                      <span className="font-['Plus_Jakarta_Sans'] text-xs bg-background px-3 py-1 rounded-full border border-black">
                         {member.role}
                       </span>
                       <span
-                        className={`font-['Inter'] text-xs px-3 py-1 rounded-full border border-black inline-flex items-center gap-1 ${
+                        className={`font-['Plus_Jakarta_Sans'] text-xs px-3 py-1 rounded-full border border-black inline-flex items-center gap-1 ${
                           member.status === "Active"
                             ? "bg-button-green/20"
                             : "bg-[#FFD336]/20"
@@ -337,14 +337,14 @@ export default function TeamSettings() {
                       </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem className="font-['Inter'] text-sm">
+                      <DropdownMenuItem className="font-['Plus_Jakarta_Sans'] text-sm">
                         Change Role
                       </DropdownMenuItem>
-                      <DropdownMenuItem className="font-['Inter'] text-sm">
+                      <DropdownMenuItem className="font-['Plus_Jakarta_Sans'] text-sm">
                         Resend Invite
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        className="font-['Inter'] text-sm text-red-600"
+                        className="font-['Plus_Jakarta_Sans'] text-sm text-red-600"
                         onClick={() => {
                           setSelectedMember(member);
                           setShowRemoveModal(true);
@@ -368,7 +368,7 @@ export default function TeamSettings() {
             <DialogTitle className="font-['Fraunces'] text-2xl">
               Invite Team Member
             </DialogTitle>
-            <DialogDescription className="font-['Inter'] text-sm text-foreground/70">
+            <DialogDescription className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70">
               {hasAvailableSeats
                 ? "Send an invitation to join your team workspace."
                 : "You've reached your seat limit. Add more seats to invite new team members."}
@@ -378,7 +378,7 @@ export default function TeamSettings() {
           {hasAvailableSeats ? (
             <div className="space-y-4 mt-4">
               <div>
-                <label className="font-['Inter'] text-sm font-medium mb-2 block">
+                <label className="font-['Plus_Jakarta_Sans'] text-sm font-medium mb-2 block">
                   Email Address
                 </label>
                 <Input
@@ -386,22 +386,22 @@ export default function TeamSettings() {
                   placeholder="colleague@company.com"
                   value={inviteEmail}
                   onChange={(e) => setInviteEmail(e.target.value)}
-                  className="font-['Inter'] border-black rounded-design"
+                  className="font-['Plus_Jakarta_Sans'] border-black rounded-design"
                 />
               </div>
 
               <div>
-                <label className="font-['Inter'] text-sm font-medium mb-2 block">
+                <label className="font-['Plus_Jakarta_Sans'] text-sm font-medium mb-2 block">
                   Role
                 </label>
                 <Select value={inviteRole} onValueChange={(value: any) => setInviteRole(value)}>
-                  <SelectTrigger className="font-['Inter'] border-black rounded-design">
+                  <SelectTrigger className="font-['Plus_Jakarta_Sans'] border-black rounded-design">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Admin" className="font-['Inter']">Admin</SelectItem>
-                    <SelectItem value="Editor" className="font-['Inter']">Editor</SelectItem>
-                    <SelectItem value="Viewer" className="font-['Inter']">Viewer</SelectItem>
+                    <SelectItem value="Admin" className="font-['Plus_Jakarta_Sans']">Admin</SelectItem>
+                    <SelectItem value="Editor" className="font-['Plus_Jakarta_Sans']">Editor</SelectItem>
+                    <SelectItem value="Viewer" className="font-['Plus_Jakarta_Sans']">Viewer</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -426,7 +426,7 @@ export default function TeamSettings() {
           ) : (
             <div className="space-y-4 mt-4">
               <div className="bg-[#FFD336]/20 rounded-design border border-black p-4">
-                <p className="font-['Inter'] text-sm text-foreground/80">
+                <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/80">
                   You're using all {totalSeats} seats. Upgrade to add more team members.
                 </p>
               </div>
@@ -438,7 +438,7 @@ export default function TeamSettings() {
               </Button>
               <button
                 onClick={() => setShowInviteModal(false)}
-                className="w-full font-['Inter'] text-sm text-foreground/70 hover:text-foreground transition-colors"
+                className="w-full font-['Plus_Jakarta_Sans'] text-sm text-foreground/70 hover:text-foreground transition-colors"
               >
                 Cancel
               </button>
@@ -454,7 +454,7 @@ export default function TeamSettings() {
             <DialogTitle className="font-['Fraunces'] text-2xl">
               Remove team member?
             </DialogTitle>
-            <DialogDescription className="font-['Inter'] text-sm text-foreground/70">
+            <DialogDescription className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70">
               {selectedMember?.name} will lose access immediately and won't be able to view or
               edit any ICPs or collections.
             </DialogDescription>

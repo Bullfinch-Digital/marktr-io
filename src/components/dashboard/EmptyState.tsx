@@ -21,7 +21,7 @@ export function EmptyState({ type, onCreateNew, onUpgrade }: EmptyStateProps) {
             Create your first ICP
           </h2>
           
-          <p className="font-['Inter'] text-foreground/70 text-lg mb-8">
+          <p className="font-['Plus_Jakarta_Sans'] text-foreground/70 text-lg mb-8">
             Start with AI-powered guidance to build detailed customer personas that drive your marketing strategy.
           </p>
 
@@ -34,7 +34,7 @@ export function EmptyState({ type, onCreateNew, onUpgrade }: EmptyStateProps) {
           </Button>
 
           {/* Helper Text */}
-          <p className="font-['Inter'] text-sm text-foreground/50 mt-6">
+          <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/50 mt-6">
             Takes about 2 minutes • Powered by AI
           </p>
         </div>
@@ -60,7 +60,7 @@ export function EmptyState({ type, onCreateNew, onUpgrade }: EmptyStateProps) {
           You've reached your free ICP limit
         </h2>
         
-        <p className="font-['Inter'] text-foreground/70 text-lg mb-8">
+        <p className="font-['Plus_Jakarta_Sans'] text-foreground/70 text-lg mb-8">
           Unlock unlimited ICPs, advanced exports, and premium features to supercharge your customer research.
         </p>
 
@@ -72,7 +72,7 @@ export function EmptyState({ type, onCreateNew, onUpgrade }: EmptyStateProps) {
         </Button>
 
         {/* Feature List */}
-        <ul className="font-['Inter'] text-sm text-foreground/70 mt-8 space-y-2 text-left max-w-sm mx-auto">
+        <ul className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70 mt-8 space-y-2 text-left max-w-sm mx-auto">
           <li className="flex items-center gap-2">
             <span className="w-1.5 h-1.5 bg-button-green rounded-full" />
             Unlimited ICP generation

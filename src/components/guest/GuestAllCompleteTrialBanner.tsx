@@ -18,18 +18,18 @@ function TrialBannerContent({ onStartTrial }: { onStartTrial: () => void }) {
   return (
     <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
       <div className="max-w-2xl">
-        <p className="font-['DM_Sans'] text-xs font-semibold uppercase tracking-widest text-[#2D7A5F]">
+        <p className="font-['Plus_Jakarta_Sans'] text-xs font-semibold uppercase tracking-widest text-[#2D7A5F]">
           All three complete
         </p>
         <h2 className="mt-2 font-['Fraunces'] text-3xl font-bold text-[#0D1833] sm:text-4xl">
           {GUEST_ALL_COMPLETE_TRIAL_HEADING}
         </h2>
-        <p className="mt-3 font-['DM_Sans'] text-base leading-relaxed text-[#0D1833]/80">
+        <p className="mt-3 font-['Plus_Jakarta_Sans'] text-base leading-relaxed text-[#0D1833]/80">
           {GUEST_ALL_COMPLETE_TRIAL_SUBCOPY}
         </p>
       </div>
       <Button
-        className="shrink-0 rounded-full bg-[#2D7A5F] px-8 py-6 font-['DM_Sans'] text-base font-semibold text-white shadow-md hover:bg-[#256B52]"
+        className="shrink-0 rounded-full bg-[#2D7A5F] px-8 py-6 font-['Plus_Jakarta_Sans'] text-base font-semibold text-white shadow-md hover:bg-[#256B52]"
         onClick={onStartTrial}
       >
         {GUEST_ALL_COMPLETE_TRIAL_CTA}

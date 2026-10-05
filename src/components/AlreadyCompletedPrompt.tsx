@@ -31,14 +31,14 @@ export function AlreadyCompletedPrompt({
       <h1 className="font-['Fraunces'] text-3xl font-bold leading-tight text-[#0D1833] sm:text-4xl">
         You&apos;ve already completed your {toolName}.
       </h1>
-      <p className="mt-4 font-['DM_Sans'] text-base text-muted-foreground">
+      <p className="mt-4 font-['Plus_Jakarta_Sans'] text-base text-muted-foreground">
         Last run: {formatRunDate(createdAt)}
       </p>
       <div className="mt-8 flex flex-wrap gap-3">
         <Button
           type="button"
           onClick={() => navigate(reportPath)}
-          className="rounded-full bg-primary px-6 py-6 font-['DM_Sans'] text-base font-medium text-primary-foreground hover:opacity-90"
+          className="rounded-full bg-primary px-6 py-6 font-['Plus_Jakarta_Sans'] text-base font-medium text-primary-foreground hover:opacity-90"
         >
           View your report
         </Button>
@@ -46,7 +46,7 @@ export function AlreadyCompletedPrompt({
           type="button"
           variant="outline"
           onClick={onRunAgain}
-          className="rounded-full border-black px-6 py-6 font-['DM_Sans'] text-base font-medium hover:bg-muted/50"
+          className="rounded-full border-black px-6 py-6 font-['Plus_Jakarta_Sans'] text-base font-medium hover:bg-muted/50"
         >
           Run it again →
         </Button>

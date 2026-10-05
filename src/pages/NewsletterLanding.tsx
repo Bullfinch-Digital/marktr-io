@@ -48,7 +48,7 @@ export default function NewsletterLanding() {
         />
         <div className="container relative mx-auto grid max-w-6xl gap-12 px-4 sm:px-6 lg:grid-cols-2 lg:items-center lg:gap-16 lg:px-8">
           <div>
-            <span className="mb-5 inline-flex items-center gap-2 rounded-full border border-black/20 bg-white/70 px-4 py-1.5 font-['DM_Sans'] text-xs font-medium uppercase tracking-[0.14em] text-[#0D1833]">
+            <span className="mb-5 inline-flex items-center gap-2 rounded-full border border-black/20 bg-white/70 px-4 py-1.5 font-['Plus_Jakarta_Sans'] text-xs font-medium uppercase tracking-[0.14em] text-[#0D1833]">
               <Mail className="h-3.5 w-3.5" />
               Free · No spam
             </span>
@@ -57,21 +57,21 @@ export default function NewsletterLanding() {
               Marketing help for founders who&apos;d rather build than post.
             </h1>
 
-            <p className="mt-6 max-w-xl font-['DM_Sans'] text-lg leading-relaxed text-[#0D1833]/80">
+            <p className="mt-6 max-w-xl font-['Plus_Jakarta_Sans'] text-lg leading-relaxed text-[#0D1833]/80">
               Join the marktr list for occasional emails packed with value — the same practical
               ideas behind our YouTube videos, without the algorithm middleman.
             </p>
 
             <ul className="mt-8 space-y-3">
               {VALUE_POINTS.map((point) => (
-                <li key={point} className="flex gap-3 font-['DM_Sans'] text-sm text-[#0D1833]/90 sm:text-base">
+                <li key={point} className="flex gap-3 font-['Plus_Jakarta_Sans'] text-sm text-[#0D1833]/90 sm:text-base">
                   <Check className="mt-0.5 h-5 w-5 shrink-0 text-[#0D1833]" />
                   <span>{point}</span>
                 </li>
               ))}
             </ul>
 
-            <p className="mt-8 flex items-start gap-2 font-['DM_Sans'] text-sm text-[#0D1833]/70">
+            <p className="mt-8 flex items-start gap-2 font-['Plus_Jakarta_Sans'] text-sm text-[#0D1833]/70">
               <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />
               One-click unsubscribe. We never sell your email. Expect a few emails a month, not a
               daily barrage.
@@ -82,7 +82,7 @@ export default function NewsletterLanding() {
             <h2 className="font-['Fraunces'] text-2xl font-bold text-[#0D1833]">
               Get on the list
             </h2>
-            <p className="mt-2 font-['DM_Sans'] text-sm text-muted-foreground sm:text-base">
+            <p className="mt-2 font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground sm:text-base">
               Enter your email — we&apos;ll send free resources and founder-friendly marketing
               support straight to your inbox.
             </p>
@@ -96,7 +96,7 @@ export default function NewsletterLanding() {
               />
             </div>
 
-            <p className="mt-4 text-center font-['DM_Sans'] text-xs text-muted-foreground">
+            <p className="mt-4 text-center font-['Plus_Jakarta_Sans'] text-xs text-muted-foreground">
               By subscribing you agree to our{" "}
               <Link to="/privacy-policy" className="underline text-foreground">
                 Privacy Policy
@@ -118,7 +118,7 @@ export default function NewsletterLanding() {
                 <h2 className="font-['Fraunces'] text-2xl font-bold text-[#0D1833]">
                   Want something right now?
                 </h2>
-                <p className="mt-2 font-['DM_Sans'] text-sm leading-relaxed text-muted-foreground sm:text-base">
+                <p className="mt-2 font-['Plus_Jakarta_Sans'] text-sm leading-relaxed text-muted-foreground sm:text-base">
                   Browse our free PDF downloads — worksheets and templates from the channel. Same
                   email gate, instant access.
                 </p>
@@ -132,7 +132,7 @@ export default function NewsletterLanding() {
             </div>
           </div>
 
-          <p className="mt-10 text-center font-['DM_Sans'] text-sm text-muted-foreground">
+          <p className="mt-10 text-center font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground">
             Built by{" "}
             <a
               href="https://bullfinchdigital.com"

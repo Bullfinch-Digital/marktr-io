@@ -29,7 +29,7 @@ export default function IcpPermanentDeleteModal({
         onClick={(e) => e.stopPropagation()}
       >
         <h2 id="icp-permanent-delete-title">Permanently delete this customer profile?</h2>
-        <p className="font-['Inter'] text-sm text-foreground/80">
+        <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/80">
           This will permanently delete <strong>{displayName}</strong> and all its versions,
           strategy, and collection membership. This cannot be undone — the profile can&apos;t be
           recovered.

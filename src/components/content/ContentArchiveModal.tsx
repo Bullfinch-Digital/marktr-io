@@ -25,7 +25,7 @@ export default function ContentArchiveModal({
         onClick={(e) => e.stopPropagation()}
       >
         <h2 id="content-archive-title">Archive this content?</h2>
-        <p className="font-['Inter'] text-sm text-foreground/80">
+        <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/80">
           It&apos;ll move to Archived, where you can restore it anytime. Its strategy and persona
           links are preserved.
         </p>

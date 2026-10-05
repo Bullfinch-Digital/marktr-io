@@ -25,7 +25,7 @@ export default function AimArchiveModal({
         onClick={(e) => e.stopPropagation()}
       >
         <h2 id="aim-archive-title">Archive this aim?</h2>
-        <p className="font-['Inter'] text-sm text-foreground/80">
+        <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/80">
           It&apos;ll move to Archived, where you can view, restore, or permanently delete it.
         </p>
         <div className="modal-buttons">

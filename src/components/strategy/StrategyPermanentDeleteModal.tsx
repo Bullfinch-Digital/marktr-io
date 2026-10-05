@@ -29,7 +29,7 @@ export default function StrategyPermanentDeleteModal({
         onClick={(e) => e.stopPropagation()}
       >
         <h2 id="strategy-permanent-delete-title">Permanently delete this strategy?</h2>
-        <p className="font-['Inter'] text-sm text-foreground/80">
+        <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/80">
           This will permanently delete <strong>{displayName}</strong> and all its versions, aim
           links, and persona targets. This cannot be undone.
         </p>

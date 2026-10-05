@@ -144,10 +144,10 @@ export default function ICPResults() {
       <div className="bg-accent-grey/10 border-b border-black">
         <div className="container mx-auto px-4 py-10">
           <div className="flex justify-between items-center">
-            <Link to={dashboardPath} className="text-sm font-['Inter'] underline">
+            <Link to={dashboardPath} className="text-sm font-['Plus_Jakarta_Sans'] underline">
               Back to Dashboard
             </Link>
-            <span className="text-sm font-['Inter'] text-foreground/60">
+            <span className="text-sm font-['Plus_Jakarta_Sans'] text-foreground/60">
               ICP Results
             </span>
           </div>
@@ -160,7 +160,7 @@ export default function ICPResults() {
             <h1 className="font-['Fraunces'] mb-4 text-4xl sm:text-5xl">
               Meet Your Ideal Customers
             </h1>
-            <p className="font-['Inter'] text-foreground/70 max-w-2xl mx-auto text-lg">
+            <p className="font-['Plus_Jakarta_Sans'] text-foreground/70 max-w-2xl mx-auto text-lg">
               We've identified 3 distinct ICPs. Explore each profile for free, then upgrade to unlock full editing, strategy generation, and exports.
             </p>
           </div>
@@ -228,7 +228,7 @@ export default function ICPResults() {
                     ctaLabel="Sign up to save"
                   />
                   {icpData.length > 1 && (
-                    <p className="font-['Inter'] text-center text-sm text-foreground/60 mt-3">
+                    <p className="font-['Plus_Jakarta_Sans'] text-center text-sm text-foreground/60 mt-3">
                       +{icpData.length - 1} more ready
                     </p>
                   )}
@@ -259,7 +259,7 @@ export default function ICPResults() {
 
               {isRealUserFlag ? (
                 <>
-                  <p className="font-['Inter'] text-foreground/70 mb-4">
+                  <p className="font-['Plus_Jakarta_Sans'] text-foreground/70 mb-4">
                     Your ICPs are ready and saved to your account.
                   </p>
                   <Button
@@ -271,7 +271,7 @@ export default function ICPResults() {
                 </>
               ) : (
                 <>
-                  <p className="font-['Inter'] text-foreground/70 mb-4">
+                  <p className="font-['Plus_Jakarta_Sans'] text-foreground/70 mb-4">
                     You generated these as a guest. Create an account to save them to your dashboard.
                   </p>
                   <div className="flex justify-center gap-3">
@@ -298,7 +298,7 @@ export default function ICPResults() {
           {icpData.length === 0 && (
             <div className="text-center border border-black rounded-design bg-white p-10 max-w-2xl mx-auto">
               <p className="font-['Fraunces'] text-2xl mb-2">No ICPs yet</p>
-              <p className="font-['Inter'] text-foreground/70 mb-6">
+              <p className="font-['Plus_Jakarta_Sans'] text-foreground/70 mb-6">
                 Head to the onboarding flow to generate your first set of ICPs.
               </p>
               <Link to="/onboarding-build">
@@ -364,7 +364,7 @@ export default function ICPResults() {
                   <Lock className="w-4 h-4" />
                   Unlock the full ICP Generator
                 </Button>
-                <p className="font-['Inter'] text-sm text-foreground/60 mt-4">
+                <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/60 mt-4">
                   Unlock unlimited brands and collections, full customer intelligence, content strategy, exports, and collaboration tools.
                 </p>
               </div>

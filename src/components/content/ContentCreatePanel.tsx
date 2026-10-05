@@ -250,7 +250,7 @@ export function ContentCreatePanel({
     return (
       <div className="rounded-design border border-black bg-white p-6 lg:p-8 shadow-md">
         <h3 className="font-['Fraunces'] text-2xl text-[#0D1833]">Generating your content…</h3>
-        <p className="font-['Inter'] text-sm text-foreground/65 mt-2">
+        <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/65 mt-2">
           This usually takes about 30 seconds. You can refine the result after it&apos;s ready.
         </p>
         <div className="mt-6 space-y-3">
@@ -268,7 +268,7 @@ export function ContentCreatePanel({
                   <Loader2 className="h-5 w-5 text-muted-foreground/40" />
                 )}
                 <p
-                  className={`font-['Inter'] text-sm ${
+                  className={`font-['Plus_Jakarta_Sans'] text-sm ${
                     done
                       ? "text-foreground"
                       : active
@@ -300,7 +300,7 @@ export function ContentCreatePanel({
           <h3 className="font-['Fraunces'] text-2xl text-[#0D1833]">
             {suggestionMode ? "Create from suggestion" : "New content"}
           </h3>
-          <p className="font-['Inter'] text-sm text-foreground/70 mt-1">
+          <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70 mt-1">
             {suggestionMode
               ? "Pick one persona from this strategy’s targets, then generate. You can refine the result through edits — not regeneration."
               : "Choose a strategy, campaign idea (or strategy-level), one persona, and a content type."}
@@ -313,37 +313,37 @@ export function ContentCreatePanel({
 
       {suggestionMode && initialIntent ? (
         <div className="rounded-design border border-black/10 bg-white px-4 py-3 space-y-1">
-          <p className="font-['Inter'] text-sm text-foreground">
+          <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground">
             <span className="text-foreground/55">Strategy:</span>{" "}
             {initialIntent.strategyTitle || selectedStrategy?.title || "Selected strategy"}
           </p>
-          <p className="font-['Inter'] text-sm text-foreground">
+          <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground">
             <span className="text-foreground/55">Campaign idea:</span> {campaignIdeaLabel}
             {initialIntent.campaignIdeaRemoved ? (
               <span className="ml-1 text-amber-700">(removed from strategy)</span>
             ) : null}
           </p>
-          <p className="font-['Inter'] text-sm text-foreground">
+          <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground">
             <span className="text-foreground/55">Type:</span>{" "}
             {isContentItemType(initialIntent.type)
               ? CONTENT_TYPE_LABELS[initialIntent.type]
               : initialIntent.type}
           </p>
           {initialIntent.rationale ? (
-            <p className="font-['Inter'] text-xs text-foreground/60 mt-2">{initialIntent.rationale}</p>
+            <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/60 mt-2">{initialIntent.rationale}</p>
           ) : null}
         </div>
       ) : (
         <>
           <div className="space-y-2">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="font-['Inter'] text-sm text-foreground">Strategy</p>
+              <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground">Strategy</p>
               {showInlineStrategyCreate && !showStrategyCreate ? (
                 strategyCreate ? (
                   <button
                     type="button"
                     onClick={() => setShowStrategyCreate(true)}
-                    className="inline-flex items-center gap-1 font-['Inter'] text-xs text-primary hover:underline"
+                    className="inline-flex items-center gap-1 font-['Plus_Jakarta_Sans'] text-xs text-primary hover:underline"
                   >
                     <Plus className="h-3.5 w-3.5" />
                     Create a new strategy
@@ -351,7 +351,7 @@ export function ContentCreatePanel({
                 ) : (
                   <Link
                     to="/strategy"
-                    className="inline-flex items-center gap-1 font-['Inter'] text-xs text-primary hover:underline"
+                    className="inline-flex items-center gap-1 font-['Plus_Jakarta_Sans'] text-xs text-primary hover:underline"
                   >
                     <Plus className="h-3.5 w-3.5" />
                     Create a new strategy
@@ -384,14 +384,14 @@ export function ContentCreatePanel({
                         }}
                         className="mt-1"
                       />
-                      <span className="font-['Inter'] text-sm text-foreground truncate">
+                      <span className="font-['Plus_Jakarta_Sans'] text-sm text-foreground truncate">
                         {strategy.title}
                       </span>
                     </label>
                   );
                 })
               ) : (
-                <p className="font-['Inter'] text-xs text-foreground/50">
+                <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/50">
                   {showInlineStrategyCreate
                     ? "No strategies yet — create one below to generate content."
                     : "Create a strategy first, then generate content from it."}
@@ -425,12 +425,12 @@ export function ContentCreatePanel({
           {selectedStrategy ? (
             <div className="space-y-2">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="font-['Inter'] text-sm text-foreground">Campaign idea</p>
+                <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground">Campaign idea</p>
                 {onAddCampaignIdea && !showIdeaForm ? (
                   <button
                     type="button"
                     onClick={() => setShowIdeaForm(true)}
-                    className="inline-flex items-center gap-1 font-['Inter'] text-xs text-primary hover:underline"
+                    className="inline-flex items-center gap-1 font-['Plus_Jakarta_Sans'] text-xs text-primary hover:underline"
                   >
                     <Plus className="h-3.5 w-3.5" />
                     Add a campaign idea
@@ -452,7 +452,7 @@ export function ContentCreatePanel({
                     onChange={() => setCampaignIdeaId(null)}
                     className="mt-1"
                   />
-                  <span className="font-['Inter'] text-sm text-foreground">
+                  <span className="font-['Plus_Jakarta_Sans'] text-sm text-foreground">
                     Strategy-level (whole strategy)
                   </span>
                 </label>
@@ -475,11 +475,11 @@ export function ContentCreatePanel({
                         className="mt-1"
                       />
                       <span className="min-w-0">
-                        <span className="font-['Inter'] text-sm text-foreground block truncate">
+                        <span className="font-['Plus_Jakarta_Sans'] text-sm text-foreground block truncate">
                           {idea.name || "Untitled idea"}
                         </span>
                         {idea.hook ? (
-                          <span className="font-['Inter'] text-xs text-foreground/55 line-clamp-1">
+                          <span className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/55 line-clamp-1">
                             {idea.hook}
                           </span>
                         ) : null}
@@ -491,7 +491,7 @@ export function ContentCreatePanel({
 
               {showIdeaForm && onAddCampaignIdea ? (
                 <div className="rounded-design border border-black/15 bg-white p-4 space-y-3">
-                  <p className="font-['Inter'] text-sm text-foreground">New campaign idea</p>
+                  <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground">New campaign idea</p>
                   <Input
                     value={ideaName}
                     onChange={(e) => setIdeaName(e.target.value)}
@@ -533,7 +533,7 @@ export function ContentCreatePanel({
           ) : null}
 
           <div className="space-y-2">
-            <p className="font-['Inter'] text-sm text-foreground">Content type</p>
+            <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground">Content type</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {CONTENT_ITEM_TYPES.map((type) => {
                 const selected = contentType === type;
@@ -552,7 +552,7 @@ export function ContentCreatePanel({
                       checked={selected}
                       onChange={() => setContentType(type)}
                     />
-                    <span className="font-['Inter'] text-sm text-foreground">
+                    <span className="font-['Plus_Jakarta_Sans'] text-sm text-foreground">
                       {CONTENT_TYPE_LABELS[type]}
                     </span>
                   </label>
@@ -566,21 +566,21 @@ export function ContentCreatePanel({
       <div className="space-y-2">
         {singlePersona ? (
           <div className="rounded-design border border-black/10 bg-white px-4 py-3">
-            <p className="font-['Inter'] text-sm text-foreground">
+            <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground">
               <span className="text-foreground/55">Targeting:</span> {singlePersona.name}
             </p>
-            <p className="font-['Inter'] text-xs text-foreground/55 mt-1">
+            <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/55 mt-1">
               Inherited from this strategy
             </p>
           </div>
         ) : (
           <>
             <div className="flex items-center justify-between gap-2">
-              <p className="font-['Inter'] text-sm text-foreground">
+              <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground">
                 {showPersonaPicker ? "Persona (exactly 1)" : "Persona"}
               </p>
               {showPersonaPicker ? (
-                <p className="font-['Inter'] text-xs text-foreground/50">
+                <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/50">
                   {icpLineageId ? "1/1 selected" : "0/1 selected"}
                 </p>
               ) : null}
@@ -605,14 +605,14 @@ export function ContentCreatePanel({
                         onChange={() => setIcpLineageId(icp.lineage_id)}
                         className="mt-1"
                       />
-                      <span className="font-['Inter'] text-sm text-foreground truncate">
+                      <span className="font-['Plus_Jakarta_Sans'] text-sm text-foreground truncate">
                         {icp.name}
                       </span>
                     </label>
                   );
                 })
               ) : (
-                <p className="font-['Inter'] text-xs text-foreground/50">
+                <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/50">
                   {selectedStrategy || suggestionMode
                     ? "This strategy has no live persona targets."
                     : "Select a strategy to choose a persona."}
@@ -620,7 +620,7 @@ export function ContentCreatePanel({
               )}
             </div>
             {showPersonaPicker && !icpLineageId ? (
-              <p className="font-['Inter'] text-xs text-red-700">Select exactly one persona.</p>
+              <p className="font-['Plus_Jakarta_Sans'] text-xs text-red-700">Select exactly one persona.</p>
             ) : null}
           </>
         )}
@@ -637,7 +637,7 @@ export function ContentCreatePanel({
         </Button>
       </div>
 
-      {error ? <p className="font-['Inter'] text-sm text-red-700">{error}</p> : null}
+      {error ? <p className="font-['Plus_Jakarta_Sans'] text-sm text-red-700">{error}</p> : null}
     </div>
   );
 }

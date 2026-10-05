@@ -110,7 +110,7 @@ export function GeographyCurrencyScreen({
               const nextCountry = e.target.value;
               onCountryChange(nextCountry);
             }}
-            className="mt-2 w-full max-w-md border border-black rounded-design px-4 py-3 bg-white font-['Inter'] text-foreground"
+            className="mt-2 w-full max-w-md border border-black rounded-design px-4 py-3 bg-white font-['Plus_Jakarta_Sans'] text-foreground"
           >
             <option value="">Select customer country</option>
             {countryOptions.map((c) => (
@@ -143,7 +143,7 @@ export function GeographyCurrencyScreen({
               setHasManuallySetCurrency(true);
               onCurrencyChange(e.target.value);
             }}
-            className="mt-2 w-full max-w-md border border-black rounded-design px-4 py-3 bg-white font-['Inter'] text-foreground"
+            className="mt-2 w-full max-w-md border border-black rounded-design px-4 py-3 bg-white font-['Plus_Jakarta_Sans'] text-foreground"
           >
             <option value="">Select currency</option>
             {currencyOptions.map((cur) => (

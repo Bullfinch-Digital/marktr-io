@@ -190,7 +190,7 @@ export function CollectionPickerModal({
                         <h3 className="font-['Fraunces'] font-bold text-lg">
                           {collection.name}
                         </h3>
-                        <p className="font-['Inter'] text-sm text-foreground/60">
+                        <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/60">
                           {collection.icpCount || 0} ICPs
                         </p>
                       </div>
@@ -206,7 +206,7 @@ export function CollectionPickerModal({
                 <Button
                   onClick={() => setShowCreateModal(true)}
                   variant="outline"
-                  className="w-full border-black rounded-design font-['Inter']"
+                  className="w-full border-black rounded-design font-['Plus_Jakarta_Sans']"
                 >
                   <Plus className="w-4 h-4 mr-2" />
                   Create New Collection

@@ -159,8 +159,8 @@ export default function AuthCallback() {
         {error && (
           <div className="border border-black rounded-design bg-white p-4 text-left">
             <p className="font-['Fraunces'] text-lg mb-2">Hmm — something went wrong</p>
-            <p className="font-['Inter'] text-sm text-foreground/70">{error}</p>
-            <p className="font-['Inter'] text-xs text-foreground/60 mt-3 reminder">
+            <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70">{error}</p>
+            <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/60 mt-3 reminder">
               Tip: If you opened the email in Incognito / a different browser, the sign-in link can’t complete.
               Open it in the same browser you signed up in, or just log in.
             </p>

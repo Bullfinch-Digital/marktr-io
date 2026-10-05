@@ -16,7 +16,7 @@ export default function PaywallDemo() {
         <h1 className="font-['Fraunces'] text-4xl mb-4">
           Paywall Flow Demo
         </h1>
-        <p className="font-['Inter'] text-foreground/70 mb-8">
+        <p className="font-['Plus_Jakarta_Sans'] text-foreground/70 mb-8">
           Click the button below to test the complete upgrade flow.
         </p>
 
@@ -42,7 +42,7 @@ export default function PaywallDemo() {
         {/* Flow Description */}
         <div className="mt-12 bg-accent-grey/20 border border-black rounded-design p-6 text-left">
           <h2 className="font-['Fraunces'] text-xl mb-4">Flow Steps:</h2>
-          <ol className="space-y-2 font-['Inter'] text-sm">
+          <ol className="space-y-2 font-['Plus_Jakarta_Sans'] text-sm">
             <li className="flex gap-3">
               <span className="font-bold">1.</span>
               <span>User sees Paywall Modal with annual Marktr Pro plan and trial terms</span>

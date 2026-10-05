@@ -64,7 +64,7 @@ export default function GuestIcpPreview() {
       <GuestPreviewShell>
         <div className="max-w-4xl mx-auto text-center space-y-4">
           <h1 className="font-['Fraunces'] text-3xl lg:text-4xl">No ICPs yet</h1>
-          <p className="font-['Inter'] text-foreground/70">
+          <p className="font-['Plus_Jakarta_Sans'] text-foreground/70">
             Start again to generate your first ICP.
           </p>
           <Button
@@ -84,7 +84,7 @@ export default function GuestIcpPreview() {
         headerLeft={
           <div>
             <h1 className="font-['Fraunces'] text-3xl lg:text-4xl">ICP Preview</h1>
-            <p className="font-['Inter'] text-foreground/70">
+            <p className="font-['Plus_Jakarta_Sans'] text-foreground/70">
               Explore your first profile. Start your free trial to edit, save and unlock marketing insights.
             </p>
           </div>
@@ -102,7 +102,7 @@ export default function GuestIcpPreview() {
         profileCardTopRow={
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="space-y-2">
-              <p className="font-['Inter'] text-xs text-foreground/60">Brand</p>
+              <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/60">Brand</p>
               <p className="font-['Fraunces'] text-2xl">
                 {icp.brand_id ? guestBrand.name : "No brand allocated"}
               </p>
@@ -121,13 +121,13 @@ export default function GuestIcpPreview() {
         profileMain={
           <div className="space-y-4">
             <div>
-              <p className="font-['Inter'] text-xs text-foreground/60 mb-1">Name</p>
+              <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/60 mb-1">Name</p>
               <h2 className="font-['Fraunces'] text-2xl">{icp.name}</h2>
             </div>
 
             <div>
-              <p className="font-['Inter'] text-xs text-foreground/60 mb-1">Description</p>
-              <p className="font-['Inter'] text-sm text-foreground/80">{icp.description}</p>
+              <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/60 mb-1">Description</p>
+              <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/80">{icp.description}</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -149,14 +149,14 @@ export default function GuestIcpPreview() {
                 <div className="space-y-4 blur-sm pointer-events-none select-none">
                   <div className="border border-black rounded-design p-4 bg-white">
                     <h4 className="font-['Fraunces'] text-lg mb-2">Positioning</h4>
-                    <p className="text-sm font-['Inter'] text-foreground/80">
+                    <p className="text-sm font-['Plus_Jakarta_Sans'] text-foreground/80">
                       Your ICP positioning, messaging and differentiators will appear here.
                     </p>
                   </div>
 
                   <div className="border border-black rounded-design p-4 bg-white">
                     <h4 className="font-['Fraunces'] text-lg mb-2">Campaign Ideas</h4>
-                    <p className="text-sm font-['Inter'] text-foreground/80">
+                    <p className="text-sm font-['Plus_Jakarta_Sans'] text-foreground/80">
                       Ready-to-use campaign hooks, angles and CTAs tailored to this ICP.
                     </p>
                   </div>
@@ -166,7 +166,7 @@ export default function GuestIcpPreview() {
                   <h4 className="font-['Fraunces'] text-lg mb-2">
                     Unlock your marketing strategy
                   </h4>
-                  <p className="text-sm font-['Inter'] text-foreground/70 mb-4 max-w-sm">
+                  <p className="text-sm font-['Plus_Jakarta_Sans'] text-foreground/70 mb-4 max-w-sm">
                     Generate positioning, messaging, campaigns and ad ideas tailored to this ICP.
                   </p>
                   <Button
@@ -194,8 +194,8 @@ function DetailCard({ label, value }: { label: string; value?: string | null }) 
   if (!value) return null;
   return (
     <div className="border border-black rounded-design p-4 bg-white">
-      <p className="font-['Inter'] text-xs text-foreground/60 mb-1">{label}</p>
-      <p className="font-['Inter'] text-sm text-foreground/80">{value}</p>
+      <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/60 mb-1">{label}</p>
+      <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/80">{value}</p>
     </div>
   );
 }
@@ -204,10 +204,10 @@ function DetailList({ label, items }: { label: string; items?: string[] }) {
   if (!items || !items.length) return null;
   return (
     <div className="border border-black rounded-design p-4 bg-white">
-      <p className="font-['Inter'] text-xs text-foreground/60 mb-2">{label}</p>
+      <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/60 mb-2">{label}</p>
       <ul className="list-disc list-inside space-y-1">
         {items.map((item, idx) => (
-          <li key={`${label}-${idx}`} className="font-['Inter'] text-sm text-foreground/80">
+          <li key={`${label}-${idx}`} className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/80">
             {item}
           </li>
         ))}

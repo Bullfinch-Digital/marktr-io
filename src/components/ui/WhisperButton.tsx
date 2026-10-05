@@ -142,10 +142,10 @@ export function WhisperButton({
           </span>
 
           <div className="min-w-0 flex-1">
-            <p className="font-['DM_Sans'] text-sm font-medium text-foreground">
+            <p className="font-['Plus_Jakarta_Sans'] text-sm font-medium text-foreground">
               Recording… tap stop when done
             </p>
-            <p className="font-['DM_Sans'] text-xs tabular-nums text-foreground/60">
+            <p className="font-['Plus_Jakarta_Sans'] text-xs tabular-nums text-foreground/60">
               {formatElapsed(elapsedSec)}
             </p>
           </div>
@@ -170,7 +170,7 @@ export function WhisperButton({
             aria-label="Stop recording"
             className={cn(
               "inline-flex h-9 items-center gap-1.5 rounded-full bg-[#0D1833] px-3",
-              "font-['DM_Sans'] text-xs font-medium text-white transition-opacity hover:opacity-90",
+              "font-['Plus_Jakarta_Sans'] text-xs font-medium text-white transition-opacity hover:opacity-90",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             )}
           >
@@ -200,7 +200,7 @@ export function WhisperButton({
           aria-live="polite"
         >
           <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary" />
-          <p className="font-['DM_Sans'] text-sm text-foreground/80">
+          <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/80">
             Turning your speech into text you can edit…
           </p>
         </div>
@@ -212,7 +212,7 @@ export function WhisperButton({
     <div className={cn("flex flex-col", isField ? "items-end" : "items-end", className)}>
       {justTranscribed ? (
         <p
-          className="mb-1 max-w-[220px] text-right font-['DM_Sans'] text-xs text-foreground/60"
+          className="mb-1 max-w-[220px] text-right font-['Plus_Jakarta_Sans'] text-xs text-foreground/60"
           role="status"
         >
           Added to your answer — edit if you need to.
@@ -245,7 +245,7 @@ export function WhisperButton({
       </Tooltip>
 
       {displayError && (
-        <p className="mt-1 max-w-[240px] text-right font-['DM_Sans'] text-xs text-destructive">
+        <p className="mt-1 max-w-[240px] text-right font-['Plus_Jakarta_Sans'] text-xs text-destructive">
           {displayError}
         </p>
       )}

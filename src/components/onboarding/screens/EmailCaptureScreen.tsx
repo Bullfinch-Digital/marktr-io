@@ -176,7 +176,7 @@ export function EmailCaptureScreen({
           />
         )}
         {!hideEmailInput && loadError ? (
-          <p className="text-xs text-red-600 font-['Inter'] max-w-md" role="alert">
+          <p className="text-xs text-red-600 font-['Plus_Jakarta_Sans'] max-w-md" role="alert">
             {loadError}
           </p>
         ) : null}

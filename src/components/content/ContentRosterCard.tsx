@@ -35,11 +35,11 @@ export function ContentRosterCard({
         >
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="font-['Fraunces'] text-xl text-[#0D1833] truncate">{item.title}</h3>
-            <span className="inline-flex items-center rounded-full border border-black/15 bg-accent-grey/30 px-2 py-0.5 font-['Inter'] text-[11px] text-foreground/70">
+            <span className="inline-flex items-center rounded-full border border-black/15 bg-accent-grey/30 px-2 py-0.5 font-['Plus_Jakarta_Sans'] text-[11px] text-foreground/70">
               {typeLabel}
             </span>
             <span
-              className={`inline-flex items-center rounded-full border px-2 py-0.5 font-['Inter'] text-[11px] ${
+              className={`inline-flex items-center rounded-full border px-2 py-0.5 font-['Plus_Jakarta_Sans'] text-[11px] ${
                 item.status === "approved"
                   ? "border-emerald-300 bg-emerald-50 text-emerald-900"
                   : "border-amber-300 bg-amber-50 text-amber-900"
@@ -48,7 +48,7 @@ export function ContentRosterCard({
               {statusLabel}
             </span>
           </div>
-          <p className="font-['Inter'] text-xs text-foreground/55 mt-1">
+          <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/55 mt-1">
             v{item.version}
           </p>
         </button>

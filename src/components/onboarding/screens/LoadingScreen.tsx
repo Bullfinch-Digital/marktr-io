@@ -343,7 +343,7 @@ export function LoadingScreen({ onComplete, run, runJob }: LoadingScreenProps) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.3 }}
-              className="text-base sm:text-lg text-gray-600 font-['Inter']"
+              className="text-base sm:text-lg text-gray-600 font-['Plus_Jakarta_Sans']"
             >
               {loadingStages[currentStageIndex]}
             </motion.p>
@@ -351,7 +351,7 @@ export function LoadingScreen({ onComplete, run, runJob }: LoadingScreenProps) {
         </div>
 
         {infoMessage && !error && (
-          <p className="max-w-xl text-center text-sm text-foreground/65 font-['Inter'] px-4">
+          <p className="max-w-xl text-center text-sm text-foreground/65 font-['Plus_Jakarta_Sans'] px-4">
             {infoMessage}
           </p>
         )}
@@ -361,10 +361,10 @@ export function LoadingScreen({ onComplete, run, runJob }: LoadingScreenProps) {
             <p className="font-['Fraunces'] text-lg mb-2">
               Hmm - something went wrong
             </p>
-            <p className="font-['Inter'] text-sm text-foreground/70">
+            <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70">
               {error}
             </p>
-            <p className="font-['Inter'] text-xs text-foreground/60 mt-2">
+            <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/60 mt-2">
               Tip: check your .env.local values and restart <code>npm run dev</code>.
             </p>
           </div>
@@ -379,7 +379,7 @@ export function LoadingScreen({ onComplete, run, runJob }: LoadingScreenProps) {
             <div className="absolute inset-y-0 w-20 bg-gradient-to-r from-transparent via-white to-transparent opacity-50 animate-loading-shimmer" />
           </div>
           <motion.p
-            className="text-center mt-2 text-gray-500 font-['Inter']"
+            className="text-center mt-2 text-gray-500 font-['Plus_Jakarta_Sans']"
             key={progress}
             initial={{ opacity: 0.5 }}
             animate={{ opacity: 1 }}

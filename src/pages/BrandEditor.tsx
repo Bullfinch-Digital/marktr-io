@@ -558,10 +558,10 @@ export default function BrandEditor() {
               <div className="flex items-center gap-3">
                 <Link to="/my-brands" className="flex items-center gap-2 hover:opacity-70 transition-opacity">
                   <ArrowLeft className="w-5 h-5" />
-                  <span className="font-['Inter']">Back to My Brands</span>
+                  <span className="font-['Plus_Jakarta_Sans']">Back to My Brands</span>
                 </Link>
                 {isDirty && saveStatus !== "saving" && (
-                  <span className="text-sm text-amber-700 bg-amber-100 border border-amber-300 rounded-full px-3 py-1 font-['Inter']">
+                  <span className="text-sm text-amber-700 bg-amber-100 border border-amber-300 rounded-full px-3 py-1 font-['Plus_Jakarta_Sans']">
                     Unsaved changes
                   </span>
                 )}
@@ -574,12 +574,12 @@ export default function BrandEditor() {
                   {isSaving ? "Saving..." : "Save Changes"}
                 </Button>
                 {saveStatus === "saved" && !isDirty && (
-                  <span className="text-sm text-green-700 bg-green-100 border border-green-300 rounded-full px-3 py-1 font-['Inter']">
+                  <span className="text-sm text-green-700 bg-green-100 border border-green-300 rounded-full px-3 py-1 font-['Plus_Jakarta_Sans']">
                     Saved
                   </span>
                 )}
                 {saveStatus === "error" && (
-                  <span className="text-sm text-red-700 bg-red-100 border border-red-300 rounded-full px-3 py-1 font-['Inter']">
+                  <span className="text-sm text-red-700 bg-red-100 border border-red-300 rounded-full px-3 py-1 font-['Plus_Jakarta_Sans']">
                     Save failed
                   </span>
                 )}
@@ -605,12 +605,12 @@ export default function BrandEditor() {
                 {isGenerating && (
                   <div className="mt-3 flex flex-col gap-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-['Inter'] text-foreground/70">
+                      <span className="text-xs font-['Plus_Jakarta_Sans'] text-foreground/70">
                         {generateLineOverride ?? GENERATE_LINES[generateLineIndex]}
                       </span>
                     </div>
                     {generateNudgeMessage && (
-                      <span className="text-xs font-['Inter'] text-foreground/60 max-w-md">
+                      <span className="text-xs font-['Plus_Jakarta_Sans'] text-foreground/60 max-w-md">
                         {generateNudgeMessage}
                       </span>
                     )}
@@ -618,12 +618,12 @@ export default function BrandEditor() {
                 )}
 
                 {generateStatus === "success" && !isGenerating && (
-                  <span className="text-sm text-green-700 bg-green-100 border border-green-300 rounded-full px-3 py-1 font-['Inter']">
+                  <span className="text-sm text-green-700 bg-green-100 border border-green-300 rounded-full px-3 py-1 font-['Plus_Jakarta_Sans']">
                     Generated
                   </span>
                 )}
                 {generateStatus === "error" && (
-                  <span className="text-sm text-red-700 bg-red-100 border border-red-300 rounded-full px-3 py-1 font-['Inter']">
+                  <span className="text-sm text-red-700 bg-red-100 border border-red-300 rounded-full px-3 py-1 font-['Plus_Jakarta_Sans']">
                     Generation failed
                   </span>
                 )}
@@ -707,7 +707,7 @@ export default function BrandEditor() {
                   key={tab.id}
                   type="button"
                   onClick={() => setActiveTab(tab.id)}
-                  className={`px-6 py-3 font-['DM_Sans'] text-sm font-medium border-b-2 transition-colors ${
+                  className={`px-6 py-3 font-['Plus_Jakarta_Sans'] text-sm font-medium border-b-2 transition-colors ${
                     activeTab === tab.id
                       ? "border-primary text-primary"
                       : "border-transparent text-muted-foreground hover:text-foreground"
@@ -725,7 +725,7 @@ export default function BrandEditor() {
             <>
           <div className="bg-background border border-black rounded-design p-8 shadow-md animate-fade-in-up space-y-6">
             <div className="space-y-4">
-              <label className="font-['Inter'] text-sm text-foreground/70">Brand name</label>
+              <label className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70">Brand name</label>
               <Input
                 value={brandData.name || ""}
                 onChange={(e) => setBrandData((prev) => ({ ...prev, name: e.target.value }))}
@@ -735,7 +735,7 @@ export default function BrandEditor() {
             </div>
 
             <div className="space-y-3">
-              <label className="font-['Inter'] text-sm text-foreground/70">Business description</label>
+              <label className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70">Business description</label>
               <Textarea
                 value={brandData.business_description || ""}
                 onChange={(e) => setBrandData((prev) => ({ ...prev, business_description: e.target.value }))}
@@ -746,7 +746,7 @@ export default function BrandEditor() {
             </div>
 
             <div className="space-y-3">
-              <label className="font-['Inter'] text-sm text-foreground/70">Product or service</label>
+              <label className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70">Product or service</label>
               <Input
                 value={brandData.product_or_service || ""}
                 onChange={(e) => setBrandData((prev) => ({ ...prev, product_or_service: e.target.value }))}
@@ -757,11 +757,11 @@ export default function BrandEditor() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-3">
-                <label className="font-['Inter'] text-sm text-foreground/70">Business type</label>
+                <label className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70">Business type</label>
                 <select
                   value={brandData.business_type || "B2C"}
                   onChange={(e) => setBrandData((prev) => ({ ...prev, business_type: e.target.value }))}
-                  className="border border-black rounded-design px-4 py-3 bg-white font-['Inter'] text-foreground"
+                  className="border border-black rounded-design px-4 py-3 bg-white font-['Plus_Jakarta_Sans'] text-foreground"
                 >
                   {["B2C", "B2B", "Both"].map((opt) => (
                     <option key={opt} value={opt}>
@@ -772,7 +772,7 @@ export default function BrandEditor() {
               </div>
 
               <div className="space-y-3">
-                <label className="font-['Inter'] text-sm text-foreground/70">Currency</label>
+                <label className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70">Currency</label>
                 <Input
                   value={brandData.currency || ""}
                   onChange={(e) => setBrandData((prev) => ({ ...prev, currency: e.target.value }))}
@@ -784,7 +784,7 @@ export default function BrandEditor() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-3">
-                <label className="font-['Inter'] text-sm text-foreground/70">Country</label>
+                <label className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70">Country</label>
                 <Input
                   value={brandData.country || ""}
                   onChange={(e) => setBrandData((prev) => ({ ...prev, country: e.target.value }))}
@@ -793,7 +793,7 @@ export default function BrandEditor() {
                 />
               </div>
               <div className="space-y-3">
-                <label className="font-['Inter'] text-sm text-foreground/70">Region / City (optional)</label>
+                <label className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70">Region / City (optional)</label>
                 <Input
                   value={brandData.region_or_city || ""}
                   onChange={(e) => setBrandData((prev) => ({ ...prev, region_or_city: e.target.value }))}
@@ -821,7 +821,7 @@ export default function BrandEditor() {
               placeholder="e.g. Instagram, Email, Google Ads"
             />
             <div className="space-y-3">
-              <label className="font-['Inter'] text-sm text-foreground/70">Website (optional)</label>
+              <label className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70">Website (optional)</label>
               <Input
                 value={brandData.website || ""}
                 onChange={(e) => setBrandData((prev) => ({ ...prev, website: e.target.value }))}
@@ -836,7 +836,7 @@ export default function BrandEditor() {
             <div className="flex items-center justify-between gap-3">
               <div>
                 <h2 className="font-['Fraunces'] text-2xl">ICPs for this brand</h2>
-                <p className="font-['Inter'] text-sm text-foreground/70">
+                <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70">
                   These profiles are linked to this brand. If you delete the brand, they’ll stay and become “No brand allocated”.
                 </p>
               </div>
@@ -858,7 +858,7 @@ export default function BrandEditor() {
 
               if (!brandICPs.length) {
                 return (
-                  <div className="text-sm text-foreground/70 font-['Inter']">
+                  <div className="text-sm text-foreground/70 font-['Plus_Jakarta_Sans']">
                     No ICPs linked to this brand yet. Click <span className="font-medium">Generate new ICPs</span> to create some.
                   </div>
                 );
@@ -904,13 +904,13 @@ export default function BrandEditor() {
               <div className="bg-white rounded-xl border border-border p-8 space-y-4">
                 <div>
                   <h2 className="font-['Fraunces'] text-2xl font-bold text-[#0D1833]">Founding story</h2>
-                  <p className="font-['DM_Sans'] text-sm text-muted-foreground mt-1">
+                  <p className="font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground mt-1">
                     The story behind why this business exists. This is the most differentiating content most founders never use.
                   </p>
                 </div>
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <label className="font-['DM_Sans'] text-sm text-[#0D1833]">Founding story</label>
+                    <label className="font-['Plus_Jakarta_Sans'] text-sm text-[#0D1833]">Founding story</label>
                     <VoiceTextarea
                       value={brandData.founding_story ?? ""}
                       onChange={(e) =>
@@ -921,7 +921,7 @@ export default function BrandEditor() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="font-['DM_Sans'] text-sm text-[#0D1833]">What do you want to be known for?</label>
+                    <label className="font-['Plus_Jakarta_Sans'] text-sm text-[#0D1833]">What do you want to be known for?</label>
                     <VoiceTextarea
                       value={brandData.want_known_for ?? ""}
                       onChange={(e) =>
@@ -932,7 +932,7 @@ export default function BrandEditor() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="font-['DM_Sans'] text-sm text-[#0D1833]">
+                    <label className="font-['Plus_Jakarta_Sans'] text-sm text-[#0D1833]">
                       What do you never want to be associated with?
                     </label>
                     <VoiceTextarea
@@ -950,13 +950,13 @@ export default function BrandEditor() {
               <div className="bg-white rounded-xl border border-border p-8 space-y-4">
                 <div>
                   <h2 className="font-['Fraunces'] text-2xl font-bold text-[#0D1833]">Brand voice and tone</h2>
-                  <p className="font-['DM_Sans'] text-sm text-muted-foreground mt-1">
+                  <p className="font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground mt-1">
                     How the brand sounds. Captured once, applied to everything marktr creates.
                   </p>
                 </div>
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <label className="font-['DM_Sans'] text-sm text-[#0D1833]">Voice adjectives</label>
+                    <label className="font-['Plus_Jakarta_Sans'] text-sm text-[#0D1833]">Voice adjectives</label>
                     <TagInput
                       label=""
                       value={brandData.voice_adjectives ?? []}
@@ -965,12 +965,12 @@ export default function BrandEditor() {
                       }
                       placeholder="e.g. Warm, Direct, Expert, Honest"
                     />
-                    <p className="font-['DM_Sans'] text-xs text-muted-foreground">
+                    <p className="font-['Plus_Jakarta_Sans'] text-xs text-muted-foreground">
                       3–5 adjectives that describe the brand tone
                     </p>
                   </div>
                   <div className="space-y-2">
-                    <label className="font-['DM_Sans'] text-sm text-[#0D1833]">Brands or creators you admire</label>
+                    <label className="font-['Plus_Jakarta_Sans'] text-sm text-[#0D1833]">Brands or creators you admire</label>
                     <VoiceTextarea
                       value={brandData.admired_brands ?? ""}
                       onChange={(e) =>
@@ -986,7 +986,7 @@ export default function BrandEditor() {
               <div className="bg-white rounded-xl border border-border p-8 space-y-4">
                 <div>
                   <h2 className="font-['Fraunces'] text-2xl font-bold text-[#0D1833]">Competitor landscape</h2>
-                  <p className="font-['DM_Sans'] text-sm text-muted-foreground mt-1">
+                  <p className="font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground mt-1">
                     Up to 3 competitors. Understanding what they do well helps marktr position you differently.
                   </p>
                 </div>
@@ -1011,12 +1011,12 @@ export default function BrandEditor() {
                   };
                   return (
                     <div key={i} className="border border-border rounded-xl p-5 space-y-3 bg-background">
-                      <p className="font-['DM_Sans'] text-xs font-medium uppercase tracking-widest text-muted-foreground">
+                      <p className="font-['Plus_Jakarta_Sans'] text-xs font-medium uppercase tracking-widest text-muted-foreground">
                         Competitor {i + 1}
                       </p>
                       <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-1">
-                          <label className="font-['DM_Sans'] text-xs text-muted-foreground">Name</label>
+                          <label className="font-['Plus_Jakarta_Sans'] text-xs text-muted-foreground">Name</label>
                           <Input
                             value={comp.name}
                             onChange={(e) => updateComp("name", e.target.value)}
@@ -1025,7 +1025,7 @@ export default function BrandEditor() {
                           />
                         </div>
                         <div className="space-y-1">
-                          <label className="font-['DM_Sans'] text-xs text-muted-foreground">Website</label>
+                          <label className="font-['Plus_Jakarta_Sans'] text-xs text-muted-foreground">Website</label>
                           <Input
                             value={comp.url}
                             onChange={(e) => updateComp("url", e.target.value)}
@@ -1035,7 +1035,7 @@ export default function BrandEditor() {
                         </div>
                       </div>
                       <div className="space-y-1">
-                        <label className="font-['DM_Sans'] text-xs text-muted-foreground">What they do well online</label>
+                        <label className="font-['Plus_Jakarta_Sans'] text-xs text-muted-foreground">What they do well online</label>
                         <Input
                           value={comp.does_well}
                           onChange={(e) => updateComp("does_well", e.target.value)}
@@ -1044,7 +1044,7 @@ export default function BrandEditor() {
                         />
                       </div>
                       <div className="space-y-1">
-                        <label className="font-['DM_Sans'] text-xs text-muted-foreground">What you do that they don&apos;t</label>
+                        <label className="font-['Plus_Jakarta_Sans'] text-xs text-muted-foreground">What you do that they don&apos;t</label>
                         <Input
                           value={comp.we_do_instead}
                           onChange={(e) => updateComp("we_do_instead", e.target.value)}
@@ -1060,13 +1060,13 @@ export default function BrandEditor() {
               <div className="bg-white rounded-xl border border-border p-8 space-y-4">
                 <div>
                   <h2 className="font-['Fraunces'] text-2xl font-bold text-[#0D1833]">Current marketing</h2>
-                  <p className="font-['DM_Sans'] text-sm text-muted-foreground mt-1">
+                  <p className="font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground mt-1">
                     Where you&apos;re currently active and what you&apos;re spending.
                   </p>
                 </div>
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <label className="font-['DM_Sans'] text-sm text-[#0D1833]">Active platforms</label>
+                    <label className="font-['Plus_Jakarta_Sans'] text-sm text-[#0D1833]">Active platforms</label>
                     <div className="flex flex-wrap gap-2">
                       {["Instagram", "Facebook", "LinkedIn", "TikTok", "X", "YouTube", "Email", "Pinterest"].map(
                         (platform) => {
@@ -1085,7 +1085,7 @@ export default function BrandEditor() {
                                   };
                                 });
                               }}
-                              className={`px-4 py-2 rounded-full font-['DM_Sans'] text-sm border transition-colors ${
+                              className={`px-4 py-2 rounded-full font-['Plus_Jakarta_Sans'] text-sm border transition-colors ${
                                 active
                                   ? "bg-primary text-white border-primary"
                                   : "bg-white text-foreground border-border hover:border-primary/40"
@@ -1108,13 +1108,13 @@ export default function BrandEditor() {
                       }
                       className="w-4 h-4 accent-primary"
                     />
-                    <label htmlFor="runs_paid_ads" className="font-['DM_Sans'] text-sm text-[#0D1833]">
+                    <label htmlFor="runs_paid_ads" className="font-['Plus_Jakarta_Sans'] text-sm text-[#0D1833]">
                       Currently running paid ads
                     </label>
                   </div>
                   {brandData.runs_paid_ads && (
                     <div className="space-y-2">
-                      <label className="font-['DM_Sans'] text-sm text-[#0D1833]">Monthly ad spend</label>
+                      <label className="font-['Plus_Jakarta_Sans'] text-sm text-[#0D1833]">Monthly ad spend</label>
                       <Input
                         type="number"
                         value={brandData.monthly_ad_spend ?? ""}
@@ -1135,13 +1135,13 @@ export default function BrandEditor() {
               <div className="bg-white rounded-xl border border-border p-8 space-y-4">
                 <div>
                   <h2 className="font-['Fraunces'] text-2xl font-bold text-[#0D1833]">Email list</h2>
-                  <p className="font-['DM_Sans'] text-sm text-muted-foreground mt-1">
+                  <p className="font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground mt-1">
                     Your email list is your most valuable owned asset.
                   </p>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="font-['DM_Sans'] text-sm text-[#0D1833]">List size</label>
+                    <label className="font-['Plus_Jakarta_Sans'] text-sm text-[#0D1833]">List size</label>
                     <Input
                       type="number"
                       value={brandData.email_list_size ?? ""}
@@ -1156,7 +1156,7 @@ export default function BrandEditor() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="font-['DM_Sans'] text-sm text-[#0D1833]">Platform</label>
+                    <label className="font-['Plus_Jakarta_Sans'] text-sm text-[#0D1833]">Platform</label>
                     <Input
                       value={brandData.email_platform ?? ""}
                       onChange={(e) =>
@@ -1172,19 +1172,19 @@ export default function BrandEditor() {
               <div className="bg-white rounded-xl border border-border p-8 space-y-4">
                 <div>
                   <h2 className="font-['Fraunces'] text-2xl font-bold text-[#0D1833]">Goals and focus</h2>
-                  <p className="font-['DM_Sans'] text-sm text-muted-foreground mt-1">
+                  <p className="font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground mt-1">
                     What success looks like for the next 90 days.
                   </p>
                 </div>
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <label className="font-['DM_Sans'] text-sm text-[#0D1833]">Primary goal</label>
+                    <label className="font-['Plus_Jakarta_Sans'] text-sm text-[#0D1833]">Primary goal</label>
                     <select
                       value={brandData.primary_goal ?? ""}
                       onChange={(e) =>
                         setBrandData((prev) => ({ ...prev, primary_goal: e.target.value }))
                       }
-                      className="w-full border border-black rounded-design px-4 py-3 bg-white font-['DM_Sans'] text-foreground text-sm"
+                      className="w-full border border-black rounded-design px-4 py-3 bg-white font-['Plus_Jakarta_Sans'] text-foreground text-sm"
                     >
                       <option value="">Select a goal</option>
                       {["Lead generation", "Brand awareness", "Sales", "Audience growth", "Community building"].map((g) => (
@@ -1195,13 +1195,13 @@ export default function BrandEditor() {
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <label className="font-['DM_Sans'] text-sm text-[#0D1833]">Platform focus (next 90 days)</label>
+                    <label className="font-['Plus_Jakarta_Sans'] text-sm text-[#0D1833]">Platform focus (next 90 days)</label>
                     <select
                       value={brandData.platform_focus ?? ""}
                       onChange={(e) =>
                         setBrandData((prev) => ({ ...prev, platform_focus: e.target.value }))
                       }
-                      className="w-full border border-black rounded-design px-4 py-3 bg-white font-['DM_Sans'] text-foreground text-sm"
+                      className="w-full border border-black rounded-design px-4 py-3 bg-white font-['Plus_Jakarta_Sans'] text-foreground text-sm"
                     >
                       <option value="">Select a platform</option>
                       {["Instagram", "Facebook", "LinkedIn", "TikTok", "X", "YouTube", "Email", "Pinterest"].map((p) => (
@@ -1212,13 +1212,13 @@ export default function BrandEditor() {
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <label className="font-['DM_Sans'] text-sm text-[#0D1833]">Monthly content volume</label>
+                    <label className="font-['Plus_Jakarta_Sans'] text-sm text-[#0D1833]">Monthly content volume</label>
                     <select
                       value={brandData.monthly_content_volume ?? ""}
                       onChange={(e) =>
                         setBrandData((prev) => ({ ...prev, monthly_content_volume: e.target.value }))
                       }
-                      className="w-full border border-black rounded-design px-4 py-3 bg-white font-['DM_Sans'] text-foreground text-sm"
+                      className="w-full border border-black rounded-design px-4 py-3 bg-white font-['Plus_Jakarta_Sans'] text-foreground text-sm"
                     >
                       <option value="">How much can you commit to?</option>
                       {["1–4 posts", "5–10 posts", "11–20 posts", "20+ posts"].map((v) => (
@@ -1229,7 +1229,7 @@ export default function BrandEditor() {
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <label className="font-['DM_Sans'] text-sm text-[#0D1833]">Success markers</label>
+                    <label className="font-['Plus_Jakarta_Sans'] text-sm text-[#0D1833]">Success markers</label>
                     <div className="flex flex-wrap gap-2">
                       {["Reach", "Engagement", "Leads", "Sales", "Followers"].map((marker) => {
                         const active = (brandData.success_markers ?? []).includes(marker);
@@ -1247,7 +1247,7 @@ export default function BrandEditor() {
                                 };
                               });
                             }}
-                            className={`px-4 py-2 rounded-full font-['DM_Sans'] text-sm border transition-colors ${
+                            className={`px-4 py-2 rounded-full font-['Plus_Jakarta_Sans'] text-sm border transition-colors ${
                               active
                                 ? "bg-primary text-white border-primary"
                                 : "bg-white text-foreground border-border hover:border-primary/40"

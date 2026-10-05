@@ -116,7 +116,7 @@ function AnalysisMessage({ messages }: { messages: readonly string[] }) {
 
   return (
     <p
-      className="max-w-xs text-center font-['DM_Sans'] text-sm leading-relaxed text-muted-foreground transition-opacity duration-300"
+      className="max-w-xs text-center font-['Plus_Jakarta_Sans'] text-sm leading-relaxed text-muted-foreground transition-opacity duration-300"
       style={{ opacity: visible ? 1 : 0 }}
     >
       {messages[index]}
@@ -463,7 +463,7 @@ export default function StoryBuild() {
       <div className="mb-8">
         <Link
           to="/"
-          className="inline-flex items-center gap-2 font-['DM_Sans'] text-sm text-muted-foreground transition-colors hover:text-foreground"
+          className="inline-flex items-center gap-2 font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to home
@@ -493,7 +493,7 @@ export default function StoryBuild() {
             <button
               type="button"
               onClick={goBack}
-              className="inline-flex items-center gap-2 font-['DM_Sans'] text-sm text-muted-foreground transition-colors hover:text-foreground"
+              className="inline-flex items-center gap-2 font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground transition-colors hover:text-foreground"
             >
               <ArrowLeft className="h-4 w-4" />
               Back
@@ -501,13 +501,13 @@ export default function StoryBuild() {
           ) : (
             <Link
               to="/"
-              className="inline-flex items-center gap-2 font-['DM_Sans'] text-sm text-muted-foreground transition-colors hover:text-foreground"
+              className="inline-flex items-center gap-2 font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground transition-colors hover:text-foreground"
             >
               <ArrowLeft className="h-4 w-4" />
               Back to home
             </Link>
           )}
-          <p className="font-['DM_Sans'] text-xs text-muted-foreground">
+          <p className="font-['Plus_Jakarta_Sans'] text-xs text-muted-foreground">
             Question {questionIndex + 1} of 7
           </p>
         </div>
@@ -516,7 +516,7 @@ export default function StoryBuild() {
           <h1 className="font-['Fraunces'] text-3xl font-bold leading-tight text-[#0D1833] sm:text-4xl">
             {q.heading}
           </h1>
-          <p className="mt-4 max-w-lg font-['DM_Sans'] text-base text-muted-foreground">{q.subtext}</p>
+          <p className="mt-4 max-w-lg font-['Plus_Jakarta_Sans'] text-base text-muted-foreground">{q.subtext}</p>
 
           <div className="mt-8">
             <VoiceTextarea
@@ -527,7 +527,7 @@ export default function StoryBuild() {
                   commitStoryAnswerToGuestContext(questionIndex, draft);
                 }
               }}
-              className="min-h-[140px] resize-none border border-black rounded-design bg-white px-4 py-4 font-['DM_Sans'] text-foreground placeholder:text-foreground/40"
+              className="min-h-[140px] resize-none border border-black rounded-design bg-white px-4 py-4 font-['Plus_Jakarta_Sans'] text-foreground placeholder:text-foreground/40"
             />
           </div>
 
@@ -535,7 +535,7 @@ export default function StoryBuild() {
             type="button"
             disabled={!canContinueQuestion}
             onClick={advanceFromQuestion}
-            className="mt-8 w-fit rounded-full bg-primary px-8 py-6 font-['DM_Sans'] text-base font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
+            className="mt-8 w-fit rounded-full bg-primary px-8 py-6 font-['Plus_Jakarta_Sans'] text-base font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
           >
             Continue →
           </Button>
@@ -544,7 +544,7 @@ export default function StoryBuild() {
             <button
               type="button"
               onClick={skipQuestion}
-              className="mt-4 w-fit font-['DM_Sans'] text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+              className="mt-4 w-fit font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
             >
               Skip this question
             </button>
@@ -564,7 +564,7 @@ export default function StoryBuild() {
         <button
           type="button"
           onClick={goBack}
-          className="inline-flex items-center gap-2 font-['DM_Sans'] text-sm text-muted-foreground transition-colors hover:text-foreground"
+          className="inline-flex items-center gap-2 font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4" />
           Back
@@ -576,7 +576,7 @@ export default function StoryBuild() {
         <h1 className="font-['Fraunces'] text-3xl font-bold leading-tight text-[#0D1833] sm:text-4xl">
           Before we write your story
         </h1>
-        <p className="mt-4 max-w-lg font-['DM_Sans'] text-base text-muted-foreground">
+        <p className="mt-4 max-w-lg font-['Plus_Jakarta_Sans'] text-base text-muted-foreground">
           We&apos;ll save your results and send you a copy when it&apos;s ready.
         </p>
 
@@ -612,7 +612,7 @@ export default function StoryBuild() {
             e.preventDefault();
           }}
           onClick={handleEmailStepContinue}
-          className="mt-8 w-fit rounded-full bg-primary px-8 py-6 font-['DM_Sans'] text-base font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
+          className="mt-8 w-fit rounded-full bg-primary px-8 py-6 font-['Plus_Jakarta_Sans'] text-base font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
         >
           Continue building →
         </Button>
@@ -642,7 +642,7 @@ export default function StoryBuild() {
                   <Loader2 className="h-5 w-5 text-muted-foreground/40" />
                 )}
                 <p
-                  className={`font-['DM_Sans'] text-sm ${
+                  className={`font-['Plus_Jakarta_Sans'] text-sm ${
                     done
                       ? "text-foreground"
                       : active

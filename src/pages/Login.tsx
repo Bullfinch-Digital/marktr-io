@@ -192,13 +192,13 @@ export default function Login() {
             </button>
 
             <h2 className="font-['Fraunces'] text-2xl mb-2">Reset your password</h2>
-            <p className="font-['Inter'] text-sm text-foreground/70 mb-4">
+            <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70 mb-4">
               Enter the email you used to sign up and we'll send you a link to choose a new password.
             </p>
 
             <form onSubmit={handlePasswordReset} className="space-y-4">
               <div className="space-y-2">
-                <label htmlFor="reset-email" className="font-['Inter'] text-sm">
+                <label htmlFor="reset-email" className="font-['Plus_Jakarta_Sans'] text-sm">
                   Email address
                 </label>
                 <input
@@ -206,7 +206,7 @@ export default function Login() {
                   type="email"
                   value={resetEmail}
                   onChange={(e) => setResetEmail(e.target.value)}
-                  className="w-full border border-black rounded-design px-3 py-2 font-['Inter']"
+                  className="w-full border border-black rounded-design px-3 py-2 font-['Plus_Jakarta_Sans']"
                   required
                 />
               </div>
@@ -221,14 +221,14 @@ export default function Login() {
                 <button
                   type="button"
                   onClick={() => setResetOpen(false)}
-                  className="font-['Inter'] text-sm px-3 py-2 border border-black rounded-design bg-background hover:bg-foreground/5"
+                  className="font-['Plus_Jakarta_Sans'] text-sm px-3 py-2 border border-black rounded-design bg-background hover:bg-foreground/5"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={resetStatus === "sending"}
-                  className="font-['Inter'] text-sm px-4 py-2 border border-black rounded-design bg-button-green hover:bg-button-green/90 disabled:opacity-60"
+                  className="font-['Plus_Jakarta_Sans'] text-sm px-4 py-2 border border-black rounded-design bg-button-green hover:bg-button-green/90 disabled:opacity-60"
                 >
                   {resetStatus === "sending" ? "Sending..." : "Send reset link"}
                 </button>

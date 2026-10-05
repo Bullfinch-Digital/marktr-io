@@ -48,7 +48,7 @@ function ScalarField({
 }) {
   return (
     <div className="space-y-2">
-      <label className="font-['Inter'] text-sm text-foreground/70">{label}</label>
+      <label className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70">{label}</label>
       {multiline ? (
         <Textarea
           value={value}

@@ -12,7 +12,7 @@ export default function PlaceholderPage({ title }: PlaceholderPageProps) {
         <h1 className="font-['Fraunces'] text-4xl font-bold text-foreground mb-3">
           {title}
         </h1>
-        <p className="text-muted-foreground font-['DM_Sans'] text-lg">Coming soon</p>
+        <p className="text-muted-foreground font-['Plus_Jakarta_Sans'] text-lg">Coming soon</p>
       </div>
     </DashboardShell>
   );

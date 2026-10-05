@@ -65,7 +65,7 @@ export function CookieConsentBanner() {
             type="button"
             variant="outline"
             onClick={() => accept(false)}
-            className="rounded-design border-black font-['DM_Sans']"
+            className="rounded-design border-black font-['Plus_Jakarta_Sans']"
           >
             Reject non-essential
           </Button>

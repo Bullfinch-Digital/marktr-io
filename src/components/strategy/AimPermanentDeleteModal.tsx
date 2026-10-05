@@ -29,7 +29,7 @@ export default function AimPermanentDeleteModal({
         onClick={(e) => e.stopPropagation()}
       >
         <h2 id="aim-permanent-delete-title">Permanently delete this aim?</h2>
-        <p className="font-['Inter'] text-sm text-foreground/80">
+        <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/80">
           This will permanently delete <strong>{displayName}</strong> and all its versions. This
           cannot be undone.
         </p>

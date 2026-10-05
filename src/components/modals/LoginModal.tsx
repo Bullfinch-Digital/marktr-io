@@ -175,7 +175,7 @@ export function LoginModal({
         <div className="flex items-start justify-between gap-4 mb-4">
           <div>
             <h2 className="font-['Fraunces'] text-2xl mb-1">Sign in to marktr.</h2>
-            <p className="font-['Inter'] text-sm text-foreground/70">
+            <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70">
               New here? Signing in with Google creates your account automatically.
             </p>
           </div>
@@ -201,7 +201,7 @@ export function LoginModal({
           type="button"
           onClick={() => void handleGoogle()}
           disabled={googleLoading || loading}
-          className="w-full flex items-center justify-center gap-3 border border-black rounded-design px-4 py-3 bg-white font-['DM_Sans'] text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-60"
+          className="w-full flex items-center justify-center gap-3 border border-black rounded-design px-4 py-3 bg-white font-['Plus_Jakarta_Sans'] text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-60"
         >
           <GoogleIcon />
           {googleLoading ? "Redirecting…" : "Continue with Google"}
@@ -255,7 +255,7 @@ export function LoginModal({
           </div>
 
           {error && (
-            <p className="text-sm text-red-600 font-['Inter']">{error}</p>
+            <p className="text-sm text-red-600 font-['Plus_Jakarta_Sans']">{error}</p>
           )}
 
           <Button

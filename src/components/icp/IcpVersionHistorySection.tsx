@@ -91,7 +91,7 @@ export function IcpVersionHistorySection({
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className="inline-flex items-center gap-1.5 font-['Inter'] text-xs text-foreground/55 hover:text-foreground/80 transition-colors"
+        className="inline-flex items-center gap-1.5 font-['Plus_Jakarta_Sans'] text-xs text-foreground/55 hover:text-foreground/80 transition-colors"
       >
         <History className="h-3.5 w-3.5" />
         Version history
@@ -100,13 +100,13 @@ export function IcpVersionHistorySection({
       </button>
 
       {error && (
-        <p className="mt-3 font-['Inter'] text-xs text-red-700">{error}</p>
+        <p className="mt-3 font-['Plus_Jakarta_Sans'] text-xs text-red-700">{error}</p>
       )}
 
       {open && (
         <div className="mt-4 rounded-design border border-black/15 bg-accent-grey/20 px-4 py-3">
           {loading ? (
-            <p className="font-['Inter'] text-xs text-foreground/50">Loading version history…</p>
+            <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/50">Loading version history…</p>
           ) : (
             <ul className="space-y-3">
               {visibleItems.map((row) => {
@@ -127,13 +127,13 @@ export function IcpVersionHistorySection({
                         }
                         className="text-left min-w-0 flex-1"
                       >
-                        <p className="font-['Inter'] text-sm text-foreground">
+                        <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground">
                           Version {row.version ?? "?"}
                           {isCurrent ? (
                             <span className="ml-2 text-xs text-foreground/50">(current)</span>
                           ) : null}
                         </p>
-                        <p className="font-['Inter'] text-xs text-foreground/50">{dateLabel}</p>
+                        <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/50">{dateLabel}</p>
                       </button>
 
                       {!isCurrent && !disabled ? (
@@ -141,7 +141,7 @@ export function IcpVersionHistorySection({
                           type="button"
                           disabled={!!restoringId}
                           onClick={() => void handleRestore(row)}
-                          className="font-['Inter'] text-xs text-foreground/70 underline-offset-2 hover:underline disabled:opacity-50"
+                          className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/70 underline-offset-2 hover:underline disabled:opacity-50"
                         >
                           {restoringId === row.id ? "Restoring…" : "Restore this version"}
                         </button>
@@ -150,21 +150,21 @@ export function IcpVersionHistorySection({
 
                     {isExpanded && (
                       <div className="mt-3 rounded-design border border-black/10 bg-white/80 px-3 py-2 space-y-2">
-                        <p className="font-['Inter'] text-sm font-medium text-foreground">
+                        <p className="font-['Plus_Jakarta_Sans'] text-sm font-medium text-foreground">
                           {row.name || "Untitled profile"}
                         </p>
                         {row.description ? (
-                          <p className="font-['Inter'] text-xs text-foreground/70 whitespace-pre-wrap">
+                          <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/70 whitespace-pre-wrap">
                             {row.description}
                           </p>
                         ) : null}
                         {(row.goals?.length ?? 0) > 0 && (
-                          <p className="font-['Inter'] text-xs text-foreground/60">
+                          <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/60">
                             <span className="font-medium">Goals:</span> {row.goals?.join(" · ")}
                           </p>
                         )}
                         {(row.pain_points?.length ?? 0) > 0 && (
-                          <p className="font-['Inter'] text-xs text-foreground/60">
+                          <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/60">
                             <span className="font-medium">Pain points:</span>{" "}
                             {row.pain_points?.join(" · ")}
                           </p>
@@ -179,7 +179,7 @@ export function IcpVersionHistorySection({
                   <button
                     type="button"
                     onClick={showMore}
-                    className="font-['Inter'] text-xs text-foreground/55 hover:text-foreground/80 underline-offset-2 hover:underline"
+                    className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/55 hover:text-foreground/80 underline-offset-2 hover:underline"
                   >
                     Show more ({remaining} older version{remaining === 1 ? "" : "s"})
                   </button>

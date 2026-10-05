@@ -65,7 +65,7 @@ export default function Pricing() {
           <h1 className="font-['Fraunces'] text-4xl sm:text-5xl lg:text-6xl mb-6">
             Plans built to help you target smarter & grow faster
           </h1>
-          <p className="font-['Inter'] text-lg sm:text-xl text-foreground/70 max-w-2xl mx-auto">
+          <p className="font-['Plus_Jakarta_Sans'] text-lg sm:text-xl text-foreground/70 max-w-2xl mx-auto">
             Start free. Upgrade for the full Brand Story System, unlimited ICPs, your complete
             health report, content strategy, and exportable ICPs, brand stories, strategies, and
             content.
@@ -81,16 +81,16 @@ export default function Pricing() {
               <div className="flex items-baseline gap-1 mb-1">
                 <span className="font-['Fraunces'] text-4xl">{MARKTR_PRO_PRICE_HEADLINE}</span>
               </div>
-              <p className="font-['Inter'] text-xs text-foreground/60 mb-1">{MARKTR_PRO_BILLING_LINE}</p>
-              <p className="font-['Inter'] text-xs text-foreground/60 mb-2">VAT may apply</p>
-              <p className="font-['Inter'] text-sm text-foreground/70">{MARKTR_PRO_CARD_SUBTITLE}</p>
+              <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/60 mb-1">{MARKTR_PRO_BILLING_LINE}</p>
+              <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/60 mb-2">VAT may apply</p>
+              <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70">{MARKTR_PRO_CARD_SUBTITLE}</p>
             </div>
 
             <ul className="space-y-3 mb-8 flex-grow">
               {MARKTR_PRO_BENEFITS.map((feature) => (
                 <li key={feature.id} className="flex items-start gap-2">
                   <Check className="w-5 h-5 text-button-green shrink-0 mt-0.5" />
-                  <span className="font-['Inter'] text-sm">{feature.label}</span>
+                  <span className="font-['Plus_Jakarta_Sans'] text-sm">{feature.label}</span>
                 </li>
               ))}
             </ul>
@@ -103,15 +103,15 @@ export default function Pricing() {
             >
               {isStartingCheckout ? "Redirecting…" : "Start free trial"}
             </Button>
-            <p className="mt-3 text-center font-['Inter'] text-xs text-foreground/60">
+            <p className="mt-3 text-center font-['Plus_Jakarta_Sans'] text-xs text-foreground/60">
               {MARKTR_TRIAL_FINE_PRINT}
             </p>
-            <p className="mt-2 text-center font-['Inter'] text-xs text-foreground/60">
+            <p className="mt-2 text-center font-['Plus_Jakarta_Sans'] text-xs text-foreground/60">
               {MARKTR_MONEY_BACK_GUARANTEE}
             </p>
           </div>
 
-          <p className="mt-6 text-center font-['Inter'] text-xs text-foreground/60">
+          <p className="mt-6 text-center font-['Plus_Jakarta_Sans'] text-xs text-foreground/60">
             {MARKTR_TRIAL_LEGAL_STRIP}
           </p>
         </div>
@@ -120,11 +120,11 @@ export default function Pricing() {
       <section className="pb-12 px-4 sm:px-6 lg:px-8">
         <div className="container mx-auto max-w-5xl">
           <div className="text-center space-y-2">
-            <p className="font-['Inter'] text-xs text-foreground/60">
+            <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/60">
               Prices shown in GBP (£). Plan renews automatically. Cancel anytime in your account
               settings.
             </p>
-            <p className="font-['Inter'] text-xs text-foreground/60">
+            <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/60">
               <Link to="/terms-of-service" className="underline hover:text-foreground transition-colors">
                 Full Terms
               </Link>{" "}
@@ -152,7 +152,7 @@ export default function Pricing() {
                   </th>
                 </tr>
               </thead>
-              <tbody className="font-['Inter'] text-sm">
+              <tbody className="font-['Plus_Jakarta_Sans'] text-sm">
                 {MARKTR_PRO_BENEFITS.map((feature) => (
                   <tr key={feature.id} className="border-b border-warm-grey">
                     <td className="p-4 sm:p-6">{feature.compareLabel}</td>
@@ -184,13 +184,13 @@ export default function Pricing() {
               <div className="w-12 h-12 rounded-full bg-background border-2 border-black flex items-center justify-center">
                 <Lock className="w-6 h-6" />
               </div>
-              <p className="font-['Inter'] text-sm">Secure checkout via Stripe</p>
+              <p className="font-['Plus_Jakarta_Sans'] text-sm">Secure checkout via Stripe</p>
             </div>
             <div className="flex flex-col items-center gap-3">
               <div className="w-12 h-12 rounded-full bg-background border-2 border-black flex items-center justify-center">
                 <RotateCcw className="w-6 h-6" />
               </div>
-              <p className="font-['Inter'] text-sm">
+              <p className="font-['Plus_Jakarta_Sans'] text-sm">
                 {MARKTR_MONEY_BACK_DAYS}-day money-back guarantee
               </p>
             </div>
@@ -198,7 +198,7 @@ export default function Pricing() {
               <div className="w-12 h-12 rounded-full bg-background border-2 border-black flex items-center justify-center">
                 <Heart className="w-6 h-6 fill-current" />
               </div>
-              <p className="font-['Inter'] text-sm">Loved by founders, marketers & SMEs</p>
+              <p className="font-['Plus_Jakarta_Sans'] text-sm">Loved by founders, marketers & SMEs</p>
             </div>
           </div>
         </div>
@@ -216,13 +216,13 @@ export default function Pricing() {
                 className="bg-background rounded-design border border-black p-6 transition-all hover:shadow-lg"
               >
                 <h3 className="font-['Fraunces'] text-lg mb-3">{faq.question}</h3>
-                <p className="font-['Inter'] text-sm text-foreground/70 leading-relaxed">
+                <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70 leading-relaxed">
                   {faq.answer}
                 </p>
               </div>
             ))}
           </div>
-          <p className="mt-8 text-center font-['Inter'] text-xs text-foreground/50">
+          <p className="mt-8 text-center font-['Plus_Jakarta_Sans'] text-xs text-foreground/50">
             Effective rate £{MARKTR_PRO_MONTHLY_EQUIVALENT_GBP}/mo · £{MARKTR_PRO_ANNUAL_TOTAL_GBP}
             /year billed annually
           </p>

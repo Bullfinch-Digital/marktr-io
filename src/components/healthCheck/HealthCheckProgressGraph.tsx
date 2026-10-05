@@ -157,7 +157,7 @@ export function HealthCheckProgressGraph({ rows, loading = false }: HealthCheckP
               <CartesianGrid stroke="#e8e8e8" strokeDasharray="3 3" vertical={false} />
               <XAxis
                 dataKey="dateLabel"
-                tick={{ fill: "#6b7280", fontSize: 10, fontFamily: "DM Sans, sans-serif" }}
+                tick={{ fill: "#6b7280", fontSize: 10, fontFamily: '"Plus Jakarta Sans", sans-serif' }}
                 axisLine={{ stroke: "#e5e7eb" }}
                 tickLine={false}
                 dy={6}
@@ -165,7 +165,7 @@ export function HealthCheckProgressGraph({ rows, loading = false }: HealthCheckP
               <YAxis
                 domain={Y_DOMAIN}
                 ticks={Y_TICKS}
-                tick={{ fill: "#6b7280", fontSize: 10, fontFamily: "DM Sans, sans-serif" }}
+                tick={{ fill: "#6b7280", fontSize: 10, fontFamily: '"Plus Jakarta Sans", sans-serif' }}
                 axisLine={false}
                 tickLine={false}
                 width={28}
@@ -183,7 +183,7 @@ export function HealthCheckProgressGraph({ rows, loading = false }: HealthCheckP
                     iconType="line"
                     iconSize={10}
                     wrapperStyle={{
-                      fontFamily: "DM Sans, sans-serif",
+                      fontFamily: '"Plus Jakarta Sans", sans-serif',
                       fontSize: 10,
                       paddingTop: 8,
                     }}

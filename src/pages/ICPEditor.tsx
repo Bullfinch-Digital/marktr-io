@@ -502,17 +502,17 @@ export default function ICPEditor() {
                 className="flex items-center gap-2 hover:opacity-70 transition-opacity"
               >
                 <ArrowLeft className="w-5 h-5" />
-                <span className="font-['Inter']">Back to Dashboard</span>
+                <span className="font-['Plus_Jakarta_Sans']">Back to Dashboard</span>
               </Link>
               {isDirty && saveStatus !== "saving" && (
-                <span className="text-sm text-amber-700 bg-amber-100 border border-amber-300 rounded-full px-3 py-1 font-['Inter']">
+                <span className="text-sm text-amber-700 bg-amber-100 border border-amber-300 rounded-full px-3 py-1 font-['Plus_Jakarta_Sans']">
                   Unsaved changes
                 </span>
               )}
             </div>
             <div>
               <h1 className="font-['Fraunces'] text-3xl lg:text-4xl">ICP Profile</h1>
-              <p className="font-['Inter'] text-foreground/70">
+              <p className="font-['Plus_Jakarta_Sans'] text-foreground/70">
                 Review and edit your ideal customer profile.
               </p>
             </div>
@@ -537,12 +537,12 @@ export default function ICPEditor() {
               {isSaving ? "Saving..." : "Save Changes"}
             </Button>
             {saveStatus === "saved" && !isDirty && (
-              <span className="text-sm text-green-700 bg-green-100 border border-green-300 rounded-full px-3 py-1 font-['Inter']">
+              <span className="text-sm text-green-700 bg-green-100 border border-green-300 rounded-full px-3 py-1 font-['Plus_Jakarta_Sans']">
                 Saved
               </span>
             )}
             {saveStatus === "error" && (
-              <span className="text-sm text-red-700 bg-red-100 border border-red-300 rounded-full px-3 py-1 font-['Inter']">
+              <span className="text-sm text-red-700 bg-red-100 border border-red-300 rounded-full px-3 py-1 font-['Plus_Jakarta_Sans']">
                 Save failed
               </span>
             )}
@@ -551,11 +551,11 @@ export default function ICPEditor() {
         profileCardTopRow={
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="w-full sm:max-w-md">
-              <p className="font-['Inter'] text-xs text-foreground/60 mb-1">Brand</p>
+              <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/60 mb-1">Brand</p>
               <select
                 value={currentBrandId ?? ""}
                 onChange={(e) => handleBrandChange(e.target.value)}
-                className="w-full border border-black rounded-design px-4 py-3 bg-white font-['Inter'] text-foreground"
+                className="w-full border border-black rounded-design px-4 py-3 bg-white font-['Plus_Jakarta_Sans'] text-foreground"
                 disabled={isFreeTier || brandsLoading || brandSaveStatus === "saving"}
               >
                 <option value="">
@@ -567,7 +567,7 @@ export default function ICPEditor() {
                   </option>
                 ))}
               </select>
-              <div className="mt-2 flex items-center gap-3 text-xs font-['Inter'] text-foreground/60">
+              <div className="mt-2 flex items-center gap-3 text-xs font-['Plus_Jakarta_Sans'] text-foreground/60">
                 <span>Changing this saves immediately (no need to hit Save Changes).</span>
                 <span>
                   {brandSaveStatus === "saving" && "Saving…"}
@@ -702,7 +702,7 @@ export default function ICPEditor() {
             <div className="border border-black rounded-design p-6 md:p-8 bg-[#F8F5EE]/60 shadow-md space-y-6">
               <div>
                 <h3 className="font-['Fraunces'] text-xl mb-1">ICP Details</h3>
-                <p className="font-['Inter'] text-sm text-foreground/70">
+                <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70">
                   Core customer profile details and signals.
                 </p>
               </div>
@@ -710,7 +710,7 @@ export default function ICPEditor() {
               {/* Basic Information */}
               <div className="space-y-4">
                 <div className="border border-black rounded-design p-4 bg-white">
-                  <p className="font-['Inter'] text-xs text-foreground/60 mb-1">Name</p>
+                  <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/60 mb-1">Name</p>
                   <Input
                     type="text"
                     value={icpData.name || ""}
@@ -722,13 +722,13 @@ export default function ICPEditor() {
                 </div>
 
                 <div className="border border-black rounded-design p-4 bg-white">
-                  <p className="font-['Inter'] text-xs text-foreground/60 mb-1">Description</p>
+                  <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/60 mb-1">Description</p>
                   <Textarea
                     value={icpData.description || ""}
                     onChange={(e) => setICPData({ ...icpData, description: e.target.value })}
                     disabled={isFreeTier}
                     placeholder="Description"
-                    className="font-['Inter'] text-sm border-none bg-transparent p-0 resize-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                    className="font-['Plus_Jakarta_Sans'] text-sm border-none bg-transparent p-0 resize-none focus-visible:ring-0 focus-visible:ring-offset-0"
                     rows={3}
                   />
                 </div>
@@ -737,52 +737,52 @@ export default function ICPEditor() {
               {/* Additional Details */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="border border-black rounded-design p-4 bg-white">
-                  <p className="font-['Inter'] text-xs text-foreground/60 mb-1">Industry</p>
+                  <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/60 mb-1">Industry</p>
                   <Input
                     type="text"
                     value={icpData.industry || ""}
                     onChange={(e) => setICPData({ ...icpData, industry: e.target.value })}
                     disabled={isFreeTier}
                     placeholder="Industry"
-                    className="font-['Inter'] text-sm border-none bg-transparent p-0 h-auto focus-visible:ring-0 focus-visible:ring-offset-0"
+                    className="font-['Plus_Jakarta_Sans'] text-sm border-none bg-transparent p-0 h-auto focus-visible:ring-0 focus-visible:ring-offset-0"
                   />
                 </div>
 
                 <div className="border border-black rounded-design p-4 bg-white">
-                  <p className="font-['Inter'] text-xs text-foreground/60 mb-1">Company size</p>
+                  <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/60 mb-1">Company size</p>
                   <Input
                     type="text"
                     value={icpData.company_size || ""}
                     onChange={(e) => setICPData({ ...icpData, company_size: e.target.value })}
                     disabled={isFreeTier}
                     placeholder="Company Size"
-                    className="font-['Inter'] text-sm border-none bg-transparent p-0 h-auto focus-visible:ring-0 focus-visible:ring-offset-0"
+                    className="font-['Plus_Jakarta_Sans'] text-sm border-none bg-transparent p-0 h-auto focus-visible:ring-0 focus-visible:ring-offset-0"
                   />
                 </div>
 
                 <div className="border border-black rounded-design p-4 bg-white">
-                  <p className="font-['Inter'] text-xs text-foreground/60 mb-1">Location</p>
+                  <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/60 mb-1">Location</p>
                   <Input
                     type="text"
                     value={icpData.location || ""}
                     onChange={(e) => setICPData({ ...icpData, location: e.target.value })}
                     disabled={isFreeTier}
                     placeholder="Location"
-                    className="font-['Inter'] text-sm border-none bg-transparent p-0 h-auto focus-visible:ring-0 focus-visible:ring-offset-0"
+                    className="font-['Plus_Jakarta_Sans'] text-sm border-none bg-transparent p-0 h-auto focus-visible:ring-0 focus-visible:ring-offset-0"
                   />
                 </div>
               </div>
 
               {/* Budget */}
               <div className="border border-black rounded-design p-4 bg-white">
-                <p className="font-['Inter'] text-xs text-foreground/60 mb-1">Budget</p>
+                <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/60 mb-1">Budget</p>
                 <Input
                   type="text"
                   value={icpData.budget || ""}
                   onChange={(e) => setICPData({ ...icpData, budget: e.target.value })}
                   disabled={isFreeTier}
                   placeholder="Budget"
-                  className="font-['Inter'] text-sm border-none bg-transparent p-0 h-auto focus-visible:ring-0 focus-visible:ring-offset-0"
+                  className="font-['Plus_Jakarta_Sans'] text-sm border-none bg-transparent p-0 h-auto focus-visible:ring-0 focus-visible:ring-offset-0"
                 />
               </div>
             </div>
@@ -874,7 +874,7 @@ export default function ICPEditor() {
               <div className="rounded-design border border-black/15 bg-accent-grey/15 px-4 py-4 flex flex-wrap items-center justify-between gap-4">
                 <div className="min-w-0">
                   <p className="font-['Fraunces'] text-lg text-[#0D1833]">Strategy</p>
-                  <p className="font-['Inter'] text-sm text-foreground/65 mt-1 max-w-xl">
+                  <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/65 mt-1 max-w-xl">
                     Strategies live in the Strategy pillar — build one for this persona there, then refine
                     through edits and version history.
                   </p>
@@ -901,7 +901,7 @@ export default function ICPEditor() {
                 <h3 className="font-['Fraunces'] text-xl mb-3">
                   Unlock full editing & exports
                 </h3>
-                <p className="font-['Inter'] text-foreground/70 mb-6 max-w-md mx-auto">
+                <p className="font-['Plus_Jakarta_Sans'] text-foreground/70 mb-6 max-w-md mx-auto">
                   Upgrade to edit all sections, export to PDF, and unlock advanced features.
                 </p>
                 <Button
@@ -973,14 +973,14 @@ export default function ICPEditor() {
             onClick={(e) => e.stopPropagation()}
           >
             <h2 className="font-['Fraunces'] text-2xl mb-2">Move ICP to brand</h2>
-            <p className="font-['Inter'] text-sm text-foreground/70 mb-4">
+            <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70 mb-4">
               Choose a brand for this ICP. Selecting “No brand” will unassign it.
             </p>
 
             <select
               value={moveBrandId ?? ""}
               onChange={(e) => setMoveBrandId(e.target.value || null)}
-              className="w-full border border-black rounded-design px-4 py-3 bg-white font-['Inter'] text-foreground"
+              className="w-full border border-black rounded-design px-4 py-3 bg-white font-['Plus_Jakarta_Sans'] text-foreground"
             >
               <option value="">No brand allocated</option>
               {(brands || []).map((b) => (

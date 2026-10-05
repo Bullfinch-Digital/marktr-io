@@ -53,7 +53,7 @@ export function PaywallModal({
         <div className="sticky top-0 bg-background border-b border-warm-grey p-6 flex items-start justify-between">
           <div>
             <h2 className="font-['Fraunces'] text-3xl mb-2">Get full access in 60 seconds</h2>
-            <p className="font-['Inter'] text-foreground/70 max-w-xl">
+            <p className="font-['Plus_Jakarta_Sans'] text-foreground/70 max-w-xl">
               Start your {MARKTR_TRIAL_DAYS}-day free trial now. £0 today, then billed on day{" "}
               {MARKTR_TRIAL_DAYS + 1}.
             </p>
@@ -78,17 +78,17 @@ export function PaywallModal({
                   <span className="font-['Fraunces'] text-3xl">{MARKTR_PRO_PRICE_HEADLINE}</span>
                 </div>
               </div>
-              <p className="font-['Inter'] text-sm text-foreground/70">
+              <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70">
                 {MARKTR_PRO_BILLING_LINE}
               </p>
-              <p className="font-['Inter'] text-xs text-foreground/60 mt-2">{MARKTR_PRO_CARD_SUBTITLE}</p>
+              <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/60 mt-2">{MARKTR_PRO_CARD_SUBTITLE}</p>
             </div>
 
             <div className="bg-accent-grey/20 border border-warm-grey rounded-design p-4 mt-4 space-y-2">
-              <p className="font-['Inter'] text-xs text-foreground/70 text-center">
+              <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/70 text-center">
                 {MARKTR_TRIAL_LEGAL_STRIP}
               </p>
-              <p className="font-['Inter'] text-xs text-foreground/70 text-center">
+              <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/70 text-center">
                 {MARKTR_MONEY_BACK_GUARANTEE}
               </p>
             </div>
@@ -103,7 +103,7 @@ export function PaywallModal({
                     <div className="w-5 h-5 bg-button-green rounded-full border border-black flex items-center justify-center flex-shrink-0 mt-0.5">
                       <Check className="w-3 h-3" />
                     </div>
-                    <span className="font-['Inter'] text-sm">{feature.label}</span>
+                    <span className="font-['Plus_Jakarta_Sans'] text-sm">{feature.label}</span>
                   </li>
                 ))}
               </ul>
@@ -114,7 +114,7 @@ export function PaywallModal({
             <Button
               onClick={() => onUpgrade(MARKTR_DEFAULT_CHECKOUT_PLAN)}
               disabled={isStartingCheckout}
-              className="w-full bg-button-green hover:bg-button-green/90 text-foreground border border-black rounded-design py-6 text-lg transition-all hover:scale-[1.02] hover:shadow-lg font-['Inter']"
+              className="w-full bg-button-green hover:bg-button-green/90 text-foreground border border-black rounded-design py-6 text-lg transition-all hover:scale-[1.02] hover:shadow-lg font-['Plus_Jakarta_Sans']"
             >
               {isStartingCheckout ? (
                 <span className="inline-flex items-center justify-center gap-3">
@@ -125,14 +125,14 @@ export function PaywallModal({
                 "Get full access"
               )}
             </Button>
-            <p className="text-center text-xs text-foreground/60 font-['Inter']">
+            <p className="text-center text-xs text-foreground/60 font-['Plus_Jakarta_Sans']">
               {MARKTR_TRIAL_CTA_SUBCOPY}
             </p>
 
             <button
               onClick={handleAttemptContinueFree}
               disabled={isStartingCheckout}
-              className="w-full font-['Inter'] text-sm text-foreground/70 hover:text-foreground transition-colors py-2 text-center"
+              className="w-full font-['Plus_Jakarta_Sans'] text-sm text-foreground/70 hover:text-foreground transition-colors py-2 text-center"
             >
               Continue with limited free version
             </button>
@@ -142,21 +142,21 @@ export function PaywallModal({
             <div className="flex items-center justify-center gap-4 flex-wrap">
               <a
                 href="/terms-of-service"
-                className="font-['Inter'] text-xs text-foreground/60 hover:text-foreground transition-colors"
+                className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/60 hover:text-foreground transition-colors"
               >
                 Terms of Service
               </a>
               <span className="text-foreground/30">•</span>
               <a
                 href="/privacy-policy"
-                className="font-['Inter'] text-xs text-foreground/60 hover:text-foreground transition-colors"
+                className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/60 hover:text-foreground transition-colors"
               >
                 Privacy Policy
               </a>
               <span className="text-foreground/30">•</span>
               <a
                 href="#"
-                className="font-['Inter'] text-xs text-foreground/60 hover:text-foreground transition-colors"
+                className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/60 hover:text-foreground transition-colors"
               >
                 Cancellation Policy
               </a>
@@ -185,7 +185,7 @@ export function PaywallModal({
               </button>
             </div>
 
-            <p className="font-['Inter'] text-sm text-foreground/70 mb-4">
+            <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70 mb-4">
               You’ll keep your free health check results and brand story, but deeper analysis,
               content strategy and social connections stay locked.
             </p>
@@ -194,13 +194,13 @@ export function PaywallModal({
               <Button
                 onClick={handleConfirmStartTrial}
                 disabled={isStartingCheckout}
-                className="w-full bg-button-green hover:bg-button-green/90 text-foreground border border-black rounded-design font-['Inter']"
+                className="w-full bg-button-green hover:bg-button-green/90 text-foreground border border-black rounded-design font-['Plus_Jakarta_Sans']"
               >
                 Start free trial
               </Button>
               <button
                 onClick={handleConfirmContinueFree}
-                className="w-full font-['Inter'] text-sm text-foreground/70 hover:text-foreground transition-colors py-2 text-center"
+                className="w-full font-['Plus_Jakarta_Sans'] text-sm text-foreground/70 hover:text-foreground transition-colors py-2 text-center"
               >
                 Continue with Free
               </button>

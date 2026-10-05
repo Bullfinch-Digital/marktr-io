@@ -617,12 +617,12 @@ export function ICPPreviewCard(props: ICPPreviewCardProps) {
               }}
             >
               <h2 className="text-lg font-['Fraunces'] mb-1">Move ICP to brand</h2>
-              <p className="text-sm font-['Inter'] text-foreground/70 mb-4">
+              <p className="text-sm font-['Plus_Jakarta_Sans'] text-foreground/70 mb-4">
                 Choose a brand for this ICP. Selecting “No brand” will unassign it.
               </p>
 
               <select
-                className="w-full border border-black rounded-design px-3 py-2 font-['Inter'] text-sm mb-4"
+                className="w-full border border-black rounded-design px-3 py-2 font-['Plus_Jakarta_Sans'] text-sm mb-4"
                 value={moveBrandId ?? ""}
                 onChange={(e) => setMoveBrandId(e.target.value || null)}
               >
@@ -678,13 +678,13 @@ export function ICPPreviewCard(props: ICPPreviewCardProps) {
             <h3 className="font-['Fraunces'] text-lg mb-1 truncate">{icp.name}</h3>
 
             {previewMetaLine && (
-              <p className="font-['Inter'] text-xs text-foreground/60 mb-3 truncate">
+              <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/60 mb-3 truncate">
                 {previewMetaLine}
               </p>
             )}
 
             {icp.description && (
-              <p className="font-['Inter'] text-sm text-foreground/70 mb-3 line-clamp-3">
+              <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70 mb-3 line-clamp-3">
                 {icp.description}
               </p>
             )}
@@ -694,7 +694,7 @@ export function ICPPreviewCard(props: ICPPreviewCardProps) {
                 {previewBullets.map((item, idx) => (
                   <li
                     key={`preview-bullet-${idx}`}
-                    className="font-['Inter'] text-xs text-foreground/70 flex gap-1.5"
+                    className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/70 flex gap-1.5"
                   >
                     <span className="text-foreground/40 shrink-0">•</span>
                     <span className="line-clamp-2">{item}</span>
@@ -703,7 +703,7 @@ export function ICPPreviewCard(props: ICPPreviewCardProps) {
               </ul>
             )}
 
-            <p className="font-['DM_Sans'] text-sm font-medium text-primary">
+            <p className="font-['Plus_Jakarta_Sans'] text-sm font-medium text-primary">
               View full profile →
             </p>
           </div>
@@ -713,7 +713,7 @@ export function ICPPreviewCard(props: ICPPreviewCardProps) {
             {icp.name}
           </h3>
 
-          <p className="font-['Inter'] text-xs text-foreground/60 mb-2">
+          <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/60 mb-2">
             {hasBrand
               ? `Brand: ${displayBrandName || "Unknown brand"}`
               : "No brand allocated"}
@@ -726,7 +726,7 @@ export function ICPPreviewCard(props: ICPPreviewCardProps) {
           ) : null}
 
           {icp.industry && (
-            <p className="font-['Inter'] text-xs text-foreground/60 mb-2">
+            <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/60 mb-2">
               {icp.industry}
             </p>
           )}
@@ -744,11 +744,11 @@ export function ICPPreviewCard(props: ICPPreviewCardProps) {
             </div>
           ) : null}
 
-          <p className="font-['Inter'] text-sm text-foreground/70 mb-3 line-clamp-2">
+          <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70 mb-3 line-clamp-2">
             {icp.description}
           </p>
 
-          <p className="font-['Inter'] text-xs text-foreground/50 mb-4">
+          <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/50 mb-4">
             Created {formatDate(createdAt)}
           </p>
 
@@ -785,7 +785,7 @@ export function ICPPreviewCard(props: ICPPreviewCardProps) {
                     </Button>
                   </Link>
                 </TooltipTrigger>
-                <TooltipContent className="border-black rounded-design font-['Inter']">
+                <TooltipContent className="border-black rounded-design font-['Plus_Jakarta_Sans']">
                   <p>View full ICP profile</p>
                 </TooltipContent>
               </Tooltip>
@@ -804,7 +804,7 @@ export function ICPPreviewCard(props: ICPPreviewCardProps) {
                     </Button>
                   </div>
                 </TooltipTrigger>
-                <TooltipContent className="border-black rounded-design font-['Inter']">
+                <TooltipContent className="border-black rounded-design font-['Plus_Jakarta_Sans']">
                   <p>Duplicate this ICP</p>
                 </TooltipContent>
               </Tooltip>
@@ -823,7 +823,7 @@ export function ICPPreviewCard(props: ICPPreviewCardProps) {
                     </Button>
                   </div>
                 </TooltipTrigger>
-                <TooltipContent className="border-black rounded-design font-['Inter']">
+                <TooltipContent className="border-black rounded-design font-['Plus_Jakarta_Sans']">
                   <p>{locked ? "Upgrade to export" : "Export ICP data"}</p>
                 </TooltipContent>
               </Tooltip>

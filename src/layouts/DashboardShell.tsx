@@ -111,7 +111,7 @@ export default function DashboardShell({
             <h2 className="font-['Fraunces'] text-2xl mb-2">
               {showTrialOverlay ? "Your trial has ended" : "This feature requires Marktr Pro"}
             </h2>
-            <p className="font-['Inter'] text-foreground/70 mb-6">
+            <p className="font-['Plus_Jakarta_Sans'] text-foreground/70 mb-6">
               {showTrialOverlay
                 ? "Upgrade to keep editing, exporting, and creating unlimited ICPs."
                 : "Strategy and content tools are included with Marktr Pro. Upgrade to unlock them — your data stays saved if you already have any."}

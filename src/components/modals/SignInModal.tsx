@@ -46,7 +46,7 @@ export function SignInModal({
         <div className="flex items-start justify-between gap-4 mb-6">
           <div>
             <h2 className="font-['Fraunces'] text-2xl mb-1">{heading}</h2>
-            <p className="font-['Inter'] text-sm text-foreground/70">{subheading}</p>
+            <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70">{subheading}</p>
           </div>
           <button
             onClick={onClose}
@@ -61,7 +61,7 @@ export function SignInModal({
           type="button"
           onClick={handleGoogle}
           disabled={loading}
-          className="w-full flex items-center justify-center gap-3 border border-black rounded-design px-4 py-3 bg-white font-['DM_Sans'] text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-60"
+          className="w-full flex items-center justify-center gap-3 border border-black rounded-design px-4 py-3 bg-white font-['Plus_Jakarta_Sans'] text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-60"
         >
           <GoogleIcon />
           {loading ? "Redirecting…" : "Continue with Google"}
@@ -79,13 +79,13 @@ export function SignInModal({
         <button
           type="button"
           onClick={handleEmail}
-          className="w-full text-sm text-foreground/60 hover:text-foreground transition-colors font-['Inter']"
+          className="w-full text-sm text-foreground/60 hover:text-foreground transition-colors font-['Plus_Jakarta_Sans']"
         >
           Continue with email
         </button>
 
         {error && (
-          <p className="mt-4 text-sm text-red-600 font-['Inter']">{error}</p>
+          <p className="mt-4 text-sm text-red-600 font-['Plus_Jakarta_Sans']">{error}</p>
         )}
       </div>
     </div>

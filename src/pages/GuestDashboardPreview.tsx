@@ -74,7 +74,7 @@ export default function GuestDashboardPreview() {
     : null;
 
   const nextStepLinkClassName =
-    "inline-block font-['DM_Sans'] text-sm font-semibold text-primary hover:underline";
+    "inline-block font-['Plus_Jakarta_Sans'] text-sm font-semibold text-primary hover:underline";
 
   const headerTitle = (() => {
     if (completedCount === 3) return "Your full marketing picture is ready.";
@@ -108,7 +108,7 @@ export default function GuestDashboardPreview() {
   return (
     <main className="min-h-screen bg-background">
       <div className="mb-0 flex flex-col gap-3 bg-primary px-6 py-3 sm:flex-row sm:items-center sm:justify-between lg:px-12">
-        <p className="font-['DM_Sans'] text-sm font-medium text-white">
+        <p className="font-['Plus_Jakarta_Sans'] text-sm font-medium text-white">
           Your results are stored temporarily in your browser. Sign up free to save them permanently.
         </p>
       </div>
@@ -121,7 +121,7 @@ export default function GuestDashboardPreview() {
         <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="mb-2 font-['Fraunces'] text-3xl text-[#0D1833] lg:text-4xl">{headerTitle}</h1>
-            <p className="font-['DM_Sans'] text-foreground/70">{headerSubtitle}</p>
+            <p className="font-['Plus_Jakarta_Sans'] text-foreground/70">{headerSubtitle}</p>
           </div>
         </header>
 
@@ -138,13 +138,13 @@ export default function GuestDashboardPreview() {
                   aria-hidden
                 />
                 {hasHealth && guestHealth ? (
-                  <p className="font-['DM_Sans'] text-sm text-[#2D7A5F]">
+                  <p className="font-['Plus_Jakarta_Sans'] text-sm text-[#2D7A5F]">
                     Overall score{" "}
                     <span className="font-['Fraunces'] text-xl font-bold">{guestHealth.scores.overall}</span>
                     /100
                   </p>
                 ) : (
-                  <p className="font-['DM_Sans'] text-sm text-muted-foreground">Not started yet</p>
+                  <p className="font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground">Not started yet</p>
                 )}
               </div>
             }
@@ -162,7 +162,7 @@ export default function GuestDashboardPreview() {
                   aria-hidden
                 />
                 <p
-                  className={`font-['DM_Sans'] text-sm ${hasStory ? "text-[#E8650A]" : "text-muted-foreground"}`}
+                  className={`font-['Plus_Jakarta_Sans'] text-sm ${hasStory ? "text-[#E8650A]" : "text-muted-foreground"}`}
                 >
                   {hasStory ? "Brand story ready" : "Not started yet"}
                 </p>
@@ -182,7 +182,7 @@ export default function GuestDashboardPreview() {
                   aria-hidden
                 />
                 <p
-                  className={`font-['DM_Sans'] text-sm ${hasICPs ? "text-[#D4871A]" : "text-muted-foreground"}`}
+                  className={`font-['Plus_Jakarta_Sans'] text-sm ${hasICPs ? "text-[#D4871A]" : "text-muted-foreground"}`}
                 >
                   {hasICPs ? `${guestICPs.length} profiles generated` : "Not started yet"}
                 </p>
@@ -235,7 +235,7 @@ export default function GuestDashboardPreview() {
                 <h2 className="font-['Fraunces'] text-2xl font-bold text-[#0D1833]">Your brand story</h2>
                 <Link
                   to="/story/results"
-                  className="font-['DM_Sans'] text-sm font-medium text-primary hover:underline"
+                  className="font-['Plus_Jakarta_Sans'] text-sm font-medium text-primary hover:underline"
                 >
                   View full story →
                 </Link>
@@ -250,7 +250,7 @@ export default function GuestDashboardPreview() {
                   ] as const
                 ).map(({ label, body }) => (
                   <div key={label} className="rounded-xl border border-border p-4">
-                    <p className="mb-2 font-['DM_Sans'] text-[10px] uppercase tracking-widest text-muted-foreground">
+                    <p className="mb-2 font-['Plus_Jakarta_Sans'] text-[10px] uppercase tracking-widest text-muted-foreground">
                       {label}
                     </p>
                     <p className="font-['Fraunces'] text-base leading-relaxed text-[#0D1833]">{body}</p>
@@ -271,7 +271,7 @@ export default function GuestDashboardPreview() {
             <div className="mb-4 flex items-center justify-between">
               <div>
                 <h2 className="font-['Fraunces'] text-2xl text-[#0D1833]">Your customer profiles</h2>
-                <p className="font-['DM_Sans'] text-sm text-muted-foreground">
+                <p className="font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground">
                   marktr has identified three distinct customers for your business.
                 </p>
               </div>

@@ -162,7 +162,7 @@ export function StrategyAimsSection({
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h2 className="font-['Fraunces'] text-2xl text-[#0D1833]">Aims</h2>
-          <p className="font-['Inter'] text-sm text-foreground/70 mt-1">
+          <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70 mt-1">
             Brand growth goals that strategies are built to serve. Edits create a new version.
           </p>
         </div>
@@ -181,12 +181,12 @@ export function StrategyAimsSection({
 
       {(showCreateForm || editingAim) ? (
         <div className="rounded-design border border-black/15 bg-accent-grey/15 p-4 space-y-4">
-          <p className="font-['Inter'] text-sm font-medium text-foreground">
+          <p className="font-['Plus_Jakarta_Sans'] text-sm font-medium text-foreground">
             {editingAim ? "Edit aim (saves as new version)" : "New aim"}
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div className="space-y-2 md:col-span-2">
-              <label className="font-['Inter'] text-sm text-foreground/70">Title</label>
+              <label className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70">Title</label>
               <Input
                 value={form.title}
                 onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
@@ -195,13 +195,13 @@ export function StrategyAimsSection({
               />
             </div>
             <div className="space-y-2">
-              <label className="font-['Inter'] text-sm text-foreground/70">Aim type</label>
+              <label className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70">Aim type</label>
               <select
                 value={form.aim_type}
                 onChange={(e) =>
                   setForm((prev) => ({ ...prev, aim_type: e.target.value as BrandAimType }))
                 }
-                className="w-full border border-black rounded-design px-4 py-3 bg-white font-['Inter'] text-foreground text-sm"
+                className="w-full border border-black rounded-design px-4 py-3 bg-white font-['Plus_Jakarta_Sans'] text-foreground text-sm"
               >
                 {BRAND_AIM_TYPE_OPTIONS.map((value) => (
                   <option key={value} value={value}>
@@ -212,7 +212,7 @@ export function StrategyAimsSection({
             </div>
           </div>
           <div className="space-y-2">
-            <label className="font-['Inter'] text-sm text-foreground/70">Description (optional)</label>
+            <label className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70">Description (optional)</label>
             <Textarea
               value={form.description}
               onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
@@ -242,10 +242,10 @@ export function StrategyAimsSection({
         </div>
       ) : null}
 
-      {error ? <p className="font-['Inter'] text-xs text-red-700">{error}</p> : null}
+      {error ? <p className="font-['Plus_Jakarta_Sans'] text-xs text-red-700">{error}</p> : null}
 
       {isLoading ? (
-        <p className="font-['Inter'] text-sm text-foreground/60">Loading aims…</p>
+        <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/60">Loading aims…</p>
       ) : aims.length === 0 ? (
         <div
           className={`rounded-design border px-4 py-5 space-y-3 ${
@@ -255,7 +255,7 @@ export function StrategyAimsSection({
           }`}
         >
           {launcherPersonaName ? (
-            <p className="font-['Inter'] text-sm text-foreground/80">
+            <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/80">
               To build a strategy for <strong>{launcherPersonaName}</strong>, start by defining what
               you want to achieve.
             </p>
@@ -263,7 +263,7 @@ export function StrategyAimsSection({
           <p className="font-['Fraunces'] text-lg text-[#0D1833]">
             Strategy starts with a goal — what are you trying to achieve?
           </p>
-          <p className="font-['Inter'] text-sm text-foreground/70">
+          <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70">
             Add a brand aim below. Once you have at least one aim, you can generate strategies that
             serve your personas.
           </p>
@@ -289,16 +289,16 @@ export function StrategyAimsSection({
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className="font-['Inter'] text-sm font-medium text-foreground">{aim.title}</p>
-                      <span className="rounded-full border border-primary/30 bg-primary/5 px-2 py-0.5 font-['Inter'] text-[10px] text-primary">
+                      <p className="font-['Plus_Jakarta_Sans'] text-sm font-medium text-foreground">{aim.title}</p>
+                      <span className="rounded-full border border-primary/30 bg-primary/5 px-2 py-0.5 font-['Plus_Jakarta_Sans'] text-[10px] text-primary">
                         {AIM_TYPE_LABELS[aim.aim_type]}
                       </span>
                     </div>
-                    <p className="font-['Inter'] text-xs text-foreground/55 mt-1">
+                    <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/55 mt-1">
                       v{aim.version} · updated {formatDate(aim.updated_at)}
                     </p>
                     {aim.description ? (
-                      <p className="font-['Inter'] text-xs text-foreground/70 mt-2 whitespace-pre-wrap line-clamp-2">
+                      <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/70 mt-2 whitespace-pre-wrap line-clamp-2">
                         {aim.description}
                       </p>
                     ) : null}
@@ -340,7 +340,7 @@ export function StrategyAimsSection({
                 {isExpanded && user?.id ? (
                   <div className="mt-3 space-y-2">
                     {aim.description ? (
-                      <p className="font-['Inter'] text-sm text-foreground/75 whitespace-pre-wrap">
+                      <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/75 whitespace-pre-wrap">
                         {aim.description}
                       </p>
                     ) : null}
@@ -362,7 +362,7 @@ export function StrategyAimsSection({
         <button
           type="button"
           onClick={() => setArchivedOpen((open) => !open)}
-          className="inline-flex items-center gap-1.5 font-['Inter'] text-xs text-foreground/55 hover:text-foreground/80 transition-colors"
+          className="inline-flex items-center gap-1.5 font-['Plus_Jakarta_Sans'] text-xs text-foreground/55 hover:text-foreground/80 transition-colors"
         >
           <Archive className="h-3.5 w-3.5" />
           Archived
@@ -376,7 +376,7 @@ export function StrategyAimsSection({
 
         {archivedOpen ? (
           archivedAims.length === 0 ? (
-            <p className="mt-3 font-['Inter'] text-xs text-foreground/50">Nothing archived.</p>
+            <p className="mt-3 font-['Plus_Jakarta_Sans'] text-xs text-foreground/50">Nothing archived.</p>
           ) : (
             <ul className="mt-3 space-y-2">
               {archivedAims.map((aim) => {
@@ -388,8 +388,8 @@ export function StrategyAimsSection({
                   >
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div className="min-w-0">
-                        <p className="font-['Inter'] text-sm text-foreground truncate">{aim.title}</p>
-                        <p className="font-['Inter'] text-xs text-foreground/55">
+                        <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground truncate">{aim.title}</p>
+                        <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/55">
                           {AIM_TYPE_LABELS[aim.aim_type]} · archived{" "}
                           {aim.deleted_at ? formatDate(aim.deleted_at) : ""}
                         </p>
@@ -399,7 +399,7 @@ export function StrategyAimsSection({
                           type="button"
                           size="sm"
                           variant="outline"
-                          className="border-black rounded-design font-['Inter'] text-xs h-8"
+                          className="border-black rounded-design font-['Plus_Jakarta_Sans'] text-xs h-8"
                           onClick={() =>
                             setArchivedSnapshotId(snapshotOpen ? null : aim.lineage_id)
                           }
@@ -411,7 +411,7 @@ export function StrategyAimsSection({
                           type="button"
                           size="sm"
                           variant="outline"
-                          className="border-black rounded-design font-['Inter'] text-xs h-8"
+                          className="border-black rounded-design font-['Plus_Jakarta_Sans'] text-xs h-8"
                           disabled={actionLineageId === aim.lineage_id || isPermanentDeleting}
                           onClick={() => void handleRestore(aim.lineage_id)}
                         >
@@ -424,7 +424,7 @@ export function StrategyAimsSection({
                           variant="outline"
                           disabled={actionLineageId === aim.lineage_id || isPermanentDeleting}
                           onClick={() => setPermanentDeleteTarget(aim)}
-                          className="border-red-300 text-red-700 hover:bg-red-50 rounded-design font-['Inter'] text-xs h-8"
+                          className="border-red-300 text-red-700 hover:bg-red-50 rounded-design font-['Plus_Jakarta_Sans'] text-xs h-8"
                         >
                           <Trash2 className="h-3.5 w-3.5 mr-1" />
                           Delete permanently
@@ -434,16 +434,16 @@ export function StrategyAimsSection({
 
                     {snapshotOpen ? (
                       <div className="mt-3 rounded-design border border-black/10 bg-accent-grey/20 px-3 py-3 space-y-2">
-                        <p className="font-['Inter'] text-sm font-medium text-foreground">{aim.title}</p>
-                        <span className="inline-flex rounded-full border border-primary/30 bg-primary/5 px-2 py-0.5 font-['Inter'] text-[10px] text-primary">
+                        <p className="font-['Plus_Jakarta_Sans'] text-sm font-medium text-foreground">{aim.title}</p>
+                        <span className="inline-flex rounded-full border border-primary/30 bg-primary/5 px-2 py-0.5 font-['Plus_Jakarta_Sans'] text-[10px] text-primary">
                           {AIM_TYPE_LABELS[aim.aim_type]}
                         </span>
                         {aim.description ? (
-                          <p className="font-['Inter'] text-sm text-foreground/75 whitespace-pre-wrap">
+                          <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/75 whitespace-pre-wrap">
                             {aim.description}
                           </p>
                         ) : (
-                          <p className="font-['Inter'] text-xs text-foreground/50">No description.</p>
+                          <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/50">No description.</p>
                         )}
                       </div>
                     ) : null}

@@ -145,7 +145,7 @@ export function StrategySuggestedContentChecklist({
   if (suggestions.length === 0) {
     return (
       <div className="rounded-design border border-black/10 bg-accent-grey/10 px-4 py-3">
-        <p className="font-['Inter'] text-sm text-foreground/65">
+        <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/65">
           This strategy has no suggested content checklist.{" "}
           <Link to="/content" className="underline underline-offset-2">
             Create a piece freehand
@@ -160,13 +160,13 @@ export function StrategySuggestedContentChecklist({
     <div className="rounded-design border border-black/15 bg-white p-4 space-y-3">
       <div>
         <h2 className="font-['Fraunces'] text-lg text-[#0D1833]">Suggested content</h2>
-        <p className="font-['Inter'] text-xs text-foreground/55 mt-1">
+        <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/55 mt-1">
           Prioritised pieces from this strategy. Create them in Content — nothing generates here.
         </p>
       </div>
 
       {loading ? (
-        <p className="font-['Inter'] text-xs text-foreground/50">Checking progress…</p>
+        <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/50">Checking progress…</p>
       ) : null}
 
       <ul className="space-y-2">
@@ -192,10 +192,10 @@ export function StrategySuggestedContentChecklist({
                 </span>
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="inline-flex items-center rounded-full border border-black/15 bg-accent-grey/30 px-2 py-0.5 font-['Inter'] text-[10px]">
+                    <span className="inline-flex items-center rounded-full border border-black/15 bg-accent-grey/30 px-2 py-0.5 font-['Plus_Jakarta_Sans'] text-[10px]">
                       {typeLabel}
                     </span>
-                    <span className="font-['Inter'] text-xs text-foreground/60">
+                    <span className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/60">
                       {row.ideaRemoved ? (
                         <>
                           (removed: {row.ideaName})
@@ -205,9 +205,9 @@ export function StrategySuggestedContentChecklist({
                       )}
                     </span>
                   </div>
-                  <p className="font-['Inter'] text-sm text-foreground/80 mt-1">{row.rationale}</p>
+                  <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/80 mt-1">{row.rationale}</p>
                   {row.ideaRemoved ? (
-                    <p className="font-['Inter'] text-[11px] text-amber-800 mt-1">
+                    <p className="font-['Plus_Jakarta_Sans'] text-[11px] text-amber-800 mt-1">
                       Campaign idea no longer on this strategy — create as strategy-level.
                     </p>
                   ) : null}
@@ -217,7 +217,7 @@ export function StrategySuggestedContentChecklist({
                 {done && contentId ? (
                   <Link
                     to={`/content/${contentId}`}
-                    className="inline-flex items-center h-8 px-3 rounded-design border border-black font-['Inter'] text-xs hover:bg-accent-grey/30"
+                    className="inline-flex items-center h-8 px-3 rounded-design border border-black font-['Plus_Jakarta_Sans'] text-xs hover:bg-accent-grey/30"
                   >
                     Open
                   </Link>

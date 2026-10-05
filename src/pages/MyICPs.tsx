@@ -324,7 +324,7 @@ export default function MyICPsPage() {
             <div className="mb-6 bg-amber-50 border border-amber-200 rounded-design p-4 flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
               <div className="flex-1">
-                <p className="text-sm text-amber-800 font-['Inter']">
+                <p className="text-sm text-amber-800 font-['Plus_Jakarta_Sans']">
                   We're having trouble syncing with the server. Your ICPs are saved locally and will sync automatically when the connection is restored.
                 </p>
               </div>
@@ -345,7 +345,7 @@ export default function MyICPsPage() {
               <div className="flex items-center justify-between mb-6">
                 <div>
                   <h1 className="font-['Fraunces'] text-3xl lg:text-4xl mb-2">My ICPs</h1>
-                  <p className="font-['Inter'] text-foreground/70">{icps.length} ICPs created</p>
+                  <p className="font-['Plus_Jakarta_Sans'] text-foreground/70">{icps.length} ICPs created</p>
                 </div>
 
                 <Button
@@ -366,7 +366,7 @@ export default function MyICPsPage() {
                     placeholder="Search ICPs by name, description, or industry..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 border-black rounded-design font-['Inter']"
+                    className="pl-10 border-black rounded-design font-['Plus_Jakarta_Sans']"
                   />
                 </div>
               )}
@@ -380,7 +380,7 @@ export default function MyICPsPage() {
                   <Sparkles className="w-16 h-16 text-background" />
                 </div>
                 <h2 className="font-['Fraunces'] text-3xl mb-4">Create your first ICP</h2>
-                <p className="font-['Inter'] text-foreground/70 text-lg mb-8">
+                <p className="font-['Plus_Jakarta_Sans'] text-foreground/70 text-lg mb-8">
                   Start with AI-powered guidance to build detailed customer personas that drive your marketing strategy.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
@@ -410,7 +410,7 @@ export default function MyICPsPage() {
                     )}
                   </Button>
                 </div>
-                <p className="font-['Inter'] text-sm text-foreground/50 mt-6">
+                <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/50 mt-6">
                   Generate takes about 2 minutes • Examples are ready instantly
                 </p>
               </div>
@@ -447,7 +447,7 @@ export default function MyICPsPage() {
               <button
                 type="button"
                 onClick={() => setArchivedOpen((open) => !open)}
-                className="inline-flex items-center gap-1.5 font-['Inter'] text-xs text-foreground/55 hover:text-foreground/80 transition-colors"
+                className="inline-flex items-center gap-1.5 font-['Plus_Jakarta_Sans'] text-xs text-foreground/55 hover:text-foreground/80 transition-colors"
               >
                 <Archive className="h-3.5 w-3.5" />
                 Archived
@@ -460,7 +460,7 @@ export default function MyICPsPage() {
               </button>
 
               {restoreNudge && (
-                <p className="mt-3 font-['Inter'] text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-design px-3 py-2 max-w-2xl">
+                <p className="mt-3 font-['Plus_Jakarta_Sans'] text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-design px-3 py-2 max-w-2xl">
                   {restoreNudge}
                 </p>
               )}
@@ -468,9 +468,9 @@ export default function MyICPsPage() {
               {archivedOpen && (
                 <div className="mt-4 rounded-design border border-black/15 bg-accent-grey/20 px-4 py-3">
                   {archivedLoading ? (
-                    <p className="font-['Inter'] text-xs text-foreground/50">Loading archived profiles…</p>
+                    <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/50">Loading archived profiles…</p>
                   ) : archivedRows.length === 0 ? (
-                    <p className="font-['Inter'] text-xs text-foreground/50">Nothing archived.</p>
+                    <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/50">Nothing archived.</p>
                   ) : (
                     <ul className="space-y-3">
                       {archivedRows.map((row) => (
@@ -479,11 +479,11 @@ export default function MyICPsPage() {
                           className="flex flex-wrap items-center justify-between gap-3 border-b border-black/10 pb-3 last:border-0 last:pb-0"
                         >
                           <div className="min-w-0">
-                            <p className="font-['Inter'] text-sm text-foreground truncate">
+                            <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground truncate">
                               {row.name || "Untitled profile"}
                             </p>
                             {row.deleted_at && (
-                              <p className="font-['Inter'] text-xs text-foreground/50">
+                              <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/50">
                                 Archived {formatArchivedDate(row.deleted_at)}
                               </p>
                             )}
@@ -495,7 +495,7 @@ export default function MyICPsPage() {
                               size="sm"
                               disabled={restoringLineageId === row.lineage_id || isPermanentDeleting}
                               onClick={() => void handleRestoreArchived(row.lineage_id)}
-                              className="border-black rounded-design font-['Inter'] text-xs h-8 px-3 gap-1.5"
+                              className="border-black rounded-design font-['Plus_Jakarta_Sans'] text-xs h-8 px-3 gap-1.5"
                             >
                               {restoringLineageId === row.lineage_id ? (
                                 <span className="w-3.5 h-3.5 border-2 border-foreground/40 border-t-transparent rounded-full animate-spin" />
@@ -510,7 +510,7 @@ export default function MyICPsPage() {
                               size="sm"
                               disabled={restoringLineageId === row.lineage_id || isPermanentDeleting}
                               onClick={() => setPermanentDeleteTarget(row)}
-                              className="border-red-300 text-red-700 hover:bg-red-50 rounded-design font-['Inter'] text-xs h-8 px-3 gap-1.5"
+                              className="border-red-300 text-red-700 hover:bg-red-50 rounded-design font-['Plus_Jakarta_Sans'] text-xs h-8 px-3 gap-1.5"
                             >
                               <Trash2 className="h-3.5 w-3.5" />
                               Delete permanently
@@ -529,7 +529,7 @@ export default function MyICPsPage() {
             <div className="mt-12 text-center animate-fade-in-up">
               <div className="bg-accent-grey/30 border border-black rounded-design p-8 max-w-2xl mx-auto">
                 <h3 className="font-['Fraunces'] text-xl mb-3">You've reached your free ICP limit</h3>
-                <p className="font-['Inter'] text-foreground/70 mb-6">
+                <p className="font-['Plus_Jakarta_Sans'] text-foreground/70 mb-6">
                   Unlock unlimited ICPs, full data exports, and advanced features.
                 </p>
                 <Button

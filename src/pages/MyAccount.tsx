@@ -625,7 +625,7 @@ export default function MyAccount() {
       <div className="max-w-5xl mx-auto space-y-8 pb-10">
         <div className="mb-2">
           <h1 className="font-['Fraunces'] text-4xl mb-2">My Account</h1>
-          <p className="font-['Inter'] text-foreground/70">
+          <p className="font-['Plus_Jakarta_Sans'] text-foreground/70">
             Manage your profile, subscription, and settings.
           </p>
         </div>
@@ -635,7 +635,7 @@ export default function MyAccount() {
             <User className="w-5 h-5 mt-1" />
             <div className="flex-1">
               <h2 className="font-['Fraunces'] text-2xl mb-1">Profile Information</h2>
-              <p className="font-['Inter'] text-sm text-foreground/70">
+              <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70">
                 Update your personal details.
               </p>
             </div>
@@ -643,7 +643,7 @@ export default function MyAccount() {
 
           <div className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="name" className="font-['Inter'] text-sm">
+              <Label htmlFor="name" className="font-['Plus_Jakarta_Sans'] text-sm">
                 Full Name
               </Label>
               <Input
@@ -651,12 +651,12 @@ export default function MyAccount() {
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="border-black rounded-design font-['Inter']"
+                className="border-black rounded-design font-['Plus_Jakarta_Sans']"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email" className="font-['Inter'] text-sm">
+              <Label htmlFor="email" className="font-['Plus_Jakarta_Sans'] text-sm">
                 Email Address
               </Label>
               <Input
@@ -664,7 +664,7 @@ export default function MyAccount() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="border-black rounded-design font-['Inter']"
+                className="border-black rounded-design font-['Plus_Jakarta_Sans']"
               />
               {emailMessage && (
                 <p className="text-sm text-foreground/70">{emailMessage}</p>
@@ -675,7 +675,7 @@ export default function MyAccount() {
               <Button
                 onClick={handleSaveProfile}
                 disabled={saving || emailOnCooldown}
-                className="bg-button-green hover:bg-button-green/90 text-foreground border border-black rounded-design font-['Inter'] disabled:opacity-50"
+                className="bg-button-green hover:bg-button-green/90 text-foreground border border-black rounded-design font-['Plus_Jakarta_Sans'] disabled:opacity-50"
               >
                 {saving && "Saving..."}
                 {!saving && emailOnCooldown && `Wait ${emailCooldownSeconds}s`}
@@ -684,14 +684,14 @@ export default function MyAccount() {
                 {!saving && !emailOnCooldown && saveFeedback === "idle" && "Save Changes"}
               </Button>
               {saveFeedback === "saved" && (
-                <span className="flex items-center gap-2 font-['Inter'] text-sm text-button-green">
+                <span className="flex items-center gap-2 font-['Plus_Jakarta_Sans'] text-sm text-button-green">
                   <CheckCircle2 className="w-4 h-4" />
                   Changes saved successfully
                 </span>
               )}
             </div>
             {emailOnCooldown && (
-              <p className="font-['Inter'] text-xs text-foreground/70">
+              <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/70">
                 Please wait {emailCooldownSeconds}s before requesting another email change.
               </p>
             )}
@@ -703,7 +703,7 @@ export default function MyAccount() {
             <Lock className="w-5 h-5 mt-1" />
             <div className="flex-1">
               <h2 className="font-['Fraunces'] text-2xl mb-1">Security</h2>
-              <p className="font-['Inter'] text-sm text-foreground/70">
+              <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70">
                 {!identityCheckReady
                   ? "Checking how you sign in…"
                   : hasPasswordIdentity
@@ -714,11 +714,11 @@ export default function MyAccount() {
           </div>
 
           {!identityCheckReady ? (
-            <p className="font-['Inter'] text-sm text-foreground/60">Loading…</p>
+            <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/60">Loading…</p>
           ) : hasPasswordIdentity ? (
             <div className="space-y-4 max-w-md">
               <div className="space-y-2">
-                <Label htmlFor="new-password" className="font-['Inter'] text-sm">
+                <Label htmlFor="new-password" className="font-['Plus_Jakarta_Sans'] text-sm">
                   New password
                 </Label>
                 <Input
@@ -726,12 +726,12 @@ export default function MyAccount() {
                   type="password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  className="border-black rounded-design font-['Inter']"
+                  className="border-black rounded-design font-['Plus_Jakarta_Sans']"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="confirm-password" className="font-['Inter'] text-sm">
+                <Label htmlFor="confirm-password" className="font-['Plus_Jakarta_Sans'] text-sm">
                   Confirm new password
                 </Label>
                 <Input
@@ -739,7 +739,7 @@ export default function MyAccount() {
                   type="password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="border-black rounded-design font-['Inter']"
+                  className="border-black rounded-design font-['Plus_Jakarta_Sans']"
                 />
               </div>
 
@@ -749,13 +749,13 @@ export default function MyAccount() {
               <Button
                 onClick={handleChangePassword}
                 disabled={passwordSaving}
-                className="bg-background hover:bg-foreground/5 text-foreground border border-black rounded-design font-['Inter'] disabled:opacity-60"
+                className="bg-background hover:bg-foreground/5 text-foreground border border-black rounded-design font-['Plus_Jakarta_Sans'] disabled:opacity-60"
               >
                 {passwordSaving ? "Saving..." : "Update password"}
               </Button>
             </div>
           ) : (
-            <p className="font-['Inter'] text-sm text-foreground/80 max-w-lg">
+            <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/80 max-w-lg">
               {oauthOnlyProviders.includes("google")
                 ? "You're signed in with Google. Manage your password through your Google account."
                 : oauthOnlyProviders.length > 0
@@ -770,12 +770,12 @@ export default function MyAccount() {
             <Crown className="w-5 h-5 mt-1" />
             <div className="flex-1">
               <h2 className="font-['Fraunces'] text-2xl mb-1">Subscription</h2>
-              <p className="font-['Inter'] text-sm text-foreground/70">
+              <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70">
                 Manage your billing and plan.
               </p>
             </div>
             <span
-              className={`inline-flex items-center gap-1 px-3 py-1 rounded-full border text-xs font-['Inter'] uppercase tracking-wide ${
+              className={`inline-flex items-center gap-1 px-3 py-1 rounded-full border text-xs font-['Plus_Jakarta_Sans'] uppercase tracking-wide ${
                 statusIsPro
                   ? "bg-button-green border-black"
                   : "bg-background border-warm-grey"
@@ -788,7 +788,7 @@ export default function MyAccount() {
 
           <div className="space-y-4 mb-6">
             <div className="flex items-center justify-between py-3 border-b border-warm-grey">
-              <span className="font-['Inter'] text-sm text-foreground/70">Current Plan</span>
+              <span className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70">Current Plan</span>
               <span className="font-['Fraunces'] text-lg">
                 {subscription.plan === "free"
                   ? "Free"
@@ -800,22 +800,22 @@ export default function MyAccount() {
             {subscription.plan !== "free" && (
               <>
                 <div className="flex items-center justify-between py-3 border-b border-warm-grey">
-                  <span className="font-['Inter'] text-sm text-foreground/70">Price</span>
+                  <span className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70">Price</span>
                   <span className="font-['Fraunces'] text-lg">
                     {subscription.priceDisplay}
                   </span>
                 </div>
                 <div className="flex items-center justify-between py-3">
-                  <span className="font-['Inter'] text-sm text-foreground/70">Next Billing Date</span>
-                  <span className="font-['Inter'] flex items-center gap-2">
+                  <span className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70">Next Billing Date</span>
+                  <span className="font-['Plus_Jakarta_Sans'] flex items-center gap-2">
                     <Calendar className="w-4 h-4" />
                     {subscription.nextBillingDate}
                   </span>
                 </div>
                 {stripeSub?.status === "trialing" && (
                   <div className="flex items-center justify-between py-3">
-                    <span className="font-['Inter'] text-sm text-foreground/70">Trial remaining</span>
-                    <span className="font-['Inter']">
+                    <span className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70">Trial remaining</span>
+                    <span className="font-['Plus_Jakarta_Sans']">
                       {trialDaysLeft === null
                         ? "—"
                         : trialDaysLeft === 1
@@ -831,7 +831,7 @@ export default function MyAccount() {
             {!isPro && (
               <Button
                 onClick={() => openPaywall()}
-                className="bg-button-green hover:bg-button-green/90 text-foreground border border-black rounded-design font-['Inter']"
+                className="bg-button-green hover:bg-button-green/90 text-foreground border border-black rounded-design font-['Plus_Jakarta_Sans']"
               >
                 Start {MARKTR_TRIAL_DAYS}-day trial
               </Button>
@@ -841,7 +841,7 @@ export default function MyAccount() {
                 onClick={handleManageBilling}
                 disabled={isManagingBilling}
                 variant="outline"
-                className="border-black rounded-design font-['Inter']"
+                className="border-black rounded-design font-['Plus_Jakarta_Sans']"
               >
                 {isManagingBilling ? "Opening..." : "Manage billing"}
               </Button>
@@ -854,7 +854,7 @@ export default function MyAccount() {
             <Mail className="w-5 h-5 mt-1" />
             <div className="flex-1">
               <h2 className="font-['Fraunces'] text-2xl mb-1">Support</h2>
-              <p className="font-['Inter'] text-sm text-foreground/70">
+              <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70">
                 Need help with billing, your account, or anything else? Email us and we&apos;ll get
                 back to you.
               </p>
@@ -862,7 +862,7 @@ export default function MyAccount() {
           </div>
           <a
             href={MARKTR_SUPPORT_MAILTO}
-            className="inline-flex font-['Inter'] text-sm text-foreground underline underline-offset-2 hover:text-foreground/80"
+            className="inline-flex font-['Plus_Jakarta_Sans'] text-sm text-foreground underline underline-offset-2 hover:text-foreground/80"
           >
             {MARKTR_SUPPORT_EMAIL}
           </a>
@@ -873,25 +873,25 @@ export default function MyAccount() {
             <AlertTriangle className="w-5 h-5 mt-1 text-[#FF6B6B]" />
             <div className="flex-1">
               <h2 className="font-['Fraunces'] text-2xl mb-1">Danger Zone</h2>
-              <p className="font-['Inter'] text-sm text-foreground/70">
+              <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70">
                 Irreversible and destructive actions.
               </p>
             </div>
           </div>
 
           <div className="space-y-4">
-            <p className="font-['Inter'] text-sm text-foreground/80">
+            <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/80">
               Deleting your account permanently removes your brands, strategies, content briefs,
               health checks, brand stories, ICPs, and collections. Any active or trial
               subscription is cancelled so you won&apos;t be billed again. This cannot be undone.
             </p>
             {deleteError ? (
-              <p className="font-['Inter'] text-sm text-[#FF6B6B]">{deleteError}</p>
+              <p className="font-['Plus_Jakarta_Sans'] text-sm text-[#FF6B6B]">{deleteError}</p>
             ) : null}
             <Button
               onClick={() => void handleDeleteAccount()}
               disabled={isDeletingAccount}
-              className="bg-background hover:bg-[#FF6B6B]/10 text-[#FF6B6B] border border-[#FF6B6B] rounded-design font-['Inter'] disabled:opacity-50"
+              className="bg-background hover:bg-[#FF6B6B]/10 text-[#FF6B6B] border border-[#FF6B6B] rounded-design font-['Plus_Jakarta_Sans'] disabled:opacity-50"
             >
               {isDeletingAccount ? "Deleting…" : "Delete Account"}
             </Button>

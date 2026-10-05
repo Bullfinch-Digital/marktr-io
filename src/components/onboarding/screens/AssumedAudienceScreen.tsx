@@ -124,7 +124,7 @@ export function AssumedAudienceScreen({
             Or specify your own:
           </label>
           {pulledFromStory ? (
-            <p className="text-xs text-muted-foreground font-['DM_Sans']">
+            <p className="text-xs text-muted-foreground font-['Plus_Jakarta_Sans']">
               Pulled from your brand story — edit anything.
             </p>
           ) : null}

@@ -10,7 +10,7 @@ export function GuestPreviewShell({ children }: { children: ReactNode }) {
         <button
           type="button"
           onClick={() => navigate("/guest-dashboard")}
-          className="mb-6 font-['DM_Sans'] text-sm font-medium text-primary hover:underline"
+          className="mb-6 font-['Plus_Jakarta_Sans'] text-sm font-medium text-primary hover:underline"
         >
           ← Back to your dashboard
         </button>

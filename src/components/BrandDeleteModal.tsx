@@ -62,7 +62,7 @@ export default function BrandDeleteModal({
           </button>
         </div>
         {error ? (
-          <p className="mt-2 text-sm text-red-700 font-['Inter']">{error}</p>
+          <p className="mt-2 text-sm text-red-700 font-['Plus_Jakarta_Sans']">{error}</p>
         ) : null}
       </div>
     </div>

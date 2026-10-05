@@ -319,14 +319,14 @@ function ContentEditorBody() {
   };
 
   if (loading) {
-    return <p className="font-['Inter'] text-sm text-foreground/60">Loading content…</p>;
+    return <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/60">Loading content…</p>;
   }
 
   if (!item || !draft) {
     return (
       <>
-        <p className="font-['Inter'] text-sm text-red-700">{error || "Content not found."}</p>
-        <Link to="/content" className="font-['Inter'] text-sm underline mt-3 inline-block">
+        <p className="font-['Plus_Jakarta_Sans'] text-sm text-red-700">{error || "Content not found."}</p>
+        <Link to="/content" className="font-['Plus_Jakarta_Sans'] text-sm underline mt-3 inline-block">
           Back to Content
         </Link>
       </>
@@ -345,7 +345,7 @@ function ContentEditorBody() {
         >
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <h2>Unsaved changes</h2>
-            <p className="font-['Inter'] text-sm text-foreground/70 mt-2">
+            <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70 mt-2">
               Save as a new version before leaving, or discard your draft.
             </p>
             <div className="modal-actions">
@@ -391,13 +391,13 @@ function ContentEditorBody() {
           <Link
             to="/content"
             data-allow-navigation="true"
-            className="inline-flex items-center gap-1.5 font-['Inter'] text-sm text-foreground/60 hover:text-foreground"
+            className="inline-flex items-center gap-1.5 font-['Plus_Jakarta_Sans'] text-sm text-foreground/60 hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4" />
             Content
           </Link>
           <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center rounded-full border border-black/15 bg-accent-grey/30 px-2.5 py-1 font-['Inter'] text-[11px]">
+            <span className="inline-flex items-center rounded-full border border-black/15 bg-accent-grey/30 px-2.5 py-1 font-['Plus_Jakarta_Sans'] text-[11px]">
               {CONTENT_TYPE_LABELS[item.type]}
             </span>
             {!readOnly ? (
@@ -405,7 +405,7 @@ function ContentEditorBody() {
                 type="button"
                 onClick={() => void handleStatusToggle()}
                 disabled={statusSaving}
-                className={`inline-flex items-center rounded-full border px-2.5 py-1 font-['Inter'] text-[11px] transition-colors ${
+                className={`inline-flex items-center rounded-full border px-2.5 py-1 font-['Plus_Jakarta_Sans'] text-[11px] transition-colors ${
                   item.status === "approved"
                     ? "border-emerald-300 bg-emerald-50 text-emerald-900"
                     : "border-amber-300 bg-amber-50 text-amber-900"
@@ -420,7 +420,7 @@ function ContentEditorBody() {
               </button>
             ) : (
               <span
-                className={`inline-flex items-center rounded-full border px-2.5 py-1 font-['Inter'] text-[11px] ${
+                className={`inline-flex items-center rounded-full border px-2.5 py-1 font-['Plus_Jakarta_Sans'] text-[11px] ${
                   item.status === "approved"
                     ? "border-emerald-300 bg-emerald-50 text-emerald-900"
                     : "border-amber-300 bg-amber-50 text-amber-900"
@@ -466,13 +466,13 @@ function ContentEditorBody() {
         </div>
 
         {isArchived ? (
-          <p className="font-['Inter'] text-sm text-amber-900 bg-amber-50 border border-amber-200 rounded-design px-3 py-2">
+          <p className="font-['Plus_Jakarta_Sans'] text-sm text-amber-900 bg-amber-50 border border-amber-200 rounded-design px-3 py-2">
             This piece is archived. Restore it from the Content roster to edit again.
           </p>
         ) : null}
 
         {error ? (
-          <p className="font-['Inter'] text-sm text-red-700 bg-red-50 border border-red-200 rounded-design px-3 py-2">
+          <p className="font-['Plus_Jakarta_Sans'] text-sm text-red-700 bg-red-50 border border-red-200 rounded-design px-3 py-2">
             {error}
           </p>
         ) : null}
@@ -505,7 +505,7 @@ function ContentEditorBody() {
       {isDirty && !readOnly ? (
         <div className="fixed inset-x-0 bottom-0 z-40 border-t border-black/15 bg-white/95 backdrop-blur px-4 py-3">
           <div className="max-w-3xl mx-auto flex flex-wrap items-center justify-between gap-3">
-            <p className="font-['Inter'] text-sm text-foreground/70">Unsaved changes</p>
+            <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70">Unsaved changes</p>
             <div className="flex items-center gap-2">
               <Button
                 type="button"

@@ -145,7 +145,7 @@ export function DashboardHeader({
                 <div className="w-10 h-10 rounded-full bg-[#BBA0E5] border border-black flex items-center justify-center">
                   <span className="font-['Fraunces'] text-sm">{getUserInitials()}</span>
                 </div>
-                <span className="font-['Inter'] text-sm">My Account</span>
+                <span className="font-['Plus_Jakarta_Sans'] text-sm">My Account</span>
               </Link>
 
               {/* Dark Mode Toggle - Mobile */}
@@ -154,7 +154,7 @@ export function DashboardHeader({
                 className="flex items-center gap-3 px-2 py-3 border-t border-warm-grey hover:bg-accent-grey/20 transition-colors rounded-design"
               >
                 {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-                <span className="font-['Inter'] text-sm">
+                <span className="font-['Plus_Jakarta_Sans'] text-sm">
                   {isDark ? "Light Mode" : "Dark Mode"}
                 </span>
               </button>

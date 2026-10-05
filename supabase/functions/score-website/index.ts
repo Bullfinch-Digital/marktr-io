@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { computeDeterministicScores, HEALTH_CHECK_SCORER_VERSION, OVERALL_CAP_FRAMING_COPY } from "./deterministicScores.ts";
+import { parsePillarFindings, type PillarFinding } from "../_shared/pillarFindings.ts";
 import {
   extractAllSignals,
   findProductUrl,
@@ -778,10 +779,10 @@ const FINDINGS_SYSTEM_PROMPT = `You write advisory findings for a digital health
 
 {
   "findings": [
-    { "dimension": "Website Clarity", "score": number, "finding": "string" },
-    { "dimension": "Brand Story", "score": number, "finding": "string" },
-    { "dimension": "Content Consistency", "score": number, "finding": "string" },
-    { "dimension": "Social Presence", "score": number, "finding": "string" }
+    { "dimension": "Website Clarity", "score": number, "observation": "string", "next_step": "string" },
+    { "dimension": "Brand Story", "score": number, "observation": "string", "next_step": "string" },
+    { "dimension": "Content Consistency", "score": number, "observation": "string", "next_step": "string" },
+    { "dimension": "Social Presence", "score": number, "observation": "string", "next_step": "string" }
   ],
   "strengths": ["string"],
   "gaps": ["string"]
@@ -789,7 +790,10 @@ const FINDINGS_SYSTEM_PROMPT = `You write advisory findings for a digital health
 
 RULES:
 - You receive CURRENT dimension scores (already computed from the live site). Each finding's "score" MUST exactly match the provided score for that dimension. Never invent or adjust scores. For unmeasured dimensions (null / socialIncomplete), omit that finding row entirely.
-- Write 2–3 sentences per finding: direct, founder-friendly, specific to what you see in the scrape. Stay STRICTLY within that dimension — never put social or content advice under Website Clarity, etc.
+- observation: ONE sentence about something specific you actually saw — a page, the bio wording, a posting pattern, or a headline. Name real specifics from the scrape. Do not restate the score.
+- next_step: ONE concrete action.
+- Plain UK English. No jargon: say "the customer you most want", never "ICP". No runs of short punchy sentences. No three-part lists.
+- Stay STRICTLY within that dimension — never put social or content advice under Website Clarity, etc.
 - strengths: 1–3 items for Website Clarity only (what is working). If Website Clarity is at raw max (100) or display-capped, return an empty strengths array.
 - gaps: 1–3 priority gaps for Website Clarity only — ONLY from website facts that scored below their top band. If Website Clarity is at raw max (100) or display-capped (dimensionCapped true), return an EMPTY gaps array. Never invent gaps. Never mention posting frequency, bios, or social platforms in Website Clarity gaps.
 
@@ -816,7 +820,7 @@ WHEN pillarContext.brandStory IS PROVIDED (marktr-defined story — findings ONL
 - pillarContext NEVER changes scores — only enriches advice.`;
 
 type FindingsResponse = {
-  findings: Array<{ dimension: string; score: number; finding: string }>;
+  findings: PillarFinding[];
   strengths: string[];
   gaps: string[];
 };
@@ -865,37 +869,7 @@ function normalizePriorRun(raw: unknown): PriorRunInput | undefined {
 }
 
 function parseFindingsJson(raw: string): FindingsResponse | null {
-  try {
-    const parsed = JSON.parse(raw) as Record<string, unknown>;
-    const findings = Array.isArray(parsed.findings)
-      ? parsed.findings
-          .map((item) => {
-            if (!item || typeof item !== "object") return null;
-            const row = item as Record<string, unknown>;
-            const dimension = typeof row.dimension === "string" ? row.dimension.trim() : "";
-            const score = Number(row.score);
-            const finding = typeof row.finding === "string" ? row.finding.trim() : "";
-            if (!dimension || !finding || Number.isNaN(score)) return null;
-            return { dimension, score, finding };
-          })
-          .filter(
-            (item): item is { dimension: string; score: number; finding: string } =>
-              item !== null
-          )
-      : [];
-    const strengths = Array.isArray(parsed.strengths)
-      ? parsed.strengths.map((s) => String(s).trim()).filter(Boolean)
-      : [];
-    const gaps = Array.isArray(parsed.gaps)
-      ? parsed.gaps.map((g) => String(g).trim()).filter(Boolean)
-      : [];
-    if (findings.length === 0) return null;
-    return { findings, strengths, gaps };
-  } catch {
-    const match = raw.match(/\{[\s\S]*\}/);
-    if (!match) return null;
-    return parseFindingsJson(match[0]);
-  }
+  return parsePillarFindings(raw);
 }
 
 async function generateFindingsProse(
@@ -985,7 +959,7 @@ async function generateFindingsProse(
     },
     body: JSON.stringify({
       model: HEALTH_CHECK_MODEL_VERSION,
-      max_tokens: 1400,
+      max_tokens: 1800,
       temperature: 0,
       response_format: { type: "json_object" },
       messages: [

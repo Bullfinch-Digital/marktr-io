@@ -43,7 +43,13 @@ type ApifySocialMetrics = {
   hasFullName: boolean;
 };
 
-type Finding = { dimension: string; score: number | null; finding: string };
+type Finding = {
+  dimension: string;
+  score: number | null;
+  finding: string;
+  observation?: string;
+  nextStep?: string;
+};
 
 function capDimension(name: string, raw: number | null) {
   if (raw === null) {
@@ -67,8 +73,8 @@ function capDimension(name: string, raw: number | null) {
   };
 }
 
-function findingFor(dimension: string, findings: Finding[] | null | undefined): string | undefined {
-  return findings?.find((f) => f.dimension === dimension)?.finding?.trim() || undefined;
+function findingFor(dimension: string, findings: Finding[] | null | undefined): Finding | undefined {
+  return findings?.find((f) => f.dimension === dimension);
 }
 
 export function buildScoresSnapshot(opts: {
@@ -97,18 +103,20 @@ export function buildScoresSnapshot(opts: {
   );
   const socialPresence = capDimension("Social Presence", deterministicScores.social);
 
-  const websiteFinding = findingFor("Website Clarity", opts.findings);
-  if (websiteFinding) websiteClarity.observation = websiteFinding;
-  const storyFinding = findingFor("Brand Story", opts.findings);
-  if (storyFinding) brandStory.observation = storyFinding;
-  const contentFinding = findingFor("Content Consistency", opts.findings);
-  if (contentFinding && !contentConsistency.unmeasured) {
-    contentConsistency.observation = contentFinding;
-  }
-  const socialFinding = findingFor("Social Presence", opts.findings);
-  if (socialFinding && !socialPresence.unmeasured) {
-    socialPresence.observation = socialFinding;
-  }
+  const applyCopy = (
+    target: { observation: string; nextStep?: string; unmeasured?: boolean },
+    row: Finding | undefined,
+  ) => {
+    if (!row || target.unmeasured) return;
+    const observation = row.observation?.trim() || row.finding?.trim();
+    if (observation) target.observation = observation;
+    const nextStep = row.nextStep?.trim();
+    if (nextStep) target.nextStep = nextStep;
+  };
+  applyCopy(websiteClarity, findingFor("Website Clarity", opts.findings));
+  applyCopy(brandStory, findingFor("Brand Story", opts.findings));
+  applyCopy(contentConsistency, findingFor("Content Consistency", opts.findings));
+  applyCopy(socialPresence, findingFor("Social Presence", opts.findings));
 
   if (opts.strengths?.length && !websiteClarity.dimensionCapped) {
     (websiteClarity as { strengths?: string[] }).strengths = opts.strengths;

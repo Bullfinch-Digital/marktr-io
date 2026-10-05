@@ -57,7 +57,7 @@ describe("HealthCheckReportView editions", () => {
   );
 
   it("renders the stored Bullfinch route and never recalculates it from scores", () => {
-    const { getByRole, getByText, queryByText, unmount } = render(
+    const { getAllByRole, getByText, queryByText, unmount } = render(
       <EditionProvider edition="bullfinch">
         <MemoryRouter>
           <HealthCheckReportView
@@ -79,7 +79,7 @@ describe("HealthCheckReportView editions", () => {
 
     expect(getByText("Your reputation's ahead of your marketing.")).toBeTruthy();
     expect(queryByText("You're at the building stage.")).toBeNull();
-    const primary = getByRole("link", { name: "Check availability →" });
+    const primary = getAllByRole("link", { name: "Check availability →" })[0];
     expect(primary.getAttribute("href")).toContain("report=phase3-token");
     expect(primary.getAttribute("href")).toContain("utm_content=talk");
     expect(primary.getAttribute("href")).toContain(

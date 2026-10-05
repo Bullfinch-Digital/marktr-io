@@ -42,6 +42,11 @@ import { scanErrorCode, track } from "../lib/bullfinchAnalytics";
 import { useEdition } from "../contexts/EditionContext";
 import { getStoredUtms } from "../lib/utmCapture";
 import { useEditionDocumentMeta } from "../hooks/useEditionDocumentMeta";
+import {
+  activeChecklistIndex,
+  scanStatusLine,
+  visibleScanChecklist,
+} from "../lib/scanProgress";
 
 type Step = "welcome" | "inputs" | "loading";
 
@@ -52,21 +57,6 @@ export interface HealthCheckFormData {
   facebookUrl: string;
   email: string;
 }
-
-const CHECKLIST_ITEMS = [
-  "Checking your website",
-  "Reading your content",
-  "Analysing social presence",
-  "Scoring audience alignment",
-  "Generating your report",
-] as const;
-
-const ANALYSIS_MESSAGES = [
-  "Comparing your positioning against industry benchmarks...",
-  "Identifying your biggest growth opportunities...",
-  "Building your personalised recommendations...",
-  "Almost there — preparing your report...",
-] as const;
 
 const SCAN_RETRY_MESSAGE = "We couldn't complete the scan. Please try again.";
 const SCAN_VERIFY_MESSAGE = "Verification failed. Complete the check and try again.";
@@ -83,31 +73,6 @@ function describeScoreWebsiteFailure(
   return SCAN_RETRY_MESSAGE;
 }
 
-function AnalysisMessage({ messages }: { messages: readonly string[] }) {
-  const [index, setIndex] = useState(0);
-  const [visible, setVisible] = useState(true);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setVisible(false);
-      setTimeout(() => {
-        setIndex((prev) => (prev + 1) % messages.length);
-        setVisible(true);
-      }, 300);
-    }, 2000);
-    return () => clearInterval(interval);
-  }, [messages.length]);
-
-  return (
-    <p
-      className="max-w-xs text-center font-body text-sm leading-relaxed text-muted-foreground transition-opacity duration-300"
-      style={{ opacity: visible ? 1 : 0 }}
-    >
-      {messages[index]}
-    </p>
-  );
-}
-
 export default function HealthCheck() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -120,8 +85,7 @@ export default function HealthCheck() {
     null
   );
   const [rerunPromptDismissed, setRerunPromptDismissed] = useState(false);
-  const [completedCount, setCompletedCount] = useState(0);
-  const [checklistDone, setChecklistDone] = useState(false);
+  const [scanElapsed, setScanElapsed] = useState(0);
 
   const [formData, setFormData] = useState<HealthCheckFormData>({
     businessName: "",
@@ -298,8 +262,6 @@ export default function HealthCheck() {
 
       scanTurnstileTokenRef.current = scoreToken;
 
-      setCompletedCount(0);
-      setChecklistDone(false);
       setStep("loading");
     } finally {
       setPreparingScan(false);
@@ -376,27 +338,20 @@ export default function HealthCheck() {
 
   useEffect(() => {
     if (step !== "loading") {
-      setChecklistDone(false);
+      setScanElapsed(0);
       return;
     }
+    const started = Date.now();
+    const tick = window.setInterval(() => setScanElapsed(Date.now() - started), 200);
+    return () => window.clearInterval(tick);
+  }, [step]);
+
+  useEffect(() => {
+    if (step !== "loading") return;
 
     let cancelled = false;
     const timers: number[] = [];
     const run = async () => {
-      for (let i = 1; i <= CHECKLIST_ITEMS.length; i += 1) {
-        timers.push(
-          window.setTimeout(() => {
-            if (!cancelled) setCompletedCount(i);
-          }, i * 300)
-        );
-      }
-
-      timers.push(
-        window.setTimeout(() => {
-          if (!cancelled) setChecklistDone(true);
-        }, CHECKLIST_ITEMS.length * 300 + 200)
-      );
-
       let websiteScore: HealthCheckWebsiteScore & {
         storyAssessment?: StoryAssessment | null;
         socialScores?: SocialScores | null;
@@ -537,9 +492,7 @@ export default function HealthCheck() {
       })();
 
       const checklistMinPromise = new Promise<void>((resolve) => {
-        timers.push(
-          window.setTimeout(() => resolve(), CHECKLIST_ITEMS.length * 300 + 500)
-        );
+        timers.push(window.setTimeout(() => resolve(), 1200));
       });
 
       await Promise.all([apiPromise, checklistMinPromise]);
@@ -921,11 +874,14 @@ export default function HealthCheck() {
         </h1>
 
         <div className="mt-8 space-y-4">
-          {CHECKLIST_ITEMS.map((item, index) => {
-            const done = index < completedCount;
-            const active = index === completedCount && completedCount < CHECKLIST_ITEMS.length;
+          {visibleScanChecklist(
+            Boolean(formData.instagramHandle.trim() || formData.facebookUrl.trim()),
+          ).map((item, index, items) => {
+            const activeIndex = activeChecklistIndex(scanElapsed, items.length);
+            const done = index < activeIndex;
+            const active = index === activeIndex;
             return (
-              <div key={item} className="flex items-center gap-3">
+              <div key={item.id} className="flex items-center gap-3">
                 {done ? (
                   <CheckCircle2 className="h-5 w-5 text-[#E8650A]" />
                 ) : active ? (
@@ -938,30 +894,21 @@ export default function HealthCheck() {
                     done ? "text-foreground" : active ? "text-muted-foreground" : "text-muted-foreground/60"
                   }`}
                 >
-                  {item}
+                  {item.label}
                 </p>
               </div>
             );
           })}
         </div>
 
-        {checklistDone && (
-          <div className="mt-8 flex flex-col items-center gap-4">
-            <div className="flex items-center gap-2">
-              {[0, 1, 2].map((i) => (
-                <span
-                  key={i}
-                  className="block h-2 w-2 rounded-full bg-primary"
-                  style={{
-                    animation: "dot-pulse 1.2s ease-in-out infinite",
-                    animationDelay: `${i * 0.2}s`,
-                  }}
-                />
-              ))}
-            </div>
-            <AnalysisMessage messages={ANALYSIS_MESSAGES} />
-          </div>
-        )}
+        <p className="mx-auto mt-8 max-w-md text-center font-body text-sm leading-relaxed text-muted-foreground">
+          {scanStatusLine(
+            config.scanLines
+              .filter((line) => line.when !== "instagram" || Boolean(formData.instagramHandle.trim()))
+              .map((line) => line.text),
+            scanElapsed,
+          )}
+        </p>
       </div>
     </section>
   );

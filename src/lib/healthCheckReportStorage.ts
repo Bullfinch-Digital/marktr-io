@@ -48,6 +48,10 @@ function normalizeDimension(
       dimensionCapped: entry.dimensionCapped === true,
       unmeasured,
       observation,
+      nextStep:
+        typeof entry.nextStep === "string" && entry.nextStep.trim()
+          ? entry.nextStep.trim()
+          : undefined,
       strengths: Array.isArray(entry.strengths)
         ? entry.strengths.map((s) => String(s))
         : undefined,

@@ -2,6 +2,8 @@ import { Link } from "react-router-dom";
 import { GuestResultsNextStepsCta } from "../guest/GuestResultsNextStepsCta";
 import { SendScoreCard } from "./SendScoreCard";
 import { getLlmFindingForDimension } from "../../lib/healthCheckFindings";
+import { missingSocialPictureNote } from "../../lib/missingSocialChannels";
+import { polishWebsiteBullets } from "../../../supabase/functions/_shared/pillarFindings";
 import { DIMENSION_CAP_FRAMING_COPY } from "../../lib/healthCheck";
 import { ctaTarget, track } from "../../lib/bullfinchAnalytics";
 import { useEdition } from "../../contexts/EditionContext";
@@ -145,32 +147,29 @@ export function extractDomain(url: string) {
   }
 }
 
+function atHandle(handle: string | undefined): string | null {
+  const trimmed = handle?.trim().replace(/^@/, "");
+  return trimmed ? `@${trimmed}` : null;
+}
+
 export function getDataSourceLabel(
   dimensionName: string,
   input: Pick<HealthCheckInput, "websiteUrl" | "instagramHandle" | "facebookUrl" | "websiteScore">,
   domain: string | null
 ): string {
-  const social = input.websiteScore?.socialScores;
+  const handle = atHandle(input.instagramHandle);
+  const facebook = input.facebookUrl?.trim() ? "Facebook" : null;
+  const site = domain || null;
 
   switch (dimensionName) {
     case "Website Clarity":
-      return domain || "your website";
+      return site || "your website";
     case "Brand Story":
-      return domain || "your website";
+      return site ? `${site} homepage and about pages` : "your website";
     case "Content Consistency":
-      if (input.instagramHandle?.trim()) return input.instagramHandle.trim();
-      if (input.facebookUrl?.trim()) return "Facebook page";
-      return "platforms provided";
     case "Social Presence": {
-      if (input.instagramHandle?.trim()) {
-        const parts: string[] = [input.instagramHandle.trim()];
-        if (social?.instagramFound) {
-          if (input.facebookUrl?.trim()) parts.push("Facebook");
-          if (input.websiteUrl?.trim() || domain) parts.push("website");
-        }
-        return parts.join(", ");
-      }
-      return "Based on platforms provided";
+      const parts = [site, handle, facebook].filter((part): part is string => Boolean(part));
+      return parts.length ? parts.join(" + ") : "platforms provided";
     }
     default:
       return "";
@@ -255,22 +254,74 @@ function BrandStoryPanel({
   );
 }
 
+function WebsiteBullets({
+  observation,
+  strengths,
+  gaps,
+}: {
+  observation: string;
+  strengths?: string[];
+  gaps?: string[];
+}) {
+  const working = polishWebsiteBullets(observation, strengths ?? []);
+  const missing = polishWebsiteBullets(observation, gaps ?? []);
+  if (!working.length && !missing.length) return null;
+  return (
+    <div className="mt-3 space-y-2">
+      {working.length ? (
+        <>
+          <p className="font-body text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+            What&apos;s working
+          </p>
+          {working.map((item) => (
+            <div key={item} className="flex items-start gap-2">
+              <span className="mt-0.5 text-xs text-[#2D7A5F]">✓</span>
+              <p className="font-body text-xs leading-relaxed text-[#0D1833]">{item}</p>
+            </div>
+          ))}
+        </>
+      ) : null}
+      {missing.length ? (
+        <>
+          <p className="mt-3 font-body text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+            Key gaps
+          </p>
+          {missing.map((item) => (
+            <div key={item} className="flex items-start gap-2">
+              <span className="mt-0.5 text-xs text-primary">→</span>
+              <p className="font-body text-xs leading-relaxed text-[#0D1833]">{item}</p>
+            </div>
+          ))}
+        </>
+      ) : null}
+    </div>
+  );
+}
+
 function ScoreCard({
   dimension,
   dataSourceLabel,
   instagramFound,
+  instagramHandle,
+  facebookUrl,
   llmFinding,
   unassessed = false,
 }: {
   dimension: DimensionScore;
   dataSourceLabel: string;
   instagramFound: boolean;
+  instagramHandle?: string;
+  facebookUrl?: string;
   /** Prior-aware LLM finding — when set, replaces static tier copy. */
   llmFinding?: string;
   unassessed?: boolean;
 }) {
   const { config } = useEdition();
-  const notChecked = unassessed ? config.unassessedSocial : undefined;
+  const notChecked = !unassessed
+    ? undefined
+    : dimension.name === "Content Consistency" && instagramHandle?.trim() && config.unassessedContent
+      ? config.unassessedContent
+      : config.unassessedSocial;
   if (notChecked) {
     return (
       <article className="rounded-2xl border border-border bg-white p-6">
@@ -306,21 +357,40 @@ function ScoreCard({
     !dimension.unmeasured &&
     (dimension.dimensionCapped ||
       (typeof dimension.scoreRaw === "number" && dimension.scoreRaw >= 100));
-  const useLlmNarrative = Boolean(llmFinding?.trim()) && !showCapFraming;
-  const headline = showCapFraming
+  const genericObservation =
+    !dimension.observation?.trim() ||
+    dimension.observation === "Analysis complete" ||
+    dimension.observation.startsWith("Your homepage communicates") ||
+    dimension.observation.startsWith("Your value proposition could") ||
+    dimension.observation.startsWith("Visitors may struggle") ||
+    dimension.observation.startsWith("Strong brand story") ||
+    dimension.observation.startsWith("Basic story present") ||
+    dimension.observation.startsWith("Brand story needs") ||
+    dimension.observation.startsWith("You're maintaining a consistent") ||
+    dimension.observation.startsWith("Some gaps in your content") ||
+    dimension.observation.startsWith("Irregular posting") ||
+    dimension.observation.startsWith("Strong social presence") ||
+    dimension.observation.startsWith("Social presence is building") ||
+    dimension.observation.startsWith("Limited social presence");
+  const observation = showCapFraming
     ? DIMENSION_CAP_FRAMING_COPY
-    : llmFinding?.trim() || dimension.observation;
+    : !genericObservation
+      ? llmFinding?.trim() || dimension.observation
+      : detailTier?.meaning || llmFinding?.trim() || dimension.observation;
+  const nextStep = showCapFraming ? undefined : dimension.nextStep?.trim() || detailTier?.action;
 
+  const missingNote =
+    dimension.name === "Social Presence" && !dimension.unmeasured && !unassessed
+      ? missingSocialPictureNote(instagramHandle, facebookUrl)
+      : null;
   const socialNote =
-    dimension.name === "Social Presence"
-      ? dimension.unmeasured
-        ? undefined
-        : instagramFound
-          ? "Bio targeting, follower reach and active platforms were used to score this."
-          : "Connect your Instagram and Facebook for a complete picture."
-      : dimension.name === "Content Consistency" && instagramFound && !dimension.unmeasured
-        ? detail?.socialNote
-        : undefined;
+    dimension.name === "Content Consistency" && instagramFound && !dimension.unmeasured
+      ? detail?.socialNote
+      : undefined;
+  const help =
+    typeof displayScore === "number" && displayScore < 75
+      ? config.pillarHelp?.[dimension.name as keyof NonNullable<typeof config.pillarHelp>]
+      : undefined;
 
   return (
     <article className="rounded-2xl border border-border bg-white p-6">
@@ -342,55 +412,34 @@ function ScoreCard({
         />
       </div>
       <p className="mt-3 font-body text-sm font-medium leading-relaxed text-[#0D1833]">
-        {headline}
+        {observation}
       </p>
-      {detailTier && !useLlmNarrative && !showCapFraming && !dimension.unmeasured && (
-        <>
-          <p className="mt-2 font-body text-xs leading-relaxed text-muted-foreground">
-            {detailTier.meaning}
+      {nextStep ? (
+        <div className="mt-3 rounded-lg border border-border bg-background px-3 py-2">
+          <p className="mb-1 font-body text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+            Next step
           </p>
-          <div className="mt-3 rounded-lg border border-border bg-background px-3 py-2">
-            <p className="mb-1 font-body text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
-              Recommended action
-            </p>
-            <p className="font-body text-xs leading-relaxed text-[#0D1833]">
-              {detailTier.action}
-            </p>
-          </div>
-          {socialNote && (
-            <p className="mt-2 font-body text-xs leading-relaxed text-muted-foreground">
-              {socialNote}
-            </p>
-          )}
-        </>
-      )}
-      {dimension.name === "Website Clarity" &&
-      dimension.strengths?.length &&
-      !showCapFraming ? (
-        <div className="mt-3 space-y-2">
-          <p className="font-body text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
-            What&apos;s working
-          </p>
-          {dimension.strengths.map((s, i) => (
-            <div key={i} className="flex items-start gap-2">
-              <span className="mt-0.5 text-xs text-[#2D7A5F]">✓</span>
-              <p className="font-body text-xs leading-relaxed text-[#0D1833]">{s}</p>
-            </div>
-          ))}
-          {!suppressGaps && dimension.gaps?.length ? (
-            <>
-              <p className="mt-3 font-body text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
-                Key gaps
-              </p>
-              {dimension.gaps.map((g, i) => (
-                <div key={i} className="flex items-start gap-2">
-                  <span className="mt-0.5 text-xs text-primary">→</span>
-                  <p className="font-body text-xs leading-relaxed text-[#0D1833]">{g}</p>
-                </div>
-              ))}
-            </>
-          ) : null}
+          <p className="font-body text-xs leading-relaxed text-[#0D1833]">{nextStep}</p>
         </div>
+      ) : null}
+      {missingNote ? (
+        <p className="mt-2 font-body text-xs leading-relaxed text-muted-foreground">{missingNote}</p>
+      ) : null}
+      {socialNote ? (
+        <p className="mt-2 font-body text-xs leading-relaxed text-muted-foreground">{socialNote}</p>
+      ) : null}
+      {help ? (
+        <p className="mt-3 font-body text-xs leading-relaxed text-muted-foreground">
+          <span className="font-medium text-[#0D1833]">How Bullfinch helps. </span>
+          {help}
+        </p>
+      ) : null}
+      {dimension.name === "Website Clarity" && !showCapFraming ? (
+        <WebsiteBullets
+          observation={observation}
+          strengths={dimension.strengths}
+          gaps={suppressGaps ? [] : dimension.gaps}
+        />
       ) : null}
       {sa && <BrandStoryPanel sa={sa} showStoryLinks={config.showStoryLinks} />}
     </article>
@@ -513,6 +562,11 @@ function StoredNextStep({
       <p className="mt-4 max-w-2xl font-body text-base leading-relaxed text-muted-foreground">
         {step.body}
       </p>
+      {config.callNote ? (
+        <p className="mt-4 max-w-2xl font-body text-base leading-relaxed text-muted-foreground">
+          {config.callNote}
+        </p>
+      ) : null}
       <a
         href={primaryHref}
         className="mt-8 inline-flex items-center justify-center rounded-full bg-primary px-7 py-3 font-body text-sm font-medium text-primary-foreground hover:opacity-90"
@@ -537,6 +591,55 @@ function StoredNextStep({
           {step.secondary.label}
         </a>
       </div>
+    </section>
+  );
+}
+
+function WhereWeStart({
+  route,
+  websiteUrl,
+  publicToken,
+  cards,
+  isUnassessed,
+}: {
+  route: BfRoute;
+  websiteUrl: string;
+  publicToken: string;
+  cards: { key: string; shortName: string; dimension: DimensionScore }[];
+  isUnassessed: (name: string) => boolean;
+}) {
+  const { config } = useEdition();
+  const spotlight = config.spotlight;
+  const step = config.nextSteps?.[route];
+  if (!spotlight || !step) return null;
+  const checked = cards.filter(
+    (card) => !isUnassessed(card.dimension.name) && typeof card.dimension.score === "number",
+  );
+  if (checked.length === 0) return null;
+  const lowest = checked.reduce((best, card) =>
+    (card.dimension.score ?? 0) < (best.dimension.score ?? 0) ? card : best,
+  );
+  const score = lowest.dimension.score;
+  const band = score === null ? undefined : DIMENSION_DETAIL[lowest.dimension.name]?.[scoreBand(score)];
+  const next = lowest.dimension.nextStep?.trim() || band?.action;
+  const href = fillNextStepHref(step.primary.href, { url: websiteUrl, publicToken, route });
+
+  return (
+    <section className="mt-8 rounded-[18px] border border-border bg-white px-6 py-6 sm:px-8">
+      <h2 className="font-display text-2xl font-semibold text-foreground">{spotlight.heading}</h2>
+      <p className="mt-3 font-body text-sm font-medium text-[#0D1833]">{lowest.shortName}</p>
+      {next ? <p className="mt-2 font-body text-sm leading-relaxed text-[#0D1833]">{next}</p> : null}
+      <p className="mt-3 max-w-2xl font-body text-sm leading-relaxed text-muted-foreground">{spotlight.follow}</p>
+      <a
+        href={href}
+        className="mt-6 inline-flex items-center justify-center rounded-full bg-primary px-7 py-3 font-body text-sm font-medium text-primary-foreground hover:opacity-90"
+        rel="noopener noreferrer"
+        onClick={() => {
+          track("bf_cta_click", { route, target: "spotlight" }, { beacon: true });
+        }}
+      >
+        {step.primary.label}
+      </a>
     </section>
   );
 }
@@ -571,9 +674,14 @@ export function HealthCheckReportView({
     !input.facebookUrl?.trim() &&
     Boolean(config.unassessedSocial);
   const unassessedCopy = socialNotEntered ? config.unassessedSocial : undefined;
+  const contentPostingUnread =
+    config.showUnassessedAsNotChecked &&
+    scores.contentConsistency.unmeasured === true &&
+    !socialNotEntered;
   const isUnassessedDimension = (name: string) =>
-    Boolean(unassessedCopy) &&
-    (name === "Social Presence" || name === "Content Consistency");
+    (Boolean(unassessedCopy) &&
+      (name === "Social Presence" || name === "Content Consistency")) ||
+    (contentPostingUnread && name === "Content Consistency");
 
   const reportContent = (
     <>
@@ -609,7 +717,9 @@ export function HealthCheckReportView({
             score={dimension.score}
             href={`#section-${key}`}
             unassessedLabel={
-              isUnassessedDimension(dimension.name) ? unassessedCopy?.label : undefined
+              isUnassessedDimension(dimension.name)
+                ? unassessedCopy?.label ?? config.unassessedContent?.label
+                : undefined
             }
           />
         ))}
@@ -657,18 +767,49 @@ export function HealthCheckReportView({
         </div>
       )}
 
-      <div className="mt-8 space-y-6">
-        {scoreCards.map(({ key, dimension }) => (
-          <div key={key} id={`section-${key}`} className="scroll-mt-24">
-            <ScoreCard
-              dimension={dimension}
-              dataSourceLabel={getDataSourceLabel(dimension.name, input, displayDomain)}
-              instagramFound={instagramFound}
-              llmFinding={getLlmFindingForDimension(dimension.name, input.websiteScore)}
-              unassessed={isUnassessedDimension(dimension.name)}
-            />
-          </div>
-        ))}
+      {config.spotlight && isBfRoute(bfRoute) && publicToken ? (
+        <WhereWeStart
+          route={bfRoute}
+          websiteUrl={input.websiteUrl ?? ""}
+          publicToken={publicToken}
+          cards={scoreCards}
+          isUnassessed={isUnassessedDimension}
+        />
+      ) : null}
+
+      <div className="mt-8 grid gap-6 md:grid-cols-2">
+        {scoreCards
+          .filter(({ key }) => key === "website" || key === "story")
+          .map(({ key, dimension }) => (
+            <div key={key} id={`section-${key}`} className="scroll-mt-24">
+              <ScoreCard
+                dimension={dimension}
+                dataSourceLabel={getDataSourceLabel(dimension.name, input, displayDomain)}
+                instagramFound={instagramFound}
+                instagramHandle={input.instagramHandle}
+                facebookUrl={input.facebookUrl}
+                llmFinding={getLlmFindingForDimension(dimension.name, input.websiteScore)}
+                unassessed={isUnassessedDimension(dimension.name)}
+              />
+            </div>
+          ))}
+      </div>
+      <div className="mt-6 space-y-6">
+        {scoreCards
+          .filter(({ key }) => key !== "website" && key !== "story")
+          .map(({ key, dimension }) => (
+            <div key={key} id={`section-${key}`} className="scroll-mt-24">
+              <ScoreCard
+                dimension={dimension}
+                dataSourceLabel={getDataSourceLabel(dimension.name, input, displayDomain)}
+                instagramFound={instagramFound}
+                instagramHandle={input.instagramHandle}
+                facebookUrl={input.facebookUrl}
+                llmFinding={getLlmFindingForDimension(dimension.name, input.websiteScore)}
+                unassessed={isUnassessedDimension(dimension.name)}
+              />
+            </div>
+          ))}
       </div>
 
       {showPaywallUpsell && <GuestResultsNextStepsCta currentTool="health" className="mt-8" />}

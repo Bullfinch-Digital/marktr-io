@@ -35,6 +35,8 @@ describe("bullfinchRoute parity (client module vs edge function)", () => {
     );
     expect(persist).toMatch(/from "\.\.\/_shared\/bullfinchRouting\.ts"/);
     expect(persist).toMatch(/bullfinchRoute\(/);
+    expect(persist).toMatch(/contentChecked:/);
+    expect(persist).toMatch(/socialChecked:/);
     expect(persist).toMatch(/bf_route:/);
 
     const view = readFileSync(

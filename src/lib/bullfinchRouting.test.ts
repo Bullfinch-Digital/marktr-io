@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
+import { absentApifyMetrics, absentHealthCheckFacts, scoreFromFacts } from "./healthCheck";
 import {
   BF_THRESHOLDS,
   bullfinchRoute,
   isBfRoute,
+  routePillarsChecked,
   type BullfinchRouteScores,
 } from "./bullfinchRouting";
 
@@ -69,12 +71,55 @@ describe("bullfinchRoute", () => {
     ).toBe("talk");
   });
 
-  it("routes a strong site with no social handles to talk when overall is below 75", () => {
+  it("routes a strong site with no social handles to talk even when the shown overall is 92", () => {
     expect(
-      bullfinchRoute(scores({ websiteClarity: 95, brandStory: 95, overall: 60 })),
+      bullfinchRoute(
+        scores({
+          websiteClarity: 95,
+          brandStory: 95,
+          overall: 92,
+          contentChecked: false,
+          socialChecked: false,
+        }),
+      ),
     ).toBe("talk");
     expect(
-      bullfinchRoute(scores({ websiteClarity: 75, brandStory: 75, overall: 60 })),
+      bullfinchRoute(scores({ websiteClarity: 95, brandStory: 95, overall: 92 })),
+    ).toBe("polish");
+  });
+
+  it("shows 92 and routes talk for greencaravanpark.co.uk with no handles", () => {
+    const metrics = absentApifyMetrics();
+    const run = scoreFromFacts(
+      {
+        ...absentHealthCheckFacts(),
+        valueProp: "clear",
+        namesCustomer: "clear",
+        usesSecondPerson: true,
+        primaryCTA: "competing",
+        proofOnPage: "real",
+        pathToBuyContact: "clear",
+        founderStory: "present",
+        storySpecific: "specific",
+        storyNamesConcrete: true,
+        pointOfView: "distinct",
+        valuesMission: "concrete",
+      },
+      metrics,
+    );
+    expect(run.scores.websiteClarity).toBe(90);
+    expect(run.scores.brandStory).toBe(100);
+    expect(run.scores.overallRaw).toBe(95);
+    expect(run.scores.overall).toBe(92);
+    const checked = routePillarsChecked(metrics);
+    expect(checked).toEqual({ contentChecked: false, socialChecked: false });
+    expect(
+      bullfinchRoute({
+        websiteClarity: run.scores.websiteClarity,
+        brandStory: run.scores.brandStory,
+        overall: run.scores.overall,
+        ...checked,
+      }),
     ).toBe("talk");
   });
 

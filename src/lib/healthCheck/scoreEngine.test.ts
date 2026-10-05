@@ -386,7 +386,53 @@ function testNoSocialHallucinationScoresZero() {
   assert.equal(run.scores.contentConsistency, 0);
   assert.equal(run.points.content.socialReflectsStory, 0);
   assert.equal(run.points.content.bioOnMessage, 0);
-  console.log("✓ no social profile → social facts forced absent, Social/Content social-derived = 0");
+  assert.equal(
+    run.scores.overallRaw,
+    Math.round(run.scores.websiteClarity * 0.5 + run.scores.brandStory * 0.5),
+  );
+  console.log("✓ no social profile → cards stay 0, overall uses website and story only");
+}
+
+function testContentPostingUnknownIsUnmeasured() {
+  const facts = {
+    ...absentHealthCheckFacts(),
+    valueProp: "clear" as const,
+    namesCustomer: "clear" as const,
+    usesSecondPerson: true,
+    primaryCTA: "single" as const,
+    proofOnPage: "real" as const,
+    pathToBuyContact: "clear" as const,
+    founderStory: "present" as const,
+    storySpecific: "specific" as const,
+    storyNamesConcrete: true,
+    pointOfView: "distinct" as const,
+    valuesMission: "concrete" as const,
+    socialReflectsStory: "disconnected" as const,
+    igProfileComplete: "thin" as const,
+    bioOnMessage: "absent" as const,
+  };
+  const run = scoreFromFacts(facts, {
+    instagramFound: true,
+    facebookFound: false,
+    instagramFetchStatus: "found",
+    followers: 3,
+    avgLikes: 0,
+    avgComments: 0,
+    latestPostDaysAgo: null,
+    postsPerWeek: null,
+    bioLength: 0,
+    hasExternalUrl: false,
+    hasFullName: false,
+  });
+  assert.equal(run.scores.contentConsistency, null);
+  assert.equal(run.dimensions.contentConsistency.unmeasured, true);
+  assert.equal(run.scores.socialPresence, 30);
+  assert.equal(run.scores.websiteClarity, 100);
+  assert.equal(run.scores.brandStory, 100);
+  // Website 0.3, story 0.3, social 0.15 → 0.4 / 0.4 / 0.2. 100*0.4 + 100*0.4 + 30*0.2 = 86
+  assert.equal(run.scores.overallRaw, 86);
+  assert.equal(run.socialIncomplete, false);
+  console.log("✓ unreadable post history leaves Content unscored and out of the overall");
 }
 
 function testSocialIncompleteRenormalises() {
@@ -596,6 +642,7 @@ describe("health check score engine", () => {
   it("changing one website fact moves only websiteClarity", () => testSingleDimensionChange());
   it("augmentFindingsWithPriorRun references Brand Story delta", () => testAugmentFindingsBrandStoryDelta());
   it("no social profile forces social-derived scores to 0", () => testNoSocialHallucinationScoresZero());
+  it("unreadable post history leaves Content unscored", () => testContentPostingUnknownIsUnmeasured());
   it("social-incomplete renormalises Website+Story", () => testSocialIncompleteRenormalises());
   it("dimension display cap does not double-cap overall", () => testDimensionDisplayCapDoesNotDoubleCapOverall());
   it("Story System signpost gating", () => testStorySystemSignpostGating());

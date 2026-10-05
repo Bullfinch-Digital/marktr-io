@@ -50,11 +50,6 @@ const DIMENSION_WEIGHTS = {
   socialPresence: 0.15,
 } as const;
 
-const SOCIAL_INCOMPLETE_WEIGHTS = {
-  websiteClarity: 0.5,
-  brandStory: 0.5,
-} as const;
-
 const OVERALL_CAP = 92;
 
 const OVERALL_CAP_FRAMING_COPY =
@@ -210,6 +205,15 @@ function namesCustomerPoints(facts: HealthCheckFacts): number {
   return 0;
 }
 
+function contentPostingUnknown(metrics: ApifySocialMetrics): boolean {
+  return (
+    metrics.instagramFetchStatus === "found" &&
+    metrics.instagramFound &&
+    metrics.latestPostDaysAgo == null &&
+    metrics.postsPerWeek == null
+  );
+}
+
 function weightedOverallScore(
   scores: {
     websiteClarity: number;
@@ -217,19 +221,28 @@ function weightedOverallScore(
     contentConsistency: number;
     socialPresence: number;
   },
-  socialIncomplete: boolean
+  opts: { socialIncomplete?: boolean; contentUnmeasured?: boolean; socialUnmeasured?: boolean }
 ): { overall: number; overallRaw: number; capped: boolean } {
-  const overallRaw = socialIncomplete
-    ? Math.round(
-        scores.websiteClarity * SOCIAL_INCOMPLETE_WEIGHTS.websiteClarity +
-          scores.brandStory * SOCIAL_INCOMPLETE_WEIGHTS.brandStory
-      )
-    : Math.round(
-        scores.websiteClarity * DIMENSION_WEIGHTS.websiteClarity +
-          scores.brandStory * DIMENSION_WEIGHTS.brandStory +
-          scores.contentConsistency * DIMENSION_WEIGHTS.contentConsistency +
-          scores.socialPresence * DIMENSION_WEIGHTS.socialPresence
-      );
+  const includeContent = !opts.socialIncomplete && !opts.contentUnmeasured;
+  const includeSocial = !opts.socialIncomplete && !opts.socialUnmeasured;
+  const parts = [
+    { value: scores.websiteClarity, weight: DIMENSION_WEIGHTS.websiteClarity, include: true },
+    { value: scores.brandStory, weight: DIMENSION_WEIGHTS.brandStory, include: true },
+    {
+      value: scores.contentConsistency,
+      weight: DIMENSION_WEIGHTS.contentConsistency,
+      include: includeContent,
+    },
+    {
+      value: scores.socialPresence,
+      weight: DIMENSION_WEIGHTS.socialPresence,
+      include: includeSocial,
+    },
+  ].filter((part) => part.include);
+  const weightSum = parts.reduce((sum, part) => sum + part.weight, 0);
+  const overallRaw = Math.round(
+    parts.reduce((sum, part) => sum + part.value * (part.weight / weightSum), 0),
+  );
   const capped = overallRaw > OVERALL_CAP;
   return {
     overallRaw,
@@ -238,7 +251,7 @@ function weightedOverallScore(
   };
 }
 
-const HEALTH_CHECK_SCORER_VERSION = "1.0.3";
+const HEALTH_CHECK_SCORER_VERSION = "1.0.5";
 
 export { OVERALL_CAP, OVERALL_CAP_FRAMING_COPY, HEALTH_CHECK_SCORER_VERSION };
 
@@ -256,6 +269,7 @@ export function computeDeterministicScores(
   socialIncomplete: boolean;
 } {
   const socialIncomplete = apifyMetrics.instagramFetchStatus === "incomplete";
+  const postingUnknown = contentPostingUnknown(apifyMetrics);
   const scoredFacts = sanitizeFactsForScoring(facts, apifyMetrics);
   const socialBands = bandSocialSignals(apifyMetrics);
   const hasSocialProfile = hasAnySocialProfile(apifyMetrics);
@@ -286,8 +300,9 @@ export function computeDeterministicScores(
       CROSS_PLATFORM_PTS[socialBands.crossPlatform]
     : 0;
 
-  const content = socialIncomplete ? null : contentMeasured;
+  const content = socialIncomplete || postingUnknown ? null : contentMeasured;
   const social = socialIncomplete ? null : socialMeasured;
+  const noSocialProfile = !hasSocialProfile;
 
   return {
     website,
@@ -302,7 +317,11 @@ export function computeDeterministicScores(
         contentConsistency: content ?? 0,
         socialPresence: social ?? 0,
       },
-      socialIncomplete
+      {
+        socialIncomplete,
+        contentUnmeasured: postingUnknown || noSocialProfile,
+        socialUnmeasured: noSocialProfile,
+      },
     ),
   };
 }

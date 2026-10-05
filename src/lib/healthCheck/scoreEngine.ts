@@ -6,7 +6,6 @@ import {
   OVERALL_CAP,
   OVERALL_CAP_FRAMING_COPY,
   SOCIAL_INCOMPLETE_COPY,
-  SOCIAL_INCOMPLETE_WEIGHTS,
 } from "./constants";
 import type { HealthCheckFacts } from "./factsSchema";
 import { absentHealthCheckFacts } from "./factsSchema";
@@ -161,6 +160,16 @@ export function isSocialIncomplete(apifyMetrics: ApifySocialMetrics): boolean {
   return apifyMetrics.instagramFetchStatus === "incomplete";
 }
 
+/** Profile was found, but there is no post date and no posting rate to score. */
+export function contentPostingUnknown(metrics: ApifySocialMetrics): boolean {
+  return (
+    metrics.instagramFetchStatus === "found" &&
+    metrics.instagramFound &&
+    metrics.latestPostDaysAgo == null &&
+    metrics.postsPerWeek == null
+  );
+}
+
 export function applyDimensionDisplayCap(raw: number): DimensionScoreFields {
   const capped = raw > DIMENSION_DISPLAY_CAP;
   return {
@@ -265,19 +274,28 @@ export function weightedOverallScore(
     contentConsistency: number;
     socialPresence: number;
   },
-  opts?: { socialIncomplete?: boolean }
+  opts?: { socialIncomplete?: boolean; contentUnmeasured?: boolean; socialUnmeasured?: boolean }
 ): { overall: number; overallRaw: number; capped: boolean } {
-  const overallRaw = opts?.socialIncomplete
-    ? Math.round(
-        scores.websiteClarity * SOCIAL_INCOMPLETE_WEIGHTS.websiteClarity +
-          scores.brandStory * SOCIAL_INCOMPLETE_WEIGHTS.brandStory
-      )
-    : Math.round(
-        scores.websiteClarity * DIMENSION_WEIGHTS.websiteClarity +
-          scores.brandStory * DIMENSION_WEIGHTS.brandStory +
-          scores.contentConsistency * DIMENSION_WEIGHTS.contentConsistency +
-          scores.socialPresence * DIMENSION_WEIGHTS.socialPresence
-      );
+  const includeContent = !opts?.socialIncomplete && !opts?.contentUnmeasured;
+  const includeSocial = !opts?.socialIncomplete && !opts?.socialUnmeasured;
+  const parts = [
+    { value: scores.websiteClarity, weight: DIMENSION_WEIGHTS.websiteClarity, include: true },
+    { value: scores.brandStory, weight: DIMENSION_WEIGHTS.brandStory, include: true },
+    {
+      value: scores.contentConsistency,
+      weight: DIMENSION_WEIGHTS.contentConsistency,
+      include: includeContent,
+    },
+    {
+      value: scores.socialPresence,
+      weight: DIMENSION_WEIGHTS.socialPresence,
+      include: includeSocial,
+    },
+  ].filter((part) => part.include);
+  const weightSum = parts.reduce((sum, part) => sum + part.weight, 0);
+  const overallRaw = Math.round(
+    parts.reduce((sum, part) => sum + part.value * (part.weight / weightSum), 0),
+  );
   const capped = overallRaw > OVERALL_CAP;
   return {
     overallRaw,
@@ -298,13 +316,15 @@ export function scoreFromFacts(
   apifyMetrics: ApifySocialMetrics
 ): DeterministicHealthCheckRun {
   const socialIncomplete = isSocialIncomplete(apifyMetrics);
+  const postingUnknown = contentPostingUnknown(apifyMetrics);
+  const noSocialProfile = !hasAnySocialProfile(apifyMetrics);
   const socialBands = bandSocialSignals(apifyMetrics);
   const scoredFacts = sanitizeFactsForScoring(facts, apifyMetrics);
   const points = scorePointsFromFacts(scoredFacts, socialBands, apifyMetrics);
 
   const websiteRaw = points.website.total;
   const storyRaw = points.story.total;
-  const contentRaw = socialIncomplete ? null : points.content.total;
+  const contentRaw = socialIncomplete || postingUnknown ? null : points.content.total;
   const socialRaw = socialIncomplete ? null : points.social.total;
 
   const overallResult = weightedOverallScore(
@@ -314,32 +334,28 @@ export function scoreFromFacts(
       contentConsistency: contentRaw ?? 0,
       socialPresence: socialRaw ?? 0,
     },
-    { socialIncomplete }
+    {
+      socialIncomplete,
+      contentUnmeasured: postingUnknown || noSocialProfile,
+      socialUnmeasured: noSocialProfile,
+    },
   );
 
   const dimensions = {
     websiteClarity: applyDimensionDisplayCap(websiteRaw),
     brandStory: applyDimensionDisplayCap(storyRaw),
-    contentConsistency: socialIncomplete
-      ? unmeasuredDimension()
-      : applyDimensionDisplayCap(contentRaw!),
-    socialPresence: socialIncomplete
-      ? unmeasuredDimension()
-      : applyDimensionDisplayCap(socialRaw!),
+    contentConsistency:
+      contentRaw === null ? unmeasuredDimension() : applyDimensionDisplayCap(contentRaw),
+    socialPresence:
+      socialRaw === null ? unmeasuredDimension() : applyDimensionDisplayCap(socialRaw),
   };
 
-  const measuredForLowest: Array<[keyof typeof DIMENSION_WEIGHTS, number]> =
-    socialIncomplete
-      ? [
-          ["websiteClarity", websiteRaw],
-          ["brandStory", storyRaw],
-        ]
-      : [
-          ["websiteClarity", websiteRaw],
-          ["brandStory", storyRaw],
-          ["contentConsistency", contentRaw!],
-          ["socialPresence", socialRaw!],
-        ];
+  const measuredForLowest: Array<[keyof typeof DIMENSION_WEIGHTS, number]> = [
+    ["websiteClarity", websiteRaw],
+    ["brandStory", storyRaw],
+  ];
+  if (contentRaw !== null) measuredForLowest.push(["contentConsistency", contentRaw]);
+  if (socialRaw !== null) measuredForLowest.push(["socialPresence", socialRaw]);
   const [lowestKey, lowestVal] = measuredForLowest.reduce((a, b) =>
     b[1] < a[1] ? b : a
   );

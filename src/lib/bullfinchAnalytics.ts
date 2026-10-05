@@ -6,7 +6,7 @@ export const BULLFINCH_GA4_ID = editionConfig.bullfinch.ga4Id;
 
 const REPORT_PATH = /^\/r\/[^/]+\/?$/;
 
-export type BfCtaTarget = "contact" | "how_we_work" | "resources" | "marktr";
+export type BfCtaTarget = "contact" | "how_we_work" | "resources" | "marktr" | "spotlight";
 export type BfScanErrorCode = "turnstile" | "scan_failed" | "throttled";
 
 type TrackParams = Record<string, string | number | boolean>;

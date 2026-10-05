@@ -1,0 +1,287 @@
+import { describe, expect, it } from "vitest";
+import {
+  UNCHECKED_PILLAR_LINE,
+  applyUncheckedPillarCopy,
+  dropUnverifiedQuotes,
+  extractQuotes,
+  findingsQualityIssues,
+  lineAlreadyOnHomepage,
+  mergePillarFindings,
+  parsePillarFindings,
+  polishPillarFindings,
+  polishWebsiteBullets,
+} from "../../supabase/functions/_shared/pillarFindings";
+import { getDataSourceLabel } from "../components/healthCheck/HealthCheckReportView";
+
+describe("pillar findings", () => {
+  it("keeps a specific observation and next step, and accepts the older finding field", () => {
+    const parsed = parsePillarFindings(
+      JSON.stringify({
+        findings: [
+          {
+            dimension: "Website Clarity",
+            score: 62,
+            observation: "The homepage headline talks about quality without saying who it is for.",
+            next_step: "Rewrite the headline so a new customer can tell it is for them.",
+          },
+          {
+            dimension: "Brand Story",
+            score: 48,
+            finding: "The about page names the founder but not the customer.",
+          },
+        ],
+        strengths: ["Clear photography"],
+        gaps: ["Headline"],
+      }),
+    );
+    expect(parsed?.findings[0]).toMatchObject({
+      observation: "The homepage headline talks about quality without saying who it is for.",
+      nextStep: "Rewrite the headline so a new customer can tell it is for them.",
+      finding: "The homepage headline talks about quality without saying who it is for.",
+    });
+    expect(parsed?.findings[1].observation).toBe(
+      "The about page names the founder but not the customer.",
+    );
+    expect(parsed?.findings[1].nextStep).toBe("");
+  });
+
+  it("drops off-pillar bullets, repeats, banned words, and a maintain step on a high score", () => {
+    const polished = polishPillarFindings({
+      findings: [
+        {
+          dimension: "Website Clarity",
+          score: 62,
+          observation: "The homepage headline says 'Marketing that works' and never names who it is for.",
+          nextStep: "Enhance the clarity of the primary CTA.",
+          finding: "The homepage headline says 'Marketing that works' and never names who it is for.",
+        },
+        {
+          dimension: "Brand Story",
+          score: 100,
+          observation: "The About page tells how the founder started with one cabin.",
+          nextStep: "Maintain this strong story.",
+          finding: "The About page tells how the founder started with one cabin.",
+        },
+      ],
+      strengths: [
+        "The homepage headline says 'Marketing that works'",
+        "Clear product photography above the fold",
+        "Instagram posting is regular",
+        "A second unused website point",
+      ],
+      gaps: ["The homepage never names who it is for", "The bio does not mention the story"],
+    });
+    expect(polished.findings[0].observation).toContain("homepage headline");
+    expect(polished.findings[0].nextStep).toBe("");
+    expect(polished.findings[1].observation).toContain("About page");
+    expect(polished.findings[1].nextStep).toBe("");
+    expect(polished.strengths).toEqual([
+      "Clear product photography above the fold",
+      "A second unused website point",
+    ]);
+    expect(polished.gaps).toEqual([]);
+    expect(polishWebsiteBullets("Headline", ["One", "Two", "Three"])).toEqual(["One", "Two"]);
+    const content = polishPillarFindings({
+      findings: [
+        {
+          dimension: "Content Consistency",
+          score: 75,
+          observation: "The homepage mentions artisan building but the theme is uneven.",
+          nextStep: "Post more often so people stay engaged.",
+          finding: "The homepage mentions artisan building but the theme is uneven.",
+        },
+      ],
+      strengths: [],
+      gaps: [],
+    });
+    expect(content.findings[0].observation).toBe("");
+    expect(content.findings[0].nextStep).toBe("");
+  });
+
+  it("asks for a retry when a banned word or a missing pillar is present", () => {
+    const issues = findingsQualityIssues(
+      {
+        findings: [
+          {
+            dimension: "Website Clarity",
+            score: 90,
+            observation: "Fine homepage.",
+            nextStep: "Maintain the homepage.",
+            finding: "Fine homepage.",
+          },
+        ],
+        strengths: [],
+        gaps: [],
+      },
+      ["Website Clarity", "Brand Story"],
+      { "Website Clarity": 90, "Brand Story": 40 },
+    );
+    expect(issues.some((issue) => issue.includes("Brand Story"))).toBe(true);
+    expect(issues.some((issue) => issue.includes("maintain"))).toBe(true);
+  });
+
+  it("keeps a complete first answer when the retry drops a pillar", () => {
+    const scores = {
+      "Website Clarity": 88,
+      "Brand Story": 40,
+      "Content Consistency": 75,
+      "Social Presence": 68,
+    };
+    const first = {
+      findings: [
+        {
+          dimension: "Website Clarity",
+          score: 88,
+          observation: "The homepage headline says 'The Home of Log Building'.",
+          nextStep: "Change the homepage button from 'Contact' to 'Book a site visit'.",
+          finding: "The homepage headline says 'The Home of Log Building'.",
+        },
+        {
+          dimension: "Content Consistency",
+          score: 75,
+          observation: "The last Instagram post was 4 days ago, with 1 post in the last 30 days.",
+          nextStep: "Put a photo from this week's cabin build on Instagram before Friday.",
+          finding: "The last Instagram post was 4 days ago, with 1 post in the last 30 days.",
+        },
+      ],
+      strengths: [],
+      gaps: [],
+    };
+    const retry = {
+      findings: [first.findings[0]],
+      strengths: [],
+      gaps: [],
+    };
+    const merged = mergePillarFindings(first, retry, scores);
+    expect(merged.findings.map((row) => row.dimension)).toEqual([
+      "Website Clarity",
+      "Content Consistency",
+    ]);
+  });
+
+  it("names the site and the Instagram handle on Content and Social", () => {
+    const input = {
+      websiteUrl: "https://britishlogcabins.com",
+      instagramHandle: "britishlogcabins",
+      facebookUrl: "",
+      websiteScore: null,
+    };
+    expect(getDataSourceLabel("Content Consistency", input, "britishlogcabins.com")).toBe(
+      "britishlogcabins.com + @britishlogcabins",
+    );
+    expect(getDataSourceLabel("Social Presence", input, "britishlogcabins.com")).toBe(
+      "britishlogcabins.com + @britishlogcabins",
+    );
+    expect(getDataSourceLabel("Website Clarity", input, "britishlogcabins.com")).toBe(
+      "britishlogcabins.com",
+    );
+    expect(getDataSourceLabel("Brand Story", input, "britishlogcabins.com")).toBe(
+      "britishlogcabins.com homepage and about pages",
+    );
+  });
+
+  it("drops a quoted line that is not on the site, and a homepage step that is already done", () => {
+    const source = {
+      homepage: "Get out there! The Green Caravan Park is a family-run site in Shropshire.",
+      all: "Get out there! The Green Caravan Park is a family-run site in Shropshire. We create beautiful handcrafted Log Homes.",
+    };
+    expect(extractQuotes("Under 'Get out there!', add a line.")).toEqual(["Get out there!"]);
+    expect(extractQuotes("Add 'Let's build your dream log cabin today' to the page.")).toEqual([
+      "Let's build your dream log cabin today",
+    ]);
+    const polished = polishPillarFindings(
+      {
+        findings: [
+          {
+            dimension: "Website Clarity",
+            score: 90,
+            observation: "The homepage headline says 'Get out there!'",
+            nextStep: "Change the headline to 'Get out there, families and adventurers!'",
+            finding: "The homepage headline says 'Get out there!'",
+          },
+          {
+            dimension: "Brand Story",
+            score: 100,
+            observation:
+              "The about page says 'The Green Caravan Park is a family-run site in Shropshire.'",
+            nextStep: "Use that line from the about page on the homepage.",
+            finding: "The about page says 'The Green Caravan Park is a family-run site in Shropshire.'",
+          },
+        ],
+        strengths: [],
+        gaps: [],
+      },
+      source,
+    );
+    expect(polished.findings[0].nextStep).toBe("Change the headline to");
+    expect(polished.findings[0].observation).toContain("Get out there!");
+    expect(polished.findings[1].nextStep).toBe("");
+    expect(
+      lineAlreadyOnHomepage(
+        "Use that line from the about page on the homepage.",
+        "The about page says 'The Green Caravan Park is a family-run site in Shropshire.'",
+        source.homepage,
+      ),
+    ).toBe(true);
+    expect(dropUnverifiedQuotes("Keep 'We create beautiful handcrafted Log Homes.'", source.all)).toContain(
+      "handcrafted Log Homes",
+    );
+    const issues = findingsQualityIssues(
+      {
+        findings: [
+          {
+            dimension: "Content Consistency",
+            score: 75,
+            observation: "You've posted once in the last 30 days.",
+            nextStep: "Post more frequently so you attract more followers.",
+            finding: "You've posted once in the last 30 days.",
+          },
+        ],
+        strengths: [],
+        gaps: [],
+      },
+      ["Content Consistency"],
+      { "Content Consistency": 75 },
+    );
+    expect(issues.some((issue) => issue.includes("banned"))).toBe(true);
+  });
+
+  it("drops a mention of the target and does not invent a post count when nothing was entered", () => {
+    const polished = polishPillarFindings({
+      findings: [
+        {
+          dimension: "Content Consistency",
+          score: 75,
+          observation: "You've posted once in the last 30 days, which is below the target.",
+          nextStep: "Aim for one post a week, and film a cabin going up.",
+          finding: "You've posted once in the last 30 days, which is below the target.",
+        },
+      ],
+      strengths: [],
+      gaps: [],
+    });
+    expect(polished.findings[0].observation).toBe("You've posted once in the last 30 days.");
+    const unchecked = applyUncheckedPillarCopy(
+      {
+        findings: [
+          {
+            dimension: "Content Consistency",
+            score: 0,
+            observation: "No posts were found in the last 30 days, and no Instagram or Facebook profiles were entered.",
+            nextStep: "Create an Instagram account.",
+            finding: "No posts were found in the last 30 days.",
+          },
+        ],
+        strengths: [],
+        gaps: [],
+      },
+      true,
+    );
+    expect(unchecked.findings.find((row) => row.dimension === "Content Consistency")?.observation).toBe(
+      UNCHECKED_PILLAR_LINE,
+    );
+    expect(unchecked.findings.find((row) => row.dimension === "Social Presence")?.observation).toBe(
+      UNCHECKED_PILLAR_LINE,
+    );
+  });
+});

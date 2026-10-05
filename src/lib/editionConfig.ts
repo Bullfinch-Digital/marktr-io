@@ -62,11 +62,13 @@ export type EditionConfig = {
   placeholders: {
     instagramHandle: string;
   };
+  /** Rotating scan lines. A line with when: "instagram" is skipped unless a handle was entered. */
+  scanLines: Array<{ text: string; when?: "instagram" }>;
   /** Display-score bands for colour. marktr keeps the original 70 / 40 split. */
   scoreBands: { high: number; mid: number };
   /**
    * When true, Social and Content with no handles render as "Not checked"
-   * instead of a zero score. Display only; stored scores are unchanged.
+   * instead of a zero score. The stored overall excludes those zeros.
    */
   showUnassessedAsNotChecked: boolean;
   unassessedSocial?: {
@@ -74,8 +76,19 @@ export type EditionConfig = {
     cardLine: string;
     overallNote: string;
   };
+  /** Instagram was found, but posting dates could not be read. Bullfinch only. */
+  unassessedContent?: {
+    label: string;
+    cardLine: string;
+  };
   /** Bullfinch next-step copy and URLs. Absent on marktr so the upsell stays put. */
   nextSteps?: Record<BfRoute, NextStepCopy>;
+  /** Sentence under the bottom route CTA. Bullfinch only. */
+  callNote?: string;
+  /** Lowest-pillar panel above the cards. Bullfinch only. */
+  spotlight?: { heading: string; follow: string };
+  /** Shown on a pillar card scoring under 75. Bullfinch only. */
+  pillarHelp?: Partial<Record<"Website Clarity" | "Brand Story" | "Social Presence" | "Content Consistency", string>>;
   sendScore?: {
     heading: string;
     emailLabel: string;
@@ -128,6 +141,12 @@ export const editionConfig: Record<Edition, EditionConfig> = {
     placeholders: {
       instagramHandle: "marktr.io (or @marktr.io)",
     },
+    scanLines: [
+      { text: "Comparing your positioning against industry benchmarks..." },
+      { text: "Identifying your biggest growth opportunities..." },
+      { text: "Building your personalised recommendations..." },
+      { text: "Almost there — preparing your report..." },
+    ],
     scoreBands: { high: 70, mid: 40 },
     showUnassessedAsNotChecked: false,
   },
@@ -171,12 +190,26 @@ export const editionConfig: Record<Edition, EditionConfig> = {
     placeholders: {
       instagramHandle: "yourbusiness (or @yourbusiness)",
     },
+    scanLines: [
+      { text: "Reading your homepage the way a new customer would…" },
+      { text: "Looking for the story behind the business…" },
+      { text: "Checking whether it's clear who you're for…" },
+      { text: "Seeing how your Instagram lines up with your website…", when: "instagram" },
+      { text: "Looking at how often you're showing up…" },
+      { text: "Spotting what's already working — there's usually more than people think…" },
+      { text: "Working out the one thing worth fixing first…" },
+      { text: "Writing up your report…" },
+    ],
     scoreBands: { high: 75, mid: 50 },
     showUnassessedAsNotChecked: true,
     unassessedSocial: {
       label: "Not checked",
       cardLine: "Add your Instagram for a full score",
       overallNote: "Based on your website and story. Add your Instagram for a full score.",
+    },
+    unassessedContent: {
+      label: "Not checked",
+      cardLine: "We found your Instagram, but couldn't read when you last posted, so this isn't scored.",
     },
     nextSteps: {
       talk: {
@@ -215,6 +248,23 @@ export const editionConfig: Record<Edition, EditionConfig> = {
           href: "https://bullfinchdigital.com/resources/",
         },
       },
+    },
+    callNote:
+      "On a call we'll go through your report together and show you what we'd fix first and why — you'll come away with a clear next step whether or not we work together.",
+    spotlight: {
+      heading: "Where we'd start",
+      follow:
+        "That's the kind of thing we'd map out together — what to fix, in what order, and what it's worth to your business.",
+    },
+    pillarHelp: {
+      "Website Clarity":
+        "We rework homepages around one clear promise and the customer it's for — usually the quickest win we find.",
+      "Brand Story":
+        "Story is where every Bullfinch project starts — we draw it out of you and turn it into the line everything else hangs off.",
+      "Social Presence":
+        "We build a simple weekly content system around your story, so posting stops being guesswork.",
+      "Content Consistency":
+        "We can help plan and shoot content with you each month, so there's always something good ready to go out.",
     },
     sendScore: {
       heading: "Send me my score",

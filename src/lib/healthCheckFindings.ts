@@ -7,6 +7,8 @@ export type HealthDimensionFinding = {
   dimension: string;
   score: number | null;
   finding: string;
+  observation?: string;
+  nextStep?: string;
 };
 
 const DIMENSION_ORDER = [
@@ -215,7 +217,15 @@ export function parseApiFindings(raw: unknown): HealthDimensionFinding[] {
       if (!item || typeof item !== "object") return null;
       const row = item as Record<string, unknown>;
       const dimension = typeof row.dimension === "string" ? row.dimension.trim() : "";
-      const finding = typeof row.finding === "string" ? row.finding.trim() : "";
+      const observation = typeof row.observation === "string" ? row.observation.trim() : "";
+      const nextStepRaw =
+        typeof row.nextStep === "string"
+          ? row.nextStep.trim()
+          : typeof row.next_step === "string"
+            ? row.next_step.trim()
+            : "";
+      const finding =
+        (typeof row.finding === "string" ? row.finding.trim() : "") || observation;
       if (!dimension || !finding) return null;
       const score =
         row.score === null || row.score === undefined
@@ -224,7 +234,13 @@ export function parseApiFindings(raw: unknown): HealthDimensionFinding[] {
             ? row.score
             : Number(row.score);
       if (score !== null && Number.isNaN(score)) return null;
-      return { dimension, score, finding };
+      return {
+        dimension,
+        score,
+        finding,
+        observation: observation || finding,
+        nextStep: nextStepRaw || undefined,
+      };
     })
     .filter((item): item is HealthDimensionFinding => item !== null);
 }

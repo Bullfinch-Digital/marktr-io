@@ -3,6 +3,7 @@ import { GuestResultsNextStepsCta } from "../guest/GuestResultsNextStepsCta";
 import { SendScoreCard } from "./SendScoreCard";
 import { getLlmFindingForDimension } from "../../lib/healthCheckFindings";
 import { missingSocialPictureNote } from "../../lib/missingSocialChannels";
+import { polishWebsiteBullets } from "../../../supabase/functions/_shared/pillarFindings";
 import { DIMENSION_CAP_FRAMING_COPY } from "../../lib/healthCheck";
 import { ctaTarget, track } from "../../lib/bullfinchAnalytics";
 import { useEdition } from "../../contexts/EditionContext";
@@ -146,32 +147,29 @@ export function extractDomain(url: string) {
   }
 }
 
+function atHandle(handle: string | undefined): string | null {
+  const trimmed = handle?.trim().replace(/^@/, "");
+  return trimmed ? `@${trimmed}` : null;
+}
+
 export function getDataSourceLabel(
   dimensionName: string,
   input: Pick<HealthCheckInput, "websiteUrl" | "instagramHandle" | "facebookUrl" | "websiteScore">,
   domain: string | null
 ): string {
-  const social = input.websiteScore?.socialScores;
+  const handle = atHandle(input.instagramHandle);
+  const facebook = input.facebookUrl?.trim() ? "Facebook" : null;
+  const site = domain || null;
 
   switch (dimensionName) {
     case "Website Clarity":
-      return domain || "your website";
+      return site || "your website";
     case "Brand Story":
-      return domain || "your website";
+      return site ? `${site} homepage and about pages` : "your website";
     case "Content Consistency":
-      if (input.instagramHandle?.trim()) return input.instagramHandle.trim();
-      if (input.facebookUrl?.trim()) return "Facebook page";
-      return "platforms provided";
     case "Social Presence": {
-      if (input.instagramHandle?.trim()) {
-        const parts: string[] = [input.instagramHandle.trim()];
-        if (social?.instagramFound) {
-          if (input.facebookUrl?.trim()) parts.push("Facebook");
-          if (input.websiteUrl?.trim() || domain) parts.push("website");
-        }
-        return parts.join(", ");
-      }
-      return "Based on platforms provided";
+      const parts = [site, handle, facebook].filter((part): part is string => Boolean(part));
+      return parts.length ? parts.join(" + ") : "platforms provided";
     }
     default:
       return "";
@@ -251,6 +249,50 @@ function BrandStoryPanel({
             {signpost.copy}
           </p>
         </div>
+      ) : null}
+    </div>
+  );
+}
+
+function WebsiteBullets({
+  observation,
+  strengths,
+  gaps,
+}: {
+  observation: string;
+  strengths?: string[];
+  gaps?: string[];
+}) {
+  const working = polishWebsiteBullets(observation, strengths ?? []);
+  const missing = polishWebsiteBullets(observation, gaps ?? []);
+  if (!working.length && !missing.length) return null;
+  return (
+    <div className="mt-3 space-y-2">
+      {working.length ? (
+        <>
+          <p className="font-body text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+            What&apos;s working
+          </p>
+          {working.map((item) => (
+            <div key={item} className="flex items-start gap-2">
+              <span className="mt-0.5 text-xs text-[#2D7A5F]">✓</span>
+              <p className="font-body text-xs leading-relaxed text-[#0D1833]">{item}</p>
+            </div>
+          ))}
+        </>
+      ) : null}
+      {missing.length ? (
+        <>
+          <p className="mt-3 font-body text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+            Key gaps
+          </p>
+          {missing.map((item) => (
+            <div key={item} className="flex items-start gap-2">
+              <span className="mt-0.5 text-xs text-primary">→</span>
+              <p className="font-body text-xs leading-relaxed text-[#0D1833]">{item}</p>
+            </div>
+          ))}
+        </>
       ) : null}
     </div>
   );
@@ -388,33 +430,12 @@ function ScoreCard({
           {help}
         </p>
       ) : null}
-      {dimension.name === "Website Clarity" &&
-      dimension.strengths?.length &&
-      !showCapFraming ? (
-        <div className="mt-3 space-y-2">
-          <p className="font-body text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
-            What&apos;s working
-          </p>
-          {dimension.strengths.map((s, i) => (
-            <div key={i} className="flex items-start gap-2">
-              <span className="mt-0.5 text-xs text-[#2D7A5F]">✓</span>
-              <p className="font-body text-xs leading-relaxed text-[#0D1833]">{s}</p>
-            </div>
-          ))}
-          {!suppressGaps && dimension.gaps?.length ? (
-            <>
-              <p className="mt-3 font-body text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
-                Key gaps
-              </p>
-              {dimension.gaps.map((g, i) => (
-                <div key={i} className="flex items-start gap-2">
-                  <span className="mt-0.5 text-xs text-primary">→</span>
-                  <p className="font-body text-xs leading-relaxed text-[#0D1833]">{g}</p>
-                </div>
-              ))}
-            </>
-          ) : null}
-        </div>
+      {dimension.name === "Website Clarity" && !showCapFraming ? (
+        <WebsiteBullets
+          observation={observation}
+          strengths={dimension.strengths}
+          gaps={suppressGaps ? [] : dimension.gaps}
+        />
       ) : null}
       {sa && <BrandStoryPanel sa={sa} showStoryLinks={config.showStoryLinks} />}
     </article>

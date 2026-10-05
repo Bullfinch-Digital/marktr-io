@@ -1,6 +1,11 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { computeDeterministicScores, HEALTH_CHECK_SCORER_VERSION, OVERALL_CAP_FRAMING_COPY } from "./deterministicScores.ts";
-import { parsePillarFindings, type PillarFinding } from "../_shared/pillarFindings.ts";
+import {
+  findingsQualityIssues,
+  mergePillarFindings,
+  parsePillarFindings,
+  type PillarFinding,
+} from "../_shared/pillarFindings.ts";
 import {
   extractAllSignals,
   findProductUrl,
@@ -789,13 +794,30 @@ const FINDINGS_SYSTEM_PROMPT = `You write advisory findings for a digital health
 }
 
 RULES:
-- You receive CURRENT dimension scores (already computed from the live site). Each finding's "score" MUST exactly match the provided score for that dimension. Never invent or adjust scores. If a dimension score is a number, include that finding. Omit a dimension only when its score is null.
-- observation: ONE sentence about something specific you actually saw — a page, the bio wording, a posting pattern, or a headline. Name real specifics from the scrape. Do not restate the score.
-- next_step: ONE concrete action.
-- Plain UK English. No jargon: say "the customer you most want", never "ICP". No runs of short punchy sentences. No three-part lists.
-- Stay STRICTLY within that dimension — never put social or content advice under Website Clarity, etc.
-- strengths: 1–3 items for Website Clarity only (what is working). If Website Clarity is at raw max (100) or display-capped, return an empty strengths array.
-- gaps: 1–3 priority gaps for Website Clarity only — ONLY from website facts that scored below their top band. If Website Clarity is at raw max (100) or display-capped (dimensionCapped true), return an EMPTY gaps array. Never invent gaps. Never mention posting frequency, bios, or social platforms in Website Clarity gaps.
+- You receive CURRENT dimension scores (already computed from the live site). Each finding's "score" MUST exactly match the provided score for that dimension. Never invent or adjust scores. Return one finding for every dimension whose score is a number, including 0. Omit a dimension only when its score is null. When socialIncomplete is false, Website Clarity, Brand Story, Content Consistency and Social Presence are all required.
+- observation: ONE sentence that names something actually seen. Quote a short headline or bio line, name the page, or cite a number from socialMetrics (followers, latestPostDaysAgo, postsInLast30Days). If there is nothing specific to cite, say what is missing and where you looked (homepage, about page, Instagram bio, recent posts). Do not restate the score. Do not repeat a strengths bullet. The only time a score number may appear is a prior-run comparison.
+- next_step: ONE action the owner could do this week, naming the page or place it goes.
+- When a score is 85 or higher, next_step must build on that strength (put the good line somewhere else, or reuse it). Never say "maintain", "no action needed", or "already strong". Do not start the sentence with "Consider".
+- Write as you would say it to the owner across a table. Plain UK English. No runs of short punchy sentences. No three-part lists.
+- Banned words, never use them: CTA, call-to-action, value proposition, boilerplate, engagement, engage, leverage, enhance, optimise, optimize, ICP, brand voice, synergy, "more compelling". Say "the customer you most want" instead of ICP. Say "button" instead of CTA.
+- Stay STRICTLY within that dimension.
+  - Website Clarity: the homepage headline, a button, or another page on the site. No Instagram, posting, followers, or the founder story.
+  - Brand Story: the about page or the homepage story. No follower counts or posting.
+  - Content Consistency: cite followers, latestPostDaysAgo, or postsInLast30Days. If instagramFetchStatus is "not_provided", say no Instagram was entered on this check, so there are no posts to count. Do not say you looked the profile up. Do not talk about the homepage wording.
+  - Social Presence: quote the bio, cite the follower count, or say which profile was missing. If instagramFetchStatus is "not_provided", say no Instagram or Facebook was entered. Do not talk about the homepage headline.
+  - When Brand Story is 85 or higher and founderStory is already "present", do not tell them to add a founding story. Name another page that should use a line from the about page.
+- strengths: at most 2 items, Website Clarity only (what is already working on the website). If Website Clarity is at raw max (100) or display-capped, return an empty strengths array. Do not repeat the observation.
+- gaps: at most 2 items, Website Clarity only, and only from website facts below their top band. If Website Clarity is at raw max (100) or display-capped (dimensionCapped true), return an EMPTY gaps array. Never invent gaps. Never mention posting, bios, Instagram, Facebook, or the founder story in strengths or gaps.
+
+EXAMPLES:
+- Bad observation: "The value proposition is vague, which may confuse potential customers."
+  Good observation: "The homepage headline says 'Marketing that works' and never names who it is for."
+- Bad next_step: "Enhance the clarity of the primary CTA."
+  Good next_step: "Change the 'Contact us' button on the homepage to 'Book a site visit', so people know what happens next."
+- Bad next_step when the score is already high: "No action needed as this dimension is strong."
+  Good next_step: "Put the founder story from your About page on the homepage too."
+- Bad social observation: "The Instagram profile is thin and lacks engaging content."
+  Good social observation: "The Instagram bio is one line, 'Log cabins built in Britain', and the last post was 46 days ago."
 
 WHEN socialIncomplete IS TRUE:
 - Only write findings for Website Clarity and Brand Story.
@@ -945,11 +967,27 @@ async function generateFindingsProse(
       followers: apifyMetrics.followers,
       latestPostDaysAgo: apifyMetrics.latestPostDaysAgo,
       postsPerWeek: apifyMetrics.postsPerWeek,
+      postsInLast30Days:
+        apifyMetrics.postsPerWeek == null
+          ? null
+          : Math.round(apifyMetrics.postsPerWeek * (30 / 7)),
+      bioLength: apifyMetrics.bioLength,
     },
     priorRun: priorRun ?? null,
     pillarContext: pillarContext ?? null,
     scrapeSummary: scrapeSummary.slice(0, 4000),
   };
+
+  const measured = (
+    [
+      ["Website Clarity", scores.website],
+      ["Brand Story", scores.brandStory],
+      ["Content Consistency", scores.content],
+      ["Social Presence", scores.social],
+    ] as const
+  ).filter(([, score]) => typeof score === "number");
+  const scoresByDimension = Object.fromEntries(measured);
+  const requiredLine = measured.map(([name, score]) => `${name} score ${score}`).join("; ");
 
   const aiResp = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -966,7 +1004,7 @@ async function generateFindingsProse(
         { role: "system", content: FINDINGS_SYSTEM_PROMPT },
         {
           role: "user",
-          content: `Write findings for this health check:\n\n${JSON.stringify(userPayload, null, 2)}`,
+          content: `Write findings for this health check. Required, one finding each: ${requiredLine}.\n\n${JSON.stringify(userPayload, null, 2)}`,
         },
       ],
     }),
@@ -984,19 +1022,14 @@ async function generateFindingsProse(
   const parsed = parseFindingsJson(content);
   if (!parsed) return null;
 
-  const required = (
-    [
-      ["Website Clarity", scores.website],
-      ["Brand Story", scores.brandStory],
-      ["Content Consistency", scores.content],
-      ["Social Presence", scores.social],
-    ] as const
-  )
-    .filter(([, score]) => typeof score === "number")
-    .map(([name]) => name);
-  const have = new Set(parsed.findings.map((row) => row.dimension));
-  const missing = required.filter((name) => !have.has(name));
-  if (missing.length === 0) return parsed;
+  const required = measured.map(([name]) => name);
+  const issues = findingsQualityIssues(parsed, required, scoresByDimension);
+  console.log(
+    "findings pass",
+    parsed.findings.map((row) => row.dimension).join(", ") || "none",
+    issues.length ? issues.join(" | ") : "ok",
+  );
+  if (issues.length === 0) return mergePillarFindings(parsed, null, scoresByDimension);
 
   const retry = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -1013,18 +1046,23 @@ async function generateFindingsProse(
         { role: "system", content: FINDINGS_SYSTEM_PROMPT },
         {
           role: "user",
-          content: `Write findings for this health check:\n\n${JSON.stringify(userPayload, null, 2)}\n\nYou omitted these measured dimensions: ${missing.join(", ")}. Return the full JSON again and include every measured dimension.`,
+          content: `Write findings for this health check:\n\nRequired, one finding each: ${requiredLine}.\n\n${JSON.stringify(userPayload, null, 2)}\n\nFix these and return the full JSON again, still including every required finding:\n- ${issues.join("\n- ")}`,
         },
       ],
     }),
   });
-  if (!retry.ok) return parsed;
+  if (!retry.ok) return mergePillarFindings(parsed, null, scoresByDimension);
   const retryData = await retry.json();
   const retryContent =
     retryData?.choices?.[0]?.message?.content != null
       ? String(retryData.choices[0].message.content)
       : "";
-  return parseFindingsJson(retryContent) ?? parsed;
+  const retried = parseFindingsJson(retryContent);
+  console.log(
+    "findings retry",
+    retried?.findings.map((row) => row.dimension).join(", ") || "none",
+  );
+  return mergePillarFindings(parsed, retried, scoresByDimension);
 }
 
 Deno.serve(async (req) => {

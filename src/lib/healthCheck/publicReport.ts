@@ -6,7 +6,7 @@ export type PublicHealthCheckReportView = {
   scores: HealthCheckScores;
   input: Pick<
     HealthCheckInput,
-    "websiteUrl" | "instagramHandle" | "facebookUrl" | "websiteScore"
+    "websiteUrl" | "businessName" | "instagramHandle" | "facebookUrl" | "websiteScore"
   >;
   bfRoute: BfRoute | null;
   publicToken: string;
@@ -31,6 +31,7 @@ export function mapPublicHealthCheckReport(
       websiteUrl?: string;
       instagramHandle?: string;
       facebookUrl?: string;
+      businessName?: string;
     };
   };
   if (
@@ -52,6 +53,7 @@ export function mapPublicHealthCheckReport(
     scores,
     input: {
       websiteUrl: url,
+      businessName: scores.inputs?.businessName ?? "",
       instagramHandle: scores.inputs?.instagramHandle ?? "",
       facebookUrl: scores.inputs?.facebookUrl ?? "",
       websiteScore: scores.websiteScore ?? null,

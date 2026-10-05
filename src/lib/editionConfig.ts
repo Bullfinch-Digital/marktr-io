@@ -104,6 +104,11 @@ export type EditionConfig = {
   };
   /** Visitor and internal score-email copy. Absent on marktr. */
   scoreEmail?: ScoreEmailCopy;
+  /**
+   * Replaces the overall cap line when Social or Content was not checked.
+   * The cap still applies to the number.
+   */
+  partialScoreCapNote: string;
 };
 
 export const editionConfig: Record<Edition, EditionConfig> = {
@@ -148,6 +153,8 @@ export const editionConfig: Record<Edition, EditionConfig> = {
       { text: "Almost there — preparing your report..." },
     ],
     scoreBands: { high: 70, mid: 40 },
+    partialScoreCapNote:
+      "Your website and story are in great shape. The part we couldn't see is your social, and that's often where the gap is.",
     showUnassessedAsNotChecked: false,
   },
   bullfinch: {
@@ -211,6 +218,8 @@ export const editionConfig: Record<Edition, EditionConfig> = {
       label: "Not checked",
       cardLine: "We found your Instagram, but couldn't read when you last posted, so this isn't scored.",
     },
+    partialScoreCapNote:
+      "Your website and story are in great shape. The part we couldn't see is your social — and for businesses like yours, that's usually where the gap is.",
     nextSteps: {
       talk: {
         heading: "Your reputation's ahead of your marketing.",

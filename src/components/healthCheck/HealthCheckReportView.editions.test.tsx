@@ -219,6 +219,130 @@ describe("HealthCheckReportView editions", () => {
     bullfinch.unmount();
   });
 
+  it("swaps the cap line and spotlights unchecked social when scores are strong", () => {
+    const story = "The about page says the park has been family-run in Shropshire since 1974.";
+    const storyStep = "Use that line on the gallery page as well.";
+    const oldCap =
+      "Your scores are genuinely strong across the board — we cap the automated overall at 92 because the last few points are the kind of thing that benefits from a human eye, not a scraper.";
+    const scores = {
+      ...healthCheckReportFixtureScores,
+      overall: 92,
+      overallRaw: 95,
+      capped: true,
+      overallSummary: oldCap,
+      websiteClarity: {
+        ...healthCheckReportFixtureScores.websiteClarity,
+        score: 90,
+        scoreRaw: 90,
+        observation: "The homepage names touring pitches and who they are for.",
+        nextStep: "Move the booking button to the top of the homepage.",
+      },
+      brandStory: {
+        ...healthCheckReportFixtureScores.brandStory,
+        score: 95,
+        scoreRaw: 100,
+        dimensionCapped: true,
+        observation: story,
+        nextStep: storyStep,
+      },
+      contentConsistency: {
+        ...healthCheckReportFixtureScores.contentConsistency,
+        score: 0,
+        scoreRaw: 0,
+        observation: "No Instagram or Facebook was entered, so we couldn't check this.",
+      },
+      socialPresence: {
+        ...healthCheckReportFixtureScores.socialPresence,
+        score: 0,
+        scoreRaw: 0,
+        observation: "No Instagram or Facebook was entered, so we couldn't check this.",
+      },
+    };
+    const input = {
+      ...healthCheckReportFixtureInput,
+      websiteUrl: "https://greencaravanpark.co.uk",
+      businessName: "Green Caravan Park",
+      instagramHandle: "",
+      facebookUrl: "",
+      websiteScore: {
+        score: 90,
+        observation: "The homepage names touring pitches and who they are for.",
+        findings: [
+          {
+            dimension: "Website Clarity",
+            score: 90,
+            finding: "The homepage names touring pitches and who they are for.",
+            nextStep: "Move the booking button to the top of the homepage.",
+          },
+          {
+            dimension: "Brand Story",
+            score: 95,
+            finding: story,
+            nextStep: storyStep,
+          },
+        ],
+      },
+    };
+
+    const bullfinch = render(
+      <EditionProvider edition="bullfinch">
+        <MemoryRouter>
+          <HealthCheckReportView
+            scores={scores}
+            input={input}
+            showPaywallUpsell={false}
+            showDashboardCta={false}
+            bfRoute="talk"
+            publicToken="green-token"
+          />
+        </MemoryRouter>
+      </EditionProvider>,
+    );
+    expect(
+      bullfinch.getByText(
+        "Your website and story are in great shape. The part we couldn't see is your social — and for businesses like yours, that's usually where the gap is.",
+      ),
+    ).toBeTruthy();
+    expect(bullfinch.queryByText(oldCap)).toBeNull();
+    expect(bullfinch.queryByText(/hold the top back/)).toBeNull();
+    expect(bullfinch.queryByText(/primary CTA/i)).toBeNull();
+    expect(bullfinch.getByText(story)).toBeTruthy();
+    expect(bullfinch.getByText(storyStep)).toBeTruthy();
+    expect(bullfinch.getByText("Your social presence")).toBeTruthy();
+    expect(
+      bullfinch.getByText(
+        "We couldn't check your Instagram this time. It's usually the first thing we look at with a business like yours — whether it tells the same story as your website, and whether there's a system keeping it going.",
+      ),
+    ).toBeTruthy();
+    expect(bullfinch.getByText(/That's the kind of thing we'd map out together/)).toBeTruthy();
+    const again = bullfinch.getByRole("link", { name: "Add your Instagram and re-run the check →" });
+    expect(again.getAttribute("href")).toContain("website=https%3A%2F%2Fgreencaravanpark.co.uk");
+    expect(again.getAttribute("href")).toContain("business=Green+Caravan+Park");
+    bullfinch.unmount();
+
+    const marktr = render(
+      <EditionProvider edition="marktr">
+        <MemoryRouter>
+          <HealthCheckReportView
+            scores={scores}
+            input={input}
+            showPaywallUpsell={false}
+            showDashboardCta={false}
+          />
+        </MemoryRouter>
+      </EditionProvider>,
+    );
+    expect(
+      marktr.getByText(
+        "Your website and story are in great shape. The part we couldn't see is your social, and that's often where the gap is.",
+      ),
+    ).toBeTruthy();
+    expect(marktr.queryByText(oldCap)).toBeNull();
+    expect(marktr.queryByText("Your social presence")).toBeNull();
+    expect(marktr.getByText(story)).toBeTruthy();
+    marktr.unmount();
+  });
+
   it("keeps marktr score bands at 70/40 and uses 75/50 for bullfinch", () => {
     document.documentElement.dataset.edition = "marktr";
     expect(getScoreColor(70)).toContain("--hc-score-high");

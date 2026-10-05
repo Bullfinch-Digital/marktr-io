@@ -82,6 +82,7 @@ export function buildScoresSnapshot(opts: {
   instagramHandle: string;
   facebookUrl: string;
   domain: string;
+  businessName?: string | null;
   facts: HealthCheckFacts;
   apifyMetrics: ApifySocialMetrics;
   modelVersion: string;
@@ -130,6 +131,7 @@ export function buildScoresSnapshot(opts: {
     instagramHandle: opts.instagramHandle,
     facebookUrl: opts.facebookUrl,
     domain: opts.domain,
+    businessName: opts.businessName?.trim() || "",
   };
 
   const deterministic = {

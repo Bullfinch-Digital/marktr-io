@@ -1,10 +1,14 @@
 import { Link } from "react-router-dom";
 import { GuestResultsNextStepsCta } from "../guest/GuestResultsNextStepsCta";
 import { SendScoreCard } from "./SendScoreCard";
-import { getLlmFindingForDimension } from "../../lib/healthCheckFindings";
+import { getLlmFindingForDimension, getLlmNextStepForDimension } from "../../lib/healthCheckFindings";
 import { missingSocialPictureNote } from "../../lib/missingSocialChannels";
 import { polishWebsiteBullets } from "../../../supabase/functions/_shared/pillarFindings";
-import { DIMENSION_CAP_FRAMING_COPY } from "../../lib/healthCheck";
+import {
+  isSpecificPillarObservation,
+  logPillarFallback,
+  resolvePillarCopy,
+} from "../../lib/healthCheck/pillarCopy";
 import { ctaTarget, track } from "../../lib/bullfinchAnalytics";
 import { useEdition } from "../../contexts/EditionContext";
 import { editionConfig, fillNextStepHref } from "../../lib/editionConfig";
@@ -58,82 +62,73 @@ const DIMENSION_DETAIL: Record<
   "Website Clarity": {
     high: {
       meaning:
-        "Your homepage clearly communicates what you do and who you help. Visitors can understand your value within seconds of arriving.",
+        "Your homepage says what you do and who it's for. A new visitor can tell within a few seconds.",
       action:
-        "Focus on conversion — make sure your primary CTA is prominent above the fold.",
+        "Make sure the main thing you want visitors to do — book, call or enquire — is the first button they see.",
     },
     mid: {
       meaning:
-        "Your website communicates the basics but your value proposition could be sharper. Some visitors may not immediately understand what makes you different.",
+        "The site explains the basics, but the homepage doesn't say clearly enough what you do or who it's for.",
       action:
-        "Rewrite your homepage headline to lead with the outcome you deliver, not what you do.",
+        "Rewrite the homepage headline so it leads with the result you give people, not a list of services.",
     },
     low: {
       meaning:
-        "Visitors to your website are likely struggling to understand what you offer and who it's for. This is costing you customers every day.",
+        "A visitor can land on the homepage and still not know what you offer or who it's for.",
       action:
-        "Start with a clear headline: who you help, what you do, and why it matters — above the fold.",
+        "Put one line at the top of the homepage: who you help, what you do, and why it matters.",
     },
   },
   "Brand Story": {
     high: {
       meaning:
-        "Your brand story is compelling — visitors understand who you are, why you exist, and what makes you different.",
-      action:
-        "Use this story consistently across your website, social bios, and content.",
+        "Your story is clear. A visitor can tell who you are, why you started, and what you believe.",
+      action: "Use the same story on your homepage, your about page, and your social bios.",
     },
     mid: {
       meaning:
-        "You have the beginnings of a brand story but key elements are missing — founder narrative, emotional hook, or clear positioning.",
+        "There's a start of a story, but a visitor still can't see why you began or who it's for.",
       action:
-        "Identify the one missing element that would make your story resonate — usually a specific customer or founding moment.",
+        "Add the missing piece on your about page — usually how you started, or the customer you most want.",
     },
     low: {
       meaning:
-        "Your brand story is weak or absent. Without a clear narrative, visitors have no reason to choose you over alternatives.",
-      action:
-        "Start with your founding moment — why did you start this business and who did you start it for?",
+        "The site doesn't tell a story. A visitor has little reason to pick you over someone else.",
+      action: "On your about page, write why you started and who you started it for.",
     },
   },
   "Content Consistency": {
-    socialNote: "Instagram posting volume informed this score.",
+    socialNote: "Instagram posting informed this score.",
     high: {
-      meaning:
-        "You're showing up regularly across your channels. Consistent presence builds trust and keeps your audience engaged over time.",
-      action:
-        "Now focus on quality and strategy — make sure each post has a clear purpose tied to your ICP.",
+      meaning: "You're showing up regularly. People can see you're active, and that builds trust.",
+      action: "Keep each post tied to the story on your website, so it has a reason to exist.",
     },
     mid: {
-      meaning:
-        "Your content presence has gaps. Inconsistent posting makes it harder to build an audience and signals uncertainty to potential customers.",
-      action:
-        "Commit to a minimum posting frequency — even 2x per week consistently beats 10x in bursts.",
+      meaning: "The posting has gaps. Long silences make it harder for people to trust that you're active.",
+      action: "Pick a pace you can keep — two posts a week, every week, beats a burst and then nothing.",
     },
     low: {
-      meaning:
-        "Your content presence is too sparse to build meaningful audience trust. Potential customers who find you may not see enough to feel confident.",
+      meaning: "There isn't enough recent posting for a new visitor to feel confident.",
       action:
-        "Pick one platform and post at least twice a week for 30 days before expanding.",
+        "Pick one place to post and put something up twice a week for the next month before you add anywhere else.",
     },
   },
   "Social Presence": {
     high: {
-      meaning:
-        "Your social profiles communicate clearly and you're visible across multiple platforms where customers might find you.",
-      action:
-        "Make sure your messaging is consistent across all channels — the same story, adapted for each platform's format.",
+      meaning: "Your profiles say who you are, and people can find you in more than one place.",
+      action: "Use the same story on each profile, written for that place.",
     },
     mid: {
       meaning:
-        "You have some social visibility but your profiles could speak more clearly to your ideal customer, or you're not yet active on enough platforms.",
+        "You have a profile, but it doesn't yet say who you help, or you're only easy to find in one place.",
       action:
-        "Sharpen your Instagram bio to name who you help, then establish a presence on one additional platform.",
+        "Rewrite your Instagram bio so it names who you help, then add one more place people can find you.",
     },
     low: {
       meaning:
-        "Your social presence is limited or unclear. Potential customers searching for you on social may not find you or understand what you offer.",
+        "People looking for you on social may not find a profile, or the one they find doesn't say what you do.",
       action:
-        "Start with one platform — optimise your bio to speak to a specific customer, then post consistently for 30 days.",
+        "Start with one profile. Write the bio for a specific customer, and show up there twice a week for a month.",
     },
   },
 };
@@ -305,6 +300,7 @@ function ScoreCard({
   instagramHandle,
   facebookUrl,
   llmFinding,
+  llmNextStep,
   unassessed = false,
 }: {
   dimension: DimensionScore;
@@ -314,6 +310,7 @@ function ScoreCard({
   facebookUrl?: string;
   /** Prior-aware LLM finding — when set, replaces static tier copy. */
   llmFinding?: string;
+  llmNextStep?: string;
   unassessed?: boolean;
 }) {
   const { config } = useEdition();
@@ -353,31 +350,26 @@ function ScoreCard({
     dimension.dimensionCapped ||
     (typeof dimension.scoreRaw === "number" && dimension.scoreRaw >= 100) ||
     !dimension.gaps?.length;
-  const showCapFraming =
-    !dimension.unmeasured &&
-    (dimension.dimensionCapped ||
-      (typeof dimension.scoreRaw === "number" && dimension.scoreRaw >= 100));
-  const genericObservation =
-    !dimension.observation?.trim() ||
-    dimension.observation === "Analysis complete" ||
-    dimension.observation.startsWith("Your homepage communicates") ||
-    dimension.observation.startsWith("Your value proposition could") ||
-    dimension.observation.startsWith("Visitors may struggle") ||
-    dimension.observation.startsWith("Strong brand story") ||
-    dimension.observation.startsWith("Basic story present") ||
-    dimension.observation.startsWith("Brand story needs") ||
-    dimension.observation.startsWith("You're maintaining a consistent") ||
-    dimension.observation.startsWith("Some gaps in your content") ||
-    dimension.observation.startsWith("Irregular posting") ||
-    dimension.observation.startsWith("Strong social presence") ||
-    dimension.observation.startsWith("Social presence is building") ||
-    dimension.observation.startsWith("Limited social presence");
-  const observation = showCapFraming
-    ? DIMENSION_CAP_FRAMING_COPY
-    : !genericObservation
-      ? llmFinding?.trim() || dimension.observation
-      : detailTier?.meaning || llmFinding?.trim() || dimension.observation;
-  const nextStep = showCapFraming ? undefined : dimension.nextStep?.trim() || detailTier?.action;
+  const findingText = llmFinding?.trim();
+  const storedText = dimension.observation?.trim();
+  const modelObservation =
+    [findingText, storedText].find((text) => isSpecificPillarObservation(text)) ||
+    findingText ||
+    storedText;
+  const modelNextStep = dimension.nextStep?.trim() || llmNextStep?.trim();
+  const resolved = resolvePillarCopy({
+    pillar: dimension.name,
+    score: displayScore,
+    scoreRaw: dimension.scoreRaw,
+    dimensionCapped: dimension.dimensionCapped,
+    modelObservation,
+    modelNextStep,
+    bandMeaning: detailTier?.meaning,
+    bandAction: detailTier?.action,
+  });
+  resolved.fallbacks.forEach(logPillarFallback);
+  const observation = resolved.observation;
+  const nextStep = resolved.nextStep;
 
   const missingNote =
     dimension.name === "Social Presence" && !dimension.unmeasured && !unassessed
@@ -434,7 +426,7 @@ function ScoreCard({
           {help}
         </p>
       ) : null}
-      {dimension.name === "Website Clarity" && !showCapFraming ? (
+      {dimension.name === "Website Clarity" ? (
         <WebsiteBullets
           observation={observation}
           strengths={dimension.strengths}
@@ -518,7 +510,7 @@ export type HealthCheckReportViewProps = {
   scores: HealthCheckScores;
   input: Pick<
     HealthCheckInput,
-    "websiteUrl" | "instagramHandle" | "facebookUrl" | "websiteScore"
+    "websiteUrl" | "businessName" | "instagramHandle" | "facebookUrl" | "websiteScore"
   >;
   showPaywallUpsell: boolean;
   showDashboardCta: boolean;
@@ -595,15 +587,34 @@ function StoredNextStep({
   );
 }
 
+function recheckHref(website: string, business: string): string {
+  const params = new URLSearchParams();
+  if (typeof window !== "undefined") {
+    const edition = new URLSearchParams(window.location.search).get("edition");
+    if (edition) params.set("edition", edition);
+  }
+  if (website) params.set("website", website);
+  if (business) params.set("business", business);
+  const query = params.toString();
+  return query ? `/?${query}` : "/";
+}
+
+const UNCHECKED_SOCIAL_SPOTLIGHT = {
+  title: "Your social presence",
+  text: "We couldn't check your Instagram this time. It's usually the first thing we look at with a business like yours — whether it tells the same story as your website, and whether there's a system keeping it going.",
+};
+
 function WhereWeStart({
   route,
   websiteUrl,
+  businessName,
   publicToken,
   cards,
   isUnassessed,
 }: {
   route: BfRoute;
   websiteUrl: string;
+  businessName: string;
   publicToken: string;
   cards: { key: string; shortName: string; dimension: DimensionScore }[];
   isUnassessed: (name: string) => boolean;
@@ -612,23 +623,35 @@ function WhereWeStart({
   const spotlight = config.spotlight;
   const step = config.nextSteps?.[route];
   if (!spotlight || !step) return null;
+  const uncheckedSocial = cards.some(
+    (card) =>
+      isUnassessed(card.dimension.name) &&
+      (card.dimension.name === "Social Presence" || card.dimension.name === "Content Consistency"),
+  );
   const checked = cards.filter(
     (card) => !isUnassessed(card.dimension.name) && typeof card.dimension.score === "number",
   );
-  if (checked.length === 0) return null;
-  const lowest = checked.reduce((best, card) =>
-    (card.dimension.score ?? 0) < (best.dimension.score ?? 0) ? card : best,
+  if (!uncheckedSocial && checked.length === 0) return null;
+  const lowest = checked.reduce<(typeof checked)[number] | null>(
+    (best, card) =>
+      !best || (card.dimension.score ?? 0) < (best.dimension.score ?? 0) ? card : best,
+    null,
   );
-  const score = lowest.dimension.score;
-  const band = score === null ? undefined : DIMENSION_DETAIL[lowest.dimension.name]?.[scoreBand(score)];
-  const next = lowest.dimension.nextStep?.trim() || band?.action;
+  const score = lowest?.dimension.score ?? null;
+  const band =
+    lowest && score !== null ? DIMENSION_DETAIL[lowest.dimension.name]?.[scoreBand(score)] : undefined;
+  const title = uncheckedSocial ? UNCHECKED_SOCIAL_SPOTLIGHT.title : lowest?.shortName;
+  const body = uncheckedSocial
+    ? UNCHECKED_SOCIAL_SPOTLIGHT.text
+    : lowest?.dimension.nextStep?.trim() || band?.action;
   const href = fillNextStepHref(step.primary.href, { url: websiteUrl, publicToken, route });
+  const againHref = recheckHref(websiteUrl, businessName);
 
   return (
     <section className="mt-8 rounded-[18px] border border-border bg-white px-6 py-6 sm:px-8">
       <h2 className="font-display text-2xl font-semibold text-foreground">{spotlight.heading}</h2>
-      <p className="mt-3 font-body text-sm font-medium text-[#0D1833]">{lowest.shortName}</p>
-      {next ? <p className="mt-2 font-body text-sm leading-relaxed text-[#0D1833]">{next}</p> : null}
+      {title ? <p className="mt-3 font-body text-sm font-medium text-[#0D1833]">{title}</p> : null}
+      {body ? <p className="mt-2 font-body text-sm leading-relaxed text-[#0D1833]">{body}</p> : null}
       <p className="mt-3 max-w-2xl font-body text-sm leading-relaxed text-muted-foreground">{spotlight.follow}</p>
       <a
         href={href}
@@ -640,6 +663,13 @@ function WhereWeStart({
       >
         {step.primary.label}
       </a>
+      {uncheckedSocial ? (
+        <div className="mt-4">
+          <Link to={againHref} className="font-body text-sm underline hover:text-foreground">
+            Add your Instagram and re-run the check →
+          </Link>
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -682,6 +712,12 @@ export function HealthCheckReportView({
     (Boolean(unassessedCopy) &&
       (name === "Social Presence" || name === "Content Consistency")) ||
     (contentPostingUnread && name === "Content Consistency");
+  const socialOrContentUnchecked =
+    isUnassessedDimension("Social Presence") ||
+    isUnassessedDimension("Content Consistency") ||
+    scores.contentConsistency.unmeasured === true ||
+    scores.socialPresence.unmeasured === true ||
+    ((!input.instagramHandle?.trim() && !input.facebookUrl?.trim()) && scores.capped === true);
 
   const reportContent = (
     <>
@@ -742,7 +778,9 @@ export function HealthCheckReportView({
 
       {scores.overallSummary ? (
         <p className="mt-4 font-body text-sm leading-relaxed text-muted-foreground">
-          {scores.overallSummary}
+          {socialOrContentUnchecked && config.partialScoreCapNote
+            ? config.partialScoreCapNote
+            : scores.overallSummary}
         </p>
       ) : null}
 
@@ -771,6 +809,7 @@ export function HealthCheckReportView({
         <WhereWeStart
           route={bfRoute}
           websiteUrl={input.websiteUrl ?? ""}
+          businessName={input.businessName ?? ""}
           publicToken={publicToken}
           cards={scoreCards}
           isUnassessed={isUnassessedDimension}
@@ -789,6 +828,7 @@ export function HealthCheckReportView({
                 instagramHandle={input.instagramHandle}
                 facebookUrl={input.facebookUrl}
                 llmFinding={getLlmFindingForDimension(dimension.name, input.websiteScore)}
+                llmNextStep={getLlmNextStepForDimension(dimension.name, input.websiteScore)}
                 unassessed={isUnassessedDimension(dimension.name)}
               />
             </div>
@@ -806,6 +846,7 @@ export function HealthCheckReportView({
                 instagramHandle={input.instagramHandle}
                 facebookUrl={input.facebookUrl}
                 llmFinding={getLlmFindingForDimension(dimension.name, input.websiteScore)}
+                llmNextStep={getLlmNextStepForDimension(dimension.name, input.websiteScore)}
                 unassessed={isUnassessedDimension(dimension.name)}
               />
             </div>

@@ -57,6 +57,16 @@ export function getLlmFindingForDimension(
   return finding || undefined;
 }
 
+export function getLlmNextStepForDimension(
+  dimensionName: string,
+  websiteScore?: { findings?: HealthDimensionFinding[] | null } | null
+): string | undefined {
+  const nextStep = websiteScore?.findings
+    ?.find((f) => f.dimension === dimensionName)
+    ?.nextStep?.trim();
+  return nextStep || undefined;
+}
+
 export function hasLlmFindings(
   websiteScore?: { findings?: HealthDimensionFinding[] | null } | null
 ): boolean {

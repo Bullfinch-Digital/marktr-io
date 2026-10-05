@@ -128,16 +128,19 @@ export default function HealthCheck() {
 
   useEffect(() => {
     const ctx = getGuestContext();
+    const params = new URLSearchParams(window.location.search);
+    const website = params.get("website")?.trim();
+    const business = params.get("business")?.trim();
     setFormData((prev) => ({
       ...prev,
-      businessName: ctx.business.businessName || prev.businessName,
-      websiteUrl: ctx.business.websiteUrl || prev.websiteUrl,
+      businessName: business || ctx.business.businessName || prev.businessName,
+      websiteUrl: website || ctx.business.websiteUrl || prev.websiteUrl,
       instagramHandle: ctx.business.instagramHandle || prev.instagramHandle,
       facebookUrl: ctx.business.facebookUrl || prev.facebookUrl,
       email: ctx.identity.email || prev.email,
     }));
     setIdentityName(ctx.identity.name || "");
-    if (ctx.business.businessName?.trim()) {
+    if (business || ctx.business.businessName?.trim()) {
       setBusinessNameTouched(true);
     }
   }, []);

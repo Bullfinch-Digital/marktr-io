@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.2";
-import { bullfinchRoute } from "../_shared/bullfinchRouting.ts";
+import { bullfinchRoute, routePillarsChecked } from "../_shared/bullfinchRouting.ts";
 import { storedBusinessName } from "../_shared/reportLeadCapture.ts";
 import { generatePublicToken } from "../_shared/publicToken.ts";
 import { computeDeterministicScores, HEALTH_CHECK_SCORER_VERSION } from "./deterministicScores.ts";
@@ -223,10 +223,13 @@ export async function persistHealthCheckReport(opts: {
   const snapshot = buildScoresSnapshot(opts);
   const publicToken = generatePublicToken();
   const supabase = createClient(supabaseUrl, serviceRoleKey);
+  const checked = routePillarsChecked(opts.apifyMetrics);
   const bfRoute = bullfinchRoute({
     websiteClarity: snapshot.website,
     brandStory: snapshot.brandStory,
     overall: snapshot.overall,
+    contentChecked: checked.contentChecked,
+    socialChecked: checked.socialChecked,
   });
 
   const { error } = await supabase.from("health_check_reports").insert({

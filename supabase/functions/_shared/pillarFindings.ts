@@ -17,6 +17,9 @@ export type PillarFindingsPayload = {
 export const BANNED_COPY =
   /\b(?:ctas?|call-to-actions?|calls? to action|value propositions?|boilerplate|engag\w*|leverag\w*|enhanc\w*|optimis\w*|optimiz\w*|icp|brand voice|synergy|more compelling|post more|attract more followers)\b/i;
 
+export const UNCHECKED_PILLAR_LINE =
+  "No Instagram or Facebook was entered, so we couldn't check this.";
+
 export type FindingSourceText = {
   homepage: string;
   all: string;
@@ -55,6 +58,15 @@ export function observationFitsPillar(dimension: string, text: string): boolean 
     return !/\b(?:instagram|facebook|followers|last post)\b/i.test(text);
   }
   return true;
+}
+
+function withoutTarget(text: string): string {
+  return text
+    .replace(/,?\s*which is below the target\b/gi, "")
+    .replace(/\bthe target\b/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .replace(/\s+([,.;])/g, "$1")
+    .trim();
 }
 
 function withoutConsider(text: string): string {
@@ -235,7 +247,7 @@ export function polishPillarFindings(
     let observation =
       hasBannedCopy(row.observation) || !observationFitsPillar(row.dimension, row.observation)
         ? ""
-        : row.observation;
+        : withoutTarget(row.observation);
     let nextStep = hasBannedCopy(row.nextStep) ? "" : withoutConsider(row.nextStep);
     if (source) {
       observation = dropUnverifiedQuotes(observation, source.all);
@@ -272,6 +284,11 @@ export function findingsQualityIssues(
   for (const row of payload.findings) {
     if (hasBannedCopy(row.observation) || hasBannedCopy(row.nextStep)) {
       issues.push(`${row.dimension} uses a banned word. Rewrite it in plain words.`);
+    }
+    if (row.dimension === "Content Consistency" && /\bthe target\b/i.test(row.observation)) {
+      issues.push(
+        `${row.dimension} observation must not mention a target. State the count only, and put the weekly aim in next_step.`,
+      );
     }
     if (!isSpecificObservation(row.observation) || !observationFitsPillar(row.dimension, row.observation)) {
       issues.push(
@@ -324,6 +341,7 @@ function rowIsClean(
   source?: FindingSourceText,
 ): boolean {
   if (hasBannedCopy(row.observation) || hasBannedCopy(row.nextStep)) return false;
+  if (row.dimension === "Content Consistency" && /\bthe target\b/i.test(row.observation)) return false;
   if (!isSpecificObservation(row.observation) || !observationFitsPillar(row.dimension, row.observation)) {
     return false;
   }
@@ -371,4 +389,29 @@ export function mergePillarFindings(
     },
     source,
   );
+}
+
+/** Marktr still prints these pillars. Do not claim we counted posts that were never supplied. */
+export function applyUncheckedPillarCopy(
+  payload: PillarFindingsPayload,
+  noProfileEntered: boolean,
+): PillarFindingsPayload {
+  if (!noProfileEntered) return payload;
+  const names = ["Content Consistency", "Social Presence"];
+  const findings = payload.findings.map((row) =>
+    names.includes(row.dimension)
+      ? { ...row, observation: UNCHECKED_PILLAR_LINE, finding: UNCHECKED_PILLAR_LINE }
+      : row,
+  );
+  for (const name of names) {
+    if (findings.some((row) => row.dimension === name)) continue;
+    findings.push({
+      dimension: name,
+      score: 0,
+      observation: UNCHECKED_PILLAR_LINE,
+      finding: UNCHECKED_PILLAR_LINE,
+      nextStep: "",
+    });
+  }
+  return { ...payload, findings };
 }

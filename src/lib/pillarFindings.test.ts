@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  UNCHECKED_PILLAR_LINE,
+  applyUncheckedPillarCopy,
   dropUnverifiedQuotes,
   extractQuotes,
   findingsQualityIssues,
@@ -242,5 +244,44 @@ describe("pillar findings", () => {
       { "Content Consistency": 75 },
     );
     expect(issues.some((issue) => issue.includes("banned"))).toBe(true);
+  });
+
+  it("drops a mention of the target and does not invent a post count when nothing was entered", () => {
+    const polished = polishPillarFindings({
+      findings: [
+        {
+          dimension: "Content Consistency",
+          score: 75,
+          observation: "You've posted once in the last 30 days, which is below the target.",
+          nextStep: "Aim for one post a week, and film a cabin going up.",
+          finding: "You've posted once in the last 30 days, which is below the target.",
+        },
+      ],
+      strengths: [],
+      gaps: [],
+    });
+    expect(polished.findings[0].observation).toBe("You've posted once in the last 30 days.");
+    const unchecked = applyUncheckedPillarCopy(
+      {
+        findings: [
+          {
+            dimension: "Content Consistency",
+            score: 0,
+            observation: "No posts were found in the last 30 days, and no Instagram or Facebook profiles were entered.",
+            nextStep: "Create an Instagram account.",
+            finding: "No posts were found in the last 30 days.",
+          },
+        ],
+        strengths: [],
+        gaps: [],
+      },
+      true,
+    );
+    expect(unchecked.findings.find((row) => row.dimension === "Content Consistency")?.observation).toBe(
+      UNCHECKED_PILLAR_LINE,
+    );
+    expect(unchecked.findings.find((row) => row.dimension === "Social Presence")?.observation).toBe(
+      UNCHECKED_PILLAR_LINE,
+    );
   });
 });

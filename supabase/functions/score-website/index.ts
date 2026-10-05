@@ -2,6 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { computeDeterministicScores, HEALTH_CHECK_SCORER_VERSION, OVERALL_CAP_FRAMING_COPY } from "./deterministicScores.ts";
 import {
   findingsQualityIssues,
+  applyUncheckedPillarCopy,
   mergePillarFindings,
   parsePillarFindings,
   type PillarFinding,
@@ -804,8 +805,8 @@ RULES:
 - Stay STRICTLY within that dimension.
   - Website Clarity: the homepage headline, a button, or another page on the site. No Instagram, posting, followers, or the founder story.
   - Brand Story: the about page or the homepage story. No follower counts or posting.
-  - Content Consistency: cite followers, latestPostDaysAgo, or postsInLast30Days. If instagramFetchStatus is "not_provided", say no Instagram was entered on this check, so there are no posts to count. Do not say you looked the profile up. Do not talk about the homepage wording.
-  - Social Presence: quote the bio, cite the follower count, or say which profile was missing. If instagramFetchStatus is "not_provided", say no Instagram or Facebook was entered. Do not talk about the homepage headline.
+  - Content Consistency: cite followers, latestPostDaysAgo, or postsInLast30Days. The observation states only the count, for example "You've posted once in the last 30 days." Never say "the target". Put the weekly aim in next_step. If instagramFetchStatus is "not_provided" and Facebook was not found, the observation is exactly "No Instagram or Facebook was entered, so we couldn't check this." Do not say no posts were found. Do not talk about the homepage wording.
+  - Social Presence: quote the bio, cite the follower count, or say which profile was missing. If instagramFetchStatus is "not_provided" and Facebook was not found, the observation is exactly "No Instagram or Facebook was entered, so we couldn't check this." Do not talk about the homepage headline.
   - When Brand Story is 85 or higher and founderStory is already "present", do not tell them to add a founding story. Name another page that should use a line from the about page.
 - strengths: at most 2 items, Website Clarity only (what is already working on the website). If Website Clarity is at raw max (100) or display-capped, return an empty strengths array. Do not repeat the observation.
 - gaps: at most 2 items, Website Clarity only, and only from website facts below their top band. If Website Clarity is at raw max (100) or display-capped (dimensionCapped true), return an EMPTY gaps array. Never invent gaps. Never mention posting, bios, Instagram, Facebook, or the founder story in strengths or gaps.
@@ -817,6 +818,8 @@ EXAMPLES:
   Good next_step: "Under 'Get out there!', add a line saying who the park is best for — your about page mentions families and dog walkers, so lead with whichever books most."
 - Bad next_step when the score is already high: "No action needed as this dimension is strong."
   Good next_step: "Put the founder story from your About page on the homepage too."
+- Bad content observation: "You've posted once in the last 30 days, which is below the target."
+  Good content observation: "You've posted once in the last 30 days."
 - Bad content next_step: "Post more frequently on Instagram to attract more followers."
   Good content next_step: "You've posted once in the last 30 days — one a week would make a real difference, and a cabin going up from base to roof is an easy series to film."
 - Bad social observation: "The Instagram profile is thin and lacks engaging content."
@@ -1033,7 +1036,12 @@ async function generateFindingsProse(
     parsed.findings.map((row) => row.dimension).join(", ") || "none",
     issues.length ? issues.join(" | ") : "ok",
   );
-  if (issues.length === 0) return mergePillarFindings(parsed, null, scoresByDimension, sourceText);
+  if (issues.length === 0) {
+    return applyUncheckedPillarCopy(
+      mergePillarFindings(parsed, null, scoresByDimension, sourceText),
+      !apifyMetrics.instagramFound && !apifyMetrics.facebookFound && apifyMetrics.instagramFetchStatus !== "incomplete",
+    );
+  }
 
   const retry = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -1055,7 +1063,16 @@ async function generateFindingsProse(
       ],
     }),
   });
-  if (!retry.ok) return mergePillarFindings(parsed, null, scoresByDimension, sourceText);
+  const noProfileEntered =
+    !apifyMetrics.instagramFound &&
+    !apifyMetrics.facebookFound &&
+    apifyMetrics.instagramFetchStatus !== "incomplete";
+  if (!retry.ok) {
+    return applyUncheckedPillarCopy(
+      mergePillarFindings(parsed, null, scoresByDimension, sourceText),
+      noProfileEntered,
+    );
+  }
   const retryData = await retry.json();
   const retryContent =
     retryData?.choices?.[0]?.message?.content != null
@@ -1066,7 +1083,10 @@ async function generateFindingsProse(
     "findings retry",
     retried?.findings.map((row) => row.dimension).join(", ") || "none",
   );
-  return mergePillarFindings(parsed, retried, scoresByDimension, sourceText);
+  return applyUncheckedPillarCopy(
+    mergePillarFindings(parsed, retried, scoresByDimension, sourceText),
+    noProfileEntered,
+  );
 }
 
 Deno.serve(async (req) => {

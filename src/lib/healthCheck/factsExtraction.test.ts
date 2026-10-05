@@ -152,8 +152,8 @@ describe("facts extraction schema and cache key", () => {
     );
   });
 
-  it("keeps edge and client scorer versions in sync at 1.0.4", () => {
-    expect(HEALTH_CHECK_SCORER_VERSION).toBe("1.0.4");
+  it("keeps edge and client scorer versions in sync at 1.0.5", () => {
+    expect(HEALTH_CHECK_SCORER_VERSION).toBe("1.0.5");
   });
 
   it("normalises whitespace without dropping words", () => {

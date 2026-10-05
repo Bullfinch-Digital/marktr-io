@@ -317,7 +317,11 @@ function ScoreCard({
   unassessed?: boolean;
 }) {
   const { config } = useEdition();
-  const notChecked = unassessed ? config.unassessedSocial : undefined;
+  const notChecked = !unassessed
+    ? undefined
+    : dimension.name === "Content Consistency" && instagramHandle?.trim() && config.unassessedContent
+      ? config.unassessedContent
+      : config.unassessedSocial;
   if (notChecked) {
     return (
       <article className="rounded-2xl border border-border bg-white p-6">
@@ -670,9 +674,14 @@ export function HealthCheckReportView({
     !input.facebookUrl?.trim() &&
     Boolean(config.unassessedSocial);
   const unassessedCopy = socialNotEntered ? config.unassessedSocial : undefined;
+  const contentPostingUnread =
+    config.showUnassessedAsNotChecked &&
+    scores.contentConsistency.unmeasured === true &&
+    !socialNotEntered;
   const isUnassessedDimension = (name: string) =>
-    Boolean(unassessedCopy) &&
-    (name === "Social Presence" || name === "Content Consistency");
+    (Boolean(unassessedCopy) &&
+      (name === "Social Presence" || name === "Content Consistency")) ||
+    (contentPostingUnread && name === "Content Consistency");
 
   const reportContent = (
     <>
@@ -708,7 +717,9 @@ export function HealthCheckReportView({
             score={dimension.score}
             href={`#section-${key}`}
             unassessedLabel={
-              isUnassessedDimension(dimension.name) ? unassessedCopy?.label : undefined
+              isUnassessedDimension(dimension.name)
+                ? unassessedCopy?.label ?? config.unassessedContent?.label
+                : undefined
             }
           />
         ))}

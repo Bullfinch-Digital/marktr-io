@@ -68,13 +68,18 @@ export type EditionConfig = {
   scoreBands: { high: number; mid: number };
   /**
    * When true, Social and Content with no handles render as "Not checked"
-   * instead of a zero score. Display only; stored scores are unchanged.
+   * instead of a zero score. The stored overall excludes those zeros.
    */
   showUnassessedAsNotChecked: boolean;
   unassessedSocial?: {
     label: string;
     cardLine: string;
     overallNote: string;
+  };
+  /** Instagram was found, but posting dates could not be read. Bullfinch only. */
+  unassessedContent?: {
+    label: string;
+    cardLine: string;
   };
   /** Bullfinch next-step copy and URLs. Absent on marktr so the upsell stays put. */
   nextSteps?: Record<BfRoute, NextStepCopy>;
@@ -201,6 +206,10 @@ export const editionConfig: Record<Edition, EditionConfig> = {
       label: "Not checked",
       cardLine: "Add your Instagram for a full score",
       overallNote: "Based on your website and story. Add your Instagram for a full score.",
+    },
+    unassessedContent: {
+      label: "Not checked",
+      cardLine: "We found your Instagram, but couldn't read when you last posted, so this isn't scored.",
     },
     nextSteps: {
       talk: {

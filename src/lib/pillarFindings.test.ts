@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  dropUnverifiedQuotes,
+  extractQuotes,
   findingsQualityIssues,
+  lineAlreadyOnHomepage,
   mergePillarFindings,
   parsePillarFindings,
   polishPillarFindings,
@@ -173,5 +176,71 @@ describe("pillar findings", () => {
     expect(getDataSourceLabel("Brand Story", input, "britishlogcabins.com")).toBe(
       "britishlogcabins.com homepage and about pages",
     );
+  });
+
+  it("drops a quoted line that is not on the site, and a homepage step that is already done", () => {
+    const source = {
+      homepage: "Get out there! The Green Caravan Park is a family-run site in Shropshire.",
+      all: "Get out there! The Green Caravan Park is a family-run site in Shropshire. We create beautiful handcrafted Log Homes.",
+    };
+    expect(extractQuotes("Under 'Get out there!', add a line.")).toEqual(["Get out there!"]);
+    expect(extractQuotes("Add 'Let's build your dream log cabin today' to the page.")).toEqual([
+      "Let's build your dream log cabin today",
+    ]);
+    const polished = polishPillarFindings(
+      {
+        findings: [
+          {
+            dimension: "Website Clarity",
+            score: 90,
+            observation: "The homepage headline says 'Get out there!'",
+            nextStep: "Change the headline to 'Get out there, families and adventurers!'",
+            finding: "The homepage headline says 'Get out there!'",
+          },
+          {
+            dimension: "Brand Story",
+            score: 100,
+            observation:
+              "The about page says 'The Green Caravan Park is a family-run site in Shropshire.'",
+            nextStep: "Use that line from the about page on the homepage.",
+            finding: "The about page says 'The Green Caravan Park is a family-run site in Shropshire.'",
+          },
+        ],
+        strengths: [],
+        gaps: [],
+      },
+      source,
+    );
+    expect(polished.findings[0].nextStep).toBe("Change the headline to");
+    expect(polished.findings[0].observation).toContain("Get out there!");
+    expect(polished.findings[1].nextStep).toBe("");
+    expect(
+      lineAlreadyOnHomepage(
+        "Use that line from the about page on the homepage.",
+        "The about page says 'The Green Caravan Park is a family-run site in Shropshire.'",
+        source.homepage,
+      ),
+    ).toBe(true);
+    expect(dropUnverifiedQuotes("Keep 'We create beautiful handcrafted Log Homes.'", source.all)).toContain(
+      "handcrafted Log Homes",
+    );
+    const issues = findingsQualityIssues(
+      {
+        findings: [
+          {
+            dimension: "Content Consistency",
+            score: 75,
+            observation: "You've posted once in the last 30 days.",
+            nextStep: "Post more frequently so you attract more followers.",
+            finding: "You've posted once in the last 30 days.",
+          },
+        ],
+        strengths: [],
+        gaps: [],
+      },
+      ["Content Consistency"],
+      { "Content Consistency": 75 },
+    );
+    expect(issues.some((issue) => issue.includes("banned"))).toBe(true);
   });
 });

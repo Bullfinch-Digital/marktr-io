@@ -796,10 +796,11 @@ const FINDINGS_SYSTEM_PROMPT = `You write advisory findings for a digital health
 RULES:
 - You receive CURRENT dimension scores (already computed from the live site). Each finding's "score" MUST exactly match the provided score for that dimension. Never invent or adjust scores. Return one finding for every dimension whose score is a number, including 0. Omit a dimension only when its score is null. When socialIncomplete is false, Website Clarity, Brand Story, Content Consistency and Social Presence are all required.
 - observation: ONE sentence that names something actually seen. Quote a short headline or bio line, name the page, or cite a number from socialMetrics (followers, latestPostDaysAgo, postsInLast30Days). If there is nothing specific to cite, say what is missing and where you looked (homepage, about page, Instagram bio, recent posts). Do not restate the score. Do not repeat a strengths bullet. The only time a score number may appear is a prior-run comparison.
-- next_step: ONE action the owner could do this week, naming the page or place it goes.
-- When a score is 85 or higher, next_step must build on that strength (put the good line somewhere else, or reuse it). Never say "maintain", "no action needed", or "already strong". Do not start the sentence with "Consider".
+- next_step: ONE action the owner could do this week, naming the page or place it goes. Never invent a slogan, headline, or tagline and put it in quotes. Describe what the line needs to do, using only words already on the site. Quoting their existing text is fine.
+- When postsInLast30Days is a number, the Content next_step must name that count, a realistic target, and one easy thing to film or photograph from their own business. If they are under four posts in 30 days, one a week is the target.
+- When a score is 85 or higher, next_step must build on that strength (put a line that is already working somewhere else). Never say "maintain", "no action needed", or "already strong". Do not start the sentence with "Consider". If the line is already on the homepage, do not tell them to add it there.
 - Write as you would say it to the owner across a table. Plain UK English. No runs of short punchy sentences. No three-part lists.
-- Banned words, never use them: CTA, call-to-action, value proposition, boilerplate, engagement, engage, leverage, enhance, optimise, optimize, ICP, brand voice, synergy, "more compelling". Say "the customer you most want" instead of ICP. Say "button" instead of CTA.
+- Banned words, never use them: CTA, call-to-action, value proposition, boilerplate, engagement, engage, leverage, enhance, optimise, optimize, ICP, brand voice, synergy, "more compelling", "post more", "post more frequently", "attract more followers". Say "the customer you most want" instead of ICP. Say "button" instead of CTA.
 - Stay STRICTLY within that dimension.
   - Website Clarity: the homepage headline, a button, or another page on the site. No Instagram, posting, followers, or the founder story.
   - Brand Story: the about page or the homepage story. No follower counts or posting.
@@ -812,10 +813,12 @@ RULES:
 EXAMPLES:
 - Bad observation: "The value proposition is vague, which may confuse potential customers."
   Good observation: "The homepage headline says 'Marketing that works' and never names who it is for."
-- Bad next_step: "Enhance the clarity of the primary CTA."
-  Good next_step: "Change the 'Contact us' button on the homepage to 'Book a site visit', so people know what happens next."
+- Bad next_step: "Change the headline to 'Get out there, families and adventurers!'"
+  Good next_step: "Under 'Get out there!', add a line saying who the park is best for — your about page mentions families and dog walkers, so lead with whichever books most."
 - Bad next_step when the score is already high: "No action needed as this dimension is strong."
   Good next_step: "Put the founder story from your About page on the homepage too."
+- Bad content next_step: "Post more frequently on Instagram to attract more followers."
+  Good content next_step: "You've posted once in the last 30 days — one a week would make a real difference, and a cabin going up from base to roof is an easy series to film."
 - Bad social observation: "The Instagram profile is thin and lacks engaging content."
   Good social observation: "The Instagram bio is one line, 'Log cabins built in Britain', and the last post was 46 days ago."
 
@@ -901,7 +904,8 @@ async function generateFindingsProse(
   scores: ReturnType<typeof computeDeterministicScores>,
   priorRun: PriorRunInput | undefined,
   pillarContext: PillarContextInput | undefined,
-  scrapeSummary: string
+  scrapeSummary: string,
+  sourceText: { homepage: string; all: string },
 ): Promise<FindingsResponse | null> {
   const userPayload = {
     currentScores: {
@@ -1023,13 +1027,13 @@ async function generateFindingsProse(
   if (!parsed) return null;
 
   const required = measured.map(([name]) => name);
-  const issues = findingsQualityIssues(parsed, required, scoresByDimension);
+  const issues = findingsQualityIssues(parsed, required, scoresByDimension, sourceText);
   console.log(
     "findings pass",
     parsed.findings.map((row) => row.dimension).join(", ") || "none",
     issues.length ? issues.join(" | ") : "ok",
   );
-  if (issues.length === 0) return mergePillarFindings(parsed, null, scoresByDimension);
+  if (issues.length === 0) return mergePillarFindings(parsed, null, scoresByDimension, sourceText);
 
   const retry = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -1051,7 +1055,7 @@ async function generateFindingsProse(
       ],
     }),
   });
-  if (!retry.ok) return mergePillarFindings(parsed, null, scoresByDimension);
+  if (!retry.ok) return mergePillarFindings(parsed, null, scoresByDimension, sourceText);
   const retryData = await retry.json();
   const retryContent =
     retryData?.choices?.[0]?.message?.content != null
@@ -1062,7 +1066,7 @@ async function generateFindingsProse(
     "findings retry",
     retried?.findings.map((row) => row.dimension).join(", ") || "none",
   );
-  return mergePillarFindings(parsed, retried, scoresByDimension);
+  return mergePillarFindings(parsed, retried, scoresByDimension, sourceText);
 }
 
 Deno.serve(async (req) => {
@@ -1353,7 +1357,8 @@ Deno.serve(async (req) => {
           deterministicScores,
           priorRun,
           pillarContext,
-          combinedText
+          combinedText,
+          { homepage: homepageSignalsForCache, all: combinedText },
         );
       } catch (findingsErr) {
         console.warn("Findings generation failed:", findingsErr);

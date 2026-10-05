@@ -26,13 +26,12 @@ export function isBfRoute(value: unknown): value is BfRoute {
 }
 
 /**
- * Server-side Bullfinch next-step route. Social and Content are ignored:
- * they are 0 whenever no handle was entered and must not send anyone to diy.
+ * Server-side Bullfinch next-step route. Social and Content never decide diy.
+ * The overall passed in must already exclude pillars that were not checked.
  *
  * diy: the site itself is too thin (Website Clarity and Brand Story both < 40).
  * polish: overall ≥ 75.
- * talk: everything else, including a strong site with no social handles
- *   (Social and Content are 0 in that case, so overall stays below 75).
+ * talk: everything else.
  */
 export function bullfinchRoute(scores: BullfinchRouteScores): BfRoute {
   const website = finiteNumber(scores.websiteClarity);

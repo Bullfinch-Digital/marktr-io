@@ -15,7 +15,12 @@ export type PillarFindingsPayload = {
 
 /** Words we will not show a business owner. */
 export const BANNED_COPY =
-  /\b(?:ctas?|call-to-actions?|calls? to action|value propositions?|boilerplate|engag\w*|leverag\w*|enhanc\w*|optimis\w*|optimiz\w*|icp|brand voice|synergy|more compelling)\b/i;
+  /\b(?:ctas?|call-to-actions?|calls? to action|value propositions?|boilerplate|engag\w*|leverag\w*|enhanc\w*|optimis\w*|optimiz\w*|icp|brand voice|synergy|more compelling|post more|attract more followers)\b/i;
+
+export type FindingSourceText = {
+  homepage: string;
+  all: string;
+};
 
 const OFF_WEBSITE =
   /\b(?:instagram|facebook|tiktok|bio|posting|followers|founder|about page|brand story|story|narrative|social media|socials|last post|posts a week|posts per)\b/i;
@@ -56,6 +61,91 @@ function withoutConsider(text: string): string {
   const stripped = text.replace(/^consider\s+/i, "");
   if (stripped === text || !stripped) return text;
   return stripped.charAt(0).toUpperCase() + stripped.slice(1);
+}
+
+function normaliseForMatch(text: string): string {
+  return text.toLowerCase().replace(/\s+/g, " ").trim();
+}
+
+/** Quoted phrases. An apostrophe inside a word (Let's) does not end the quote. */
+export function extractQuotes(text: string): string[] {
+  const quotes: string[] = [];
+  const closers: Record<string, string> = { '"': '"', "'": "'", "“": "”", "‘": "’" };
+  for (let i = 0; i < text.length; i++) {
+    const opener = text[i];
+    const closer = closers[opener];
+    if (!closer) continue;
+    if (
+      opener === "'" &&
+      i > 0 &&
+      /[A-Za-z]/.test(text[i - 1]) &&
+      /[A-Za-z]/.test(text[i + 1] ?? "")
+    ) {
+      continue;
+    }
+    let buf = "";
+    let j = i + 1;
+    while (j < text.length) {
+      const ch = text[j];
+      if (
+        opener === "'" &&
+        ch === "'" &&
+        /[A-Za-z]/.test(text[j - 1] ?? "") &&
+        /[A-Za-z]/.test(text[j + 1] ?? "")
+      ) {
+        buf += ch;
+        j++;
+        continue;
+      }
+      if (ch === closer) break;
+      buf += ch;
+      j++;
+    }
+    if (text[j] === closer) {
+      const quote = buf.trim();
+      if (quote.length >= 3) quotes.push(quote);
+      i = j;
+    }
+  }
+  return quotes;
+}
+
+export function quoteAppearsInSource(quote: string, corpus: string): boolean {
+  const needle = normaliseForMatch(quote);
+  if (needle.length < 3) return true;
+  return normaliseForMatch(corpus).includes(needle);
+}
+
+export function unverifiedQuotes(text: string, corpus: string): string[] {
+  return extractQuotes(text).filter((quote) => !quoteAppearsInSource(quote, corpus));
+}
+
+export function dropUnverifiedQuotes(text: string, corpus: string): string {
+  let next = text;
+  for (const quote of unverifiedQuotes(text, corpus)) {
+    const pattern = quote.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    next = next.replace(new RegExp(`["“”'‘’]${pattern}["“”'‘’]`, "gi"), "");
+  }
+  return next
+    .replace(/\s{2,}/g, " ")
+    .replace(/\s+([,.;:!?])/g, "$1")
+    .replace(/[,:;]\s*$/g, "")
+    .replace(/\b(?:like|such as|saying)\s*$/i, "")
+    .trim();
+}
+
+export function lineAlreadyOnHomepage(
+  nextStep: string,
+  observation: string,
+  homepage: string,
+): boolean {
+  if (!/\bhomepage\b/i.test(nextStep)) return false;
+  if (!/\b(?:add|put|use|place|move|bring|feature)\b/i.test(nextStep)) return false;
+  const home = normaliseForMatch(homepage);
+  return [...extractQuotes(nextStep), ...extractQuotes(observation)].some((quote) => {
+    const needle = normaliseForMatch(quote);
+    return needle.length >= 12 && home.includes(needle);
+  });
 }
 
 function words(text: string): string[] {
@@ -137,14 +227,22 @@ export function parsePillarFindings(raw: string): PillarFindingsPayload | null {
 }
 
 /** Drop banned or off-pillar copy. Empty fields fall back to the score-band templates. */
-export function polishPillarFindings(payload: PillarFindingsPayload): PillarFindingsPayload {
+export function polishPillarFindings(
+  payload: PillarFindingsPayload,
+  source?: FindingSourceText,
+): PillarFindingsPayload {
   const findings = payload.findings.map((row) => {
     let observation =
       hasBannedCopy(row.observation) || !observationFitsPillar(row.dimension, row.observation)
         ? ""
         : row.observation;
     let nextStep = hasBannedCopy(row.nextStep) ? "" : withoutConsider(row.nextStep);
+    if (source) {
+      observation = dropUnverifiedQuotes(observation, source.all);
+      nextStep = dropUnverifiedQuotes(nextStep, source.all);
+    }
     if (isWeakHighScoreStep(row.score, nextStep)) nextStep = "";
+    if (source && lineAlreadyOnHomepage(nextStep, observation, source.homepage)) nextStep = "";
     if (!observation) nextStep = nextStep && !hasBannedCopy(nextStep) ? nextStep : "";
     return {
       ...row,
@@ -165,6 +263,7 @@ export function findingsQualityIssues(
   payload: PillarFindingsPayload,
   measured: string[],
   scoresByDimension: Record<string, number | null>,
+  source?: FindingSourceText,
 ): string[] {
   const issues: string[] = [];
   const have = new Set(payload.findings.map((row) => row.dimension));
@@ -197,17 +296,39 @@ export function findingsQualityIssues(
         `${row.dimension} is already strong. Do not say "maintain" or "no action needed". Name one place to reuse what is already working.`,
       );
     }
+    if (source) {
+      const invented = [
+        ...unverifiedQuotes(row.observation, source.all),
+        ...unverifiedQuotes(row.nextStep, source.all),
+      ];
+      if (invented.length) {
+        issues.push(
+          `${row.dimension} quotes text that is not on the site or in the bio (${invented.join("; ")}). Quote only their existing words, or describe the change without putting a new line in quotes.`,
+        );
+      }
+      if (lineAlreadyOnHomepage(row.nextStep, row.observation, source.homepage)) {
+        issues.push(
+          `${row.dimension} next_step tells them to add a line to the homepage, but that line is already there. Suggest a different change.`,
+        );
+      }
+    }
   }
   const bannedBullets = [...payload.strengths, ...payload.gaps].filter((item) => hasBannedCopy(item));
   if (bannedBullets.length) issues.push("A website bullet uses a banned word. Rewrite it in plain words.");
   return issues;
 }
 
-function rowIsClean(row: PillarFinding, score: number | null | undefined): boolean {
+function rowIsClean(
+  row: PillarFinding,
+  score: number | null | undefined,
+  source?: FindingSourceText,
+): boolean {
   if (hasBannedCopy(row.observation) || hasBannedCopy(row.nextStep)) return false;
   if (!isSpecificObservation(row.observation) || !observationFitsPillar(row.dimension, row.observation)) {
     return false;
   }
+  if (source && unverifiedQuotes(`${row.observation} ${row.nextStep}`, source.all).length) return false;
+  if (source && lineAlreadyOnHomepage(row.nextStep, row.observation, source.homepage)) return false;
   if (/^consider\b/i.test(row.nextStep.trim())) return false;
   if (
     row.dimension === "Brand Story" &&
@@ -226,6 +347,7 @@ export function mergePillarFindings(
   first: PillarFindingsPayload,
   retry: PillarFindingsPayload | null,
   scoresByDimension: Record<string, number | null>,
+  source?: FindingSourceText,
 ): PillarFindingsPayload {
   const measured = Object.entries(scoresByDimension)
     .filter(([, score]) => typeof score === "number")
@@ -236,14 +358,17 @@ export function mergePillarFindings(
       .map((payload) => payload.findings.find((row) => row.dimension === name))
       .filter((row): row is PillarFinding => Boolean(row));
     if (!options.length) return [];
-    const clean = options.find((row) => rowIsClean(row, scoresByDimension[name]));
+    const clean = options.find((row) => rowIsClean(row, scoresByDimension[name], source));
     return [clean ?? options[options.length - 1]];
   });
   const bulletSource =
     retry && (retry.strengths.length > 0 || retry.gaps.length > 0) ? retry : first;
-  return polishPillarFindings({
-    findings,
-    strengths: bulletSource.strengths,
-    gaps: bulletSource.gaps,
-  });
+  return polishPillarFindings(
+    {
+      findings,
+      strengths: bulletSource.strengths,
+      gaps: bulletSource.gaps,
+    },
+    source,
+  );
 }

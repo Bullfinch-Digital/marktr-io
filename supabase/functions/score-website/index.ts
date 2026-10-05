@@ -789,7 +789,7 @@ const FINDINGS_SYSTEM_PROMPT = `You write advisory findings for a digital health
 }
 
 RULES:
-- You receive CURRENT dimension scores (already computed from the live site). Each finding's "score" MUST exactly match the provided score for that dimension. Never invent or adjust scores. For unmeasured dimensions (null / socialIncomplete), omit that finding row entirely.
+- You receive CURRENT dimension scores (already computed from the live site). Each finding's "score" MUST exactly match the provided score for that dimension. Never invent or adjust scores. If a dimension score is a number, include that finding. Omit a dimension only when its score is null.
 - observation: ONE sentence about something specific you actually saw — a page, the bio wording, a posting pattern, or a headline. Name real specifics from the scrape. Do not restate the score.
 - next_step: ONE concrete action.
 - Plain UK English. No jargon: say "the customer you most want", never "ICP". No runs of short punchy sentences. No three-part lists.

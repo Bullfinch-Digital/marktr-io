@@ -981,7 +981,50 @@ async function generateFindingsProse(
       : "";
   if (!content) return null;
 
-  return parseFindingsJson(content);
+  const parsed = parseFindingsJson(content);
+  if (!parsed) return null;
+
+  const required = (
+    [
+      ["Website Clarity", scores.website],
+      ["Brand Story", scores.brandStory],
+      ["Content Consistency", scores.content],
+      ["Social Presence", scores.social],
+    ] as const
+  )
+    .filter(([, score]) => typeof score === "number")
+    .map(([name]) => name);
+  const have = new Set(parsed.findings.map((row) => row.dimension));
+  const missing = required.filter((name) => !have.has(name));
+  if (missing.length === 0) return parsed;
+
+  const retry = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: HEALTH_CHECK_MODEL_VERSION,
+      max_tokens: 1800,
+      temperature: 0,
+      response_format: { type: "json_object" },
+      messages: [
+        { role: "system", content: FINDINGS_SYSTEM_PROMPT },
+        {
+          role: "user",
+          content: `Write findings for this health check:\n\n${JSON.stringify(userPayload, null, 2)}\n\nYou omitted these measured dimensions: ${missing.join(", ")}. Return the full JSON again and include every measured dimension.`,
+        },
+      ],
+    }),
+  });
+  if (!retry.ok) return parsed;
+  const retryData = await retry.json();
+  const retryContent =
+    retryData?.choices?.[0]?.message?.content != null
+      ? String(retryData.choices[0].message.content)
+      : "";
+  return parseFindingsJson(retryContent) ?? parsed;
 }
 
 Deno.serve(async (req) => {

@@ -7,18 +7,23 @@ export function Footer() {
   const { user } = useAuth();
   const dashboardPath = isRealUser(user) ? "/dashboard" : "/guest-dashboard";
   return (
-    <footer className="border-t border-accent-grey bg-neutral-light py-12">
+    <footer className="border-t border-accent-grey bg-neutral-light py-12 font-['Plus_Jakarta_Sans']">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 gap-10 md:grid-cols-2 lg:grid-cols-4 lg:gap-8">
-          {/* Brand */}
           <div>
-            <h3 className="mb-4 font-fraunces text-xl font-bold text-text-dark">marktr</h3>
+            <Link to="/" className="mb-4 inline-block">
+              <img
+                src="/brand/Marktrio_Logo_01.png"
+                alt="marktr.io"
+                className="h-8 w-auto"
+              />
+            </Link>
             <p className="text-sm text-text-dark/80">Your marketing team, built in.</p>
           </div>
 
           {/* Product */}
           <div>
-            <h4 className="mb-4 font-inter font-semibold text-text-dark">Product</h4>
+            <h4 className="mb-4 font-['Plus_Jakarta_Sans'] font-semibold text-text-dark">Product</h4>
             <ul className="space-y-2 text-sm">
               <li>
                 <Link
@@ -65,7 +70,7 @@ export function Footer() {
 
           {/* Legal */}
           <div>
-            <h4 className="mb-4 font-inter font-semibold text-text-dark">Legal</h4>
+            <h4 className="mb-4 font-['Plus_Jakarta_Sans'] font-semibold text-text-dark">Legal</h4>
             <ul className="space-y-2 text-sm">
               <li>
                 <Link

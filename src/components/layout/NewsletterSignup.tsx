@@ -222,7 +222,7 @@ export function NewsletterSignup({
           className={
             variant === "landing"
               ? "font-['Fraunces'] text-2xl font-bold text-text-dark"
-              : "font-['Fraunces'] text-lg font-bold text-text-dark"
+              : "font-['Plus_Jakarta_Sans'] text-lg font-bold text-text-dark"
           }
         >
           You&apos;re on the list
@@ -240,7 +240,7 @@ export function NewsletterSignup({
     <form onSubmit={handleSubmit} className={`space-y-3 ${className}`}>
       {variant === "footer" ? (
         <div>
-          <h4 className="font-['Fraunces'] text-lg font-bold text-text-dark">Stay in the loop</h4>
+          <h4 className="font-['Plus_Jakarta_Sans'] text-lg font-bold text-text-dark">Stay in the loop</h4>
           <p className="mt-1 text-sm text-text-dark/80">
             Occasional tips on customers, content and growth. Unsubscribe anytime.
           </p>
@@ -292,7 +292,7 @@ export function NewsletterSignup({
         className={
           variant === "landing"
             ? "w-full rounded-design border border-black bg-button-green py-6 font-['Fraunces'] text-lg font-bold text-text-dark hover:bg-button-green/90"
-            : "w-full rounded-design border border-black bg-button-green font-['Fraunces'] font-bold text-text-dark hover:bg-button-green/90"
+            : "w-full rounded-design border border-black bg-button-green font-['Plus_Jakarta_Sans'] font-semibold text-text-dark hover:bg-button-green/90"
         }
       >
         {submitting ? (

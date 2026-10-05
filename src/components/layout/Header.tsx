@@ -70,12 +70,15 @@ export function Header() {
   ];
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-warm-grey bg-background/80 backdrop-blur-md transition-all">
+    <header className="sticky top-0 z-50 w-full border-b border-warm-grey bg-background/80 font-['Plus_Jakarta_Sans'] backdrop-blur-md transition-all">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
-          {/* Logo */}
-          <Link to="/" className="flex items-center gap-2">
-            <span className="font-['Fraunces'] text-xl font-bold">marktr</span>
+          <Link to="/" className="flex items-center">
+            <img
+              src="/brand/Marktrio_Logo_01.png"
+              alt="marktr.io"
+              className="h-8 w-auto sm:h-9"
+            />
           </Link>
 
           {/* Desktop Navigation */}
@@ -111,7 +114,7 @@ export function Header() {
                 <Link to="/dashboard">
                   <Button
                     variant="outline"
-                    className="hidden bg-transparent text-foreground transition-all hover:scale-105 hover:bg-accent-grey/20 active:scale-95 md:flex font-bold font-['Fraunces']"
+                    className="hidden bg-transparent text-foreground transition-all hover:scale-105 hover:bg-accent-grey/20 active:scale-95 md:flex font-['Plus_Jakarta_Sans'] font-semibold"
                   >
                     Dashboard
                   </Button>
@@ -132,7 +135,7 @@ export function Header() {
                     }
                   }}
                   variant="outline"
-                  className="hidden bg-transparent text-foreground transition-all hover:scale-105 hover:bg-accent-grey/20 active:scale-95 md:flex font-bold font-['Fraunces']"
+                  className="hidden bg-transparent text-foreground transition-all hover:scale-105 hover:bg-accent-grey/20 active:scale-95 md:flex font-['Plus_Jakarta_Sans'] font-semibold"
                 >
                   Sign Out
                 </Button>
@@ -143,7 +146,7 @@ export function Header() {
                   type="button"
                   onClick={() => openLogin()}
                   variant="outline"
-                  className="hidden bg-transparent text-foreground transition-all hover:scale-105 hover:bg-accent-grey/20 active:scale-95 md:flex font-bold font-['Fraunces']"
+                  className="hidden bg-transparent text-foreground transition-all hover:scale-105 hover:bg-accent-grey/20 active:scale-95 md:flex font-['Plus_Jakarta_Sans'] font-semibold"
                 >
                   Login
                 </Button>
@@ -151,7 +154,7 @@ export function Header() {
                 <Link to="/health-check">
                   <Button
                     variant="default"
-                    className="hidden bg-button-green text-text-dark transition-all hover:scale-105 hover:bg-button-green/90 hover:shadow-lg active:scale-95 md:flex font-bold font-['Fraunces']"
+                    className="hidden bg-button-green text-text-dark transition-all hover:scale-105 hover:bg-button-green/90 hover:shadow-lg active:scale-95 md:flex font-['Plus_Jakarta_Sans'] font-semibold"
                   >
                     Check your digital health - free
                   </Button>
@@ -207,7 +210,7 @@ export function Header() {
                 <Link to="/dashboard" onClick={() => setIsMobileMenuOpen(false)}>
                   <Button 
                     variant="outline"
-                    className="w-full bg-transparent text-foreground hover:bg-accent-grey/20 font-bold font-['Fraunces']"
+                    className="w-full bg-transparent text-foreground hover:bg-accent-grey/20 font-['Plus_Jakarta_Sans'] font-semibold"
                   >
                     Dashboard
                   </Button>
@@ -229,7 +232,7 @@ export function Header() {
                     }
                   }}
                   variant="outline"
-                  className="w-full bg-transparent text-foreground hover:bg-accent-grey/20 font-bold font-['Fraunces']"
+                  className="w-full bg-transparent text-foreground hover:bg-accent-grey/20 font-['Plus_Jakarta_Sans'] font-semibold"
                 >
                   Sign Out
                 </Button>
@@ -243,12 +246,12 @@ export function Header() {
                     openLogin();
                   }}
                   variant="outline"
-                  className="w-full bg-transparent text-foreground hover:bg-accent-grey/20 font-bold font-['Fraunces']"
+                  className="w-full bg-transparent text-foreground hover:bg-accent-grey/20 font-['Plus_Jakarta_Sans'] font-semibold"
                 >
                   Login
                 </Button>
                 <Link to="/health-check" onClick={() => setIsMobileMenuOpen(false)}>
-                  <Button className="w-full bg-button-green text-text-dark hover:bg-button-green/90 font-bold font-['Fraunces']">
+                  <Button className="w-full bg-button-green text-text-dark hover:bg-button-green/90 font-['Plus_Jakarta_Sans'] font-semibold">
                     Check your digital health - free
                   </Button>
                 </Link>

@@ -60,7 +60,7 @@ const STEPS = [
     step: "03",
     title: "Know your customer",
     youDo: "Describe who you sell to.",
-    youGet: "Ideal customer profiles with enough detail that content isn't written for everyone.",
+    youGet: "Detailed ideal customer profiles including their goals & motivations, pain points, preferred platforms and marketing opportunities. Stop speaking to everyone and focus on those who are ready to listen.",
     tags: ["A few minutes", "Free"],
     href: "/onboarding-build",
     linkLabel: "Build your ideal customer profile",

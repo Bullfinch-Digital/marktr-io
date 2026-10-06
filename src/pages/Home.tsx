@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Check } from "lucide-react";
 import CaseStudies from "@/components/home/CaseStudies";
 import JourneyMap from "@/components/home/JourneyMap";
-import Testimonials, { QuoteStrip } from "@/components/home/Testimonials";
+import { QuoteStrip } from "@/components/home/Testimonials";
 
 const WAYS_IN = [
   {
@@ -13,7 +13,7 @@ const WAYS_IN = [
     title: "Check your digital health",
     description:
       "Score your digital presence across 5 dimensions — and see exactly where to focus.",
-    image: "/images/graphics/marktr-health-check-card-image.png",
+    image: "/images/graphics/marktr-card1-health-simple.png",
     imageAlt: "Digital health scores in marktr",
     recommended: true,
   },
@@ -24,7 +24,7 @@ const WAYS_IN = [
     title: "Find your brand story",
     description:
       "Discover the narrative that makes your business impossible to ignore — in minutes.",
-    image: "/images/graphics/marktr-brand-story-card-image.png",
+    image: "/images/graphics/marktr-card2-brand-story-simple.png",
     imageAlt: "Brand story questions in marktr",
     recommended: false,
   },
@@ -35,7 +35,7 @@ const WAYS_IN = [
     title: "Build your ideal customer profile",
     description:
       "Define your ideal customer profile once. Then create laser focused content that speaks directly to them.",
-    image: "/images/graphics/start-with-your-ideal-customer.png",
+    image: "/images/graphics/marktr-card3-customer-profiles-simple.png",
     imageAlt: "Ideal customer profiles in marktr",
     recommended: false,
   },
@@ -127,8 +127,6 @@ export default function Home() {
       <QuoteStrip />
 
       <JourneyMap />
-
-      <Testimonials />
 
       <section className="bg-[#FBFAF0] px-6 py-20 lg:py-28">
         <div className="mx-auto grid max-w-6xl items-stretch gap-6 lg:grid-cols-2 lg:gap-8">

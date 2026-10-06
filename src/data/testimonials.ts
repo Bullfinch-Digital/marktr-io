@@ -21,9 +21,7 @@ export type VideoTestimonial = {
 export type QuoteTestimonial = {
   kind: "quote";
   id: string;
-  /** Fictional full name until a real review replaces this entry. */
   name: string;
-  /** A role descriptor, not a real business name. */
   business: string;
   quote: string;
   /** Render a star row only when a genuine rating is set. */
@@ -73,84 +71,76 @@ const VIDEO_TESTIMONIALS: VideoTestimonial[] = [
 
 const QUOTE_TESTIMONIALS: QuoteTestimonial[] = [
   {
-    // TODO: replace with real quote — temporary imagined review
     kind: "quote",
-    id: "priya-nair",
-    name: "Priya Nair",
-    business: "Independent bakery owner",
+    id: "james-whittle",
+    name: "James Whittle",
+    business: "monline.co.uk",
     quote:
-      "Writing the customer profile named the people who already buy from us. The brand story then used that same person, so the two pieces finally matched.",
-    isPlaceholder: true,
+      "marktr.io has helped me step back and look at our marketing from a different perspective. The digital health check gave me a clear picture of what was already working across our website and social media, but also highlighted areas where we could improve.",
+    isPlaceholder: false,
   },
   {
-    // TODO: replace with real quote — temporary imagined review
     kind: "quote",
-    id: "owen-blake",
-    name: "Owen Blake",
-    business: "Landscape gardener",
+    id: "charlotte-stanford",
+    name: "Charlotte Stanford",
+    business: "SLA.SCHOOL",
     quote:
-      "The health check walked the website without scoring us against a big brand. I could see what was missing and what was already clear.",
-    isPlaceholder: true,
+      "Clearly defining my Ideal Customer Profile has transformed the way I think about my marketing. From the social posts marktr.io helps me script, to the newsletter copy I write - everything is now written with my ideal customer in mind.",
+    isPlaceholder: false,
   },
   {
-    // TODO: replace with real quote — temporary imagined review
     kind: "quote",
-    id: "hannah-cole",
-    name: "Hannah Cole",
-    business: "Pottery studio owner",
+    id: "rachel-morris",
+    name: "Rachel Morris",
+    business: "The Green",
     quote:
-      "I kept the customer profile and the brand story together. On the trial, strategy and content started from that work instead of a blank page.",
-    isPlaceholder: true,
+      "With a clear marketing strategy in place we know we are saying the right things to the right customers. Defining a range of Ideal Customer Profiles, means that we can target different groups with clear offers and messaging that drives our bookings.",
+    isPlaceholder: false,
   },
   {
-    // TODO: replace with real quote — temporary imagined review
     kind: "quote",
-    id: "samir-patel",
-    name: "Samir Patel",
-    business: "Mobile bike mechanic",
+    id: "martyn-cordingley",
+    name: "Martyn Cordingley",
+    business: "British Log Cabins",
     quote:
-      "The health score showed the parts of the site we had never looked at properly. It read as a plain list, not a lecture.",
-    isPlaceholder: true,
+      "We've been using Marktr.io to script our latest social posts and help us stand out in our industry. The results have been outstanding, with our most recent reel getting over 12k organic views",
+    isPlaceholder: false,
   },
   {
-    // TODO: replace with real quote — temporary imagined review
     kind: "quote",
-    id: "freya-lind",
-    name: "Freya Lind",
+    id: "beth-childs",
+    name: "Beth Childs",
     business: "Florist",
     quote:
-      "I described one customer in the profile and the story stopped trying to speak to everyone. That was the useful part.",
-    isPlaceholder: true,
+      "Knowing what my website was doing well, but most importantly where I could improve things has made a massive difference to the quality of enquiries I'm now getting. Knowing who I'm speaking to has changed everything.",
+    isPlaceholder: false,
   },
   {
-    // TODO: replace with real quote — temporary imagined review
     kind: "quote",
-    id: "tom-adeyemi",
-    name: "Tom Adeyemi",
-    business: "Small accountancy practice",
+    id: "nathan-olivers",
+    name: "Nathan Olivers",
+    business: "Wildgrass Films",
     quote:
-      "The free steps were the profile, the story and the health score. Strategy and content opened on the trial, and that split was easy to follow.",
-    isPlaceholder: true,
+      "I built an entire month's content strategy in just a few minutes and the scripts are based on the ideal customer profiles I've generated - they're spot on, and have saved me hours of time that I can now spend on making the best content possible",
+    isPlaceholder: false,
   },
   {
-    // TODO: replace with real quote — temporary imagined review
     kind: "quote",
-    id: "elise-moreau",
-    name: "Elise Moreau",
-    business: "Children's bookshop owner",
+    id: "heather-stanford",
+    name: "Heather Stanford",
+    business: "Blustery Days Glass",
     quote:
-      "I finished the customer profile in one sitting. It gave me a person to write the brand story for, which I had been putting off.",
-    isPlaceholder: true,
+      "I didn't know where to start with marketing at all. Using marktr.io has allowed me to build an entire plan from customer language, newsletter wording and even which platforms I should be using to reach my customers. Would highly recommend!",
+    isPlaceholder: false,
   },
   {
-    // TODO: replace with real quote — temporary imagined review
     kind: "quote",
-    id: "callum-reid",
-    name: "Callum Reid",
-    business: "Wedding photographer",
+    id: "zoe-pryce",
+    name: "Zoe Pryce",
+    business: "Mustard & Grey",
     quote:
-      "Seeing the health score next to the story made the gaps obvious. The site and the words had been describing two different businesses.",
-    isPlaceholder: true,
+      "Trying to generate content ideas to post each week used to take so much time that we'd rather spend designing new product, but with marktr.io we can build an entire strategy around product launches, newsletter sign-ups, and so much more - it's been a game changer.",
+    isPlaceholder: false,
   },
 ];
 

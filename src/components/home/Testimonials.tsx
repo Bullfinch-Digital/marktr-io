@@ -254,7 +254,7 @@ export default function Testimonials() {
           In their words
         </p>
         <h2 className="mt-4 max-w-2xl font-['Fraunces'] text-4xl font-bold leading-tight text-[#101A26] sm:text-5xl">
-          Hear it from the businesses we support.
+          Hear it from the business owners we support.
         </h2>
         <p className="mt-4 max-w-2xl font-['Plus_Jakarta_Sans'] text-base text-[#101A26]/75">
           Meet the founders and teams behind some of the brands we support — tap to watch.

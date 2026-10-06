@@ -156,7 +156,7 @@ export function Header() {
                     variant="default"
                     className="hidden rounded-full border-2 border-[#0B0B0C] bg-[#EBFD84] text-[#0B0B0C] transition-all hover:scale-105 hover:bg-[#EBFD84]/90 hover:shadow-lg active:scale-95 md:flex font-['Plus_Jakarta_Sans'] font-semibold"
                   >
-                    Check your digital health - free
+                    Get started - Free
                   </Button>
                 </Link>
               </>
@@ -252,7 +252,7 @@ export function Header() {
                 </Button>
                 <Link to="/health-check" onClick={() => setIsMobileMenuOpen(false)}>
                   <Button className="w-full rounded-full border-2 border-[#0B0B0C] bg-[#EBFD84] text-[#0B0B0C] hover:bg-[#EBFD84]/90 font-['Plus_Jakarta_Sans'] font-semibold">
-                    Check your digital health - free
+                    Get started - Free
                   </Button>
                 </Link>
               </>

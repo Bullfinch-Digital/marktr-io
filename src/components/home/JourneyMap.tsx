@@ -393,7 +393,7 @@ export default function JourneyMap() {
         <div className="journey-step relative z-10 mx-auto mt-4 flex max-w-md flex-col items-center gap-4 bg-[#FBFAF0] py-6 text-center">
           <Link
             to="/health-check"
-            className="inline-flex items-center justify-center rounded-full bg-[#101A26] px-8 py-3.5 font-['Plus_Jakarta_Sans'] text-base font-medium text-white hover:opacity-90"
+            className="inline-flex items-center justify-center rounded-full border-2 border-[#0B0B0C] bg-[#EBFD84] px-8 py-3.5 font-['Plus_Jakarta_Sans'] text-base font-medium text-[#0B0B0C] hover:bg-[#EBFD84]/90"
           >
             Start with your digital health check — free
           </Link>

@@ -254,7 +254,13 @@ export default function JourneyMap() {
           {STEPS.map((step, index) => (
             <article key={step.step} className="journey-step relative grid items-center gap-6 py-6 lg:grid-cols-2 lg:gap-20 lg:py-12">
               <StepBadge step={step.step} />
-              <JourneyFigure image={step.image} />
+              <Link
+                to={step.href}
+                aria-label={step.linkLabel}
+                className="block rounded-[24px] outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#101A26]"
+              >
+                <JourneyFigure image={step.image} />
+              </Link>
               <div className={index % 2 === 1 ? "text-left lg:order-first" : "text-left"}>
                 <h3 className="font-['Fraunces'] text-3xl font-bold text-[#101A26]">{step.title}</h3>
                 <dl className="mt-4 space-y-3">

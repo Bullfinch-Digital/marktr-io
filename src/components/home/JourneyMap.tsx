@@ -242,13 +242,21 @@ export default function JourneyMap() {
         <h2 className="mx-auto mt-5 max-w-3xl font-['Fraunces'] text-4xl font-bold leading-tight text-[#101A26] sm:text-5xl">
           From first question to a month of content.
         </h2>
-        <p className="mx-auto mt-4 max-w-2xl font-['Plus_Jakarta_Sans'] text-base text-[#101A26]/75">
-          Three starting points. One strategy. Content that sounds like you.
-        </p>
       </div>
 
-      <div className="relative mx-auto mt-16 max-w-5xl pl-14 lg:pl-0">
+      <div className="relative mx-auto mt-8 max-w-5xl">
         <div className="journey-rail" aria-hidden />
+        <div className="journey-rail-cap" aria-hidden>
+          <span className="journey-rail-cap-dot" />
+        </div>
+        <p className="relative z-10 mx-auto w-fit max-w-2xl bg-[#FBFAF0] px-3 py-1 text-center font-['Plus_Jakarta_Sans'] text-base text-[#101A26]/75">
+          Three starting points. One strategy. Content that sounds like you.
+        </p>
+        <p className="relative z-10 mx-auto mt-1 w-fit max-w-md bg-[#FBFAF0] px-3 py-1 text-center font-['Plus_Jakarta_Sans'] text-sm text-[#101A26]/70">
+          These three can be done in any order.
+        </p>
+
+        <div className="mt-16 pl-14 lg:pl-0">
 
         <div className="space-y-6 lg:space-y-4">
           {STEPS.map((step, index) => (
@@ -297,10 +305,6 @@ export default function JourneyMap() {
             </article>
           ))}
         </div>
-
-        <p className="journey-step relative z-10 mt-2 max-w-md font-['Plus_Jakarta_Sans'] text-sm text-[#101A26]/70 lg:mx-auto lg:mt-4 lg:text-center">
-          These three can be done in any order.
-        </p>
 
         <div className="journey-step relative z-10 mx-auto my-12 max-w-5xl">
           <span
@@ -399,6 +403,7 @@ export default function JourneyMap() {
           >
             See pricing
           </Link>
+        </div>
         </div>
       </div>
     </section>

@@ -30,41 +30,35 @@ const WAYS_IN = [
   {
     step: "01",
     href: "/health-check",
-    eyebrow: "Check your digital health",
-    title: "See where you stand",
+    eyebrow: "See where you stand",
+    title: "Check your digital health",
     description:
       "Score your digital presence across 5 dimensions — and see exactly where to focus.",
     image: "/images/graphics/replace-your-agency.png",
     imageAlt: "Digital health scores in marktr",
-    tags: ["Five scores", "Free"],
     recommended: true,
-    cta: "Check your digital health",
   },
   {
     step: "02",
     href: "/story",
-    eyebrow: "Find your brand story",
-    title: "Say what makes you different",
+    eyebrow: "Say what makes you different",
+    title: "Find your brand story",
     description:
       "Discover the narrative that makes your business impossible to ignore — in minutes.",
     image: "/images/graphics/generate-content-in-your-voice.png",
     imageAlt: "Brand story questions in marktr",
-    tags: ["Brand story", "Free"],
     recommended: false,
-    cta: "Find your brand story",
   },
   {
     step: "03",
     href: "/onboarding-build",
-    eyebrow: "Know your customer",
-    title: "Start with who you sell to",
+    eyebrow: "Start with who you sell to",
+    title: "Build your ideal customer profile",
     description:
       "Define your ideal customer profile once. Every piece of content is written for them, not everyone.",
     image: "/images/graphics/start-with-your-ideal-customer.png",
     imageAlt: "Ideal customer profiles in marktr",
-    tags: ["Ideal customer", "Free"],
     recommended: false,
-    cta: "Build your ideal customer profile",
   },
 ] as const;
 
@@ -117,41 +111,33 @@ export default function Home() {
                     alt={way.imageAlt}
                     className="h-full w-full object-cover object-top"
                   />
-                  <span className="absolute left-4 top-4 flex h-10 w-10 items-center justify-center rounded-full border border-[#101A26] bg-[#FBFAF0] font-['Plus_Jakarta_Sans'] text-sm font-medium text-[#101A26]">
-                    {way.step}
-                  </span>
+                  <div className="absolute left-4 top-4 flex max-w-[calc(100%-2rem)] items-center gap-2">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#101A26] bg-[#FBFAF0] font-['Plus_Jakarta_Sans'] text-sm font-medium text-[#101A26]">
+                      {way.step}
+                    </span>
+                    {way.recommended ? (
+                      <span className="rounded-full border-2 border-[#0B0B0C] bg-[#EBFD84] px-2.5 py-1 font-['Plus_Jakarta_Sans'] text-[13px] font-medium leading-none text-[#0B0B0C]">
+                        Recommended starting point
+                      </span>
+                    ) : null}
+                  </div>
                 </div>
-                <div className="flex flex-1 flex-col p-6 text-left">
-                  {way.recommended ? (
-                    <p className="font-['Plus_Jakarta_Sans'] text-[11px] font-medium uppercase tracking-[0.14em] text-[#101A26]/70">
-                      Recommended starting point
-                    </p>
-                  ) : null}
-                  <p className="mt-2 font-['Plus_Jakarta_Sans'] text-[11px] font-medium uppercase tracking-[0.16em] text-[#101A26]/55">
+                <div className="flex flex-1 flex-col p-5 text-left">
+                  <p className="font-['Plus_Jakarta_Sans'] text-[11px] font-medium uppercase tracking-[0.16em] text-[#101A26]/55">
                     {way.eyebrow}
                   </p>
-                  <h3 className="mt-2 font-['Fraunces'] text-2xl font-bold text-[#101A26]">{way.title}</h3>
-                  <p className="mt-2 font-['Plus_Jakarta_Sans'] text-sm leading-relaxed text-[#101A26]/80">
+                  <h3 className="mt-1.5 font-['Fraunces'] text-2xl font-bold leading-tight text-[#101A26]">{way.title}</h3>
+                  <p className="mt-1.5 font-['Plus_Jakarta_Sans'] text-sm leading-relaxed text-[#101A26]/80">
                     {way.description}
                   </p>
-                  <div className="mt-5 flex flex-wrap gap-2">
-                    {way.tags.map((tag) => (
-                      <span
-                        key={tag}
-                        className="rounded-full border border-[#101A26] bg-[#E8F455] px-3 py-1 font-['Plus_Jakarta_Sans'] text-xs font-medium text-[#101A26]"
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
                   <span
                     className={
                       way.recommended
-                        ? "ways-in-cta mt-6 inline-flex w-full items-center justify-center rounded-full bg-[#101A26] px-7 py-3.5 font-['Plus_Jakarta_Sans'] text-base font-medium text-white"
-                        : "ways-in-cta mt-6 inline-flex w-full items-center justify-center rounded-full border border-[#101A26] bg-white px-7 py-3 font-['Plus_Jakarta_Sans'] text-sm font-medium text-[#101A26]"
+                        ? "ways-in-cta mt-4 inline-flex w-full items-center justify-center rounded-full bg-[#101A26] px-7 py-3.5 font-['Plus_Jakarta_Sans'] text-base font-medium text-white"
+                        : "ways-in-cta mt-4 inline-flex w-full items-center justify-center rounded-full border border-[#101A26] bg-white px-7 py-3 font-['Plus_Jakarta_Sans'] text-sm font-medium text-[#101A26]"
                     }
                   >
-                    {way.cta} →
+                    Get started free →
                   </span>
                 </div>
               </Link>

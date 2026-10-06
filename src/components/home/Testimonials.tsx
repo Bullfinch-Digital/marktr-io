@@ -1,6 +1,12 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { flushSync } from "react-dom";
-import { TESTIMONIALS, type Testimonial } from "@/data/testimonials";
+import {
+  TESTIMONIALS,
+  isQuoteTestimonial,
+  isVideoTestimonial,
+  type QuoteTestimonial,
+  type VideoTestimonial,
+} from "@/data/testimonials";
 import { hasAnalyticsConsent } from "@/lib/cookieConsent";
 
 const TEMPLATE_POSTERS: Record<string, string> = {
@@ -12,7 +18,7 @@ const TEMPLATE_POSTERS: Record<string, string> = {
 const POSTER_WIDTH = 540;
 const POSTER_HEIGHT = 960;
 
-function trackTestimonialPlay(testimonial: Testimonial): void {
+function trackTestimonialPlay(testimonial: VideoTestimonial): void {
   if (!hasAnalyticsConsent()) return;
   const send = (window as Window & { gtag?: (...args: unknown[]) => void }).gtag;
   if (!send) return;
@@ -22,7 +28,7 @@ function trackTestimonialPlay(testimonial: Testimonial): void {
   });
 }
 
-function posterSource(testimonial: Testimonial): string | undefined {
+function posterSource(testimonial: VideoTestimonial): string | undefined {
   return testimonial.posterSrc ?? TEMPLATE_POSTERS[testimonial.id];
 }
 
@@ -41,7 +47,7 @@ function TestimonialModal({
   videoHolder,
   onClose,
 }: {
-  testimonial: Testimonial;
+  testimonial: VideoTestimonial;
   videoHolder: { el: HTMLVideoElement | null };
   onClose: () => void;
 }) {
@@ -134,8 +140,92 @@ function TestimonialModal({
   );
 }
 
+function StarRow({ rating }: { rating: number }) {
+  return (
+    <p className="mb-3 font-['Plus_Jakarta_Sans'] text-sm tracking-widest text-[#101A26]" aria-label={`${rating} out of 5 stars`}>
+      {Array.from({ length: 5 }, (_, index) => (
+        <span key={index} aria-hidden>
+          {index < rating ? "★" : "☆"}
+        </span>
+      ))}
+    </p>
+  );
+}
+
+function QuoteCard({ quote, tabbable = false }: { quote: QuoteTestimonial; tabbable?: boolean }) {
+  return (
+    <li className="quote-card w-[min(78vw,320px)] shrink-0 rounded-[24px] border border-[#101A26]/10 bg-white text-left shadow-sm">
+      <div
+        tabIndex={tabbable ? 0 : undefined}
+        className="h-full px-5 py-5 outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#101A26]"
+      >
+      <p className="font-['Plus_Jakarta_Sans'] text-sm font-semibold text-[#101A26]">
+        {quote.name} | {quote.business}
+      </p>
+      {typeof quote.rating === "number" ? <div className="mt-3"><StarRow rating={quote.rating} /></div> : null}
+      <p
+        className={`mt-3 font-['Plus_Jakarta_Sans'] text-lg leading-relaxed sm:text-base ${
+          quote.isPlaceholder ? "text-[#101A26]/55" : "text-[#101A26]/80"
+        }`}
+      >
+        {quote.quote}
+      </p>
+      </div>
+    </li>
+  );
+}
+
+function QuoteStrip({ quotes }: { quotes: QuoteTestimonial[] }) {
+  const [paused, setPaused] = useState(false);
+
+  return (
+    <section className="quote-strip overflow-hidden bg-[#FBFAF0] pb-4 pt-16 lg:pt-20" data-paused={paused ? "true" : "false"}>
+      <div className="mx-auto flex max-w-6xl items-end justify-between gap-6 px-6">
+        <div>
+          <h2 className="font-['Fraunces'] text-3xl font-bold leading-tight text-[#101A26] sm:text-4xl">
+            Don&apos;t just take our word for it.
+          </h2>
+          <p className="mt-3 font-['Plus_Jakarta_Sans'] text-base text-[#101A26]/75">
+            What founders say after their first week.
+          </p>
+        </div>
+        <button
+          type="button"
+          className="quote-marquee-pause shrink-0 rounded-full border-2 border-[#0B0B0C] bg-[#EBFD84] px-4 py-2 font-['Plus_Jakarta_Sans'] text-sm font-medium text-[#0B0B0C]"
+          aria-pressed={paused}
+          onClick={() => setPaused((value) => !value)}
+        >
+          {paused ? "Play" : "Pause"}
+        </button>
+      </div>
+      <div className="quote-marquee mt-8">
+        <div className="quote-marquee-track">
+          <ul className="list-none">
+            {quotes.map((quote) => (
+              <QuoteCard key={quote.id} quote={quote} tabbable />
+            ))}
+          </ul>
+          <ul
+            className="quote-marquee-clone list-none"
+            aria-hidden="true"
+            ref={(node) => {
+              if (node) node.inert = true;
+            }}
+          >
+            {quotes.map((quote) => (
+              <QuoteCard key={`${quote.id}-clone`} quote={quote} />
+            ))}
+          </ul>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export default function Testimonials() {
-  const [active, setActive] = useState<Testimonial | null>(null);
+  const videos = TESTIMONIALS.filter(isVideoTestimonial);
+  const quotes = TESTIMONIALS.filter(isQuoteTestimonial);
+  const [active, setActive] = useState<VideoTestimonial | null>(null);
   const videoHolder = useRef({ el: null as HTMLVideoElement | null }).current;
   const triggerRef = useRef<HTMLButtonElement | null>(null);
 
@@ -151,7 +241,7 @@ export default function Testimonials() {
     trigger?.focus();
   };
 
-  const open = (testimonial: Testimonial, trigger: HTMLButtonElement) => {
+  const open = (testimonial: VideoTestimonial, trigger: HTMLButtonElement) => {
     if (!testimonial.videoSrc) return;
     triggerRef.current = trigger;
     flushSync(() => setActive(testimonial));
@@ -160,6 +250,8 @@ export default function Testimonials() {
   };
 
   return (
+    <>
+    <QuoteStrip quotes={quotes} />
     <section id="testimonials" className="bg-[#FBFAF0] py-16 lg:py-20">
       <div className="mx-auto max-w-6xl px-6">
         <p className="inline-flex rounded-full border-2 border-[#0B0B0C] bg-[#EBFD84] px-3 py-1 font-['Plus_Jakarta_Sans'] text-[13px] font-medium text-[#0B0B0C]">
@@ -173,11 +265,16 @@ export default function Testimonials() {
         </p>
 
         <div className="testimonial-row mt-10 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 lg:grid lg:grid-cols-3 lg:gap-6 lg:overflow-visible">
-          {TESTIMONIALS.map((testimonial) => {
+          {/* Stat cards (kind: "stat") stay out of this grid until a confirmed figure exists. */}
+          {videos.map((testimonial) => {
             const still = posterSource(testimonial);
             return (
               <article key={testimonial.id} className="testimonial-card w-[80%] shrink-0 snap-start lg:w-auto">
-                <div className="flex h-full flex-col overflow-hidden rounded-[24px] border border-[#101A26]/10 bg-white shadow-sm">
+                <div
+                  className={`flex h-full flex-col overflow-hidden rounded-[24px] border-2 bg-white shadow-sm ${
+                    testimonial.featured ? "border-[#101A26]" : "border-[#101A26]/10"
+                  }`}
+                >
                   <button
                     type="button"
                     aria-label={`Play ${testimonial.name} testimonial`}
@@ -204,9 +301,16 @@ export default function Testimonials() {
                       </span>
                     ) : null}
                     <PlayIcon />
-                    <span className="absolute inset-x-3 bottom-3 rounded-full bg-[#FBFAF0]/92 px-3 py-1.5 text-center font-['Fraunces'] text-lg font-bold text-[#101A26]">
-                      {testimonial.name}
-                    </span>
+                    {testimonial.featured ? (
+                      <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#101A26]/85 to-transparent px-4 pb-4 pt-16 text-left">
+                        <span className="block font-['Fraunces'] text-lg font-bold text-white">{testimonial.name}</span>
+                        <span className="mt-0.5 block font-['Plus_Jakarta_Sans'] text-sm text-white/85">Watch video</span>
+                      </span>
+                    ) : (
+                      <span className="absolute inset-x-3 bottom-3 rounded-full bg-[#FBFAF0]/92 px-3 py-1.5 text-center font-['Fraunces'] text-lg font-bold text-[#101A26]">
+                        {testimonial.name}
+                      </span>
+                    )}
                   </button>
                   <div className="flex flex-1 flex-col p-5 text-left">
                     {testimonial.outcome ? (
@@ -247,5 +351,6 @@ export default function Testimonials() {
         <TestimonialModal testimonial={active} videoHolder={videoHolder} onClose={close} />
       ) : null}
     </section>
+    </>
   );
 }

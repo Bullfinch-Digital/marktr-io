@@ -148,6 +148,18 @@ export default function Home() {
         </div>
       </section>
 
+      {/* SECTION 2 — Social proof bar */}
+      <section className="border-y border-border bg-white py-10">
+        <div className="mx-auto max-w-7xl px-6 text-center">
+          <p className="mb-6 inline-flex items-center rounded-full border border-[#101A26] bg-[#FBFAF0] px-4 py-1.5 font-['Plus_Jakarta_Sans'] text-xs font-medium text-[#101A26]">
+            Trusted by ambitious founders
+          </p>
+          <p className="font-['Plus_Jakarta_Sans'] text-sm uppercase tracking-widest text-muted-foreground">
+            Apostle Coffee · British Log Cabins · The Green · McCartneys LLP · Continental Fireplaces
+          </p>
+        </div>
+      </section>
+
       <Testimonials />
 
       <JourneyMap />

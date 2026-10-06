@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Check } from "lucide-react";
 import JourneyMap from "@/components/home/JourneyMap";
+import Testimonials from "@/components/home/Testimonials";
 
 const benefits = [
   {
@@ -158,6 +159,8 @@ export default function Home() {
           </p>
         </div>
       </section>
+
+      <Testimonials />
 
       <JourneyMap />
 

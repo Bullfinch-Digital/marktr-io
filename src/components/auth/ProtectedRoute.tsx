@@ -14,7 +14,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 mx-auto mb-4 border-4 border-button-green border-t-transparent rounded-full animate-spin" />
+          <div className="w-16 h-16 mx-auto mb-4 border-4 border-foreground border-t-transparent rounded-full animate-spin" />
           <p className="text-foreground/70">Loading...</p>
         </div>
       </div>

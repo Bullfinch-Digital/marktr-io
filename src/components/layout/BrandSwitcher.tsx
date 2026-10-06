@@ -23,7 +23,7 @@ export function BrandSwitcher() {
     return (
       <Link
         to="/my-brands"
-        className="hidden items-center gap-1.5 font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground transition-colors hover:text-foreground sm:inline-flex"
+        className="hidden h-11 items-center gap-1.5 rounded-full border-2 border-brand-stroke bg-card px-3 font-['Plus_Jakarta_Sans'] text-sm text-foreground transition-colors hover:bg-muted/40 sm:inline-flex"
       >
         <Building2 className="h-4 w-4 shrink-0" />
         Set up your brand
@@ -35,7 +35,7 @@ export function BrandSwitcher() {
 
   if (brands.length === 1) {
     return (
-      <div className="hidden items-center gap-1.5 font-['Plus_Jakarta_Sans'] text-sm text-[#0D1833] sm:flex">
+      <div className="hidden h-11 max-w-[16rem] items-center gap-1.5 rounded-full border-2 border-brand-stroke bg-card px-3 font-['Plus_Jakarta_Sans'] text-sm text-foreground sm:flex">
         <Building2 className="h-4 w-4 shrink-0 text-muted-foreground" />
         <span className="max-w-[12rem] truncate font-medium">{displayName}</span>
       </div>
@@ -47,7 +47,7 @@ export function BrandSwitcher() {
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          className="hidden items-center gap-1.5 rounded-design border border-warm-grey bg-white px-3 py-1.5 font-['Plus_Jakarta_Sans'] text-sm text-[#0D1833] transition-colors hover:border-black sm:inline-flex"
+          className="hidden h-11 items-center gap-1.5 rounded-full border-2 border-brand-stroke bg-card px-3 font-['Plus_Jakarta_Sans'] text-sm text-foreground transition-colors hover:bg-muted/40 sm:inline-flex app-focus-ring"
           aria-label="Switch active brand"
         >
           <Building2 className="h-4 w-4 shrink-0 text-muted-foreground" />

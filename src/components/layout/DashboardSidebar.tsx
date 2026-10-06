@@ -98,16 +98,18 @@ export function DashboardSidebar({
                 M
               </span>
             ) : (
-              <span className="font-['Fraunces'] text-2xl font-semibold tracking-tight text-sidebar-foreground leading-none">
-                Marktr
-              </span>
+              <img
+                src="/brand/Marktrio_Logo_02.png"
+                alt="marktr.io"
+                className="h-7 w-auto max-w-[168px] object-contain object-left"
+              />
             )}
           </Link>
           <button
             type="button"
             onClick={() => setIsCollapsed(!isCollapsed)}
             className={`
-              p-2 rounded-design shrink-0
+              flex h-11 w-11 items-center justify-center rounded-[14px] shrink-0
               text-[color:var(--sidebar-muted)] hover:text-sidebar-foreground
               hover:bg-sidebar-accent transition-colors
               ${isCollapsed ? "mx-auto" : ""}
@@ -127,13 +129,13 @@ export function DashboardSidebar({
               <>
                 <Icon
                   className={`w-5 h-5 flex-shrink-0 ${
-                    isActive ? "text-sidebar-primary" : "text-[color:var(--sidebar-muted)]"
+                    isActive ? "text-sidebar-primary-foreground" : "text-[color:var(--sidebar-muted)]"
                   }`}
                 />
                 {!isCollapsed && (
                   <span
-                    className={`font-['Plus_Jakarta_Sans'] text-sm truncate ${
-                      isActive ? "text-sidebar-foreground" : "text-[color:var(--sidebar-muted)]"
+                    className={`font-['Plus_Jakarta_Sans'] text-sm font-medium truncate ${
+                      isActive ? "text-sidebar-primary-foreground" : "text-[color:var(--sidebar-muted)]"
                     }`}
                   >
                     {item.label}
@@ -142,14 +144,14 @@ export function DashboardSidebar({
               </>
             );
 
-            const buttonClasses = `w-full flex items-center gap-3 rounded-design transition-all group relative ${
+            const buttonClasses = `w-full flex items-center gap-3 rounded-[14px] transition-all group relative min-h-11 ${
               isCollapsed ? "justify-center px-0 py-3" : "px-3 py-2.5"
             } ${
               isActive
-                ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-[inset_3px_0_0_0_var(--color-sidebar-primary)]"
+                ? "bg-sidebar-primary text-sidebar-primary-foreground"
                 : item.locked
                   ? "opacity-45 cursor-not-allowed"
-                  : "hover:bg-sidebar-accent/80 hover:text-sidebar-foreground"
+                  : "hover:bg-sidebar-accent hover:text-sidebar-foreground"
             }`;
 
             return (
@@ -178,7 +180,7 @@ export function DashboardSidebar({
 
       {/* Mobile workspace navigation */}
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 border-t border-sidebar-border bg-sidebar/95 text-sidebar-foreground backdrop-blur-md">
-        <div className="grid grid-cols-5 gap-0.5 px-1 py-2">
+        <div className="grid grid-cols-5 gap-0.5 px-1 py-1">
           {mobileNavItems.map((item) => {
             const Icon = item.icon;
             const isActive = getIsActive(item);
@@ -186,8 +188,10 @@ export function DashboardSidebar({
               <Link
                 key={`mobile-${item.id}`}
                 to={item.path || "#"}
-                className={`flex flex-col items-center justify-center gap-0.5 rounded-design px-1 py-1.5 text-[10px] leading-tight ${
-                  isActive ? "bg-sidebar-accent text-sidebar-primary" : "text-[color:var(--sidebar-muted)]"
+                className={`flex min-h-11 flex-col items-center justify-center gap-0.5 rounded-[14px] px-1 py-1.5 text-[10px] leading-tight ${
+                  isActive
+                    ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                    : "text-[color:var(--sidebar-muted)]"
                 }`}
                 onClick={(e) => {
                   if (guestMode && !isGuestAllowedPath(item.path)) {
@@ -202,7 +206,7 @@ export function DashboardSidebar({
                 }}
               >
                 <Icon className="w-4 h-4 shrink-0" />
-                <span className="font-['Plus_Jakarta_Sans'] text-center line-clamp-2 w-full">{item.label}</span>
+                <span className="font-['Plus_Jakarta_Sans'] font-medium text-center line-clamp-2 w-full">{item.label}</span>
               </Link>
             );
           })}

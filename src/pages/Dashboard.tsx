@@ -50,6 +50,8 @@ type NextAction = {
   href: string;
 };
 
+const DASHBOARD_ICP_BANDS = ["#F4B6AC", "#A9B7DC", "#EBFD84"] as const;
+
 function readDimensionScore(
   scores: Record<string, unknown> | null | undefined,
   key: string
@@ -478,7 +480,7 @@ export default function Dashboard() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 mx-auto mb-4 border-4 border-button-green border-t-transparent rounded-full animate-spin" />
+          <div className="w-16 h-16 mx-auto mb-4 border-4 border-foreground border-t-transparent rounded-full animate-spin" />
           <p className="text-foreground/70">Loading...</p>
         </div>
       </div>
@@ -488,9 +490,9 @@ export default function Dashboard() {
   return (
     <>
       <DashboardShell onCreateNew={handleCreateNew}>
-        <div className="max-w-5xl space-y-10">
+        <div className="max-w-5xl space-y-8">
           <header>
-            <h1 className="font-['Fraunces'] text-4xl font-bold leading-tight text-[#0D1833]">
+            <h1 className="font-['Fraunces'] text-[2.5rem] font-bold leading-tight tracking-[-0.01em] text-foreground">
               {getGreeting()}
               {greetingName}.
             </h1>
@@ -501,7 +503,7 @@ export default function Dashboard() {
 
           {/* 1. Health score hero — step chain + 4-pillar breakdown */}
           <section className="space-y-6">
-            <div className="grid gap-6 lg:grid-cols-3">
+            <div className="grid gap-8 lg:grid-cols-3">
               <MarktrStepCard
                 step={1}
                 title="Digital health check"
@@ -510,11 +512,11 @@ export default function Dashboard() {
                 summary={
                   <div className="mt-2 flex items-center gap-2">
                     <Activity
-                      className={`h-5 w-5 shrink-0 ${hasHealth ? "text-[#2D7A5F]" : "text-muted-foreground"}`}
+                      className={`h-5 w-5 shrink-0 ${hasHealth ? "text-foreground" : "text-muted-foreground"}`}
                       aria-hidden
                     />
                     {hasHealth ? (
-                      <p className="font-['Plus_Jakarta_Sans'] text-sm text-[#2D7A5F]">
+                      <p className="app-status-pill font-['Plus_Jakarta_Sans'] text-sm">
                         Overall score{" "}
                         <span className="font-['Fraunces'] text-xl font-bold">{overallScore}</span>
                         /100
@@ -533,14 +535,18 @@ export default function Dashboard() {
                 summary={
                   <div className="mt-2 flex items-center gap-2">
                     <BookOpen
-                      className={`h-5 w-5 shrink-0 ${hasStory ? "text-[#E8650A]" : "text-muted-foreground"}`}
+                      className={`h-5 w-5 shrink-0 ${hasStory ? "text-foreground" : "text-muted-foreground"}`}
                       aria-hidden
                     />
-                    <p
-                      className={`font-['Plus_Jakarta_Sans'] text-sm ${hasStory ? "text-[#E8650A]" : "text-muted-foreground"}`}
-                    >
-                      {hasStory ? "Brand story ready" : "Not started yet"}
-                    </p>
+                    {hasStory ? (
+                      <p className="app-status-pill font-['Plus_Jakarta_Sans'] text-sm">
+                        Brand story ready
+                      </p>
+                    ) : (
+                      <p className="font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground">
+                        Not started yet
+                      </p>
+                    )}
                   </div>
                 }
               />
@@ -552,14 +558,18 @@ export default function Dashboard() {
                 summary={
                   <div className="mt-2 flex items-center gap-2">
                     <Users
-                      className={`h-5 w-5 shrink-0 ${hasICPs ? "text-[#E8650A]" : "text-muted-foreground"}`}
+                      className={`h-5 w-5 shrink-0 ${hasICPs ? "text-foreground" : "text-muted-foreground"}`}
                       aria-hidden
                     />
-                    <p
-                      className={`font-['Plus_Jakarta_Sans'] text-sm ${hasICPs ? "text-[#D4871A]" : "text-muted-foreground"}`}
-                    >
-                      {hasICPs ? `${icps.length} profiles` : "Not started yet"}
-                    </p>
+                    {hasICPs ? (
+                      <p className="app-status-pill font-['Plus_Jakarta_Sans'] text-sm">
+                        {`${icps.length} profiles`}
+                      </p>
+                    ) : (
+                      <p className="font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground">
+                        Not started yet
+                      </p>
+                    )}
                   </div>
                 }
               />
@@ -604,46 +614,48 @@ export default function Dashboard() {
           {/* 3. ICPs — same card as My ICPs */}
           <section>
             <div className="mb-4 flex items-center justify-between gap-3">
-              <h2 className="font-['Fraunces'] text-2xl font-bold text-[#0D1833]">Your ICPs</h2>
+              <h2 className="font-['Fraunces'] text-2xl font-bold text-foreground">Your ICPs</h2>
               <Link
                 to="/icps"
-                className="font-['Plus_Jakarta_Sans'] text-sm font-medium text-primary hover:underline"
+                className="app-text-link font-['Plus_Jakarta_Sans'] text-sm"
               >
                 View all →
               </Link>
             </div>
 
             {showIcpPlaceholder ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {[0, 1, 2].map((i) => (
                   <div
                     key={i}
-                    className="h-64 animate-pulse rounded-design border border-black/10 bg-muted/30"
+                    className="h-64 animate-pulse rounded-[24px] border-2 border-brand-stroke bg-muted/30"
                   />
                 ))}
               </div>
             ) : previewIcps.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-border bg-white p-8 text-center">
+              <div className="app-card border-dashed p-8 text-center">
                 <p className="font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground">
                   No customer profiles yet.
                 </p>
                 <button
                   type="button"
                   onClick={handleCreateNew}
-                  className="mt-3 font-['Plus_Jakarta_Sans'] text-sm font-semibold text-primary hover:underline"
+                  className="app-text-link mt-3 font-['Plus_Jakarta_Sans'] text-sm"
                 >
                   Create your first ICP →
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {previewIcps.map((icp) => (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {previewIcps.map((icp, index) => (
                   <ICPPreviewCard
                     key={icp.id}
                     icp={icp}
                     userTier={effectiveTier}
                     onUpgrade={handleUpgrade}
                     isLocked={!canViewICP(effectiveTier as "free" | "pro", icp._index ?? 0)}
+                    bandColor={DASHBOARD_ICP_BANDS[index % DASHBOARD_ICP_BANDS.length]}
+                    branded
                     collectionNames={
                       icp.lineage_id ? collectionNamesByLineage[icp.lineage_id] || [] : []
                     }
@@ -662,12 +674,12 @@ export default function Dashboard() {
           </section>
 
           {/* 4. Latest strategy */}
-          <section className="rounded-2xl border border-border bg-white p-6">
+          <section className="app-card p-6">
             <div className="flex flex-wrap items-start justify-between gap-3">
-              <h2 className="font-['Fraunces'] text-2xl font-bold text-[#0D1833]">Latest strategy</h2>
+              <h2 className="font-['Fraunces'] text-2xl font-bold text-foreground">Latest strategy</h2>
               <Link
                 to="/strategy"
-                className="font-['Plus_Jakarta_Sans'] text-sm font-medium text-primary hover:underline"
+                className="app-text-link font-['Plus_Jakarta_Sans'] text-sm"
               >
                 View all →
               </Link>
@@ -678,9 +690,9 @@ export default function Dashboard() {
               <button
                 type="button"
                 onClick={() => navigate(`/strategy/${latestStrategy.id}`)}
-                className="mt-4 w-full rounded-xl border border-border bg-background p-4 text-left transition-colors hover:border-primary/40"
+                className="app-card app-focus-ring mt-4 w-full p-4 text-left transition-colors hover:-translate-y-px"
               >
-                <p className="font-['Fraunces'] text-lg font-bold text-[#0D1833] truncate">
+                <p className="font-['Fraunces'] text-lg font-bold text-foreground truncate">
                   {latestStrategy.title}
                 </p>
                 <p className="mt-1 font-['Plus_Jakarta_Sans'] text-xs text-muted-foreground">
@@ -695,7 +707,7 @@ export default function Dashboard() {
                 </p>
                 <Link
                   to="/strategy"
-                  className="mt-2 inline-block font-['Plus_Jakarta_Sans'] text-sm font-semibold text-primary hover:underline"
+                  className="app-text-link mt-2 inline-block font-['Plus_Jakarta_Sans'] text-sm"
                 >
                   Create a strategy →
                 </Link>
@@ -704,12 +716,12 @@ export default function Dashboard() {
           </section>
 
           {/* 5. Content in draft */}
-          <section className="rounded-2xl border border-border bg-white p-6">
+          <section className="app-card p-6">
             <div className="flex flex-wrap items-start justify-between gap-3">
-              <h2 className="font-['Fraunces'] text-2xl font-bold text-[#0D1833]">Content in draft</h2>
+              <h2 className="font-['Fraunces'] text-2xl font-bold text-foreground">Content in draft</h2>
               <Link
                 to="/content"
-                className="font-['Plus_Jakarta_Sans'] text-sm font-medium text-primary hover:underline"
+                className="app-text-link font-['Plus_Jakarta_Sans'] text-sm"
               >
                 Open Content →
               </Link>
@@ -726,7 +738,7 @@ export default function Dashboard() {
                   {draftCountsByType.map(([type, count]) => (
                     <span
                       key={type}
-                      className="rounded-full border border-border bg-background px-3 py-1 font-['Plus_Jakarta_Sans'] text-xs text-[#0D1833]"
+                      className="app-status-pill font-['Plus_Jakarta_Sans'] text-xs"
                     >
                       {CONTENT_TYPE_LABELS[type]}: {count}
                     </span>
@@ -737,9 +749,9 @@ export default function Dashboard() {
                     <li key={item.id}>
                       <Link
                         to={`/content/${item.id}`}
-                        className="flex items-center justify-between gap-3 rounded-xl border border-border bg-background px-4 py-3 transition-colors hover:border-primary/40"
+                        className="app-card flex items-center justify-between gap-3 px-4 py-3 transition-colors hover:-translate-y-px"
                       >
-                        <span className="min-w-0 truncate font-['Plus_Jakarta_Sans'] text-sm text-[#0D1833]">
+                        <span className="min-w-0 truncate font-['Plus_Jakarta_Sans'] text-sm text-foreground">
                           {CONTENT_TYPE_LABELS[item.type]}
                           {item.composition?.persona?.name
                             ? ` · ${item.composition.persona.name}`
@@ -765,17 +777,17 @@ export default function Dashboard() {
               <button
                 type="button"
                 onClick={() => navigate(nextAction.href)}
-                className="group flex w-full items-center gap-4 rounded-xl border border-border bg-white p-5 text-left transition-colors hover:border-primary/40"
+                className="app-card app-card-hover group flex w-full items-center gap-4 p-5 text-left"
               >
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-primary font-['Plus_Jakarta_Sans'] text-sm font-medium text-primary">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-navy font-['Plus_Jakarta_Sans'] text-sm font-medium text-brand-lime">
                   1
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="mb-0.5 flex items-center gap-2">
-                    <span className="font-['Plus_Jakarta_Sans'] text-sm font-medium text-[#0D1833]">
+                    <span className="font-['Plus_Jakarta_Sans'] text-sm font-medium text-foreground">
                       {nextAction.label}
                     </span>
-                    <span className="rounded-full border border-primary/30 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-primary">
+                    <span className="app-status-pill text-[10px] font-medium uppercase tracking-wide">
                       {nextAction.tag}
                     </span>
                   </div>
@@ -783,7 +795,7 @@ export default function Dashboard() {
                     {nextAction.desc}
                   </p>
                 </div>
-                <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-primary" />
+                <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-foreground" />
               </button>
             </section>
           ) : null}

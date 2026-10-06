@@ -13,18 +13,13 @@ export interface ButtonProps
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = "default", size = "default", href, asLink, ...props }, ref) => {
     const buttonClasses = cn(
-      "inline-flex items-center justify-center font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50",
+      "inline-flex items-center justify-center gap-2 font-['Plus_Jakarta_Sans'] font-semibold transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--brand-navy)] dark:focus-visible:outline-[color:var(--brand-lime)] focus-visible:shadow-[var(--brand-focus-glow)] disabled:pointer-events-none disabled:opacity-50",
       {
-        // Default variant (matches primary)
-        "rounded-lg bg-primary text-primary-foreground hover:bg-primary/90": variant === "default",
-        // Outline variant
-        "rounded-lg border border-border bg-transparent hover:bg-accent hover:text-accent-foreground": variant === "outline",
-        // Ghost variant
-        "rounded-lg hover:bg-accent hover:text-accent-foreground": variant === "ghost",
-        // Link variant
+        "rounded-full border-2 border-brand-stroke bg-brand-lime text-brand-navy hover:bg-brand-lime-hover hover:-translate-y-px": variant === "default",
+        "rounded-full border-2 border-brand-stroke bg-card text-foreground hover:bg-muted/50": variant === "outline",
+        "rounded-full hover:bg-muted/60 hover:text-foreground": variant === "ghost",
         "underline-offset-4 hover:underline": variant === "link",
-        // CTA variant - matches current Hero/ClosingCTA styling exactly
-        "rounded-design border border-black bg-button-green text-text-dark transition-transform scale-[1.50] hover:scale-[1.55] active:scale-[1.05] hover:bg-button-green/90 hover:shadow-lg whitespace-nowrap font-bold font-['Fraunces'] px-4 py-2": variant === "cta",
+        "rounded-full border-2 border-brand-stroke bg-button-green text-brand-navy transition-transform scale-[1.50] hover:scale-[1.55] active:scale-[1.05] hover:bg-brand-lime-hover hover:shadow-[var(--brand-shadow)] whitespace-nowrap font-bold font-['Fraunces'] px-4 py-2": variant === "cta",
         // Sizes
         "h-10 px-4 py-2": size === "default" && variant !== "cta",
         "h-9 px-3": size === "sm" && variant !== "cta",

@@ -139,6 +139,10 @@ interface ICPPreviewCardProps {
   collectionNames?: string[];
   /** Guest preview — card is display-only, no navigation on click */
   previewOnly?: boolean;
+  /** Optional header band colour (dashboard brand cycle). */
+  bandColor?: string;
+  /** Dashboard chrome: 2px navy border, 24px radius, 3px avatar ring. */
+  branded?: boolean;
   // Optional brand list so the card can resolve a brand name globally
   brands?: Array<{ id: string; name: string }>;
 }
@@ -160,6 +164,8 @@ export function ICPPreviewCard(props: ICPPreviewCardProps) {
     onCardClickOverride,
     previewOnly = false,
     collectionNames = [],
+    bandColor,
+    branded = false,
   } = props;
   const [isHovered, setIsHovered] = useState(false);
   const [shake, setShake] = useState(false);
@@ -423,11 +429,16 @@ export function ICPPreviewCard(props: ICPPreviewCardProps) {
         navigate(`/icp/${icp.id}`);
       }}
     >
-      <Card className="hover:shadow-lg transition-all duration-300 group cursor-pointer h-full border border-black rounded-design overflow-hidden">
+      <Card className={cls(
+        "hover:shadow-[var(--brand-shadow)] transition-all duration-300 group cursor-pointer h-full overflow-hidden",
+        branded
+          ? "border-2 border-brand-stroke rounded-[24px]"
+          : "border border-black rounded-design"
+      )}>
         {/* Header area: colour + avatar + menu (mirrors CollectionCard structure) */}
         <div
           className="h-24 border-b border-black relative"
-          style={{ backgroundColor: icp.color || "#EDEDED" }}
+          style={{ backgroundColor: bandColor || icp.color || "#EDEDED" }}
         >
           {/* Lock icon (if locked) */}
           {locked && (
@@ -440,7 +451,7 @@ export function ICPPreviewCard(props: ICPPreviewCardProps) {
                   triggerShake();
                   onUpgrade?.();
                 }}
-                className="p-1.5 bg-background rounded-full border border-black h-8 w-8 flex items-center justify-center shadow-sm"
+                className="p-1.5 bg-background rounded-full border-2 border-brand-stroke h-8 w-8 flex items-center justify-center shadow-sm"
               >
                 <Lock className="h-4 w-4" />
               </button>
@@ -590,7 +601,10 @@ export function ICPPreviewCard(props: ICPPreviewCardProps) {
 
           {/* Avatar badge (image placeholder or custom avatar) */}
           <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2">
-            <div className="w-20 h-20 bg-background rounded-full border-2 border-black flex items-center justify-center shadow-md overflow-hidden">
+            <div className={cls(
+              "w-20 h-20 bg-background rounded-full flex items-center justify-center shadow-md overflow-hidden",
+              branded ? "border-[3px] border-brand-navy" : "border-2 border-black"
+            )}>
               <img
                 src={avatarSrc}
                 alt={icp.name}
@@ -646,7 +660,7 @@ export function ICPPreviewCard(props: ICPPreviewCardProps) {
                   Cancel
                 </Button>
                 <Button
-                  className="bg-button-green hover:bg-button-green/90 text-foreground border border-black rounded-design"
+                  className="bg-button-green hover:bg-brand-lime-hover text-brand-navy border-2 border-brand-stroke rounded-full"
                   onClick={async (e) => {
                     stop(e);
                     await onMoveToBrand(icp.id, moveBrandId ?? null);
@@ -703,7 +717,7 @@ export function ICPPreviewCard(props: ICPPreviewCardProps) {
               </ul>
             )}
 
-            <p className="font-['Plus_Jakarta_Sans'] text-sm font-medium text-primary">
+            <p className="app-text-link font-['Plus_Jakarta_Sans'] text-sm font-medium">
               View full profile →
             </p>
           </div>

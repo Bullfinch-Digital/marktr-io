@@ -297,16 +297,6 @@ export default function Testimonials() {
                       </span>
                     ) : null}
                     <PlayIcon />
-                    {testimonial.featured ? (
-                      <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#101A26]/85 to-transparent px-4 pb-4 pt-16 text-left">
-                        <span className="block font-['Fraunces'] text-lg font-bold text-white">{testimonial.name}</span>
-                        <span className="mt-0.5 block font-['Plus_Jakarta_Sans'] text-sm text-white/85">Watch video</span>
-                      </span>
-                    ) : (
-                      <span className="absolute inset-x-3 bottom-3 rounded-full bg-[#FBFAF0]/92 px-3 py-1.5 text-center font-['Fraunces'] text-lg font-bold text-[#101A26]">
-                        {testimonial.name}
-                      </span>
-                    )}
                   </button>
                   <div className="flex flex-1 flex-col p-5 text-left">
                     {testimonial.outcome ? (

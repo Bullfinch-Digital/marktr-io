@@ -606,6 +606,25 @@ html {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
+.compare-marktr {
+  background:
+    radial-gradient(75% 70% at 100% 0%, rgba(235, 253, 132, 0.28) 0%, rgba(235, 253, 132, 0) 58%),
+    radial-gradient(70% 75% at 0% 100%, rgba(169, 183, 220, 0.42) 0%, rgba(169, 183, 220, 0) 62%),
+    #101a26;
+  box-shadow: 0 22px 44px rgb(16 26 38 / 0.18);
+}
+
+.compare-marktr::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.2;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
 .home-pill-line {
   display: block;
   font-size: clamp(30px, 4.2vw, 58px);
@@ -752,7 +771,8 @@ html {
       animation-range: entry 0% cover 70%;
     }
 
-    .testimonial-card {
+    .testimonial-card,
+    .compare-card {
       animation: journey-fade-up linear both;
       animation-timeline: view();
       animation-range: entry 0% cover 18%;

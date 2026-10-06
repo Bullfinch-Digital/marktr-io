@@ -26,7 +26,7 @@ export function ContentRosterCard({
   const statusLabel = item.status === "approved" ? "Approved" : "Draft";
 
   return (
-    <article className="rounded-design border border-black/15 bg-white p-5 shadow-sm hover:border-black/25 transition-colors">
+    <article className="app-card p-8">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <button
           type="button"
@@ -34,7 +34,7 @@ export function ContentRosterCard({
           onClick={() => navigate(`/content/${item.id}`)}
         >
           <div className="flex flex-wrap items-center gap-2">
-            <h3 className="font-['Fraunces'] text-xl text-[#0D1833] truncate">{item.title}</h3>
+            <h3 className="app-heading font-['Fraunces'] text-xl text-foreground truncate">{item.title}</h3>
             <span className="inline-flex items-center rounded-full border border-black/15 bg-accent-grey/30 px-2 py-0.5 font-['Plus_Jakarta_Sans'] text-[11px] text-foreground/70">
               {typeLabel}
             </span>

@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Activity, BookOpen, Users } from "lucide-react";
 import { GuestAllCompleteTrialBanner } from "../components/guest/GuestAllCompleteTrialBanner";
 import { GuestICPCard } from "../components/cards/GuestICPCard";
 import { MarktrStepCard } from "../components/dashboard/MarktrStepCard";
@@ -73,8 +72,7 @@ export default function GuestDashboardPreview() {
     ? { to: "/onboarding-build", label: "Next: Know your customer →" }
     : null;
 
-  const nextStepLinkClassName =
-    "inline-block font-['Plus_Jakarta_Sans'] text-sm font-semibold text-primary hover:underline";
+  const nextStepLinkClassName = "app-text-link font-['Plus_Jakarta_Sans']";
 
   const headerTitle = (() => {
     if (completedCount === 3) return "Your full marketing picture is ready.";
@@ -106,7 +104,7 @@ export default function GuestDashboardPreview() {
   };
 
   return (
-    <main className="min-h-screen bg-background">
+    <main className="app-ui min-h-screen bg-background">
       <div className="mb-0 flex flex-col gap-3 bg-primary px-6 py-3 sm:flex-row sm:items-center sm:justify-between lg:px-12">
         <p className="font-['Plus_Jakarta_Sans'] text-sm font-medium text-white">
           Your results are stored temporarily in your browser. Sign up free to save them permanently.
@@ -117,36 +115,30 @@ export default function GuestDashboardPreview() {
         <GuestAllCompleteTrialBanner onStartTrial={() => openPaywall("annual")} />
       )}
 
-      <div className="container mx-auto max-w-7xl space-y-10 px-6 pb-12 pt-8 lg:px-12">
+      <div className="container mx-auto max-w-7xl space-y-8 px-6 pb-12 pt-8 lg:px-12">
         <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="mb-2 font-['Fraunces'] text-3xl text-[#0D1833] lg:text-4xl">{headerTitle}</h1>
+            <h1 className="app-heading-page mb-2 font-['Fraunces'] text-3xl text-foreground lg:text-4xl">{headerTitle}</h1>
             <p className="font-['Plus_Jakarta_Sans'] text-foreground/70">{headerSubtitle}</p>
           </div>
         </header>
 
-        <section className="grid gap-6 lg:grid-cols-3">
+        <section className="grid items-stretch gap-6 lg:grid-cols-3">
           <MarktrStepCard
             step={1}
             title="Digital health check"
             complete={hasHealth}
             onClick={() => navigate(hasHealth ? "/health-preview" : "/health-check")}
-            summary={
-              <div className="mt-2 flex items-center gap-2">
-                <Activity
-                  className={`h-5 w-5 shrink-0 ${hasHealth ? "text-foreground" : "text-muted-foreground"}`}
-                  aria-hidden
-                />
-                {hasHealth && guestHealth ? (
-                  <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground">
-                    Overall score{" "}
-                    <span className="font-['Fraunces'] text-xl font-bold">{guestHealth.scores.overall}</span>
-                    /100
-                  </p>
-                ) : (
-                  <p className="font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground">Not started yet</p>
-                )}
-              </div>
+            status={
+              hasHealth && guestHealth ? (
+                <p className="app-status-pill font-['Plus_Jakarta_Sans'] text-sm">
+                  Overall score{" "}
+                  <span className="font-['Fraunces'] text-xl font-medium">{guestHealth.scores.overall}</span>
+                  /100
+                </p>
+              ) : (
+                <p className="font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground">Not started yet</p>
+              )
             }
           />
 
@@ -155,18 +147,12 @@ export default function GuestDashboardPreview() {
             title="Brand story"
             complete={hasStory}
             onClick={() => navigate(hasStory ? "/story/results" : "/story")}
-            summary={
-              <div className="mt-2 flex items-center gap-2">
-                <BookOpen
-                  className={`h-5 w-5 shrink-0 ${hasStory ? "text-foreground" : "text-muted-foreground"}`}
-                  aria-hidden
-                />
-                <p
-                  className={`font-['Plus_Jakarta_Sans'] text-sm ${hasStory ? "text-foreground" : "text-muted-foreground"}`}
-                >
-                  {hasStory ? "Brand story ready" : "Not started yet"}
-                </p>
-              </div>
+            status={
+              hasStory ? (
+                <p className="app-status-pill font-['Plus_Jakarta_Sans'] text-sm">Brand story ready</p>
+              ) : (
+                <p className="font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground">Not started yet</p>
+              )
             }
           />
 
@@ -175,18 +161,14 @@ export default function GuestDashboardPreview() {
             title="Know your customer"
             complete={hasICPs}
             onClick={() => (hasICPs ? scrollToIcpProfiles() : navigate("/onboarding-build"))}
-            summary={
-              <div className="mt-2 flex items-center gap-2">
-                <Users
-                  className={`h-5 w-5 shrink-0 ${hasICPs ? "text-foreground" : "text-muted-foreground"}`}
-                  aria-hidden
-                />
-                <p
-                  className={`font-['Plus_Jakarta_Sans'] text-sm ${hasICPs ? "text-foreground" : "text-muted-foreground"}`}
-                >
-                  {hasICPs ? `${guestICPs.length} profiles generated` : "Not started yet"}
+            status={
+              hasICPs ? (
+                <p className="app-status-pill font-['Plus_Jakarta_Sans'] text-sm">
+                  {`${guestICPs.length} profiles generated`}
                 </p>
-              </div>
+              ) : (
+                <p className="font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground">Not started yet</p>
+              )
             }
           />
         </section>
@@ -230,12 +212,12 @@ export default function GuestDashboardPreview() {
 
         {hasStory && guestStory?.output ? (
           <div className="space-y-3">
-            <div className="space-y-4 rounded-2xl border border-border bg-white p-6">
+            <div className="app-card space-y-4 p-8">
               <div className="flex flex-wrap items-start justify-between gap-3">
-                <h2 className="font-['Fraunces'] text-2xl font-bold text-[#0D1833]">Your brand story</h2>
+                <h2 className="app-heading font-['Fraunces'] text-2xl text-foreground">Your brand story</h2>
                 <Link
                   to="/story/results"
-                  className="font-['Plus_Jakarta_Sans'] text-sm font-medium text-primary hover:underline"
+                  className="app-text-link font-['Plus_Jakarta_Sans']"
                 >
                   View full story →
                 </Link>
@@ -249,11 +231,11 @@ export default function GuestDashboardPreview() {
                     { label: "YOUR PURPOSE", body: guestStory.output.brandPurpose },
                   ] as const
                 ).map(({ label, body }) => (
-                  <div key={label} className="rounded-xl border border-border p-4">
-                    <p className="mb-2 font-['Plus_Jakarta_Sans'] text-[10px] uppercase tracking-widest text-muted-foreground">
+                  <div key={label} className="app-card-nested p-4">
+                    <p className="mb-2 font-['Plus_Jakarta_Sans'] text-sm font-medium uppercase tracking-widest text-muted-foreground">
                       {label}
                     </p>
-                    <p className="font-['Fraunces'] text-base leading-relaxed text-[#0D1833]">{body}</p>
+                    <p className="app-heading font-['Fraunces'] text-base leading-relaxed text-foreground">{body}</p>
                   </div>
                 ))}
               </div>
@@ -270,7 +252,7 @@ export default function GuestDashboardPreview() {
           <section ref={icpProfilesRef} id="guest-icp-profiles" className="scroll-mt-8">
             <div className="mb-4 flex items-center justify-between">
               <div>
-                <h2 className="font-['Fraunces'] text-2xl text-[#0D1833]">Your customer profiles</h2>
+                <h2 className="app-heading font-['Fraunces'] text-2xl text-foreground">Your customer profiles</h2>
                 <p className="font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground">
                   marktr has identified three distinct customers for your business.
                 </p>

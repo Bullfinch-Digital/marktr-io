@@ -220,7 +220,7 @@ function ContentPageBody() {
   if (!scopedBrandId) {
     return (
       <div className="max-w-xl">
-        <h1 className="font-['Fraunces'] text-3xl text-[#0D1833]">Content</h1>
+        <h1 className="app-heading-page font-['Fraunces'] text-3xl text-foreground">Content</h1>
         <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70 mt-3">
           Choose a brand to manage content.{" "}
           <Link to="/my-brands" className="underline underline-offset-2">
@@ -236,7 +236,7 @@ function ContentPageBody() {
       <div className="max-w-5xl mx-auto space-y-8">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="font-['Fraunces'] text-3xl lg:text-4xl text-[#0D1833]">Content</h1>
+            <h1 className="app-heading-page font-['Fraunces'] text-3xl lg:text-4xl text-foreground">Content</h1>
             <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/65 mt-2 max-w-xl">
               Pieces your strategy calls for — written for one persona at a time, ready to film
               on a phone.
@@ -293,7 +293,7 @@ function ContentPageBody() {
         ) : items.length === 0 && !showCreate ? (
           <div className="rounded-design border border-dashed border-black/20 bg-accent-grey/10 px-6 py-12 text-center">
             <FileText className="h-8 w-8 text-foreground/35 mx-auto mb-3" />
-            <h2 className="font-['Fraunces'] text-xl text-[#0D1833]">
+            <h2 className="app-heading font-['Fraunces'] text-xl text-foreground">
               Content comes from a strategy
             </h2>
             <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/65 mt-2 max-w-md mx-auto">
@@ -437,7 +437,7 @@ function ContentPageBody() {
                 {archivedItems.map((item) => (
                   <article
                     key={item.id}
-                    className="rounded-design border border-black/10 bg-accent-grey/10 p-4"
+                    className="app-card-nested p-4"
                   >
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="min-w-0">

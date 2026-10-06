@@ -9,7 +9,7 @@ export default function PlaceholderPage({ title }: PlaceholderPageProps) {
     <DashboardShell>
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
         <div className="w-16 h-px bg-brand-navy mb-8 mx-auto" />
-        <h1 className="font-['Fraunces'] text-4xl font-bold text-foreground mb-3">
+        <h1 className="app-heading-page font-['Fraunces'] text-4xl text-foreground mb-3">
           {title}
         </h1>
         <p className="text-muted-foreground font-['Plus_Jakarta_Sans'] text-lg">Coming soon</p>

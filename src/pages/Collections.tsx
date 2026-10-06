@@ -131,7 +131,7 @@ export default function Collections() {
                 <div className="mb-8">
                   <div className="flex items-start justify-between mb-6 gap-4">
                     <div className="flex-1">
-                      <h1 className="font-['Fraunces'] text-3xl lg:text-4xl mb-2">
+                      <h1 className="app-heading-page font-['Fraunces'] text-3xl lg:text-4xl mb-2">
                         Collections
                       </h1>
                       <p className="font-['Plus_Jakarta_Sans'] text-foreground/70 max-w-2xl">

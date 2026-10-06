@@ -143,6 +143,8 @@ interface ICPPreviewCardProps {
   bandColor?: string;
   /** Dashboard chrome: 2px navy border, 24px radius, 3px avatar ring. */
   branded?: boolean;
+  /** 1px nested hairline when this card sits inside a parent card or dashboard section. */
+  nested?: boolean;
   // Optional brand list so the card can resolve a brand name globally
   brands?: Array<{ id: string; name: string }>;
 }
@@ -166,6 +168,7 @@ export function ICPPreviewCard(props: ICPPreviewCardProps) {
     collectionNames = [],
     bandColor,
     branded = true,
+    nested = false,
   } = props;
   const [isHovered, setIsHovered] = useState(false);
   const [shake, setShake] = useState(false);
@@ -430,10 +433,12 @@ export function ICPPreviewCard(props: ICPPreviewCardProps) {
       }}
     >
       <Card className={cls(
-        "hover:shadow-[var(--brand-shadow)] transition-all duration-300 group cursor-pointer h-full overflow-hidden",
-        branded
-          ? "border-2 border-brand-stroke rounded-[24px]"
-          : "border border-black rounded-design"
+        "transition-all duration-300 group cursor-pointer h-full overflow-hidden",
+        nested
+          ? "app-card-nested border border-[color:var(--brand-nested-stroke)] shadow-none hover:shadow-none"
+          : branded
+            ? "border-2 border-brand-stroke rounded-[24px] hover:shadow-[var(--brand-shadow)]"
+            : "border border-black rounded-design hover:shadow-[var(--brand-shadow)]"
       )}>
         {/* Header area: colour + avatar + menu (mirrors CollectionCard structure) */}
         <div
@@ -689,7 +694,7 @@ export function ICPPreviewCard(props: ICPPreviewCardProps) {
         {/* Body */}
         {previewOnly ? (
           <div className="p-6 pt-12 bg-background text-left">
-            <h3 className="font-['Fraunces'] text-lg mb-1 truncate">{icp.name}</h3>
+            <h3 className="app-heading font-['Fraunces'] text-lg mb-1 truncate">{icp.name}</h3>
 
             {previewMetaLine && (
               <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/60 mb-3 truncate">
@@ -723,7 +728,7 @@ export function ICPPreviewCard(props: ICPPreviewCardProps) {
           </div>
         ) : (
         <div className="p-6 pt-12 text-center bg-background">
-          <h3 className="font-['Fraunces'] text-lg mb-2 truncate">
+          <h3 className="app-heading font-['Fraunces'] text-lg mb-2 truncate">
             {icp.name}
           </h3>
 

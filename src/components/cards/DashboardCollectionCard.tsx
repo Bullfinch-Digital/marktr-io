@@ -58,7 +58,7 @@ export function CollectionCard({
       }}
       className="cursor-pointer active:scale-[0.98] transition-transform group h-full collection-clickable"
     >
-      <Card className="hover:shadow-lg transition-all duration-300 group cursor-pointer h-full border border-black rounded-design overflow-hidden">
+      <Card className="h-full overflow-hidden border-2 border-brand-stroke rounded-[24px] hover:shadow-[var(--brand-shadow)] transition-all duration-300 group cursor-pointer">
         <div
           className="h-24 border-b border-black relative"
           style={{ backgroundColor: bgColor }}
@@ -138,7 +138,7 @@ export function CollectionCard({
         </div>
 
         <div className="p-6 pt-10 text-center bg-background">
-          <h3 className="font-['Fraunces'] text-lg mb-2">
+          <h3 className="app-heading font-['Fraunces'] text-lg mb-2">
             {collection.name}
           </h3>
           {collection.tags?.length ? (

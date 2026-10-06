@@ -901,9 +901,9 @@ export default function BrandEditor() {
 
           {activeTab === "overview" && (
             <div className="space-y-6">
-              <div className="bg-white rounded-xl border border-border p-8 space-y-4">
+              <div className="app-card space-y-4 p-8">
                 <div>
-                  <h2 className="font-['Fraunces'] text-2xl font-bold text-[#0D1833]">Founding story</h2>
+                  <h2 className="app-heading font-['Fraunces'] text-2xl text-foreground">Founding story</h2>
                   <p className="font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground mt-1">
                     The story behind why this business exists. This is the most differentiating content most founders never use.
                   </p>
@@ -947,9 +947,9 @@ export default function BrandEditor() {
                 </div>
               </div>
 
-              <div className="bg-white rounded-xl border border-border p-8 space-y-4">
+              <div className="app-card space-y-4 p-8">
                 <div>
-                  <h2 className="font-['Fraunces'] text-2xl font-bold text-[#0D1833]">Brand voice and tone</h2>
+                  <h2 className="app-heading font-['Fraunces'] text-2xl text-foreground">Brand voice and tone</h2>
                   <p className="font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground mt-1">
                     How the brand sounds. Captured once, applied to everything marktr creates.
                   </p>
@@ -983,9 +983,9 @@ export default function BrandEditor() {
                 </div>
               </div>
 
-              <div className="bg-white rounded-xl border border-border p-8 space-y-4">
+              <div className="app-card space-y-4 p-8">
                 <div>
-                  <h2 className="font-['Fraunces'] text-2xl font-bold text-[#0D1833]">Competitor landscape</h2>
+                  <h2 className="app-heading font-['Fraunces'] text-2xl text-foreground">Competitor landscape</h2>
                   <p className="font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground mt-1">
                     Up to 3 competitors. Understanding what they do well helps marktr position you differently.
                   </p>
@@ -1057,9 +1057,9 @@ export default function BrandEditor() {
                 })}
               </div>
 
-              <div className="bg-white rounded-xl border border-border p-8 space-y-4">
+              <div className="app-card space-y-4 p-8">
                 <div>
-                  <h2 className="font-['Fraunces'] text-2xl font-bold text-[#0D1833]">Current marketing</h2>
+                  <h2 className="app-heading font-['Fraunces'] text-2xl text-foreground">Current marketing</h2>
                   <p className="font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground mt-1">
                     Where you&apos;re currently active and what you&apos;re spending.
                   </p>
@@ -1132,9 +1132,9 @@ export default function BrandEditor() {
                 </div>
               </div>
 
-              <div className="bg-white rounded-xl border border-border p-8 space-y-4">
+              <div className="app-card space-y-4 p-8">
                 <div>
-                  <h2 className="font-['Fraunces'] text-2xl font-bold text-[#0D1833]">Email list</h2>
+                  <h2 className="app-heading font-['Fraunces'] text-2xl text-foreground">Email list</h2>
                   <p className="font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground mt-1">
                     Your email list is your most valuable owned asset.
                   </p>
@@ -1169,9 +1169,9 @@ export default function BrandEditor() {
                 </div>
               </div>
 
-              <div className="bg-white rounded-xl border border-border p-8 space-y-4">
+              <div className="app-card space-y-4 p-8">
                 <div>
-                  <h2 className="font-['Fraunces'] text-2xl font-bold text-[#0D1833]">Goals and focus</h2>
+                  <h2 className="app-heading font-['Fraunces'] text-2xl text-foreground">Goals and focus</h2>
                   <p className="font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground mt-1">
                     What success looks like for the next 90 days.
                   </p>

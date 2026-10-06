@@ -215,7 +215,7 @@ export default function Account() {
   // Watch for email confirmation
   if (loading) {
     return (
-      <div className="flex min-h-screen">
+      <div className="app-ui flex min-h-screen">
         <DashboardSidebar
           userTier={safeUserTier}
           onUpgrade={() => {}}
@@ -232,7 +232,7 @@ export default function Account() {
 
   if (!profile) {
     return (
-      <div className="flex min-h-screen">
+      <div className="app-ui flex min-h-screen">
         <DashboardSidebar
           userTier={safeUserTier}
           onUpgrade={() => {}}
@@ -247,14 +247,14 @@ export default function Account() {
   }
 
   return (
-    <div className="flex min-h-screen">
+    <div className="app-ui flex min-h-screen">
       <DashboardSidebar
         userTier={safeUserTier}
         onUpgrade={() => (window.location.href = "/pricing")}
       />
 
       <div className="flex-1 p-8 max-w-4xl">
-        <h1 className="font-fraunces text-4xl font-bold text-text-dark mb-8">
+        <h1 className="app-heading-page font-fraunces text-4xl text-foreground mb-8">
           My Account
         </h1>
 

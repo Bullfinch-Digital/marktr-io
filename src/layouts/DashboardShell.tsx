@@ -101,7 +101,7 @@ export default function DashboardShell({
   );
 
   return (
-    <div className="min-h-screen bg-background flex relative" key={user?.id ?? "guest"}>
+    <div className="app-ui min-h-screen bg-background flex relative" key={user?.id ?? "guest"}>
       {shellBody}
 
       {showAccessOverlay && (

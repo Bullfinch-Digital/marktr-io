@@ -79,7 +79,7 @@ export const CASE_STUDIES: CaseStudy[] = [
   {
     id: "sla-school",
     client: "SLA.SCHOOL",
-    headline: "+281%",
+    headline: "+391%",
     label: "lead generation",
     supporting: [
       "Content strategy defined",

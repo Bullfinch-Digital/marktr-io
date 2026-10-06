@@ -44,7 +44,7 @@ export function DashboardSidebar({
     { id: "brands", label: "My Brands", icon: Building2, locked: false, path: "/my-brands" },
     { id: "collections", label: "Collections", icon: Folder, locked: false, path: "/collections" },
     { id: "insights", label: "Insights", icon: BarChart2, locked: true, path: "/insights" },
-    { id: "settings", label: "Settings", icon: Settings, locked: false, path: "/settings" },
+    { id: "settings", label: "Settings", icon: Settings, locked: false, path: "/account" },
   ];
 
   const mobileNavItems = navItems.filter((item) =>

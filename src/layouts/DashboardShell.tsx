@@ -107,11 +107,11 @@ export default function DashboardShell({
       {showAccessOverlay && (
         <div className="absolute inset-0 z-50 flex items-center justify-center p-6">
           <div className="absolute inset-0 bg-background/80" />
-          <div className="relative w-full max-w-lg bg-background border border-black rounded-design shadow-xl p-8 text-center">
+          <div className="relative w-full max-w-lg bg-card border-2 border-brand-stroke rounded-[24px] shadow-[var(--brand-shadow)] p-8 text-center">
             <h2 className="font-['Fraunces'] text-2xl mb-2">
               {showTrialOverlay ? "Your trial has ended" : "This feature requires Marktr Pro"}
             </h2>
-            <p className="font-['Plus_Jakarta_Sans'] text-foreground/70 mb-6">
+            <p className="font-['Plus_Jakarta_Sans'] text-muted-foreground mb-6">
               {showTrialOverlay
                 ? "Upgrade to keep editing, exporting, and creating unlimited ICPs."
                 : "Strategy and content tools are included with Marktr Pro. Upgrade to unlock them — your data stays saved if you already have any."}
@@ -119,20 +119,20 @@ export default function DashboardShell({
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Button
                 onClick={handleUpgrade}
-                className="bg-button-green hover:bg-button-green/90 text-foreground border border-black rounded-design px-6 py-2"
+                className="px-6 py-2 h-11"
               >
                 Upgrade
               </Button>
               <Button
                 variant="outline"
-                className="border-black rounded-design px-6 py-2"
+                className="px-6 py-2 h-11"
                 onClick={() => navigate("/account")}
               >
                 Manage account
               </Button>
               <Button
                 variant="outline"
-                className="border-black rounded-design px-6 py-2"
+                className="px-6 py-2 h-11"
                 onClick={() => navigate("/pricing")}
               >
                 Not now

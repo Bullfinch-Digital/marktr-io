@@ -23,13 +23,6 @@ export type HealthScoreHeroProps = {
   onStartHealthCheck?: () => void;
 };
 
-function scoreColor(score: HealthDimensionScore): string {
-  if (typeof score !== "number") return "text-muted-foreground";
-  if (score >= 70) return "text-[#2D7A5F]";
-  if (score >= 40) return "text-[#BA7517]";
-  return "text-[#E24B4A]";
-}
-
 /** Overall score + 4-pillar breakdown shared by guest + authenticated dashboards. */
 export function HealthScoreHero({
   overall,
@@ -41,8 +34,8 @@ export function HealthScoreHero({
 }: HealthScoreHeroProps) {
   if (empty) {
     return (
-      <div className="space-y-4 rounded-2xl border border-dashed border-border bg-white p-6 text-center">
-        <h2 className="font-['Fraunces'] text-2xl font-bold text-[#0D1833]">
+      <div className="app-card space-y-4 border-dashed p-6 text-center">
+        <h2 className="font-['Fraunces'] text-2xl font-bold text-foreground">
           Your digital health scores
         </h2>
         <p className="font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground">
@@ -52,14 +45,14 @@ export function HealthScoreHero({
           <button
             type="button"
             onClick={onStartHealthCheck}
-            className="font-['Plus_Jakarta_Sans'] text-sm font-semibold text-primary hover:underline"
+            className="app-text-link font-['Plus_Jakarta_Sans'] text-sm"
           >
             Run health check →
           </button>
         ) : (
           <Link
             to="/health-check"
-            className="font-['Plus_Jakarta_Sans'] text-sm font-semibold text-primary hover:underline"
+            className="app-text-link font-['Plus_Jakarta_Sans'] text-sm"
           >
             Run health check →
           </Link>
@@ -69,14 +62,14 @@ export function HealthScoreHero({
   }
 
   return (
-    <div className="space-y-4 rounded-2xl border border-border bg-white p-6">
+    <div className="app-card space-y-6 p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <h2 className="font-['Fraunces'] text-2xl font-bold text-[#0D1833]">
+        <h2 className="font-['Fraunces'] text-2xl font-bold text-foreground">
           Your digital health scores
         </h2>
         <Link
           to={reportHref}
-          className="font-['Plus_Jakarta_Sans'] text-sm font-medium text-primary hover:underline"
+          className="app-text-link font-['Plus_Jakarta_Sans'] text-sm"
         >
           {reportLinkLabel}
         </Link>
@@ -84,17 +77,27 @@ export function HealthScoreHero({
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {dimensions.map(({ key, label, score, rerunHref }) => (
-          <div key={key} className="rounded-xl border border-border bg-background p-4 text-center">
-            <p className={`font-['Fraunces'] text-3xl font-bold leading-none ${scoreColor(score)}`}>
+          <div key={key} className="app-card p-4 text-center">
+            <p className="font-['Fraunces'] text-3xl font-bold leading-none text-foreground">
               {score}
             </p>
+            {typeof score === "number" ? (
+              <div className="app-progress-track mx-auto mt-2 max-w-[4.5rem]">
+                <div
+                  className="app-progress-fill"
+                  style={{ width: `${Math.max(0, Math.min(100, score))}%` }}
+                />
+              </div>
+            ) : (
+              <div className="app-progress-track mx-auto mt-2 max-w-[4.5rem]" />
+            )}
             <p className="mt-2 font-['Plus_Jakarta_Sans'] text-[10px] leading-tight text-muted-foreground">
               {label}
             </p>
             {rerunHref ? (
               <Link
                 to={rerunHref}
-                className="mt-2 inline-block font-['Plus_Jakarta_Sans'] text-[10px] font-medium text-primary hover:underline"
+                className="app-text-link mt-2 inline-block font-['Plus_Jakarta_Sans'] text-[10px]"
               >
                 Re-run →
               </Link>
@@ -104,11 +107,13 @@ export function HealthScoreHero({
       </div>
 
       <div className="pt-2 text-center">
-        <p className="font-['Fraunces'] text-4xl font-bold text-[#0D1833]">
+        <p className="font-['Fraunces'] text-5xl font-bold tracking-tight text-foreground">
           {overall}
           <span className="font-['Plus_Jakarta_Sans'] text-lg font-normal text-muted-foreground">/100</span>
         </p>
-        <p className="font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground">Overall digital health</p>
+        <p className="app-status-pill mt-3 font-['Plus_Jakarta_Sans'] text-sm">
+          Overall digital health
+        </p>
       </div>
     </div>
   );

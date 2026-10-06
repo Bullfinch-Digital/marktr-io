@@ -7,39 +7,56 @@
 
 :root {
   --font-size: 16px;
-  /* Utility stacks behind font-display / font-body. */
+    /* Utility stacks behind font-display / font-body. */
   --font-display-stack: Fraunces;
   --font-body-stack: "Plus Jakarta Sans";
   --font-display-family: "Fraunces", serif;
   --font-body-family: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --hc-score-high: #2d7a5f;
-  --hc-score-mid: #ba7517;
-  --hc-score-low: #e24b4a;
 
-  --background: #f5f4f0;
-  --foreground: #0d1833;
-  --card: #ffffff;
-  --card-foreground: #0d1833;
-  --popover: #ffffff;
-  --popover-foreground: #0d1833;
+  /* Brand tokens — homepage look, used by the logged-in app */
+  --brand-navy: #101A26;
+  --brand-ink: #0B0B0C;
+  --brand-lime: #EBFD84;
+  --brand-lime-hover: #E4F356;
+  --brand-cream: #FBFAF0;
+  --brand-paper: #FFFFF7;
+  --brand-lavender: #A9B7DC;
+  --brand-coral: #F4B6AC;
+  --brand-muted: rgb(16 26 38 / 0.65);
+  --brand-hairline: rgb(16 26 38 / 0.12);
+  --brand-stroke: #0B0B0C;
+  --brand-progress-track: #E7E4D8;
+  --brand-shadow: 0 18px 40px rgb(16 26 38 / 0.12);
+  --brand-focus-glow: 0 0 0 4px rgb(235 253 132 / 0.55);
 
-  --primary: #e8650a;
-  --primary-foreground: #ffffff;
-  --secondary: #fdf0cc;
-  --secondary-foreground: #0d1833;
+  --hc-score-high: #101A26;
+  --hc-score-mid: #101A26;
+  --hc-score-low: #c0392b;
 
-  --muted: #e8e6df;
-  --muted-foreground: #6b7280;
-  --accent: #fdf0cc;
-  --accent-foreground: #e8650a;
+  --background: #FBFAF0;
+  --foreground: #101A26;
+  --card: #FFFFF7;
+  --card-foreground: #101A26;
+  --popover: #FFFFF7;
+  --popover-foreground: #101A26;
+
+  --primary: #101A26;
+  --primary-foreground: #FBFAF0;
+  --secondary: #EBFD84;
+  --secondary-foreground: #101A26;
+
+  --muted: #E7E4D8;
+  --muted-foreground: rgb(16 26 38 / 0.65);
+  --accent: #EBFD84;
+  --accent-foreground: #101A26;
 
   --destructive: #c0392b;
   --destructive-foreground: #ffffff;
 
-  --border: #ddd9d0;
+  --border: rgb(16 26 38 / 0.12);
   --input: transparent;
-  --input-background: #edeae3;
-  --ring: #e8650a;
+  --input-background: #FFFFF7;
+  --ring: #101A26;
   --radius: 0.75rem;
 
   --switch-background: #c5c2bc;
@@ -47,36 +64,36 @@
   --font-weight-normal: 400;
 
   /* Legacy token remaps — keep utilities working */
-  --button-green: #e8650a;
-  --accent-grey: #e8e6df;
-  --text-dark: #0d1833;
-  --neutral-light: #f5f4f0;
-  --warm-grey: #e8e6df;
-  --success-green: #2d7a5f;
-  --warning-amber: #e8650a;
-  --purple: #e8e4f2;
-  --orange: #f5c4a8;
-  --green: #d4ede8;
-  --pink: #fce4ef;
-  --yellow: #fdf5d0;
-  --brown: #ede0d8;
+  --button-green: #EBFD84;
+  --accent-grey: #E7E4D8;
+  --text-dark: #101A26;
+  --neutral-light: #FBFAF0;
+  --warm-grey: rgb(16 26 38 / 0.12);
+  --success-green: #101A26;
+  --warning-amber: #c0392b;
+  --purple: #A9B7DC;
+  --orange: #F4B6AC;
+  --green: #EBFD84;
+  --pink: #F4B6AC;
+  --yellow: #EBFD84;
+  --brown: #E7E4D8;
 
   /* Feature section pastel blocks */
-  --feature-amber: #fdf0cc;
-  --feature-teal: #d4ede8;
-  --feature-coral: #fae8e0;
-  --feature-gold: #fdf5d0;
+  --feature-amber: #EBFD84;
+  --feature-teal: #A9B7DC;
+  --feature-coral: #F4B6AC;
+  --feature-gold: #EBFD84;
 
-  /* Sidebar — dark rail */
-  --sidebar: #1c1c18;
-  --sidebar-foreground: #f5f4f0;
-  --sidebar-muted: #7a7a70;
-  --sidebar-border: #2a2a24;
-  --sidebar-primary: #e8650a;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #2a2a24;
-  --sidebar-accent-foreground: #e8650a;
-  --sidebar-ring: #e8650a;
+  /* Sidebar — navy rail */
+  --sidebar: #101A26;
+  --sidebar-foreground: #FBFAF0;
+  --sidebar-muted: rgb(251 250 240 / 0.7);
+  --sidebar-border: rgb(251 250 240 / 0.12);
+  --sidebar-primary: #EBFD84;
+  --sidebar-primary-foreground: #101A26;
+  --sidebar-accent: rgb(251 250 240 / 0.1);
+  --sidebar-accent-foreground: #FBFAF0;
+  --sidebar-ring: #EBFD84;
 
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
@@ -131,48 +148,67 @@
 }
 
 .dark {
-  --background: #0a0f1a;
-  --foreground: #f5f4f0;
-  --card: #121a2e;
-  --card-foreground: #f5f4f0;
-  --popover: #121a2e;
-  --popover-foreground: #f5f4f0;
-  --primary: #e8650a;
-  --primary-foreground: #ffffff;
-  --secondary: #1a2438;
-  --secondary-foreground: #f5f4f0;
-  --muted: #1a2438;
-  --muted-foreground: #9ca3af;
-  --accent: #1a2438;
-  --accent-foreground: #f59e66;
+  --brand-navy: #101A26;
+  --brand-ink: #0B0B0C;
+  --brand-lime: #EBFD84;
+  --brand-lime-hover: #E4F356;
+  --brand-cream: #FBFAF0;
+  --brand-paper: #101A26;
+  --brand-lavender: #A9B7DC;
+  --brand-coral: #F4B6AC;
+  --brand-muted: rgb(251 250 240 / 0.65);
+  --brand-hairline: rgb(251 250 240 / 0.24);
+  --brand-stroke: rgb(251 250 240 / 0.24);
+  --brand-progress-track: rgb(251 250 240 / 0.16);
+  --brand-shadow: 0 18px 40px rgb(0 0 0 / 0.35);
+  --brand-focus-glow: 0 0 0 4px rgb(235 253 132 / 0.35);
+
+  --background: #0B121B;
+  --foreground: #FBFAF0;
+  --card: #101A26;
+  --card-foreground: #FBFAF0;
+  --popover: #101A26;
+  --popover-foreground: #FBFAF0;
+  --primary: #FBFAF0;
+  --primary-foreground: #101A26;
+  --secondary: #EBFD84;
+  --secondary-foreground: #101A26;
+  --muted: #1a2430;
+  --muted-foreground: rgb(251 250 240 / 0.65);
+  --accent: #EBFD84;
+  --accent-foreground: #101A26;
   --destructive: #e85d5d;
-  --destructive-foreground: #ffffff;
-  --border: #2a3548;
-  --input: #2a3548;
-  --input-background: #121a2e;
+  --destructive-foreground: #0B121B;
+  --border: rgb(251 250 240 / 0.24);
+  --input: rgb(251 250 240 / 0.24);
+  --input-background: #101A26;
   --switch-background: #3d4a5f;
-  --ring: #e8650a;
+  --ring: #EBFD84;
   --font-weight-medium: 500;
   --font-weight-normal: 400;
 
-  --button-green: #f59e66;
-  --accent-grey: #2a3548;
-  --text-dark: #f5f4f0;
-  --neutral-light: #0a0f1a;
-  --warm-grey: #2a3548;
-  --success-green: #5cb89a;
-  --warning-amber: #f59e66;
-  --purple: #2d2640;
-  --orange: #c97d5c;
-  --green: #1e3530;
-  --pink: #3a2a32;
-  --yellow: #3a3426;
-  --brown: #332a24;
+  --button-green: #EBFD84;
+  --accent-grey: #1a2430;
+  --text-dark: #FBFAF0;
+  --neutral-light: #0B121B;
+  --warm-grey: rgb(251 250 240 / 0.24);
+  --success-green: #EBFD84;
+  --warning-amber: #F4B6AC;
+  --purple: #A9B7DC;
+  --orange: #F4B6AC;
+  --green: #EBFD84;
+  --pink: #F4B6AC;
+  --yellow: #EBFD84;
+  --brown: #1a2430;
 
-  --feature-amber: #3a3426;
-  --feature-teal: #1e3530;
+  --feature-amber: #1a2430;
+  --feature-teal: #1a2430;
   --feature-coral: #3a2a28;
-  --feature-gold: #3a3426;
+  --feature-gold: #1a2430;
+
+  --hc-score-high: #FBFAF0;
+  --hc-score-mid: #FBFAF0;
+  --hc-score-low: #e85d5d;
 
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
@@ -180,19 +216,28 @@
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
 
-  --sidebar: #0a0f1a;
-  --sidebar-foreground: #f5f4f0;
-  --sidebar-muted: #7a7a70;
-  --sidebar-border: #2a3548;
-  --sidebar-primary: #e8650a;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #1a2438;
-  --sidebar-accent-foreground: #e8650a;
-  --sidebar-ring: #e8650a;
+  --sidebar: #101A26;
+  --sidebar-foreground: #FBFAF0;
+  --sidebar-muted: rgb(251 250 240 / 0.7);
+  --sidebar-border: rgb(251 250 240 / 0.12);
+  --sidebar-primary: #EBFD84;
+  --sidebar-primary-foreground: #101A26;
+  --sidebar-accent: rgb(251 250 240 / 0.1);
+  --sidebar-accent-foreground: #FBFAF0;
+  --sidebar-ring: #EBFD84;
 }
 
 @theme inline {
   /* Brand Colors as Tailwind Utilities */
+  --color-brand-navy: var(--brand-navy);
+  --color-brand-ink: var(--brand-ink);
+  --color-brand-lime: var(--brand-lime);
+  --color-brand-lime-hover: var(--brand-lime-hover);
+  --color-brand-cream: var(--brand-cream);
+  --color-brand-paper: var(--brand-paper);
+  --color-brand-lavender: var(--brand-lavender);
+  --color-brand-coral: var(--brand-coral);
+  --color-brand-stroke: var(--brand-stroke);
   --color-button-green: var(--button-green);
   --color-accent-grey: var(--accent-grey);
   --color-text-dark: var(--text-dark);
@@ -329,6 +374,75 @@
 html {
   font-size: var(--font-size);
   scroll-behavior: smooth;
+}
+
+/* Lime fill always uses navy type (both themes). Bullfinch edition overrides this. */
+.bg-button-green {
+  color: var(--brand-navy);
+}
+
+.app-card {
+  border: 2px solid var(--brand-stroke);
+  border-radius: 24px;
+  background: var(--card);
+  color: var(--card-foreground);
+}
+
+.app-card-hover:hover {
+  box-shadow: var(--brand-shadow);
+}
+
+.app-text-link {
+  color: var(--foreground);
+  font-weight: 500;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 3px;
+  transition: text-decoration-color 150ms ease, font-weight 150ms ease;
+}
+
+.app-text-link:hover {
+  text-decoration-color: var(--brand-lime);
+  font-weight: 600;
+}
+
+.app-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2em;
+  border-radius: 999px;
+  background: var(--brand-lime);
+  color: var(--brand-navy);
+  padding: 0.2rem 0.7rem;
+  font-weight: 500;
+}
+
+.app-focus-ring:focus-visible {
+  outline: 2px solid var(--brand-navy);
+  outline-offset: 2px;
+  box-shadow: var(--brand-focus-glow);
+}
+
+.dark .app-focus-ring:focus-visible {
+  outline-color: var(--brand-lime);
+}
+
+.app-progress-track {
+  height: 4px;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--brand-progress-track);
+}
+
+.app-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--brand-navy);
+}
+
+.dark .app-progress-fill {
+  background: var(--brand-lime);
 }
 
 /* Animations */

@@ -21,34 +21,30 @@ export function MarktrStepCard({
     <button
       type="button"
       onClick={onClick}
-      className={`w-full rounded-2xl border p-6 text-left transition-colors hover:border-primary/40 ${
-        complete
-          ? "border-[#2D7A5F]/40 bg-[#D4EDE8]/50 hover:bg-[#D4EDE8]"
-          : "border-border bg-white hover:bg-muted/20"
-      }`}
+      className="app-card app-card-hover app-focus-ring w-full p-6 text-left transition-colors hover:-translate-y-px"
     >
       <div className="flex items-start gap-4">
         {complete ? (
           <div
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#2D7A5F] text-white"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-navy"
             aria-hidden
           >
-            <Check className="h-5 w-5 stroke-[3]" />
+            <Check className="h-5 w-5 stroke-[3] text-brand-lime" />
           </div>
         ) : (
           <div
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-muted-foreground/20 bg-muted/30 font-['Plus_Jakarta_Sans'] text-sm font-semibold text-muted-foreground"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-brand-stroke bg-muted/40 font-['Plus_Jakarta_Sans'] text-sm font-semibold text-muted-foreground"
             aria-hidden
           >
             {step}
           </div>
         )}
         <div className="min-w-0 flex-1">
-          <h3 className="font-['Fraunces'] text-lg font-bold text-[#0D1833]">
+          <h3 className="font-['Fraunces'] text-lg font-bold text-foreground">
             Step {step} — {title}
           </h3>
           {summary}
-          <p className="mt-3 font-['Plus_Jakarta_Sans'] text-sm font-semibold text-primary">
+          <p className="app-text-link mt-3 font-['Plus_Jakarta_Sans'] text-sm">
             {complete ? "View results →" : "Start →"}
           </p>
         </div>

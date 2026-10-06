@@ -53,15 +53,21 @@ export function DashboardHeader({
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-warm-grey bg-background/80 backdrop-blur-md transition-all">
+    <header className="sticky top-0 z-50 w-full border-b border-brand-stroke bg-background">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between gap-4">
           <div className="flex min-w-0 items-center gap-3 sm:gap-4">
-            <Link
-              to="/"
-              className="shrink-0 font-['Fraunces'] text-xl font-bold text-[#0D1833] hover:opacity-70 transition-opacity"
-            >
-              marktr
+            <Link to="/" className="shrink-0">
+              <img
+                src="/brand/Marktrio_Logo_01.png"
+                alt="marktr"
+                className="h-7 w-auto dark:hidden"
+              />
+              <img
+                src="/brand/Marktrio_Logo_02.png"
+                alt="marktr"
+                className="hidden h-7 w-auto dark:block"
+              />
             </Link>
             {!guestMode && <BrandSwitcher />}
           </div>
@@ -72,7 +78,7 @@ export function DashboardHeader({
             <Button
               onClick={handleSignOut}
               variant="outline"
-              className="hidden md:flex border-black rounded-design transition-all hover:scale-[1.02] items-center gap-2 bg-white"
+              className="hidden h-11 min-w-11 md:inline-flex"
             >
               <LogOut className="w-4 h-4" />
               <span className="hidden lg:inline">Sign out</span>
@@ -82,24 +88,24 @@ export function DashboardHeader({
             {/* Dark Mode Toggle */}
             <button
               onClick={toggleDarkMode}
-              className="hidden rounded-full border border-warm-grey p-2 transition-all hover:scale-110 hover:border-black md:block"
+              className="hidden h-11 w-11 items-center justify-center rounded-full border-2 border-brand-stroke transition-all hover:-translate-y-px md:inline-flex app-focus-ring"
               aria-label="Toggle dark mode"
             >
               {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </button>
 
             {/* Account Avatar - Desktop */}
-            <Link 
+            <Link
               to="/account"
-              className="hidden md:flex w-10 h-10 rounded-full bg-[#BBA0E5] border border-black items-center justify-center cursor-pointer hover:scale-105 transition-transform"
+              className="hidden md:flex h-11 w-11 rounded-full bg-brand-lavender border-2 border-brand-stroke items-center justify-center cursor-pointer hover:-translate-y-px transition-transform app-focus-ring"
             >
-              <span className="font-['Fraunces'] text-sm">{getUserInitials()}</span>
+              <span className="font-['Fraunces'] text-sm text-brand-navy">{getUserInitials()}</span>
             </Link>
 
             {/* Mobile Menu Toggle */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="rounded-lg p-2 hover:bg-accent-grey/20 md:hidden"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-[14px] hover:bg-muted/60 md:hidden app-focus-ring"
             >
               {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
@@ -108,7 +114,7 @@ export function DashboardHeader({
 
         {/* Mobile Menu */}
         {isMobileMenuOpen && (
-          <div className="border-t border-warm-grey py-4 md:hidden">
+          <div className="border-t border-brand-stroke py-4 md:hidden">
             {/* Mobile Actions */}
             <div className="flex flex-col gap-3">
               {onCreateNew && (
@@ -117,7 +123,7 @@ export function DashboardHeader({
                     onCreateNew();
                     setIsMobileMenuOpen(false);
                   }}
-                  className="w-full bg-button-green hover:bg-button-green/90 text-text-dark border border-black rounded-design"
+                  className="w-full h-11"
                 >
                   <Plus className="w-4 h-4 mr-2" />
                   Create New ICP
@@ -130,20 +136,20 @@ export function DashboardHeader({
                   setIsMobileMenuOpen(false);
                 }}
                 variant="outline"
-                className="w-full border-black rounded-design bg-white text-text-dark"
+                className="w-full h-11"
               >
                 <LogOut className="w-4 h-4 mr-2" />
                 Sign out
               </Button>
 
               {/* Account Link - Mobile */}
-              <Link 
+              <Link
                 to="/account"
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="flex items-center gap-3 px-2 py-3 border-t border-warm-grey hover:bg-accent-grey/20 transition-colors rounded-design"
+                className="flex min-h-11 items-center gap-3 px-2 py-3 border-t border-brand-stroke hover:bg-muted/40 transition-colors rounded-[14px]"
               >
-                <div className="w-10 h-10 rounded-full bg-[#BBA0E5] border border-black flex items-center justify-center">
-                  <span className="font-['Fraunces'] text-sm">{getUserInitials()}</span>
+                <div className="h-11 w-11 rounded-full bg-brand-lavender border-2 border-brand-stroke flex items-center justify-center">
+                  <span className="font-['Fraunces'] text-sm text-brand-navy">{getUserInitials()}</span>
                 </div>
                 <span className="font-['Plus_Jakarta_Sans'] text-sm">My Account</span>
               </Link>
@@ -151,7 +157,7 @@ export function DashboardHeader({
               {/* Dark Mode Toggle - Mobile */}
               <button
                 onClick={toggleDarkMode}
-                className="flex items-center gap-3 px-2 py-3 border-t border-warm-grey hover:bg-accent-grey/20 transition-colors rounded-design"
+                className="flex min-h-11 items-center gap-3 px-2 py-3 border-t border-brand-stroke hover:bg-muted/40 transition-colors rounded-[14px]"
               >
                 {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
                 <span className="font-['Plus_Jakarta_Sans'] text-sm">

@@ -7,7 +7,7 @@ export function Footer() {
   const { user } = useAuth();
   const dashboardPath = isRealUser(user) ? "/dashboard" : "/guest-dashboard";
   return (
-    <footer className="border-t border-[#101A26]/10 bg-[#FBFAF0] py-12 font-['Plus_Jakarta_Sans']">
+    <footer className="border-t border-brand-stroke bg-background py-12 font-['Plus_Jakarta_Sans']">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 gap-10 md:grid-cols-2 lg:grid-cols-4 lg:gap-8">
           <div>
@@ -15,20 +15,25 @@ export function Footer() {
               <img
                 src="/brand/Marktrio_Logo_01.png"
                 alt="marktr.io"
-                className="h-8 w-auto"
+                className="h-8 w-auto dark:hidden"
+              />
+              <img
+                src="/brand/Marktrio_Logo_02.png"
+                alt="marktr.io"
+                className="hidden h-8 w-auto dark:block"
               />
             </Link>
-            <p className="text-sm text-text-dark/80">Your marketing team, built in.</p>
+            <p className="text-sm text-muted-foreground">Your marketing team, built in.</p>
           </div>
 
           {/* Product */}
           <div>
-            <h4 className="mb-4 font-['Plus_Jakarta_Sans'] font-semibold text-text-dark">Product</h4>
+            <h4 className="mb-4 font-['Plus_Jakarta_Sans'] font-semibold text-foreground">Product</h4>
             <ul className="space-y-2 text-sm">
               <li>
                 <Link
                   to="/pricing"
-                  className="text-text-dark/80 transition-colors hover:text-button-green"
+                  className="text-muted-foreground transition-colors hover:text-foreground"
                 >
                   Pricing
                 </Link>
@@ -36,7 +41,7 @@ export function Footer() {
               <li>
                 <Link
                   to="/resources"
-                  className="text-text-dark/80 transition-colors hover:text-button-green"
+                  className="text-muted-foreground transition-colors hover:text-foreground"
                 >
                   Resources
                 </Link>
@@ -44,7 +49,7 @@ export function Footer() {
               <li>
                 <Link
                   to="/downloads"
-                  className="text-text-dark/80 transition-colors hover:text-button-green"
+                  className="text-muted-foreground transition-colors hover:text-foreground"
                 >
                   Downloads
                 </Link>
@@ -52,7 +57,7 @@ export function Footer() {
               <li>
                 <Link
                   to={dashboardPath}
-                  className="text-text-dark/80 transition-colors hover:text-button-green"
+                  className="text-muted-foreground transition-colors hover:text-foreground"
                 >
                   Dashboard
                 </Link>
@@ -60,7 +65,7 @@ export function Footer() {
               <li>
                 <Link
                   to="/collections"
-                  className="text-text-dark/80 transition-colors hover:text-button-green"
+                  className="text-muted-foreground transition-colors hover:text-foreground"
                 >
                   Collections
                 </Link>
@@ -70,12 +75,12 @@ export function Footer() {
 
           {/* Legal */}
           <div>
-            <h4 className="mb-4 font-['Plus_Jakarta_Sans'] font-semibold text-text-dark">Legal</h4>
+            <h4 className="mb-4 font-['Plus_Jakarta_Sans'] font-semibold text-foreground">Legal</h4>
             <ul className="space-y-2 text-sm">
               <li>
                 <Link
                   to="/privacy-policy"
-                  className="text-text-dark/80 transition-colors hover:text-button-green"
+                  className="text-muted-foreground transition-colors hover:text-foreground"
                 >
                   Privacy Policy
                 </Link>
@@ -83,7 +88,7 @@ export function Footer() {
               <li>
                 <Link
                   to="/cookie-policy"
-                  className="text-text-dark/80 transition-colors hover:text-button-green"
+                  className="text-muted-foreground transition-colors hover:text-foreground"
                 >
                   Cookie Policy
                 </Link>
@@ -91,7 +96,7 @@ export function Footer() {
               <li>
                 <Link
                   to="/terms-of-service"
-                  className="text-text-dark/80 transition-colors hover:text-button-green"
+                  className="text-muted-foreground transition-colors hover:text-foreground"
                 >
                   Terms of Use
                 </Link>
@@ -105,12 +110,12 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="mt-8 border-t border-accent-grey pt-8 text-center text-sm text-text-dark/80">
+        <div className="mt-8 border-t border-brand-stroke pt-8 text-center text-sm text-muted-foreground">
           <p>
             &copy; {new Date().getFullYear()} marktr.io. Created and managed by{" "}
             <a
               href="https://bullfinchdigital.com"
-              className="underline transition-colors hover:text-button-green"
+              className="underline transition-colors hover:text-foreground"
               rel="noopener noreferrer"
             >
               Bullfinch Digital Ltd

@@ -39,7 +39,7 @@ export function ICPCarouselScreen({ onUnlockAll, onEmailICP }: ICPCarouselScreen
         "Quick adoption from early-stage communities"
       ],
       avatar: "https://images.unsplash.com/photo-1687575635557-a3f3ed535b56?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjcmVhdGl2ZSUyMHByb2Zlc3Npb25hbCUyMHdvbWFufGVufDF8fHx8MTc2MzMwMjY3NHww&ixlib=rb-4.1.0&q=80&w=1080",
-      color: "#BBA0E5"
+      color: "#A9B7DC"
     },
     {
       name: "Marcus the Marketing Manager",
@@ -68,7 +68,7 @@ export function ICPCarouselScreen({ onUnlockAll, onEmailICP }: ICPCarouselScreen
         "Scaling campaigns"
       ],
       avatar: "https://images.unsplash.com/photo-1762522921456-cdfe882d36c3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx5b3VuZyUyMHByb2Zlc3Npb25hbCUyMHBvcnRyYWl0fGVufDF8fHx8MTc2MzIxNTg2MHww&ixlib=rb-4.1.0&q=80&w=1080",
-      color: "#FFD336"
+      color: "#EBFD84"
     },
     {
       name: "Emma the E-commerce Owner",
@@ -96,7 +96,7 @@ export function ICPCarouselScreen({ onUnlockAll, onEmailICP }: ICPCarouselScreen
         "Strong niche audience"
       ],
       avatar: "https://images.unsplash.com/photo-1750535135645-005e250ff210?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxmcmllbmRseSUyMGNhcnRvb24lMjBhdmF0YXJ8ZW58MXx8fHwxNzYzMzAyNjc0fDA&ixlib=rb-4.1.0&q=80&w=1080",
-      color: "#FF9922"
+      color: "#F4B6AC"
     }
   ];
 
@@ -141,7 +141,7 @@ export function ICPCarouselScreen({ onUnlockAll, onEmailICP }: ICPCarouselScreen
               >
                 <path
                   d="M4 7L0.535898 0.25L7.4641 0.25L4 7Z"
-                  fill="#FF9922"
+                  fill="#F4B6AC"
                   stroke="black"
                   strokeWidth="1"
                 />
@@ -163,7 +163,7 @@ export function ICPCarouselScreen({ onUnlockAll, onEmailICP }: ICPCarouselScreen
               >
                 <path
                   d="M4 7L0.535898 0.25L7.4641 0.25L4 7Z"
-                  fill="#FF9922"
+                  fill="#F4B6AC"
                   stroke="black"
                   strokeWidth="1"
                 />

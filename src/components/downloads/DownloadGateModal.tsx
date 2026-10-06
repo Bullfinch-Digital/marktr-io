@@ -207,20 +207,20 @@ export function DownloadGateModal({ resource, onClose }: Props) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[rgb(16_26_38_/_0.55)] p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="download-gate-title"
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-md rounded-design border border-black bg-background p-6 shadow-2xl"
+        className="relative w-full max-w-md rounded-[28px] border-2 border-brand-stroke bg-background p-6 shadow-[var(--brand-shadow)]"
         onClick={(e) => e.stopPropagation()}
       >
         <button
           type="button"
           onClick={onClose}
-          className="absolute right-3 top-3 rounded-lg p-2 hover:bg-accent-grey/20"
+          className="absolute right-3 top-3 rounded-full p-2 min-h-11 min-w-11 hover:bg-muted/40"
           aria-label="Close"
         >
           <X className="h-5 w-5" />
@@ -242,7 +242,7 @@ export function DownloadGateModal({ resource, onClose }: Props) {
               href={downloadUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex w-full items-center justify-center rounded-design border border-black bg-button-green px-4 py-3 font-['Fraunces'] font-bold text-text-dark transition-all hover:bg-button-green/90 hover:shadow-lg"
+              className="inline-flex w-full min-h-11 items-center justify-center rounded-full border-2 border-brand-stroke bg-brand-lime px-4 py-3 font-['Fraunces'] font-bold text-brand-navy hover:bg-brand-lime-hover"
             >
               Download PDF
             </a>
@@ -290,7 +290,7 @@ export function DownloadGateModal({ resource, onClose }: Props) {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@company.com"
-                className="w-full rounded-design border border-black bg-white px-4 py-3 focus:outline-none"
+                className="w-full rounded-[15px] border-2 border-brand-stroke bg-card px-4 py-3 min-h-11 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--brand-navy)]"
               />
             </div>
 
@@ -300,7 +300,7 @@ export function DownloadGateModal({ resource, onClose }: Props) {
                 {loadError ? <p className="text-sm text-red-600">{loadError}</p> : null}
               </div>
             ) : (
-              <p className="text-sm text-amber-700">
+              <p className="text-sm text-foreground">
                 Verification isn&apos;t configured in this environment, so downloads can&apos;t be
                 unlocked here.
               </p>
@@ -311,7 +311,7 @@ export function DownloadGateModal({ resource, onClose }: Props) {
             <Button
               type="submit"
               disabled={submitting || !turnstileReady}
-              className="w-full rounded-design border border-black bg-button-green font-['Fraunces'] font-bold text-text-dark hover:bg-button-green/90"
+              className="w-full min-h-11 rounded-full border-2 border-brand-stroke bg-brand-lime font-['Fraunces'] font-bold text-brand-navy hover:bg-brand-lime-hover"
             >
               {submitting ? (
                 <span className="inline-flex items-center gap-2">

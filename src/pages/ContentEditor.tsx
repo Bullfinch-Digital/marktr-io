@@ -407,8 +407,8 @@ function ContentEditorBody() {
                 disabled={statusSaving}
                 className={`inline-flex items-center rounded-full border px-2.5 py-1 font-['Plus_Jakarta_Sans'] text-[11px] transition-colors ${
                   item.status === "approved"
-                    ? "border-emerald-300 bg-emerald-50 text-emerald-900"
-                    : "border-amber-300 bg-amber-50 text-amber-900"
+                    ? "border-brand-stroke bg-brand-lime/40 text-brand-navy"
+                    : "border-brand-stroke bg-brand-coral/30 text-foreground"
                 }`}
                 title="Toggle draft / approved (does not create a version)"
               >
@@ -422,8 +422,8 @@ function ContentEditorBody() {
               <span
                 className={`inline-flex items-center rounded-full border px-2.5 py-1 font-['Plus_Jakarta_Sans'] text-[11px] ${
                   item.status === "approved"
-                    ? "border-emerald-300 bg-emerald-50 text-emerald-900"
-                    : "border-amber-300 bg-amber-50 text-amber-900"
+                    ? "border-brand-stroke bg-brand-lime/40 text-brand-navy"
+                    : "border-brand-stroke bg-brand-coral/30 text-foreground"
                 }`}
               >
                 {item.status === "approved" ? "Approved" : "Draft"}
@@ -466,7 +466,7 @@ function ContentEditorBody() {
         </div>
 
         {isArchived ? (
-          <p className="font-['Plus_Jakarta_Sans'] text-sm text-amber-900 bg-amber-50 border border-amber-200 rounded-design px-3 py-2">
+          <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground bg-brand-coral/30 border border-brand-stroke rounded-design px-3 py-2">
             This piece is archived. Restore it from the Content roster to edit again.
           </p>
         ) : null}

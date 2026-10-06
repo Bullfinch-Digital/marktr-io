@@ -343,7 +343,7 @@ export default function HealthReport() {
         </p>
         <Link
           to="/dashboard"
-          className="mt-6 inline-flex rounded-full bg-primary px-6 py-3 font-['Plus_Jakarta_Sans'] text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          className="mt-6 h-11 px-6 font-['Plus_Jakarta_Sans'] text-sm"
         >
           Go to dashboard
         </Link>
@@ -354,10 +354,10 @@ export default function HealthReport() {
   if (!currentRow) {
     return (
       <DashboardShell contentClassName="mx-auto max-w-2xl px-6 py-12">
-        <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 font-['Plus_Jakarta_Sans'] text-xs font-medium text-primary">
+        <span className="inline-flex items-center rounded-full bg-brand-lime px-3 py-1 font-['Plus_Jakarta_Sans'] text-xs font-medium text-brand-navy">
           Digital Health Check
         </span>
-        <h1 className="mt-4 font-['Fraunces'] text-4xl font-bold text-[#0D1833]">
+        <h1 className="mt-4 font-['Fraunces'] text-4xl font-bold text-foreground">
           Run your first health check
         </h1>
         <p className="mt-4 font-['Plus_Jakarta_Sans'] text-base text-muted-foreground">
@@ -367,7 +367,7 @@ export default function HealthReport() {
         </p>
         <Button
           type="button"
-          className="mt-8 rounded-full bg-primary px-6 py-6 font-['Plus_Jakarta_Sans']"
+          className="mt-8 h-12 px-6 font-['Plus_Jakarta_Sans']"
           onClick={() => navigate("/health-check")}
         >
           Run your digital health check →
@@ -406,7 +406,7 @@ export default function HealthReport() {
     <DashboardShell contentClassName="mx-auto max-w-2xl px-6 py-10 lg:py-12">
       {reanalysing && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/60">
-          <div className="flex flex-col items-center gap-3 rounded-2xl border border-border bg-white px-8 py-6 shadow-lg">
+          <div className="flex flex-col items-center gap-3 rounded-[24px] border-2 border-brand-stroke bg-card px-8 py-6 shadow-lg">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
             <p className="font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground">
               Re-analysing your website and socials…
@@ -420,13 +420,13 @@ export default function HealthReport() {
 
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 font-['Plus_Jakarta_Sans'] text-xs font-medium text-primary">
+          <span className="inline-flex items-center rounded-full bg-brand-lime px-3 py-1 font-['Plus_Jakarta_Sans'] text-xs font-medium text-brand-navy">
             Digital Health Check
           </span>
           {activeBrand?.name && (
             <p className="mt-2 font-['Plus_Jakarta_Sans'] text-xs text-muted-foreground">{activeBrand.name}</p>
           )}
-          <h1 className="mt-2 font-['Fraunces'] text-3xl font-bold text-[#0D1833] sm:text-4xl">
+          <h1 className="mt-2 font-['Fraunces'] text-3xl font-bold text-foreground sm:text-4xl">
             Your digital health
           </h1>
           <p className="mt-2 font-['Plus_Jakarta_Sans'] text-xs text-muted-foreground">
@@ -553,7 +553,7 @@ export default function HealthReport() {
       <div className="mt-10">
         <Button
           type="button"
-          className="rounded-full bg-primary px-6 py-3 font-['Plus_Jakarta_Sans'] text-sm"
+          className="h-11 px-6 font-['Plus_Jakarta_Sans'] text-sm"
           onClick={() => navigate("/dashboard")}
         >
           Go to your dashboard →

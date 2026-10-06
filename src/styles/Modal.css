@@ -1,7 +1,7 @@
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgb(16 26 38 / 0.55);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -13,22 +13,25 @@
 }
 
 .modal {
-  background: white;
+  background: var(--brand-cream, #FBFAF0);
+  color: var(--foreground);
   padding: 32px;
-  border-radius: 12px;
+  border-radius: 28px;
   width: 420px;
   max-width: 90%;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 18px 40px rgb(16 26 38 / 0.12);
   text-align: center;
+  border: 2px solid var(--brand-stroke, #0B0B0C);
 }
 
 .modal-content {
-  background: white;
+  background: var(--brand-cream, #FBFAF0);
+  color: var(--foreground);
   padding: 24px;
-  border-radius: 12px;
+  border-radius: 28px;
   max-width: 420px;
   width: 100%;
-  border: 2px solid #000;
+  border: 2px solid var(--brand-stroke, #0B0B0C);
   box-sizing: border-box;
 }
 
@@ -39,19 +42,22 @@
 }
 
 .modal-cancel {
-  background: white;
-  border: 2px solid #333;
+  background: var(--card, #FFFFF7);
+  border: 2px solid var(--brand-stroke, #0B0B0C);
+  color: var(--foreground);
   padding: 10px 20px;
-  border-radius: 8px;
+  min-height: 44px;
+  border-radius: 999px;
   cursor: pointer;
 }
 
 .modal-delete {
-  background: #ff5555;
+  background: #c0392b;
   padding: 10px 20px;
-  border-radius: 8px;
-  color: white;
-  border: none;
+  min-height: 44px;
+  border-radius: 999px;
+  color: #ffffff;
+  border: 2px solid #0B0B0C;
   cursor: pointer;
 }
 
@@ -81,10 +87,12 @@
 }
 
 .modal-save {
-  background: #bfe8a8; /* close to button-green look */
-  border: 2px solid #000;
+  background: var(--brand-lime, #EBFD84);
+  color: var(--brand-navy, #101A26);
+  border: 2px solid var(--brand-stroke, #0B0B0C);
   padding: 10px 20px;
-  border-radius: 8px;
+  min-height: 44px;
+  border-radius: 999px;
   cursor: pointer;
   font-weight: 600;
 }
@@ -141,20 +149,23 @@
 
 /* Secondary action */
 .modal-buttons-2 .modal-cancel {
-  background: white;
-  border: 2px solid #333;
+  background: var(--card, #FFFFF7);
+  border: 2px solid var(--brand-stroke, #0B0B0C);
   padding: 12px 18px;
-  border-radius: 8px;
+  min-height: 44px;
+  border-radius: 999px;
   cursor: pointer;
   white-space: nowrap;
 }
 
 /* Primary action */
 .modal-buttons-2 .modal-save {
-  background: #bfe8a8;
-  border: 2px solid #000;
+  background: var(--brand-lime, #EBFD84);
+  color: var(--brand-navy, #101A26);
+  border: 2px solid var(--brand-stroke, #0B0B0C);
   padding: 12px 22px;
-  border-radius: 8px;
+  min-height: 44px;
+  border-radius: 999px;
   cursor: pointer;
   font-weight: 600;
   white-space: nowrap;

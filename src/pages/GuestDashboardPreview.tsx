@@ -134,11 +134,11 @@ export default function GuestDashboardPreview() {
             summary={
               <div className="mt-2 flex items-center gap-2">
                 <Activity
-                  className={`h-5 w-5 shrink-0 ${hasHealth ? "text-[#2D7A5F]" : "text-muted-foreground"}`}
+                  className={`h-5 w-5 shrink-0 ${hasHealth ? "text-foreground" : "text-muted-foreground"}`}
                   aria-hidden
                 />
                 {hasHealth && guestHealth ? (
-                  <p className="font-['Plus_Jakarta_Sans'] text-sm text-[#2D7A5F]">
+                  <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground">
                     Overall score{" "}
                     <span className="font-['Fraunces'] text-xl font-bold">{guestHealth.scores.overall}</span>
                     /100
@@ -158,11 +158,11 @@ export default function GuestDashboardPreview() {
             summary={
               <div className="mt-2 flex items-center gap-2">
                 <BookOpen
-                  className={`h-5 w-5 shrink-0 ${hasStory ? "text-[#E8650A]" : "text-muted-foreground"}`}
+                  className={`h-5 w-5 shrink-0 ${hasStory ? "text-foreground" : "text-muted-foreground"}`}
                   aria-hidden
                 />
                 <p
-                  className={`font-['Plus_Jakarta_Sans'] text-sm ${hasStory ? "text-[#E8650A]" : "text-muted-foreground"}`}
+                  className={`font-['Plus_Jakarta_Sans'] text-sm ${hasStory ? "text-foreground" : "text-muted-foreground"}`}
                 >
                   {hasStory ? "Brand story ready" : "Not started yet"}
                 </p>
@@ -178,11 +178,11 @@ export default function GuestDashboardPreview() {
             summary={
               <div className="mt-2 flex items-center gap-2">
                 <Users
-                  className={`h-5 w-5 shrink-0 ${hasICPs ? "text-[#E8650A]" : "text-muted-foreground"}`}
+                  className={`h-5 w-5 shrink-0 ${hasICPs ? "text-foreground" : "text-muted-foreground"}`}
                   aria-hidden
                 />
                 <p
-                  className={`font-['Plus_Jakarta_Sans'] text-sm ${hasICPs ? "text-[#D4871A]" : "text-muted-foreground"}`}
+                  className={`font-['Plus_Jakarta_Sans'] text-sm ${hasICPs ? "text-foreground" : "text-muted-foreground"}`}
                 >
                   {hasICPs ? `${guestICPs.length} profiles generated` : "Not started yet"}
                 </p>

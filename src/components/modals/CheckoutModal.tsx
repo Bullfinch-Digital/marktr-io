@@ -50,8 +50,8 @@ export function CheckoutModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-background border border-black rounded-design shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto animate-fade-in-up">
+    <div className="fixed inset-0 bg-[rgb(16_26_38_/_0.55)] backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-background border-2 border-brand-stroke rounded-[28px] shadow-[var(--brand-shadow)] max-w-2xl w-full max-h-[90vh] overflow-y-auto animate-fade-in-up">
         {/* Header */}
         <div className="sticky top-0 bg-background border-b border-warm-grey p-6 flex items-start justify-between">
           <div>
@@ -67,7 +67,7 @@ export function CheckoutModal({
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-accent-grey/20 rounded-design transition-colors flex-shrink-0"
+            className="p-2 hover:bg-muted/40 rounded-full transition-colors flex-shrink-0 min-h-11 min-w-11 flex items-center justify-center"
             aria-label="Close modal"
           >
             <X className="w-5 h-5" />
@@ -88,7 +88,7 @@ export function CheckoutModal({
           )}
 
           {/* Order Summary */}
-          <div className="bg-accent-grey/20 border border-warm-grey rounded-design p-6 mb-8">
+          <div className="bg-muted/40 border border-brand-stroke rounded-[16px] p-6 mb-8">
             <h3 className="font-['Fraunces'] text-lg mb-4">Order Summary</h3>
             <div className="space-y-3">
               <div className="flex items-center justify-between">
@@ -120,7 +120,7 @@ export function CheckoutModal({
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
-                className="border-black rounded-design font-['Plus_Jakarta_Sans']"
+                className="font-['Plus_Jakarta_Sans']"
               />
             </div>
 
@@ -136,7 +136,7 @@ export function CheckoutModal({
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="border-black rounded-design font-['Plus_Jakarta_Sans']"
+                className="font-['Plus_Jakarta_Sans']"
               />
             </div>
 
@@ -145,7 +145,7 @@ export function CheckoutModal({
               <Label htmlFor="card" className="font-['Plus_Jakarta_Sans'] text-sm">
                 Card Details
               </Label>
-              <div className="bg-accent-grey/10 border border-black rounded-design p-4">
+              <div className="bg-muted/30 border-2 border-brand-stroke rounded-[16px] p-4">
                 <div className="flex items-center gap-2 text-foreground/60">
                   <Lock className="w-4 h-4" />
                   <span className="font-['Plus_Jakarta_Sans'] text-sm">Secure card input (Polar/Stripe)</span>
@@ -162,10 +162,10 @@ export function CheckoutModal({
                 Country
               </Label>
               <Select value={country} onValueChange={setCountry} required>
-                <SelectTrigger className="border-black rounded-design font-['Plus_Jakarta_Sans']">
+                <SelectTrigger className="font-['Plus_Jakarta_Sans']">
                   <SelectValue placeholder="Select your country" />
                 </SelectTrigger>
-                <SelectContent className="border-black rounded-design">
+                <SelectContent>
                   <SelectItem value="gb">United Kingdom</SelectItem>
                   <SelectItem value="us">United States</SelectItem>
                   <SelectItem value="ca">Canada</SelectItem>
@@ -181,7 +181,7 @@ export function CheckoutModal({
             </div>
 
             {/* Legal Agreement */}
-            <div className="bg-accent-grey/20 border border-warm-grey rounded-design p-4">
+            <div className="bg-muted/40 border border-brand-stroke rounded-[16px] p-4">
               <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/70">
                 By subscribing, you agree to recurring charges and our{" "}
                 <a href="/terms-of-service" className="underline hover:text-foreground">Terms of Service</a>
@@ -195,7 +195,7 @@ export function CheckoutModal({
             <Button
               type="submit"
               disabled={isProcessing}
-              className="w-full bg-button-green hover:bg-button-green/90 text-foreground border border-black rounded-design py-6 text-lg transition-all hover:scale-[1.02] hover:shadow-lg font-['Plus_Jakarta_Sans'] disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full h-12 text-lg font-['Plus_Jakarta_Sans']"
             >
               {isProcessing ? "Processing..." : "Confirm & Start Subscription"}
             </Button>

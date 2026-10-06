@@ -9,11 +9,11 @@ export function SelectChip({ label, selected, onClick }: SelectChipProps) {
     <button
       onClick={onClick}
       className={`
-        px-5 py-3 rounded-design border border-black
+        min-h-11 px-5 py-3 rounded-full border-2 border-brand-stroke
         transition-all duration-200
         ${selected 
-          ? 'bg-button-green text-text-dark shadow-md scale-105' 
-          : 'bg-white text-foreground hover:bg-accent-grey/30 hover:scale-102'
+          ? 'bg-brand-lime/35 text-foreground' 
+          : 'bg-card text-foreground hover:bg-muted/40'
         }
       `}
     >

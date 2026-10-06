@@ -20,6 +20,7 @@ import ICPColorModal from "../components/ICPColorModal";
 import ICPAvatarModal from "../components/ICPAvatarModal";
 import { CollectionPickerModal } from "../components/modals/CollectionPickerModal";
 import { canCreateICP, canViewICP } from "../config/accessRules";
+import { brandBandForIndex } from "../lib/brandPalette";
 import { supabase } from "../config/supabase";
 import { retryGuestICPFlushIfNeeded } from "../lib/guestICP";
 import { attachOrphanIcpsToBrand } from "../lib/icpBrandAttach";
@@ -49,8 +50,6 @@ type NextAction = {
   desc: string;
   href: string;
 };
-
-const DASHBOARD_ICP_BANDS = ["#F4B6AC", "#A9B7DC", "#EBFD84"] as const;
 
 function readDimensionScore(
   scores: Record<string, unknown> | null | undefined,
@@ -654,7 +653,7 @@ export default function Dashboard() {
                     userTier={effectiveTier}
                     onUpgrade={handleUpgrade}
                     isLocked={!canViewICP(effectiveTier as "free" | "pro", icp._index ?? 0)}
-                    bandColor={DASHBOARD_ICP_BANDS[index % DASHBOARD_ICP_BANDS.length]}
+                    bandColor={brandBandForIndex(index)}
                     branded
                     collectionNames={
                       icp.lineage_id ? collectionNamesByLineage[icp.lineage_id] || [] : []

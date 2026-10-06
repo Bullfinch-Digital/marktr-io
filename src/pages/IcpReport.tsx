@@ -61,10 +61,10 @@ export default function IcpReport() {
   return (
     <main className="min-h-screen bg-background">
       <section className="mx-auto max-w-2xl px-6 py-12">
-        <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 font-['Plus_Jakarta_Sans'] text-xs font-medium text-primary">
+        <span className="inline-flex items-center rounded-full bg-brand-lime px-3 py-1 font-['Plus_Jakarta_Sans'] text-xs font-medium text-brand-navy">
           Your ICPs
         </span>
-        <h1 className="mt-4 font-['Fraunces'] text-4xl font-bold text-[#0D1833]">
+        <h1 className="mt-4 font-['Fraunces'] text-4xl font-bold text-foreground">
           You have {icpCount} ICP{icpCount === 1 ? "" : "s"} saved.
         </h1>
         <p className="mt-4 font-['Plus_Jakarta_Sans'] text-base text-muted-foreground">
@@ -73,7 +73,7 @@ export default function IcpReport() {
         <Button
           type="button"
           onClick={() => navigate("/icps")}
-          className="mt-8 rounded-full bg-primary px-6 py-6 font-['Plus_Jakarta_Sans'] text-base font-medium text-primary-foreground hover:opacity-90"
+          className="mt-8 h-12 px-6 font-['Plus_Jakarta_Sans'] text-base"
         >
           View your ICPs →
         </Button>

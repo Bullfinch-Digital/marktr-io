@@ -32,13 +32,13 @@ export default function PaymentSuccess() {
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="max-w-2xl w-full">
         {/* Success Card */}
-        <div className="bg-gradient-to-br from-button-green/20 via-[#BBA0E5]/10 to-[#FFD336]/10 border border-black rounded-design p-8 lg:p-12 text-center shadow-2xl animate-fade-in-up">
+        <div className="bg-gradient-to-br from-button-green/20 via-brand-lavender/10 to-brand-lime/10 border border-black rounded-design p-8 lg:p-12 text-center shadow-2xl animate-fade-in-up">
           {/* Celebration Icon */}
           <div className="mb-6">
             <div className="w-24 h-24 bg-button-green rounded-full border-2 border-black flex items-center justify-center mx-auto mb-4 relative animate-bounce-subtle">
               <CheckCircle2 className="w-12 h-12 text-foreground" />
               <div className="absolute -top-2 -right-2">
-                <Sparkles className="w-8 h-8 text-[#FFD336] animate-pulse" />
+                <Sparkles className="w-8 h-8 text-brand-lime animate-pulse" />
               </div>
             </div>
           </div>

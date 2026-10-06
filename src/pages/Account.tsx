@@ -260,20 +260,20 @@ export default function Account() {
 
         {/* Pending Email Change Banner */}
         {(user?.user_metadata?.email_change || (user as any)?.new_email) && (
-          <div className="mb-6 bg-amber-50 border border-amber-200 rounded-design p-4">
+          <div className="mb-6 bg-brand-coral/30 border border-brand-stroke rounded-design p-4">
             <div className="flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
+              <AlertCircle className="w-5 h-5 text-foreground mt-0.5 flex-shrink-0" />
               <div className="flex-1">
-                <h3 className="font-['Plus_Jakarta_Sans'] font-semibold text-amber-900 mb-1">
+                <h3 className="font-['Plus_Jakarta_Sans'] font-semibold text-foreground mb-1">
                   Your email change is pending.
                 </h3>
-                <p className="font-['Plus_Jakarta_Sans'] text-sm text-amber-800">
+                <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground">
                   We've sent a confirmation link to:{" "}
                   <span className="font-medium">
                     {user?.user_metadata?.email_change || (user as any)?.new_email}
                   </span>
                 </p>
-                <p className="font-['Plus_Jakarta_Sans'] text-sm text-amber-700 mt-1">
+                <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground mt-1">
                   Please check your inbox to complete the update.
                 </p>
               </div>
@@ -320,7 +320,7 @@ export default function Account() {
                   {nameMessage && (
                     <div className={`text-sm ${
                       nameMessage.includes("successfully") 
-                        ? "text-green-600" 
+                        ? "text-foreground" 
                         : "text-red-600"
                     }`}>
                       {nameMessage}
@@ -377,7 +377,7 @@ export default function Account() {
                     {emailMessage && (
                       <div className={`text-sm ${
                         emailMessage.includes("successfully") || emailMessage.includes("Check your inbox")
-                          ? "text-green-600"
+                          ? "text-foreground"
                           : "text-red-600"
                       }`}>
                         {emailMessage}

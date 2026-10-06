@@ -17,7 +17,7 @@ import { getGuestBrandSeed } from "../lib/guestBrandSeed";
 import { isRealUser } from "../utils/isRealUser";
 
 // Fallback avatars + colours for generated data that doesn't include them
-const DEFAULT_COLORS = ["#BBA0E5", "#FFD336", "#FF9922"];
+const DEFAULT_COLORS = ["#A9B7DC", "#EBFD84", "#F4B6AC"];
 
 export default function ICPResults() {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -201,7 +201,7 @@ export default function ICPResults() {
                       brand={{
                         id: "preview-brand",
                         name: brandSeed?.brandName || "Your brand",
-                        color: brandSeed?.currency ? "#EDEDED" : "#BBA0E5",
+                        color: brandSeed?.currency ? "#EDEDED" : "#A9B7DC",
                         country: brandSeed?.country || "",
                         created_at: new Date().toISOString(),
                         updated_at: new Date().toISOString(),

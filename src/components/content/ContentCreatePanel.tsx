@@ -261,7 +261,7 @@ export function ContentCreatePanel({
             return (
               <div key={item} className="flex items-center gap-3">
                 {done ? (
-                  <CheckCircle2 className="h-5 w-5 text-[#E8650A]" />
+                  <CheckCircle2 className="h-5 w-5 text-foreground" />
                 ) : active ? (
                   <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                 ) : (
@@ -320,7 +320,7 @@ export function ContentCreatePanel({
           <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground">
             <span className="text-foreground/55">Campaign idea:</span> {campaignIdeaLabel}
             {initialIntent.campaignIdeaRemoved ? (
-              <span className="ml-1 text-amber-700">(removed from strategy)</span>
+              <span className="ml-1 text-foreground">(removed from strategy)</span>
             ) : null}
           </p>
           <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground">

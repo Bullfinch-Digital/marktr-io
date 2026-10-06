@@ -765,7 +765,7 @@ export default function MyAccount() {
           )}
         </div>
 
-        <div className="bg-gradient-to-br from-button-green/20 to-[#BBA0E5]/10 border border-black rounded-design p-8">
+        <div className="bg-gradient-to-br from-button-green/20 to-brand-lavender/10 border border-black rounded-design p-8">
           <div className="flex items-start gap-6 mb-6">
             <Crown className="w-5 h-5 mt-1" />
             <div className="flex-1">

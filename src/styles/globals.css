@@ -31,7 +31,7 @@
 
   --hc-score-high: #101A26;
   --hc-score-mid: #101A26;
-  --hc-score-low: #c0392b;
+  --hc-score-low: #101A26;
 
   --background: #FBFAF0;
   --foreground: #101A26;
@@ -208,7 +208,7 @@
 
   --hc-score-high: #FBFAF0;
   --hc-score-mid: #FBFAF0;
-  --hc-score-low: #e85d5d;
+  --hc-score-low: #FBFAF0;
 
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
@@ -551,8 +551,13 @@ html {
 }
 
 .icp-option-selected {
-  background-color: rgba(255, 153, 34, 0.2);
-  border-color: #FF9922;
+  background-color: rgb(235 253 132 / 0.35);
+  border-color: var(--brand-navy);
+}
+
+.dark .icp-option-selected {
+  background-color: rgb(235 253 132 / 0.18);
+  border-color: var(--brand-lime);
 }
 
 /* Card interaction states */

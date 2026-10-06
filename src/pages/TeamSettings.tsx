@@ -48,7 +48,7 @@ export default function TeamSettings() {
       email: "sarah@company.com",
       role: "Admin",
       status: "Active",
-      avatar: "#BBA0E5",
+      avatar: "#A9B7DC",
     },
     {
       id: "2",
@@ -56,7 +56,7 @@ export default function TeamSettings() {
       email: "michael@company.com",
       role: "Editor",
       status: "Active",
-      avatar: "#96CBB6",
+      avatar: "#EBFD84",
     },
   ]);
 
@@ -77,7 +77,7 @@ export default function TeamSettings() {
           email: inviteEmail,
           role: inviteRole,
           status: "Pending",
-          avatar: "#FFD336",
+          avatar: "#EBFD84",
         },
       ]);
       setInviteEmail("");
@@ -97,7 +97,7 @@ export default function TeamSettings() {
   const roleDescriptions = [
     {
       role: "Admin",
-      color: "bg-[#BBA0E5]/20",
+      color: "bg-brand-lavender/20",
       permissions: ["Full access", "Manage billing", "Add/remove members"],
     },
     {
@@ -107,7 +107,7 @@ export default function TeamSettings() {
     },
     {
       role: "Viewer",
-      color: "bg-[#96CBB6]/20",
+      color: "bg-brand-lavender/20",
       permissions: ["Read-only access"],
     },
   ];
@@ -246,7 +246,7 @@ export default function TeamSettings() {
                         className={`font-['Plus_Jakarta_Sans'] text-xs px-3 py-1 rounded-full border border-black inline-flex items-center gap-1 ${
                           member.status === "Active"
                             ? "bg-button-green/20"
-                            : "bg-[#FFD336]/20"
+                            : "bg-brand-lime/20"
                         }`}
                       >
                         {member.status === "Active" ? (
@@ -318,7 +318,7 @@ export default function TeamSettings() {
                         className={`font-['Plus_Jakarta_Sans'] text-xs px-3 py-1 rounded-full border border-black inline-flex items-center gap-1 ${
                           member.status === "Active"
                             ? "bg-button-green/20"
-                            : "bg-[#FFD336]/20"
+                            : "bg-brand-lime/20"
                         }`}
                       >
                         {member.status === "Active" ? (
@@ -363,7 +363,7 @@ export default function TeamSettings() {
 
       {/* Invite Team Member Modal */}
       <Dialog open={showInviteModal} onOpenChange={setShowInviteModal}>
-        <DialogContent className="bg-[#96CBB6] border-black rounded-design sm:max-w-md">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="font-['Fraunces'] text-2xl">
               Invite Team Member
@@ -425,7 +425,7 @@ export default function TeamSettings() {
             </div>
           ) : (
             <div className="space-y-4 mt-4">
-              <div className="bg-[#FFD336]/20 rounded-design border border-black p-4">
+              <div className="bg-brand-lime/20 rounded-design border border-black p-4">
                 <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/80">
                   You're using all {totalSeats} seats. Upgrade to add more team members.
                 </p>
@@ -449,7 +449,7 @@ export default function TeamSettings() {
 
       {/* Remove Member Modal */}
       <Dialog open={showRemoveModal} onOpenChange={setShowRemoveModal}>
-        <DialogContent className="bg-[#FFD336] border-black rounded-design sm:max-w-md">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="font-['Fraunces'] text-2xl">
               Remove team member?
@@ -470,7 +470,7 @@ export default function TeamSettings() {
             </Button>
             <Button
               onClick={handleRemove}
-              className="flex-1 bg-[#FF9922] text-text-dark hover:bg-[#FF9922]/90 font-['Fraunces'] border border-black"
+              className="flex-1 bg-brand-coral text-text-dark hover:bg-brand-coral/90 font-['Fraunces'] border border-black"
             >
               Remove Member
             </Button>

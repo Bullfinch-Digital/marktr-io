@@ -1079,7 +1079,7 @@ export default function OnboardingBuild() {
                       }}
                       onClick={handleCtaClick}
                       disabled={!canContinue()}
-                      className="bg-button-green text-text-dark hover:bg-button-green/90 border-[1px] border-black rounded-design px-8 py-6 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 font-['Fraunces']"
+                      className="h-12 px-8 font-['Fraunces']"
                     >
                       {getCTAText()}
                     </Button>
@@ -1103,7 +1103,7 @@ export default function OnboardingBuild() {
                   <div className="mt-8 animate-fade-in-up delay-300">
                     <Button
                       onClick={handleNext}
-                      className="bg-button-green text-text-dark hover:bg-button-green/90 border-[1px] border-black rounded-design px-8 py-6 transition-all hover:scale-105 active:scale-95 font-['Fraunces']"
+                      className="h-12 px-8 font-['Fraunces']"
                     >
                       Start
                     </Button>

@@ -208,7 +208,7 @@ export default function StoryResults() {
             <button
               type="button"
               onClick={() => navigate("/dashboard")}
-              className="shrink-0 whitespace-nowrap rounded-full bg-primary px-5 py-2.5 font-['Plus_Jakarta_Sans'] text-sm font-semibold text-white transition-colors hover:bg-primary/90"
+              className="shrink-0 h-11 whitespace-nowrap px-5 font-['Plus_Jakarta_Sans'] text-sm"
             >
               Go to dashboard →
             </button>
@@ -241,7 +241,7 @@ export default function StoryResults() {
             <button
               type="button"
               onClick={() => navigate("/dashboard")}
-              className="rounded-full bg-primary px-6 py-3 font-['Plus_Jakarta_Sans'] text-sm font-semibold text-white transition-colors hover:bg-primary/90"
+              className="h-11 px-6 font-['Plus_Jakarta_Sans'] text-sm font-semibold text-white transition-colors hover:bg-primary/90"
             >
               Go to your dashboard →
             </button>

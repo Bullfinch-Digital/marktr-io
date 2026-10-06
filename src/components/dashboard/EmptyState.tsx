@@ -13,7 +13,7 @@ export function EmptyState({ type, onCreateNew, onUpgrade }: EmptyStateProps) {
       <div className="flex items-center justify-center min-h-[500px] animate-fade-in-up">
         <div className="text-center max-w-lg px-6">
           {/* Illustration Circle */}
-          <div className="w-32 h-32 mx-auto mb-8 bg-gradient-to-br from-[#BBA0E5] to-[#FFD336] rounded-full border-2 border-black flex items-center justify-center shadow-lg">
+          <div className="w-32 h-32 mx-auto mb-8 bg-gradient-to-br from-brand-lavender to-brand-lime rounded-full border-2 border-black flex items-center justify-center shadow-lg">
             <Sparkles className="w-16 h-16 text-background" />
           </div>
 
@@ -27,7 +27,7 @@ export function EmptyState({ type, onCreateNew, onUpgrade }: EmptyStateProps) {
 
           <Button
             onClick={onCreateNew}
-            className="bg-button-green hover:bg-button-green/90 text-foreground border border-black rounded-design px-8 py-6 transition-all hover:scale-[1.02] hover:shadow-lg flex items-center gap-2 mx-auto"
+            className="h-12 px-8 flex items-center gap-2 mx-auto"
           >
             <Plus className="w-5 h-5" />
             Generate New ICP
@@ -51,7 +51,7 @@ export function EmptyState({ type, onCreateNew, onUpgrade }: EmptyStateProps) {
           {[1, 2, 3].map((i) => (
             <div 
               key={i}
-              className="bg-accent-grey/50 border border-black rounded-design h-48"
+              className="bg-accent-grey/50 border-2 border-brand-stroke rounded-[24px] h-48"
             />
           ))}
         </div>
@@ -66,7 +66,7 @@ export function EmptyState({ type, onCreateNew, onUpgrade }: EmptyStateProps) {
 
         <Button
           onClick={onUpgrade}
-          className="bg-button-green hover:bg-button-green/90 text-foreground border border-black rounded-design px-8 py-6 transition-all hover:scale-[1.02] hover:shadow-lg mx-auto"
+          className="h-12 px-8 mx-auto"
         >
           Upgrade to unlock unlimited ICPs
         </Button>

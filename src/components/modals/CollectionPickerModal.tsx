@@ -3,6 +3,7 @@ import { Modal } from "../ui/modal";
 import { Button } from "../ui/button";
 import { useCollections } from "../../hooks/useCollections";
 import { Folder, Plus } from "lucide-react";
+import { BRAND_SWATCHES } from "../../lib/brandPalette";
 import CreateCollectionModal from "./CreateCollectionModal";
 
 interface CollectionPickerModalProps {
@@ -79,7 +80,7 @@ export function CollectionPickerModal({
   const handleCreateCollection = async (data: { name: string; description?: string }): Promise<string | null> => {
     if (!onCreateCollection) return null;
     
-    const colors = ["#BBA0E5", "#FFD336", "#FF9922", "#4ECDC4", "#FF6B6B"];
+    const colors = [...BRAND_SWATCHES];
     const randomColor = colors[Math.floor(Math.random() * colors.length)];
     
     setShowCreateModal(false);
@@ -113,10 +114,10 @@ export function CollectionPickerModal({
               <button
                 key={icp.id}
                 onClick={() => toggleSelect(icp.id)}
-                className={`w-full p-3 border rounded-design text-left transition-all ${
+                className={`w-full min-h-11 p-3 border-2 rounded-[16px] text-left transition-all ${
                   selectedIds.includes(icp.id)
-                    ? "bg-[#FF9922]/20 border-[#FF9922]"
-                    : "border-black hover:bg-accent-grey/20"
+                    ? "bg-brand-lime/35 border-brand-navy"
+                    : "border-brand-stroke hover:bg-muted/40"
                 }`}
               >
                 {icp.name}
@@ -127,11 +128,11 @@ export function CollectionPickerModal({
             <Button
               onClick={handleConfirm}
               disabled={isAdding || selectedIds.length === 0}
-              className="bg-button-green hover:bg-button-green/90 text-foreground border border-black rounded-design"
+              className="h-11"
             >
               {isAdding ? "Adding..." : "Add Selected"}
             </Button>
-            <Button variant="outline" onClick={onClose} className="border-black rounded-design">
+            <Button variant="outline" onClick={onClose} className="h-11">
               Cancel
             </Button>
           </div>
@@ -161,7 +162,7 @@ export function CollectionPickerModal({
               <p className="text-foreground/70 mb-6">No collections yet. Create one to get started.</p>
               <Button
                 onClick={() => setShowCreateModal(true)}
-                className="bg-button-green hover:bg-button-green/90 text-foreground border border-black rounded-design px-6 py-3 font-['Fraunces'] font-bold"
+                className="h-11 px-6 font-['Fraunces'] font-bold"
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Create Collection
@@ -175,10 +176,10 @@ export function CollectionPickerModal({
                     key={collection.id}
                     onClick={() => onSelectCollection && handleSelectCollection(collection.id)}
                     disabled={isAdding}
-                    className={`w-full p-4 border rounded-design transition-all text-left hover:bg-accent-grey/20 ${
+                    className={`w-full min-h-11 p-4 border-2 rounded-[16px] transition-all text-left hover:bg-muted/40 ${
                       isAdding && selectedCollectionId === collection.id
-                        ? "border-button-green bg-button-green/10"
-                        : "border-black"
+                        ? "border-brand-navy bg-brand-lime/35"
+                        : "border-brand-stroke"
                     } disabled:opacity-50 disabled:cursor-not-allowed`}
                   >
                     <div className="flex items-center gap-3">
@@ -206,7 +207,7 @@ export function CollectionPickerModal({
                 <Button
                   onClick={() => setShowCreateModal(true)}
                   variant="outline"
-                  className="w-full border-black rounded-design font-['Plus_Jakarta_Sans']"
+                  className="w-full h-11 font-['Plus_Jakarta_Sans']"
                 >
                   <Plus className="w-4 h-4 mr-2" />
                   Create New Collection

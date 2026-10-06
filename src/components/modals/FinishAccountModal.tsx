@@ -335,8 +335,8 @@ export function FinishAccountModal({
 
   if (loading) {
     return (
-      <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
-        <div className="bg-background border border-black rounded-design shadow-2xl w-full max-w-md p-6 text-center">
+      <div className="fixed inset-0 z-[60] flex items-center justify-center bg-[rgb(16_26_38_/_0.55)] p-4">
+        <div className="bg-background border-2 border-brand-stroke rounded-[28px] shadow-[var(--brand-shadow)] w-full max-w-md p-6 text-center">
           <div className="w-10 h-10 mx-auto mb-3 border-4 border-button-green border-t-transparent rounded-full animate-spin" />
           <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70">
             Preparing your account…
@@ -348,28 +348,29 @@ export function FinishAccountModal({
 
   if (error) {
     return (
-      <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
-        <div className="bg-background border border-black rounded-design shadow-2xl w-full max-w-md p-6">
+      <div className="fixed inset-0 z-[60] flex items-center justify-center bg-[rgb(16_26_38_/_0.55)] p-4">
+        <div className="bg-background border-2 border-brand-stroke rounded-[28px] shadow-[var(--brand-shadow)] w-full max-w-md p-6">
           <div className="space-y-3">
             <div className="text-red-600 font-['Plus_Jakarta_Sans']">{error}</div>
             <div className="flex gap-2">
               <Button
                 variant="outline"
-                className="border-black rounded-design"
+                className="h-11"
                 onClick={() => loadCheckoutDetails()}
                 disabled={loading}
               >
                 {loading ? "Retrying..." : "Retry"}
               </Button>
               <Button
-                className="bg-background border border-black rounded-design"
+                variant="outline"
+                className="h-11"
                 onClick={onClose}
               >
                 Close
               </Button>
             </div>
             {import.meta.env.DEV && debugDetails && (
-              <pre className="text-xs bg-accent-grey/20 border border-warm-grey rounded-design p-3 overflow-auto">
+              <pre className="text-xs bg-muted/40 border border-brand-stroke rounded-[16px] p-3 overflow-auto">
                 {JSON.stringify(debugDetails, null, 2)}
               </pre>
             )}
@@ -381,14 +382,14 @@ export function FinishAccountModal({
 
   if (!email && !isAnonymous) {
     return (
-      <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
-        <div className="bg-background border border-black rounded-design shadow-2xl w-full max-w-md p-6 text-center">
+      <div className="fixed inset-0 z-[60] flex items-center justify-center bg-[rgb(16_26_38_/_0.55)] p-4">
+        <div className="bg-background border-2 border-brand-stroke rounded-[28px] shadow-[var(--brand-shadow)] w-full max-w-md p-6 text-center">
           <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70 mb-4">
             We couldn't find your checkout details.
           </p>
           <Button
             onClick={onClose}
-            className="bg-button-green text-text-dark border border-black rounded-design px-6 py-3 font-['Fraunces']"
+            className="h-11 px-6 font-['Fraunces']"
           >
             Close
           </Button>
@@ -399,8 +400,8 @@ export function FinishAccountModal({
 
   if (linkedUserId || userExists) {
     return (
-      <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
-        <div className="bg-background border border-black rounded-design shadow-2xl w-full max-w-md p-6">
+      <div className="fixed inset-0 z-[60] flex items-center justify-center bg-[rgb(16_26_38_/_0.55)] p-4">
+        <div className="bg-background border-2 border-brand-stroke rounded-[28px] shadow-[var(--brand-shadow)] w-full max-w-md p-6">
           <h2 className="font-['Fraunces'] text-2xl mb-2">
             Welcome Back
           </h2>
@@ -413,7 +414,7 @@ export function FinishAccountModal({
               onClose();
               onOpenLogin(getLoginPayload());
             }}
-            className="w-full bg-button-green text-text-dark border border-black rounded-design px-6 py-4 font-['Fraunces']"
+            className="w-full h-12 px-6 font-['Fraunces']"
           >
             Log in
           </Button>
@@ -429,8 +430,8 @@ export function FinishAccountModal({
         onClose={closeModal}
         onAgree={() => confirmAgreement(setLegalAgreed)}
       />
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-background border border-black rounded-design shadow-2xl w-full max-w-md p-6">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-[rgb(16_26_38_/_0.55)] p-4">
+      <div className="bg-background border-2 border-brand-stroke rounded-[28px] shadow-[var(--brand-shadow)] w-full max-w-md p-6">
         <div className="flex items-start justify-between gap-4 mb-4">
           <div>
             <h2 className="font-['Fraunces'] text-2xl mb-1">
@@ -442,7 +443,7 @@ export function FinishAccountModal({
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-accent-grey/20 rounded-design transition-colors"
+            className="p-2 hover:bg-muted/40 rounded-full transition-colors min-h-11 min-w-11 flex items-center justify-center"
             aria-label="Close"
           >
             ✕
@@ -460,7 +461,7 @@ export function FinishAccountModal({
               value={email ?? ""}
               readOnly={!isAnonymous}
               onChange={(e) => setEmail(e.target.value)}
-              className="border border-black rounded-design px-4 py-3 bg-white"
+              className="px-4"
             />
           </div>
 
@@ -473,7 +474,7 @@ export function FinishAccountModal({
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="border border-black rounded-design px-4 py-3 bg-white"
+              className="px-4"
             />
           </div>
 
@@ -486,7 +487,7 @@ export function FinishAccountModal({
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="border border-black rounded-design px-4 py-3 bg-white"
+              className="px-4"
               required
             />
           </div>
@@ -500,7 +501,7 @@ export function FinishAccountModal({
               type="password"
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
-              className="border border-black rounded-design px-4 py-3 bg-white"
+              className="px-4"
               required
             />
           </div>
@@ -512,7 +513,7 @@ export function FinishAccountModal({
               <Button
                 type="button"
                 variant="outline"
-                className="w-full border-black rounded-design"
+                className="w-full h-11"
                 onClick={async () => {
                   setLoading(true);
                   try {
@@ -536,7 +537,7 @@ export function FinishAccountModal({
               <Button
                 type="button"
                 variant="outline"
-                className="w-full border-black rounded-design"
+                className="w-full h-11"
                 onClick={() => {
                   syncPendingLink();
                   onClose();
@@ -549,7 +550,7 @@ export function FinishAccountModal({
             </div>
           )}
           {success && (
-            <p className="text-sm text-button-green font-['Plus_Jakarta_Sans']">{success}</p>
+            <p className="text-sm text-foreground font-['Plus_Jakarta_Sans']">{success}</p>
           )}
 
           <LegalAgreementCheckbox
@@ -562,7 +563,7 @@ export function FinishAccountModal({
           <Button
             type="submit"
             disabled={loading}
-            className="w-full bg-button-green text-text-dark border border-black rounded-design px-6 py-4 font-['Fraunces']"
+            className="w-full h-12 px-6 font-['Fraunces']"
           >
             {loading ? "Finishing…" : "Finish account"}
           </Button>

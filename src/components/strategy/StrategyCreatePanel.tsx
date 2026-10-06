@@ -168,7 +168,7 @@ export function StrategyCreatePanel({
             return (
               <div key={item} className="flex items-center gap-3">
                 {done ? (
-                  <CheckCircle2 className="h-5 w-5 text-[#E8650A]" />
+                  <CheckCircle2 className="h-5 w-5 text-foreground" />
                 ) : active ? (
                   <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                 ) : (
@@ -209,13 +209,13 @@ export function StrategyCreatePanel({
       </div>
 
       {showThinBrandNudge && brand?.id ? (
-        <div className="rounded-design border border-amber-200 bg-amber-50/80 px-4 py-3">
-          <p className="font-['Plus_Jakarta_Sans'] text-sm text-amber-900">
+        <div className="rounded-design border border-brand-stroke bg-brand-coral/30 px-4 py-3">
+          <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground">
             Your brand story isn&apos;t set up yet — strategies are much sharper when marktr knows
             your brand.{" "}
             <Link
               to={`/my-brands/${brand.id}`}
-              className="font-medium underline underline-offset-2 hover:text-amber-950"
+              className="font-medium underline underline-offset-2 hover:text-foreground"
             >
               Set it up (2 mins) →
             </Link>

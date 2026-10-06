@@ -16,6 +16,7 @@ import { useBrand } from "../contexts/BrandContext";
 import { usePaywall } from "../contexts/PaywallContext";
 import { seedExampleICPs } from "../utils/seedExampleICPs";
 import { isBrandScopeReady, resolveScopedBrandId } from "../lib/brandScopedReads";
+import { brandBandForIndex } from "../lib/brandPalette";
 import { fetchArchivedIcpsForBrand, hardDeleteIcpLineage, type ArchivedIcpRow } from "../lib/icpVersioning";
 import IcpPermanentDeleteModal from "../components/IcpPermanentDeleteModal";
 import { Search, Plus, Sparkles, WifiOff, AlertCircle, Archive, ChevronDown, ChevronUp, RotateCcw, Trash2 } from "lucide-react";
@@ -294,16 +295,16 @@ export default function MyICPsPage() {
       <DashboardShell contentClassName="flex-1 px-6 py-8 lg:px-12">
         <div className="max-w-7xl mx-auto">
           {pendingCount > 0 && (
-            <div className={`mb-4 px-4 py-3 rounded-design border border-black flex items-center gap-2 ${
+            <div className={`mb-4 px-4 py-3 rounded-[16px] border-2 border-brand-stroke flex items-center gap-2 ${
               isSyncing
-                ? "bg-amber-50 text-amber-800"
+                ? "bg-brand-coral/40 text-foreground"
                 : icpsOffline
-                ? "bg-red-50 text-red-800"
-                : "bg-green-50 text-green-800"
+                ? "bg-destructive/15 text-destructive"
+                : "bg-brand-lime/50 text-brand-navy"
             }`}>
               {isSyncing ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-amber-600 border-t-transparent rounded-full animate-spin" />
+                  <div className="w-4 h-4 border-2 border-brand-navy border-t-transparent rounded-full animate-spin" />
                   <span className="text-sm font-medium">Syncing changes...</span>
                 </>
               ) : icpsOffline ? (
@@ -321,10 +322,10 @@ export default function MyICPsPage() {
           )}
 
           {(icpsOffline) && !isLoading && (
-            <div className="mb-6 bg-amber-50 border border-amber-200 rounded-design p-4 flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
+            <div className="mb-6 bg-brand-coral/40 border-2 border-brand-stroke rounded-[16px] p-4 flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-foreground mt-0.5 flex-shrink-0" />
               <div className="flex-1">
-                <p className="text-sm text-amber-800 font-['Plus_Jakarta_Sans']">
+                <p className="text-sm text-foreground font-['Plus_Jakarta_Sans']">
                   We're having trouble syncing with the server. Your ICPs are saved locally and will sync automatically when the connection is restored.
                 </p>
               </div>
@@ -350,7 +351,7 @@ export default function MyICPsPage() {
 
                 <Button
                   onClick={handleCreateNew}
-                  className="hidden sm:flex bg-button-green hover:bg-button-green/90 text-foreground border border-black rounded-design px-6 py-5 transition-all hover:scale-[1.02] hover:shadow-md items-center gap-2"
+                  className="hidden sm:flex h-11 px-6 items-center gap-2"
                 >
                   <Plus className="w-4 h-4" />
                   <span className="hidden sm:inline">Create New ICP</span>
@@ -376,7 +377,7 @@ export default function MyICPsPage() {
           {!isLoading && showEmptyState && (
             <div className="flex items-center justify-center min-h-[500px] animate-fade-in-up">
               <div className="text-center max-w-lg px-6">
-                <div className="w-32 h-32 mx-auto mb-8 bg-gradient-to-br from-[#BBA0E5] to-[#FFD336] rounded-full border-2 border-black flex items-center justify-center shadow-lg">
+                <div className="w-32 h-32 mx-auto mb-8 bg-gradient-to-br from-brand-lavender to-brand-lime rounded-full border-2 border-brand-stroke flex items-center justify-center shadow-lg">
                   <Sparkles className="w-16 h-16 text-background" />
                 </div>
                 <h2 className="font-['Fraunces'] text-3xl mb-4">Create your first ICP</h2>
@@ -426,6 +427,8 @@ export default function MyICPsPage() {
                       userTier={effectiveTier}
                       onUpgrade={handleUpgrade}
                       isLocked={!canViewICP(effectiveTier as any, icp._index ?? 0)}
+                  bandColor={brandBandForIndex(icp._index ?? 0)}
+                  branded
                   collectionNames={
                     icp.lineage_id ? collectionNamesByLineage[icp.lineage_id] || [] : []
                   }
@@ -460,7 +463,7 @@ export default function MyICPsPage() {
               </button>
 
               {restoreNudge && (
-                <p className="mt-3 font-['Plus_Jakarta_Sans'] text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-design px-3 py-2 max-w-2xl">
+                <p className="mt-3 font-['Plus_Jakarta_Sans'] text-xs text-foreground bg-brand-coral/40 border-2 border-brand-stroke rounded-[16px] px-3 py-2 max-w-2xl">
                   {restoreNudge}
                 </p>
               )}

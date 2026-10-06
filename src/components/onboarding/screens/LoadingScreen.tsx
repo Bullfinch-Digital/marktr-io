@@ -224,7 +224,7 @@ export function LoadingScreen({ onComplete, run, runJob }: LoadingScreenProps) {
   }, [progress, onComplete, run, runJob]);
 
   return (
-    <div className="w-full min-h-[500px] flex items-center justify-center bg-white overflow-hidden">
+    <div className="w-full min-h-[500px] flex items-center justify-center bg-background overflow-hidden">
       <div className="relative flex flex-col items-center gap-10 px-4 py-10">
         <motion.h1
           initial={{ opacity: 0, y: -20 }}
@@ -242,7 +242,7 @@ export function LoadingScreen({ onComplete, run, runJob }: LoadingScreenProps) {
             className="absolute inset-0 rounded-full"
             style={{
               background:
-                "radial-gradient(circle, rgba(134, 239, 172, 0.3) 0%, transparent 70%)",
+                "radial-gradient(circle, rgba(235, 253, 132, 0.45) 0%, transparent 70%)",
               filter: "blur(20px)",
             }}
             animate={{
@@ -259,7 +259,7 @@ export function LoadingScreen({ onComplete, run, runJob }: LoadingScreenProps) {
           {[0, 1, 2, 3, 4, 5].map((i) => (
             <motion.div
               key={i}
-              className="absolute w-2 h-2 bg-green-400 rounded-full"
+              className="absolute w-2 h-2 bg-brand-lime rounded-full"
               style={{
                 left: "50%",
                 top: "50%",
@@ -292,9 +292,9 @@ export function LoadingScreen({ onComplete, run, runJob }: LoadingScreenProps) {
             )}
 
             <motion.div
-              className="absolute inset-x-0 h-1 bg-gradient-to-r from-transparent via-green-400 to-transparent animate-loading-scan"
+              className="absolute inset-x-0 h-1 bg-gradient-to-r from-transparent via-brand-lime to-transparent animate-loading-scan"
               style={{
-                boxShadow: "0 0 20px rgba(134, 239, 172, 0.8)",
+                boxShadow: "0 0 20px rgba(235, 253, 132, 0.8)",
               }}
             />
 
@@ -302,7 +302,7 @@ export function LoadingScreen({ onComplete, run, runJob }: LoadingScreenProps) {
               className="absolute inset-0"
               style={{
                 backgroundImage:
-                  "linear-gradient(rgba(134, 239, 172, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(134, 239, 172, 0.1) 1px, transparent 1px)",
+                  "linear-gradient(rgba(235, 253, 132, 0.18) 1px, transparent 1px), linear-gradient(90deg, rgba(235, 253, 132, 0.18) 1px, transparent 1px)",
                 backgroundSize: "20px 20px",
               }}
               animate={{
@@ -321,7 +321,7 @@ export function LoadingScreen({ onComplete, run, runJob }: LoadingScreenProps) {
           {[0, 1, 2].map((i) => (
             <motion.div
               key={i}
-              className="w-3 h-3 bg-green-300 rounded-full"
+              className="w-3 h-3 bg-brand-lime rounded-full"
               animate={{
                 scale: [1, 1.4, 1],
                 opacity: [0.5, 1, 0.5],
@@ -371,9 +371,9 @@ export function LoadingScreen({ onComplete, run, runJob }: LoadingScreenProps) {
         )}
 
         <div className="w-full max-w-md">
-          <div className="relative h-2 bg-gray-200 rounded-full overflow-hidden">
+          <div className="relative h-2 bg-brand-navy rounded-full overflow-hidden">
             <div
-              className="absolute inset-y-0 left-0 bg-gradient-to-r from-green-400 to-green-500 rounded-full transition-[width] duration-300 ease-out"
+              className="absolute inset-y-0 left-0 bg-gradient-to-r from-brand-lime to-brand-lime-hover rounded-full transition-[width] duration-300 ease-out"
               style={{ width: `${progress}%` }}
             />
             <div className="absolute inset-y-0 w-20 bg-gradient-to-r from-transparent via-white to-transparent opacity-50 animate-loading-shimmer" />

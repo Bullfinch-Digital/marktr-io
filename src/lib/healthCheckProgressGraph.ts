@@ -80,9 +80,9 @@ export const HEALTH_PROGRESS_METRIC_LABELS: Record<HealthProgressMetric, string>
 };
 
 export const HEALTH_PROGRESS_LINE_COLORS: Record<HealthProgressMetric, string> = {
-  overall: "#0D1833",
-  website: "#2D7A5F",
-  brandStory: "#e8650a",
-  content: "#BA7517",
-  social: "#5B6B8A",
+  overall: "#101A26",
+  website: "#A9B7DC",
+  brandStory: "#EBFD84",
+  content: "#F4B6AC",
+  social: "#7B8CB4",
 };

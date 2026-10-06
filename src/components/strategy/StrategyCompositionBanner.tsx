@@ -32,14 +32,14 @@ function AimChip({ aim }: { aim: CompositionAim }) {
         isDeleted
           ? "border-red-300 bg-red-50 text-red-900"
           : isArchived
-            ? "border-amber-300 bg-amber-50 text-amber-900"
+            ? "border-brand-stroke bg-brand-coral/30 text-foreground"
             : "border-primary/30 bg-primary/5 text-primary"
       }`}
     >
       {AIM_TYPE_LABELS[aim.aim_type]}
       <span className="text-foreground/50">·</span>
       <span className={isDeleted ? "line-through decoration-red-400" : undefined}>{aim.title}</span>
-      {isArchived ? <span className="text-amber-700">(archived)</span> : null}
+      {isArchived ? <span className="text-foreground">(archived)</span> : null}
       {isDeleted ? <span className="text-red-700">(deleted)</span> : null}
     </span>
   );
@@ -55,12 +55,12 @@ function PersonaChip({ icp }: { icp: CompositionIcp }) {
         isDeleted
           ? "border-red-300 bg-red-50 text-red-900"
           : isArchived
-            ? "border-amber-300 bg-amber-50 text-amber-900"
+            ? "border-brand-stroke bg-brand-coral/30 text-foreground"
             : "border-black/20 bg-accent-grey/30 text-foreground/80"
       }`}
     >
       <span className={isDeleted ? "line-through decoration-red-400" : undefined}>{icp.name}</span>
-      {isArchived ? <span className="ml-1 text-amber-700">(archived)</span> : null}
+      {isArchived ? <span className="ml-1 text-foreground">(archived)</span> : null}
       {isDeleted ? <span className="ml-1 text-red-700">(deleted)</span> : null}
     </span>
   );

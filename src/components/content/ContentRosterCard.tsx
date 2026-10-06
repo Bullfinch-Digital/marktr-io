@@ -41,8 +41,8 @@ export function ContentRosterCard({
             <span
               className={`inline-flex items-center rounded-full border px-2 py-0.5 font-['Plus_Jakarta_Sans'] text-[11px] ${
                 item.status === "approved"
-                  ? "border-emerald-300 bg-emerald-50 text-emerald-900"
-                  : "border-amber-300 bg-amber-50 text-amber-900"
+                  ? "border-brand-stroke bg-brand-lime/40 text-brand-navy"
+                  : "border-brand-stroke bg-brand-coral/30 text-foreground"
               }`}
             >
               {statusLabel}

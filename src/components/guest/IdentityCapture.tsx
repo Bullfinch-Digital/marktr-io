@@ -371,7 +371,7 @@ export const IdentityCapture = forwardRef<IdentityCaptureHandle, IdentityCapture
         ) : null}
 
         {captureError ? (
-          <p className="text-xs text-amber-700 font-body" role="status">
+          <p className="text-xs text-foreground font-body" role="status">
             {captureError}
           </p>
         ) : null}

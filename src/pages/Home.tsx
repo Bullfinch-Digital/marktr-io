@@ -416,10 +416,10 @@ export default function Home() {
             Know your customer. Shape your story. Check your digital health. All free. No agency required.
           </p>
           <Link
-            to="/onboarding-build"
+            to="/health-check"
             className="mt-10 inline-flex items-center justify-center rounded-full border-2 border-[#0B0B0C] bg-[#EBFD84] px-10 py-4 font-['Plus_Jakarta_Sans'] text-lg font-medium text-[#0B0B0C] transition-opacity hover:bg-[#EBFD84]/90"
           >
-            Start free trial
+            Get started - Free
           </Link>
         </div>
       </section>

@@ -13,7 +13,7 @@ const WAYS_IN = [
     title: "Check your digital health",
     description:
       "Score your digital presence across 5 dimensions — and see exactly where to focus.",
-    image: "/images/graphics/replace-your-agency.png",
+    image: "/images/graphics/marktr-health-check-card-image.png",
     imageAlt: "Digital health scores in marktr",
     recommended: true,
   },
@@ -24,7 +24,7 @@ const WAYS_IN = [
     title: "Find your brand story",
     description:
       "Discover the narrative that makes your business impossible to ignore — in minutes.",
-    image: "/images/graphics/generate-content-in-your-voice.png",
+    image: "/images/graphics/marktr-brand-story-card-image.png",
     imageAlt: "Brand story questions in marktr",
     recommended: false,
   },

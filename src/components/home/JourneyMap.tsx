@@ -31,7 +31,7 @@ const STEPS = [
     // TODO: replace with final screenshot
     image: {
       id: "health",
-      src: "/images/graphics/replace-your-agency.png",
+      src: "/images/graphics/marktr-health-check-card-image.png",
       alt: "Digital health scores in marktr",
       width: FRAME.width,
       height: FRAME.height,
@@ -49,7 +49,7 @@ const STEPS = [
     // TODO: replace with final screenshot
     image: {
       id: "story",
-      src: "/images/graphics/generate-content-in-your-voice.png",
+      src: "/images/graphics/marktr-brand-story-card-image.png",
       alt: "Brand story questions in marktr",
       width: FRAME.width,
       height: FRAME.height,

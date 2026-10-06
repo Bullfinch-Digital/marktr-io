@@ -345,7 +345,7 @@ export default function MyICPsPage() {
             <div className="mb-8">
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h1 className="font-['Fraunces'] text-3xl lg:text-4xl mb-2">My ICPs</h1>
+                  <h1 className="app-heading-page font-['Fraunces'] text-3xl lg:text-4xl mb-2">My ICPs</h1>
                   <p className="font-['Plus_Jakarta_Sans'] text-foreground/70">{icps.length} ICPs created</p>
                 </div>
 
@@ -380,7 +380,7 @@ export default function MyICPsPage() {
                 <div className="w-32 h-32 mx-auto mb-8 bg-gradient-to-br from-brand-lavender to-brand-lime rounded-full border-2 border-brand-stroke flex items-center justify-center shadow-lg">
                   <Sparkles className="w-16 h-16 text-background" />
                 </div>
-                <h2 className="font-['Fraunces'] text-3xl mb-4">Create your first ICP</h2>
+                <h2 className="app-heading font-['Fraunces'] text-3xl mb-4">Create your first ICP</h2>
                 <p className="font-['Plus_Jakarta_Sans'] text-foreground/70 text-lg mb-8">
                   Start with AI-powered guidance to build detailed customer personas that drive your marketing strategy.
                 </p>

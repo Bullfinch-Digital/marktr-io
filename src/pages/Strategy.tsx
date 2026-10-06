@@ -212,7 +212,7 @@ function StrategyPageBody() {
               <Target className="h-4 w-4" />
               <span className="font-['Plus_Jakarta_Sans'] text-xs uppercase tracking-wide">Strategy</span>
             </div>
-            <h1 className="font-['Fraunces'] text-4xl font-bold text-[#0D1833]">Strategy</h1>
+            <h1 className="app-heading-page font-['Fraunces'] text-4xl text-foreground">Strategy</h1>
             <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70 mt-2 max-w-2xl">
               Aims and marketing strategies for <strong>{activeBrandName}</strong>. Generate once,
               then refine through edits and version history.
@@ -257,7 +257,7 @@ function StrategyPageBody() {
               }`}
             >
               <div>
-                <h2 className="font-['Fraunces'] text-2xl text-[#0D1833]">Strategies</h2>
+                <h2 className="app-heading font-['Fraunces'] text-2xl text-foreground">Strategies</h2>
                 <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70 mt-1">
                   {strategiesDormant
                     ? "Strategies connect your aims to your personas. Add at least one aim above to get started."

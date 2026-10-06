@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
-import { Activity, BookOpen, ChevronRight, Users } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { ICPPreviewCard } from "../components/cards/ICPPreviewCard";
 import { MarktrStepCard } from "../components/dashboard/MarktrStepCard";
 import { HealthScoreHero } from "../components/dashboard/HealthScoreHero";
@@ -491,7 +491,7 @@ export default function Dashboard() {
       <DashboardShell onCreateNew={handleCreateNew}>
         <div className="max-w-5xl space-y-8">
           <header>
-            <h1 className="font-['Fraunces'] text-[2.5rem] font-bold leading-tight tracking-[-0.01em] text-foreground">
+            <h1 className="app-heading-page font-['Fraunces'] text-[2.5rem] leading-tight tracking-[-0.01em] text-foreground">
               {getGreeting()}
               {greetingName}.
             </h1>
@@ -501,29 +501,25 @@ export default function Dashboard() {
           </header>
 
           {/* 1. Health score hero — step chain + 4-pillar breakdown */}
-          <section className="space-y-6">
-            <div className="grid gap-8 lg:grid-cols-3">
+          <section className="space-y-8">
+            <div className="grid items-stretch gap-6 lg:grid-cols-3">
               <MarktrStepCard
                 step={1}
                 title="Digital health check"
                 complete={hasHealth}
                 onClick={() => navigate(hasHealth ? "/health-report" : "/health-check")}
-                summary={
-                  <div className="mt-2 flex items-center gap-2">
-                    <Activity
-                      className={`h-5 w-5 shrink-0 ${hasHealth ? "text-foreground" : "text-muted-foreground"}`}
-                      aria-hidden
-                    />
-                    {hasHealth ? (
-                      <p className="app-status-pill font-['Plus_Jakarta_Sans'] text-sm">
-                        Overall score{" "}
-                        <span className="font-['Fraunces'] text-xl font-bold">{overallScore}</span>
-                        /100
-                      </p>
-                    ) : (
-                      <p className="font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground">Not started yet</p>
-                    )}
-                  </div>
+                status={
+                  hasHealth ? (
+                    <p className="app-status-pill font-['Plus_Jakarta_Sans'] text-sm">
+                      Overall score{" "}
+                      <span className="font-['Fraunces'] text-xl font-medium">{overallScore}</span>
+                      /100
+                    </p>
+                  ) : (
+                    <p className="font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground">
+                      Not started yet
+                    </p>
+                  )
                 }
               />
               <MarktrStepCard
@@ -531,22 +527,16 @@ export default function Dashboard() {
                 title="Brand story"
                 complete={hasStory}
                 onClick={() => navigate(hasStory ? "/story-report" : "/story")}
-                summary={
-                  <div className="mt-2 flex items-center gap-2">
-                    <BookOpen
-                      className={`h-5 w-5 shrink-0 ${hasStory ? "text-foreground" : "text-muted-foreground"}`}
-                      aria-hidden
-                    />
-                    {hasStory ? (
-                      <p className="app-status-pill font-['Plus_Jakarta_Sans'] text-sm">
-                        Brand story ready
-                      </p>
-                    ) : (
-                      <p className="font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground">
-                        Not started yet
-                      </p>
-                    )}
-                  </div>
+                status={
+                  hasStory ? (
+                    <p className="app-status-pill font-['Plus_Jakarta_Sans'] text-sm">
+                      Brand story ready
+                    </p>
+                  ) : (
+                    <p className="font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground">
+                      Not started yet
+                    </p>
+                  )
                 }
               />
               <MarktrStepCard
@@ -554,22 +544,16 @@ export default function Dashboard() {
                 title="Know your customer"
                 complete={hasICPs}
                 onClick={() => navigate(hasICPs ? "/icps" : "/onboarding-build")}
-                summary={
-                  <div className="mt-2 flex items-center gap-2">
-                    <Users
-                      className={`h-5 w-5 shrink-0 ${hasICPs ? "text-foreground" : "text-muted-foreground"}`}
-                      aria-hidden
-                    />
-                    {hasICPs ? (
-                      <p className="app-status-pill font-['Plus_Jakarta_Sans'] text-sm">
-                        {`${icps.length} profiles`}
-                      </p>
-                    ) : (
-                      <p className="font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground">
-                        Not started yet
-                      </p>
-                    )}
-                  </div>
+                status={
+                  hasICPs ? (
+                    <p className="app-status-pill font-['Plus_Jakarta_Sans'] text-sm">
+                      {`${icps.length} profiles`}
+                    </p>
+                  ) : (
+                    <p className="font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground">
+                      Not started yet
+                    </p>
+                  )
                 }
               />
             </div>
@@ -613,39 +597,39 @@ export default function Dashboard() {
           {/* 3. ICPs — same card as My ICPs */}
           <section>
             <div className="mb-4 flex items-center justify-between gap-3">
-              <h2 className="font-['Fraunces'] text-2xl font-bold text-foreground">Your ICPs</h2>
+              <h2 className="app-heading font-['Fraunces'] text-2xl text-foreground">Your ICPs</h2>
               <Link
                 to="/icps"
-                className="app-text-link font-['Plus_Jakarta_Sans'] text-sm"
+                className="app-text-link font-['Plus_Jakarta_Sans']"
               >
                 View all →
               </Link>
             </div>
 
             {showIcpPlaceholder ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {[0, 1, 2].map((i) => (
                   <div
                     key={i}
-                    className="h-64 animate-pulse rounded-[24px] border-2 border-brand-stroke bg-muted/30"
+                    className="h-64 animate-pulse rounded-[18px] border border-brand-nested-stroke bg-muted/30"
                   />
                 ))}
               </div>
             ) : previewIcps.length === 0 ? (
               <div className="app-card border-dashed p-8 text-center">
-                <p className="font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground">
+                <p className="font-['Plus_Jakarta_Sans'] text-base text-muted-foreground">
                   No customer profiles yet.
                 </p>
                 <button
                   type="button"
                   onClick={handleCreateNew}
-                  className="app-text-link mt-3 font-['Plus_Jakarta_Sans'] text-sm"
+                  className="app-text-link mt-3 font-['Plus_Jakarta_Sans']"
                 >
                   Create your first ICP →
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {previewIcps.map((icp, index) => (
                   <ICPPreviewCard
                     key={icp.id}
@@ -655,6 +639,7 @@ export default function Dashboard() {
                     isLocked={!canViewICP(effectiveTier as "free" | "pro", icp._index ?? 0)}
                     bandColor={brandBandForIndex(index)}
                     branded
+                    nested
                     collectionNames={
                       icp.lineage_id ? collectionNamesByLineage[icp.lineage_id] || [] : []
                     }
@@ -673,40 +658,40 @@ export default function Dashboard() {
           </section>
 
           {/* 4. Latest strategy */}
-          <section className="app-card p-6">
+          <section className="app-card p-8">
             <div className="flex flex-wrap items-start justify-between gap-3">
-              <h2 className="font-['Fraunces'] text-2xl font-bold text-foreground">Latest strategy</h2>
+              <h2 className="app-heading font-['Fraunces'] text-2xl text-foreground">Latest strategy</h2>
               <Link
                 to="/strategy"
-                className="app-text-link font-['Plus_Jakarta_Sans'] text-sm"
+                className="app-text-link font-['Plus_Jakarta_Sans']"
               >
                 View all →
               </Link>
             </div>
             {strategiesLoading ? (
-              <p className="mt-4 font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground">Loading…</p>
+              <p className="mt-4 font-['Plus_Jakarta_Sans'] text-base text-muted-foreground">Loading…</p>
             ) : latestStrategy ? (
               <button
                 type="button"
                 onClick={() => navigate(`/strategy/${latestStrategy.id}`)}
-                className="app-card app-focus-ring mt-4 w-full p-4 text-left transition-colors hover:-translate-y-px"
+                className="app-card-nested app-focus-ring mt-4 w-full p-4 text-left transition-colors"
               >
-                <p className="font-['Fraunces'] text-lg font-bold text-foreground truncate">
+                <p className="app-heading font-['Fraunces'] text-lg truncate text-foreground">
                   {latestStrategy.title}
                 </p>
-                <p className="mt-1 font-['Plus_Jakarta_Sans'] text-xs text-muted-foreground">
+                <p className="mt-1 font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground">
                   v{latestStrategy.version} · updated {formatDate(latestStrategy.updated_at)} ·{" "}
                   {campaignIdeaCount} campaign idea{campaignIdeaCount === 1 ? "" : "s"}
                 </p>
               </button>
             ) : (
               <div className="mt-4">
-                <p className="font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground">
+                <p className="font-['Plus_Jakarta_Sans'] text-base text-muted-foreground">
                   No strategy versions yet.
                 </p>
                 <Link
                   to="/strategy"
-                  className="app-text-link mt-2 inline-block font-['Plus_Jakarta_Sans'] text-sm"
+                  className="app-text-link mt-2 font-['Plus_Jakarta_Sans']"
                 >
                   Create a strategy →
                 </Link>
@@ -715,20 +700,20 @@ export default function Dashboard() {
           </section>
 
           {/* 5. Content in draft */}
-          <section className="app-card p-6">
+          <section className="app-card p-8">
             <div className="flex flex-wrap items-start justify-between gap-3">
-              <h2 className="font-['Fraunces'] text-2xl font-bold text-foreground">Content in draft</h2>
+              <h2 className="app-heading font-['Fraunces'] text-2xl text-foreground">Content in draft</h2>
               <Link
                 to="/content"
-                className="app-text-link font-['Plus_Jakarta_Sans'] text-sm"
+                className="app-text-link font-['Plus_Jakarta_Sans']"
               >
                 Open Content →
               </Link>
             </div>
             {contentLoading ? (
-              <p className="mt-4 font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground">Loading…</p>
+              <p className="mt-4 font-['Plus_Jakarta_Sans'] text-base text-muted-foreground">Loading…</p>
             ) : draftItems.length === 0 ? (
-              <p className="mt-4 font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground">
+              <p className="mt-4 font-['Plus_Jakarta_Sans'] text-base text-muted-foreground">
                 No draft content yet.
               </p>
             ) : (
@@ -737,7 +722,7 @@ export default function Dashboard() {
                   {draftCountsByType.map(([type, count]) => (
                     <span
                       key={type}
-                      className="app-status-pill font-['Plus_Jakarta_Sans'] text-xs"
+                      className="app-status-pill font-['Plus_Jakarta_Sans'] text-sm"
                     >
                       {CONTENT_TYPE_LABELS[type]}: {count}
                     </span>
@@ -748,15 +733,15 @@ export default function Dashboard() {
                     <li key={item.id}>
                       <Link
                         to={`/content/${item.id}`}
-                        className="app-card flex items-center justify-between gap-3 px-4 py-3 transition-colors hover:-translate-y-px"
+                        className="app-card-nested flex min-h-11 items-center justify-between gap-3 px-4 py-3"
                       >
-                        <span className="min-w-0 truncate font-['Plus_Jakarta_Sans'] text-sm text-foreground">
+                        <span className="min-w-0 truncate font-['Plus_Jakarta_Sans'] text-base text-foreground">
                           {CONTENT_TYPE_LABELS[item.type]}
                           {item.composition?.persona?.name
                             ? ` · ${item.composition.persona.name}`
                             : ""}
                         </span>
-                        <span className="shrink-0 font-['Plus_Jakarta_Sans'] text-xs text-muted-foreground">
+                        <span className="shrink-0 font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground">
                           {formatDate(item.updated_at)}
                         </span>
                       </Link>
@@ -770,27 +755,27 @@ export default function Dashboard() {
           {/* 6. Next action — single derived card, omitted when nothing actionable */}
           {nextAction ? (
             <section>
-              <p className="mb-4 font-['Plus_Jakarta_Sans'] text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+              <p className="mb-4 font-['Plus_Jakarta_Sans'] text-sm font-medium uppercase tracking-[0.12em] text-muted-foreground">
                 What to do next
               </p>
               <button
                 type="button"
                 onClick={() => navigate(nextAction.href)}
-                className="app-card app-card-hover group flex w-full items-center gap-4 p-5 text-left"
+                className="app-card app-card-hover group flex w-full items-center gap-4 p-8 text-left"
               >
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-navy font-['Plus_Jakarta_Sans'] text-sm font-medium text-brand-lime">
                   1
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="mb-0.5 flex items-center gap-2">
-                    <span className="font-['Plus_Jakarta_Sans'] text-sm font-medium text-foreground">
+                    <span className="font-['Plus_Jakarta_Sans'] text-base font-medium text-foreground">
                       {nextAction.label}
                     </span>
-                    <span className="app-status-pill text-[10px] font-medium uppercase tracking-wide">
+                    <span className="app-status-pill text-sm font-medium uppercase tracking-wide">
                       {nextAction.tag}
                     </span>
                   </div>
-                  <p className="font-['Plus_Jakarta_Sans'] text-xs leading-relaxed text-muted-foreground">
+                  <p className="font-['Plus_Jakarta_Sans'] text-sm leading-relaxed text-muted-foreground">
                     {nextAction.desc}
                   </p>
                 </div>

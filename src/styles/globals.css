@@ -22,8 +22,10 @@
   --brand-paper: #FFFFF7;
   --brand-lavender: #A9B7DC;
   --brand-coral: #F4B6AC;
-  --brand-muted: rgb(16 26 38 / 0.65);
-  --brand-hairline: rgb(16 26 38 / 0.12);
+  --brand-muted: rgb(16 26 38 / 0.75);
+  --brand-hairline: rgb(16 26 38 / 0.15);
+  --brand-nested-stroke: rgb(16 26 38 / 0.15);
+  --brand-nested-fill: #ffffff;
   --brand-stroke: #0B0B0C;
   --brand-progress-track: #E7E4D8;
   --brand-shadow: 0 18px 40px rgb(16 26 38 / 0.12);
@@ -46,7 +48,7 @@
   --secondary-foreground: #101A26;
 
   --muted: #E7E4D8;
-  --muted-foreground: rgb(16 26 38 / 0.65);
+  --muted-foreground: rgb(16 26 38 / 0.75);
   --accent: #EBFD84;
   --accent-foreground: #101A26;
 
@@ -156,8 +158,10 @@
   --brand-paper: #101A26;
   --brand-lavender: #A9B7DC;
   --brand-coral: #F4B6AC;
-  --brand-muted: rgb(251 250 240 / 0.65);
-  --brand-hairline: rgb(251 250 240 / 0.24);
+  --brand-muted: rgb(251 250 240 / 0.75);
+  --brand-hairline: rgb(251 250 240 / 0.2);
+  --brand-nested-stroke: rgb(251 250 240 / 0.2);
+  --brand-nested-fill: #101A26;
   --brand-stroke: rgb(251 250 240 / 0.24);
   --brand-progress-track: rgb(251 250 240 / 0.16);
   --brand-shadow: 0 18px 40px rgb(0 0 0 / 0.35);
@@ -174,7 +178,7 @@
   --secondary: #EBFD84;
   --secondary-foreground: #101A26;
   --muted: #1a2430;
-  --muted-foreground: rgb(251 250 240 / 0.65);
+  --muted-foreground: rgb(251 250 240 / 0.75);
   --accent: #EBFD84;
   --accent-foreground: #101A26;
   --destructive: #e85d5d;
@@ -238,6 +242,8 @@
   --color-brand-lavender: var(--brand-lavender);
   --color-brand-coral: var(--brand-coral);
   --color-brand-stroke: var(--brand-stroke);
+  --color-brand-nested-stroke: var(--brand-nested-stroke);
+  --color-brand-nested-fill: var(--brand-nested-fill);
   --color-button-green: var(--button-green);
   --color-accent-grey: var(--accent-grey);
   --color-text-dark: var(--text-dark);
@@ -388,22 +394,110 @@ html {
   color: var(--card-foreground);
 }
 
+.app-card-nested {
+  border: 1px solid var(--brand-nested-stroke) !important;
+  border-radius: 18px;
+  background: var(--brand-nested-fill);
+  box-shadow: none;
+  color: var(--card-foreground);
+}
+
 .app-card-hover:hover {
   box-shadow: var(--brand-shadow);
 }
 
+.app-card-nested.app-card-hover:hover,
+.app-card .app-card-hover:hover {
+  box-shadow: none;
+}
+
+.app-card .app-card {
+  border: 1px solid var(--brand-nested-stroke);
+  border-radius: 18px;
+  box-shadow: none;
+  background: var(--brand-nested-fill);
+}
+
+.app-heading {
+  font-family: var(--font-display-family);
+  font-weight: 500;
+}
+
+.app-heading-page {
+  font-family: var(--font-display-family);
+  font-weight: 600;
+}
+
+.app-score {
+  font-family: var(--font-display-family);
+  font-weight: 500;
+  font-size: 2.75rem;
+  line-height: 1;
+}
+
+.app-score-lg {
+  font-family: var(--font-display-family);
+  font-weight: 500;
+  font-size: 4rem;
+  line-height: 1;
+}
+
 .app-text-link {
   color: var(--foreground);
-  font-weight: 500;
+  font-weight: 600;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
   text-decoration: underline;
   text-decoration-color: transparent;
   text-underline-offset: 3px;
-  transition: text-decoration-color 150ms ease, font-weight 150ms ease;
+  transition: text-decoration-color 150ms ease;
 }
 
 .app-text-link:hover {
-  text-decoration-color: var(--brand-lime);
+  text-decoration-color: var(--foreground);
   font-weight: 600;
+}
+
+/* Logged-in / app chrome: lighter weights, readable captions, no nested 2px cards. */
+.app-ui {
+  font-weight: 500;
+}
+
+.app-ui .font-bold,
+.app-ui .font-extrabold,
+.app-ui .font-black {
+  font-weight: 600;
+}
+
+.app-ui h1,
+.app-ui .app-heading-page {
+  font-weight: 600;
+}
+
+.app-ui h2,
+.app-ui h3,
+.app-ui h2.font-bold,
+.app-ui h3.font-bold,
+.app-ui .app-heading {
+  font-weight: 500;
+}
+
+.app-ui .text-\[10px\],
+.app-ui .text-\[11px\],
+.app-ui .text-xs {
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+.app-ui .text-muted-foreground,
+.app-ui .text-foreground\/70,
+.app-ui .text-foreground\/65,
+.app-ui .text-foreground\/60,
+.app-ui .text-foreground\/50 {
+  color: var(--brand-muted);
 }
 
 .app-status-pill {

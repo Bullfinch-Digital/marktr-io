@@ -31,14 +31,14 @@ export function StrategyRosterCard({ strategy, onArchive, readOnly = false }: Pr
   }, [oneLiner]);
 
   return (
-    <article className="rounded-design border border-black/15 bg-white p-5 shadow-sm hover:border-black/25 transition-colors">
+    <article className="app-card p-8">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <button
           type="button"
           className="text-left min-w-0 flex-1"
           onClick={() => navigate(`/strategy/${strategy.id}`)}
         >
-          <h3 className="font-['Fraunces'] text-xl text-[#0D1833] truncate">{strategy.title}</h3>
+          <h3 className="app-heading font-['Fraunces'] text-xl text-foreground truncate">{strategy.title}</h3>
           <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/55 mt-1">
             v{strategy.version} · updated {formatDate(strategy.updated_at)}
           </p>

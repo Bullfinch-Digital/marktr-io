@@ -311,7 +311,7 @@ export default function CollectionView() {
 
   if (isLoading || !collection) {
     return (
-      <div className="min-h-screen bg-background flex">
+      <div className="app-ui min-h-screen bg-background flex">
         <DashboardSidebar
           userTier={userTier === "free" && !trialActive ? "free" : "paid"}
           onUpgrade={handleUpgrade}
@@ -327,7 +327,7 @@ export default function CollectionView() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="app-ui min-h-screen bg-background flex">
       {/* Sidebar */}
       <DashboardSidebar
         userTier={userTier === "free" && !trialActive ? "free" : "paid"}
@@ -363,7 +363,7 @@ export default function CollectionView() {
                 <div className="flex-1">
                   {!isEditingName ? (
                     <div className="flex items-center gap-3 group">
-                      <h1 className="font-['Fraunces'] text-3xl lg:text-4xl">
+                      <h1 className="app-heading-page font-['Fraunces'] text-3xl lg:text-4xl">
                         {collection.name}
                       </h1>
                       <button

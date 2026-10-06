@@ -113,7 +113,7 @@ export default function MyBrands() {
       <div className="max-w-7xl mx-auto">
         <div className="mb-8 flex items-center justify-between">
           <div>
-            <h1 className="font-['Fraunces'] text-3xl lg:text-4xl mb-2">My Brands</h1>
+            <h1 className="app-heading-page font-['Fraunces'] text-3xl lg:text-4xl mb-2">My Brands</h1>
             <p className="font-['Plus_Jakarta_Sans'] text-foreground/70">
               Manage the business details you use to generate new ICPs.
             </p>
@@ -161,7 +161,7 @@ export default function MyBrands() {
               <div className="w-24 h-24 mx-auto mb-6 bg-accent-grey/30 rounded-full border-2 border-black flex items-center justify-center shadow-sm">
                 <Building2 className="w-10 h-10 text-foreground" />
               </div>
-              <h2 className="font-['Fraunces'] text-2xl mb-3">Add your first brand</h2>
+              <h2 className="app-heading font-['Fraunces'] text-2xl mb-3">Add your first brand</h2>
               <p className="font-['Plus_Jakarta_Sans'] text-foreground/70 mb-6">
                 Create a brand once, then generate new ICPs without repeating the onboarding flow.
               </p>

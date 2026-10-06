@@ -624,17 +624,17 @@ export default function MyAccount() {
     <DashboardShell contentClassName="flex-1 px-6 py-8 lg:px-12">
       <div className="max-w-5xl mx-auto space-y-8 pb-10">
         <div className="mb-2">
-          <h1 className="font-['Fraunces'] text-4xl mb-2">My Account</h1>
+          <h1 className="app-heading-page font-['Fraunces'] text-4xl mb-2">My Account</h1>
           <p className="font-['Plus_Jakarta_Sans'] text-foreground/70">
             Manage your profile, subscription, and settings.
           </p>
         </div>
 
-        <div className="bg-[#E5E5E5]/30 border border-black rounded-design p-8">
+        <div className="app-card p-8">
           <div className="flex items-start gap-6 mb-6">
             <User className="w-5 h-5 mt-1" />
             <div className="flex-1">
-              <h2 className="font-['Fraunces'] text-2xl mb-1">Profile Information</h2>
+              <h2 className="app-heading font-['Fraunces'] text-2xl mb-1">Profile Information</h2>
               <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70">
                 Update your personal details.
               </p>
@@ -698,11 +698,11 @@ export default function MyAccount() {
           </div>
         </div>
 
-        <div className="bg-[#E5E5E5]/30 border border-black rounded-design p-8">
+        <div className="app-card p-8">
           <div className="flex items-start gap-6 mb-6">
             <Lock className="w-5 h-5 mt-1" />
             <div className="flex-1">
-              <h2 className="font-['Fraunces'] text-2xl mb-1">Security</h2>
+              <h2 className="app-heading font-['Fraunces'] text-2xl mb-1">Security</h2>
               <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70">
                 {!identityCheckReady
                   ? "Checking how you sign in…"
@@ -765,11 +765,11 @@ export default function MyAccount() {
           )}
         </div>
 
-        <div className="bg-gradient-to-br from-button-green/20 to-brand-lavender/10 border border-black rounded-design p-8">
+        <div className="app-card bg-gradient-to-br from-button-green/20 to-brand-lavender/10 p-8">
           <div className="flex items-start gap-6 mb-6">
             <Crown className="w-5 h-5 mt-1" />
             <div className="flex-1">
-              <h2 className="font-['Fraunces'] text-2xl mb-1">Subscription</h2>
+              <h2 className="app-heading font-['Fraunces'] text-2xl mb-1">Subscription</h2>
               <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70">
                 Manage your billing and plan.
               </p>
@@ -849,11 +849,11 @@ export default function MyAccount() {
           </div>
         </div>
 
-        <div className="bg-background border border-black rounded-design p-8">
+        <div className="app-card p-8">
           <div className="flex items-start gap-6 mb-4">
             <Mail className="w-5 h-5 mt-1" />
             <div className="flex-1">
-              <h2 className="font-['Fraunces'] text-2xl mb-1">Support</h2>
+              <h2 className="app-heading font-['Fraunces'] text-2xl mb-1">Support</h2>
               <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70">
                 Need help with billing, your account, or anything else? Email us and we&apos;ll get
                 back to you.
@@ -872,7 +872,7 @@ export default function MyAccount() {
           <div className="flex items-start gap-6 mb-6">
             <AlertTriangle className="w-5 h-5 mt-1 text-[#FF6B6B]" />
             <div className="flex-1">
-              <h2 className="font-['Fraunces'] text-2xl mb-1">Danger Zone</h2>
+              <h2 className="app-heading font-['Fraunces'] text-2xl mb-1">Danger Zone</h2>
               <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70">
                 Irreversible and destructive actions.
               </p>

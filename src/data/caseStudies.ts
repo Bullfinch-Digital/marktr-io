@@ -29,7 +29,6 @@ export const CASE_STUDIES: CaseStudy[] = [
       "+282% sessions (3,994)",
       "Instagram: 3,679 visitors vs 849",
     ],
-    footnote: "Platform visitor counts can overlap, so they shouldn't be added together.",
     pills: ["Social strategy"],
     imageSrc: "/images/graphics/apostle-coffee-cups.png",
     imageAlt: "Apostle Coffee cups",
@@ -43,21 +42,25 @@ export const CASE_STUDIES: CaseStudy[] = [
       "Social content and a lead-qualifying questionnaire turned strong organic reach into trust and leads.",
     supporting: [
       "Qualifying lead-generation questionnaire on the website",
-      "Top reel: 12,223 views (the best of 25 reels reviewed)",
+      "Top reel: 12,223 organic views (vs previous average of 1k)",
     ],
     pills: ["Newsletter", "Social strategy"],
+    imageSrc: "/images/graphics/start-with-your-ideal-customer.png",
+    imageAlt: "Placeholder for British Log Cabins",
   },
   {
     id: "the-green",
     client: "The Green",
     headline: "5,000+",
-    label: "newsletter sign-ups from a fresh Instagram account",
+    label: "newsletter creation and fresh Instagram account with targeted content strategy.",
     supporting: [
       "Repeat bookings and seasonal pitch enquiries",
       "Three core customer groups defined, each with its own communications",
       "706 likes across its first 25 posts (Instagram account launched June 2026)",
     ],
     pills: ["Newsletter", "Customer profiles"],
+    imageSrc: "/images/graphics/generate-content-in-your-voice.png",
+    imageAlt: "Placeholder for The Green",
   },
   {
     id: "the-cedar-mill",
@@ -70,5 +73,7 @@ export const CASE_STUDIES: CaseStudy[] = [
       "Social strategy and content scripts",
     ],
     pills: ["Social strategy", "Brand story"],
+    imageSrc: "/images/graphics/publish-and-track-performance.png",
+    imageAlt: "Placeholder for The Cedar Mill",
   },
 ];

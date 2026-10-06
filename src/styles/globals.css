@@ -813,8 +813,17 @@ html {
   top: 0;
   bottom: 0;
   left: 19px;
-  border-left: 1px dashed rgb(16 26 38 / 0.4);
+  width: 1px;
+  overflow: hidden;
   pointer-events: none;
+  --journey-draw: 1;
+  clip-path: inset(0 0 calc((1 - var(--journey-draw)) * 100%) 0);
+}
+
+.journey-rail-stroke {
+  position: absolute;
+  inset: 0;
+  border-left: 1px dashed rgb(16 26 38 / 0.4);
 }
 
 .journey-rail-cap {
@@ -859,21 +868,105 @@ html {
   }
 }
 
+#journey[data-journey-ready] [data-journey-reveal]:not([data-in]) {
+  opacity: 0;
+}
+
+#journey[data-journey-ready] [data-journey-reveal="badge"]:not([data-in]) {
+  transform: scale(0.85);
+}
+
+#journey[data-journey-ready] [data-journey-reveal="intro"]:not([data-in]),
+#journey[data-journey-ready] [data-journey-reveal="intro-line"]:not([data-in]),
+#journey[data-journey-ready] [data-journey-reveal="copy"]:not([data-in]),
+#journey[data-journey-ready] [data-journey-reveal="figure"]:not([data-in]),
+#journey[data-journey-ready] [data-journey-reveal="hub"]:not([data-in]),
+#journey[data-journey-ready] [data-journey-reveal="tile"]:not([data-in]),
+#journey[data-journey-ready] [data-journey-reveal="cta"]:not([data-in]) {
+  transform: translateY(28px);
+}
+
+#journey[data-journey-ready] [data-journey-reveal][data-in] {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 600ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 600ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+#journey[data-journey-ready] [data-journey-reveal="badge"][data-in] {
+  transition-duration: 320ms;
+}
+
+#journey[data-journey-ready] [data-journey-reveal="copy"][data-in=""] {
+  transition-delay: 40ms;
+}
+
+#journey[data-journey-ready] [data-journey-reveal="figure"][data-in=""] {
+  transition-delay: 100ms;
+}
+
+#journey[data-journey-ready] [data-journey-reveal="tile"][data-stagger="0"][data-in=""] {
+  transition-delay: 160ms;
+}
+
+#journey[data-journey-ready] [data-journey-reveal="tile"][data-stagger="1"][data-in=""] {
+  transition-delay: 260ms;
+}
+
+#journey[data-journey-ready] [data-journey-reveal="tile"][data-stagger="2"][data-in=""] {
+  transition-delay: 360ms;
+}
+
+#journey[data-journey-ready] [data-journey-reveal][data-in="instant"] {
+  transition: none;
+}
+
+.journey-hub-glow {
+  pointer-events: none;
+  position: absolute;
+  inset: -12px;
+  border-radius: 36px;
+  background: rgb(232 244 85 / 0.18);
+  opacity: 0;
+}
+
+#journey[data-journey-ready] [data-journey-reveal="hub"][data-in=""] .journey-hub-glow {
+  animation: journey-hub-glow 900ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@media (min-width: 1024px) {
+  #journey[data-journey-ready] [data-journey-side="left"]:not([data-in]) {
+    transform: translate3d(-16px, 28px, 0);
+  }
+
+  #journey[data-journey-ready] [data-journey-side="right"]:not([data-in]) {
+    transform: translate3d(16px, 28px, 0);
+  }
+}
+
+@media (max-width: 480px) {
+  #journey[data-journey-ready] [data-journey-reveal="intro"]:not([data-in]),
+  #journey[data-journey-ready] [data-journey-reveal="intro-line"]:not([data-in]),
+  #journey[data-journey-ready] [data-journey-reveal="copy"]:not([data-in]),
+  #journey[data-journey-ready] [data-journey-reveal="figure"]:not([data-in]),
+  #journey[data-journey-ready] [data-journey-reveal="hub"]:not([data-in]),
+  #journey[data-journey-ready] [data-journey-reveal="tile"]:not([data-in]),
+  #journey[data-journey-ready] [data-journey-reveal="cta"]:not([data-in]) {
+    transform: translateY(16px);
+  }
+
+  #journey[data-journey-ready] [data-journey-reveal][data-in] {
+    transition-duration: 480ms;
+  }
+
+  #journey[data-journey-ready] [data-journey-reveal="badge"][data-in] {
+    transition-duration: 260ms;
+  }
+}
+
 @media (prefers-reduced-motion: no-preference) {
   @supports (animation-timeline: view()) {
-    .journey-step {
-      animation: journey-fade-up linear both;
-      animation-timeline: view();
-      animation-range: entry 0% cover 22%;
-    }
-
-    .journey-rail {
-      transform-origin: top center;
-      animation: journey-draw linear both;
-      animation-timeline: view();
-      animation-range: entry 0% cover 70%;
-    }
-
     .testimonial-card,
     .compare-card {
       animation: journey-fade-up linear both;
@@ -920,6 +1013,20 @@ html {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  #journey[data-journey-ready] [data-journey-reveal] {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+
+  .journey-rail {
+    clip-path: none;
+  }
+
+  .journey-hub-glow {
+    display: none;
+  }
+
   .quote-marquee {
     overflow-x: auto;
   }
@@ -954,11 +1061,14 @@ html {
   }
 }
 
-@keyframes journey-draw {
-  from {
-    transform: scaleY(0);
+@keyframes journey-hub-glow {
+  0% {
+    opacity: 0;
   }
-  to {
-    transform: scaleY(1);
+  35% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
   }
 }

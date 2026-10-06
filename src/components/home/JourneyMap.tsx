@@ -1,5 +1,7 @@
+import { useRef } from "react";
 import { Link } from "react-router-dom";
 import { MARKTR_TRIAL_DAYS } from "@/lib/marktrPricing";
+import { useJourneyScroll } from "@/hooks/useJourneyScroll";
 
 /** Same phrase as the pricing table ("Marktr Pro — 14-day free trial") and the paywall ("Start your 14-day free trial now."). */
 const TRIAL_LABEL = `${MARKTR_TRIAL_DAYS}-day free trial`;
@@ -226,16 +228,29 @@ function ContentPlaceholder({ alt }: { alt: string }) {
 
 function StepBadge({ step }: { step: string }) {
   return (
-    <span className="absolute -left-14 top-8 z-10 flex h-10 w-10 items-center justify-center rounded-full border border-[#101A26] bg-[#FBFAF0] font-['Plus_Jakarta_Sans'] text-sm font-medium text-[#101A26] lg:left-1/2 lg:top-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2">
-      {step}
+    <span className="absolute -left-14 top-8 z-10 lg:left-1/2 lg:top-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2">
+      <span
+        data-journey-reveal="badge"
+        className="flex h-10 w-10 items-center justify-center rounded-full border border-[#101A26] bg-[#FBFAF0] font-['Plus_Jakarta_Sans'] text-sm font-medium text-[#101A26]"
+      >
+        {step}
+      </span>
     </span>
   );
 }
 
 export default function JourneyMap() {
+  const sectionRef = useRef<HTMLElement>(null);
+  const railRef = useRef<HTMLDivElement>(null);
+  useJourneyScroll(sectionRef, railRef);
+
   return (
-    <section id="journey" className="bg-[#FBFAF0] px-6 pt-20 pb-8 lg:pt-28 lg:pb-10">
-      <div className="mx-auto max-w-5xl text-center">
+    <section
+      ref={sectionRef}
+      id="journey"
+      className="bg-[#FBFAF0] px-6 pt-20 pb-8 lg:pt-28 lg:pb-10"
+    >
+      <div data-journey-reveal="intro" className="mx-auto max-w-5xl text-center">
         <p className="inline-flex items-center rounded-full border border-[#101A26] bg-[#E8F455] px-4 py-1.5 font-['Plus_Jakarta_Sans'] text-xs font-medium text-[#101A26]">
           How it works
         </p>
@@ -245,14 +260,22 @@ export default function JourneyMap() {
       </div>
 
       <div className="relative mx-auto mt-8 max-w-5xl">
-        <div className="journey-rail" aria-hidden />
+        <div ref={railRef} className="journey-rail" aria-hidden>
+          <span className="journey-rail-stroke" />
+        </div>
         <div className="journey-rail-cap" aria-hidden>
           <span className="journey-rail-cap-dot" />
         </div>
-        <p className="relative z-10 mx-auto w-fit max-w-2xl bg-[#FBFAF0] px-3 py-1 text-center font-['Plus_Jakarta_Sans'] text-base text-[#101A26]/75">
+        <p
+          data-journey-reveal="intro-line"
+          className="relative z-10 mx-auto w-fit max-w-2xl bg-[#FBFAF0] px-3 py-1 text-center font-['Plus_Jakarta_Sans'] text-base text-[#101A26]/75"
+        >
           Three starting points. One strategy. Content that sounds like you.
         </p>
-        <p className="relative z-10 mx-auto mt-1 w-fit max-w-md bg-[#FBFAF0] px-3 py-1 text-center font-['Plus_Jakarta_Sans'] text-sm text-[#101A26]/70">
+        <p
+          data-journey-reveal="intro-line"
+          className="relative z-10 mx-auto mt-1 w-fit max-w-md bg-[#FBFAF0] px-3 py-1 text-center font-['Plus_Jakarta_Sans'] text-sm text-[#101A26]/70"
+        >
           These three can be done in any order.
         </p>
 
@@ -265,11 +288,17 @@ export default function JourneyMap() {
               <Link
                 to={step.href}
                 aria-label={step.linkLabel}
+                data-journey-reveal="figure"
+                data-journey-side={index % 2 === 1 ? "right" : "left"}
                 className="block rounded-[24px] outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#101A26]"
               >
                 <JourneyFigure image={step.image} />
               </Link>
-              <div className={index % 2 === 1 ? "text-left lg:order-first" : "text-left"}>
+              <div
+                data-journey-reveal="copy"
+                data-journey-side={index % 2 === 1 ? "left" : "right"}
+                className={index % 2 === 1 ? "text-left lg:order-first" : "text-left"}
+              >
                 <h3 className="font-['Fraunces'] text-3xl font-bold text-[#101A26]">{step.title}</h3>
                 <dl className="mt-4 space-y-3">
                   <div>
@@ -311,7 +340,9 @@ export default function JourneyMap() {
             aria-hidden
             className="absolute -left-[42px] top-8 z-10 h-3 w-3 rounded-full border border-[#101A26] bg-[#E8F455] lg:left-1/2 lg:top-0 lg:-translate-x-1/2 lg:-translate-y-1/2"
           />
-          <div className="overflow-hidden rounded-[28px] border border-[#101A26]/15 bg-white shadow-[0_24px_60px_rgb(16_26_38_/_0.12)]">
+          <div data-journey-reveal="hub" className="relative">
+            <span className="journey-hub-glow" aria-hidden />
+            <div className="relative overflow-hidden rounded-[28px] border border-[#101A26]/15 bg-white shadow-[0_24px_60px_rgb(16_26_38_/_0.12)]">
             <div className="flex items-center gap-2 border-b border-[#101A26]/10 bg-[#FBFAF0] px-5 py-3">
               <span className="h-2.5 w-2.5 rounded-full bg-[#EC9F95]" />
               <span className="h-2.5 w-2.5 rounded-full bg-[#E8F455]" />
@@ -341,8 +372,13 @@ export default function JourneyMap() {
                   className="pointer-events-none absolute left-6 right-6 top-5 hidden border-t border-dashed border-[#101A26]/40 lg:block"
                 />
                 <div className="grid gap-4 lg:grid-cols-3">
-                  {DASHBOARD_TILES.map((tile) => (
-                    <article key={tile.title} className="journey-step relative flex flex-col overflow-hidden rounded-[20px] border border-[#101A26]/10 bg-white shadow-sm">
+                  {DASHBOARD_TILES.map((tile, tileIndex) => (
+                    <article
+                      key={tile.title}
+                      data-journey-reveal="tile"
+                      data-stagger={String(tileIndex)}
+                      className="journey-step relative flex flex-col overflow-hidden rounded-[20px] border border-[#101A26]/10 bg-white shadow-sm"
+                    >
                       <div className="overflow-hidden" style={{ backgroundColor: tile.image.tone, aspectRatio: "16 / 10" }}>
                         {tile.image.src ? (
                           <img
@@ -388,9 +424,13 @@ export default function JourneyMap() {
               </p>
             </div>
           </div>
+          </div>
         </div>
 
-        <div className="journey-step relative z-10 mx-auto mt-4 flex max-w-md flex-col items-center bg-[#FBFAF0] pt-6 text-center">
+        <div
+          data-journey-reveal="cta"
+          className="journey-step relative z-10 mx-auto mt-4 flex max-w-md flex-col items-center bg-[#FBFAF0] pt-6 text-center"
+        >
           <Link
             to="/health-check"
             className="inline-flex items-center justify-center rounded-full border-2 border-[#0B0B0C] bg-[#EBFD84] px-8 py-3.5 font-['Plus_Jakarta_Sans'] text-base font-medium text-[#0B0B0C] hover:bg-[#EBFD84]/90"

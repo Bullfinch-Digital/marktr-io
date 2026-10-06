@@ -784,11 +784,13 @@ html {
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .quote-card {
+  .quote-card,
+  .case-study-card {
     transition: transform 200ms ease, box-shadow 200ms ease;
   }
 
-  .quote-card:hover {
+  .quote-card:hover,
+  .case-study-card:hover {
     transform: translateY(-6px);
     box-shadow: 0 22px 44px rgb(16 26 38 / 0.18);
   }

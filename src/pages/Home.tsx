@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Check } from "lucide-react";
+import CaseStudies from "@/components/home/CaseStudies";
 import JourneyMap from "@/components/home/JourneyMap";
 import Testimonials, { QuoteStrip } from "@/components/home/Testimonials";
 
@@ -338,67 +339,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* SECTION 6 — Proof mosaic */}
-      <section className="bg-[#FBFAF0] px-6 py-20 lg:py-28">
-        <div className="mx-auto max-w-7xl text-center">
-          <h2 className="font-['Fraunces'] text-4xl font-bold text-[#101A26] sm:text-5xl">
-            Proven results, real founders
-          </h2>
-        </div>
-
-        <div className="mx-auto mt-14 grid max-w-7xl gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-5">
-          <div className="rounded-2xl bg-[#D4EDE8] p-8 text-left">
-            <p className="font-['Fraunces'] text-5xl font-bold text-[#101A26]">17,000</p>
-            <p className="mt-2 font-['Plus_Jakarta_Sans'] text-sm text-[#101A26]/80">
-              Instagram views from the right audience
-            </p>
-            <p className="mt-6 font-['Plus_Jakarta_Sans'] text-xs font-semibold uppercase tracking-widest text-[#101A26]/60">
-              British Log Cabins
-            </p>
-          </div>
-
-          <div className="rounded-2xl bg-white p-8 text-left shadow-sm">
-            <p className="font-['Fraunces'] text-lg font-medium leading-relaxed text-[#101A26]">
-              &ldquo;marktr helped us tell the story we'd been struggling to articulate for years.&rdquo;
-            </p>
-            <p className="mt-6 font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground">— The Green Caravan Park</p>
-          </div>
-
-          <div className="rounded-2xl bg-[#FDF0CC] p-8 text-left">
-            <p className="font-['Fraunces'] text-5xl font-bold text-[#101A26]">£10,000</p>
-            <p className="mt-2 font-['Plus_Jakarta_Sans'] text-sm text-[#101A26]/80">
-              online course sold from organic content
-            </p>
-          </div>
-
-          <div className="rounded-2xl bg-white p-8 text-left shadow-sm">
-            <div className="mb-4 aspect-[3/4] max-h-40 w-full overflow-hidden rounded-lg bg-muted">
-              <img
-                src="/images/graphics/apostle-coffee-cups.png"
-                alt="Apostle Coffee cups"
-                className="h-full w-full object-cover"
-              />
-            </div>
-            <p className="font-['Plus_Jakarta_Sans'] text-sm text-[#101A26]">
-              Apostle Coffee — built from zero to award-winning
-            </p>
-          </div>
-
-          <div className="rounded-2xl bg-[#FAE8E0] p-8 text-left">
-            <p className="font-['Fraunces'] text-5xl font-bold text-[#101A26]">6 months</p>
-            <p className="mt-2 font-['Plus_Jakarta_Sans'] text-sm text-[#101A26]/80">
-              from outdated brand to full digital presence
-            </p>
-          </div>
-
-          <div className="rounded-2xl bg-white p-8 text-left shadow-sm">
-            <p className="font-['Fraunces'] text-lg font-medium leading-relaxed text-[#101A26]">
-              &ldquo;The strategy was there — we just needed someone to find it.&rdquo;
-            </p>
-            <p className="mt-6 font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground">— McCartneys LLP</p>
-          </div>
-        </div>
-      </section>
+      <CaseStudies />
 
       {/* SECTION 7 — CTA band */}
       <section className="relative overflow-hidden bg-[#FBFAF0] px-6 py-20 text-center lg:py-28">

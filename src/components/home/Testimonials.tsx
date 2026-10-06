@@ -248,7 +248,7 @@ export default function Testimonials() {
   };
 
   return (
-    <section id="testimonials" className="bg-[#FBFAF0] py-16 lg:py-20">
+    <section id="testimonials" className="bg-[#FBFAF0] pt-4 pb-16 lg:pt-6 lg:pb-20">
       <div className="mx-auto max-w-6xl px-6">
         <p className="inline-flex rounded-full border-2 border-[#0B0B0C] bg-[#EBFD84] px-3 py-1 font-['Plus_Jakarta_Sans'] text-[13px] font-medium text-[#0B0B0C]">
           In their words

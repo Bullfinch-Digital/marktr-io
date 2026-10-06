@@ -234,13 +234,13 @@ function StepBadge({ step }: { step: string }) {
 
 export default function JourneyMap() {
   return (
-    <section id="journey" className="bg-[#FBFAF0] px-6 py-20 lg:py-28">
+    <section id="journey" className="bg-[#FBFAF0] px-6 pt-20 pb-8 lg:pt-28 lg:pb-10">
       <div className="mx-auto max-w-5xl text-center">
         <p className="inline-flex items-center rounded-full border border-[#101A26] bg-[#E8F455] px-4 py-1.5 font-['Plus_Jakarta_Sans'] text-xs font-medium text-[#101A26]">
           How it works
         </p>
         <h2 className="mx-auto mt-5 max-w-3xl font-['Fraunces'] text-4xl font-bold leading-tight text-[#101A26] sm:text-5xl">
-          From first question to a month of content.
+          From a few simple questions to a month of content.
         </h2>
       </div>
 
@@ -390,18 +390,12 @@ export default function JourneyMap() {
           </div>
         </div>
 
-        <div className="journey-step relative z-10 mx-auto mt-4 flex max-w-md flex-col items-center gap-4 bg-[#FBFAF0] py-6 text-center">
+        <div className="journey-step relative z-10 mx-auto mt-4 flex max-w-md flex-col items-center bg-[#FBFAF0] pt-6 text-center">
           <Link
             to="/health-check"
             className="inline-flex items-center justify-center rounded-full border-2 border-[#0B0B0C] bg-[#EBFD84] px-8 py-3.5 font-['Plus_Jakarta_Sans'] text-base font-medium text-[#0B0B0C] hover:bg-[#EBFD84]/90"
           >
             Start with your digital health check — free
-          </Link>
-          <Link
-            to="/pricing"
-            className="font-['Plus_Jakarta_Sans'] text-sm font-medium text-[#101A26] underline-offset-4 hover:underline"
-          >
-            See pricing
           </Link>
         </div>
         </div>

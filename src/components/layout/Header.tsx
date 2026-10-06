@@ -70,7 +70,7 @@ export function Header() {
   ];
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-warm-grey bg-background/80 font-['Plus_Jakarta_Sans'] backdrop-blur-md transition-all">
+    <header className="sticky top-0 z-50 w-full border-b border-[#101A26]/10 bg-[#FBFAF0]/90 font-['Plus_Jakarta_Sans'] backdrop-blur-md transition-all">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           <Link to="/" className="flex items-center">
@@ -154,7 +154,7 @@ export function Header() {
                 <Link to="/health-check">
                   <Button
                     variant="default"
-                    className="hidden bg-button-green text-text-dark transition-all hover:scale-105 hover:bg-button-green/90 hover:shadow-lg active:scale-95 md:flex font-['Plus_Jakarta_Sans'] font-semibold"
+                    className="hidden rounded-full border-2 border-[#0B0B0C] bg-[#EBFD84] text-[#0B0B0C] transition-all hover:scale-105 hover:bg-[#EBFD84]/90 hover:shadow-lg active:scale-95 md:flex font-['Plus_Jakarta_Sans'] font-semibold"
                   >
                     Check your digital health - free
                   </Button>
@@ -251,7 +251,7 @@ export function Header() {
                   Login
                 </Button>
                 <Link to="/health-check" onClick={() => setIsMobileMenuOpen(false)}>
-                  <Button className="w-full bg-button-green text-text-dark hover:bg-button-green/90 font-['Plus_Jakarta_Sans'] font-semibold">
+                  <Button className="w-full rounded-full border-2 border-[#0B0B0C] bg-[#EBFD84] text-[#0B0B0C] hover:bg-[#EBFD84]/90 font-['Plus_Jakarta_Sans'] font-semibold">
                     Check your digital health - free
                   </Button>
                 </Link>

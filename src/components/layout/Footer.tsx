@@ -7,7 +7,7 @@ export function Footer() {
   const { user } = useAuth();
   const dashboardPath = isRealUser(user) ? "/dashboard" : "/guest-dashboard";
   return (
-    <footer className="border-t border-accent-grey bg-neutral-light py-12 font-['Plus_Jakarta_Sans']">
+    <footer className="border-t border-[#101A26]/10 bg-[#FBFAF0] py-12 font-['Plus_Jakarta_Sans']">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 gap-10 md:grid-cols-2 lg:grid-cols-4 lg:gap-8">
           <div>

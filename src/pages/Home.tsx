@@ -148,18 +148,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* SECTION 2 — Social proof bar */}
-      <section className="border-y border-border bg-white py-10">
-        <div className="mx-auto max-w-7xl px-6 text-center">
-          <p className="mb-6 inline-flex items-center rounded-full border border-[#101A26] bg-[#FBFAF0] px-4 py-1.5 font-['Plus_Jakarta_Sans'] text-xs font-medium text-[#101A26]">
-            Trusted by ambitious founders
-          </p>
-          <p className="font-['Plus_Jakarta_Sans'] text-sm uppercase tracking-widest text-muted-foreground">
-            Apostle Coffee · British Log Cabins · The Green · McCartneys LLP · Continental Fireplaces
-          </p>
-        </div>
-      </section>
-
       <Testimonials />
 
       <JourneyMap />
@@ -411,7 +399,7 @@ export default function Home() {
       </section>
 
       {/* SECTION 7 — CTA band */}
-      <section className="relative overflow-hidden bg-[#101A26] px-6 py-20 text-center lg:py-28">
+      <section className="relative overflow-hidden bg-[#FBFAF0] px-6 py-20 text-center lg:py-28">
         <img
           src="/brand/Bullfinch_Icons_21.png"
           alt=""
@@ -419,15 +407,15 @@ export default function Home() {
           className="pointer-events-none absolute -right-8 top-8 hidden w-52 opacity-90 md:block lg:w-64"
         />
         <div className="relative z-10 mx-auto max-w-3xl">
-          <h2 className="font-['Fraunces'] text-4xl font-bold text-white sm:text-5xl">
+          <h2 className="font-['Fraunces'] text-4xl font-bold text-[#101A26] sm:text-5xl">
             Your marketing team is ready.
           </h2>
-          <p className="mt-4 font-['Plus_Jakarta_Sans'] text-lg text-white/70">
+          <p className="mt-4 font-['Plus_Jakarta_Sans'] text-lg text-[#101A26]/70">
             Know your customer. Shape your story. Check your digital health. All free. No agency required.
           </p>
           <Link
             to="/onboarding-build"
-            className="mt-10 inline-flex items-center justify-center rounded-full bg-primary px-10 py-4 font-['Plus_Jakarta_Sans'] text-lg font-medium text-primary-foreground transition-opacity hover:opacity-90"
+            className="mt-10 inline-flex items-center justify-center rounded-full border-2 border-[#0B0B0C] bg-[#EBFD84] px-10 py-4 font-['Plus_Jakarta_Sans'] text-lg font-medium text-[#0B0B0C] transition-opacity hover:bg-[#EBFD84]/90"
           >
             Start free trial
           </Link>

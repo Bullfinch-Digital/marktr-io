@@ -291,8 +291,8 @@ export function NewsletterSignup({
         disabled={submitting || !turnstileReady}
         className={
           variant === "landing"
-            ? "w-full rounded-design border border-black bg-button-green py-6 font-['Fraunces'] text-lg font-bold text-text-dark hover:bg-button-green/90"
-            : "w-full rounded-design border border-black bg-button-green font-['Plus_Jakarta_Sans'] font-semibold text-text-dark hover:bg-button-green/90"
+            ? "w-full rounded-full border-2 border-[#0B0B0C] bg-[#EBFD84] py-6 font-['Fraunces'] text-lg font-bold text-[#0B0B0C] hover:bg-[#EBFD84]/90"
+            : "w-full rounded-full border-2 border-[#0B0B0C] bg-[#EBFD84] font-['Plus_Jakarta_Sans'] font-semibold text-[#0B0B0C] hover:bg-[#EBFD84]/90"
         }
       >
         {submitting ? (

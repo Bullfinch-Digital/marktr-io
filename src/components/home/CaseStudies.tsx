@@ -1,6 +1,6 @@
 import { CASE_STUDIES, type CaseStudy } from "@/data/caseStudies";
 
-const CARD_TONES = ["bg-[#D4EDE8]", "bg-[#FDF0CC]", "bg-[#FAE8E0]", "bg-white"] as const;
+const CARD_TONES = ["bg-[#D4EDE8]", "bg-[#FDF0CC]", "bg-[#FAE8E0]", "bg-white", "bg-[#E7ECF8]"] as const;
 
 function CaseStudyCard({ study, tone }: { study: CaseStudy; tone: string }) {
   const pills = (study.pills ?? []).slice(0, 2);
@@ -8,12 +8,12 @@ function CaseStudyCard({ study, tone }: { study: CaseStudy; tone: string }) {
   return (
     <article className={`case-study-card flex h-full min-w-0 flex-col rounded-2xl p-6 text-left shadow-sm sm:p-7 ${tone}`}>
       {study.imageSrc ? (
-        <div className="mb-5 aspect-[3/4] max-h-40 w-full overflow-hidden rounded-lg bg-white/60">
+        <div className="mb-5 aspect-[2/1] w-full overflow-hidden rounded-lg bg-white/60">
           <img
             src={study.imageSrc}
             alt={study.imageAlt ?? ""}
             width={1600}
-            height={1200}
+            height={800}
             loading="lazy"
             decoding="async"
             className="h-full w-full object-cover"
@@ -68,7 +68,7 @@ function CaseStudyCard({ study, tone }: { study: CaseStudy; tone: string }) {
 export default function CaseStudies() {
   return (
     <section className="bg-[#FBFAF0] px-6 py-20 lg:py-28">
-      <div className="mx-auto max-w-7xl text-center">
+      <div className="mx-auto max-w-[90rem] text-center">
         <h2 className="font-['Fraunces'] text-4xl font-bold text-[#101A26] sm:text-5xl">
           Proven results, real founders
         </h2>
@@ -77,7 +77,7 @@ export default function CaseStudies() {
         </p>
       </div>
 
-      <div className="mx-auto mt-14 grid max-w-7xl grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4 lg:gap-5">
+      <div className="mx-auto mt-14 grid max-w-[90rem] grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 lg:gap-5">
         {CASE_STUDIES.map((study, index) => (
           <CaseStudyCard key={study.id} study={study} tone={CARD_TONES[index % CARD_TONES.length]} />
         ))}

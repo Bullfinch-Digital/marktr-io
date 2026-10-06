@@ -77,20 +77,25 @@ export default function Home() {
 
   return (
     <main className="overflow-x-hidden bg-[#FBFAF0] font-['Plus_Jakarta_Sans'] text-[#101A26]">
-      {/* SECTION 1 — Three ways in */}
-      <section id="ways-in" className="bg-[#FBFAF0] px-6 pb-16 pt-8 lg:pb-20 lg:pt-12">
-        <div className="mx-auto max-w-6xl text-center">
-          <h1 className="mx-auto max-w-4xl font-['Fraunces'] text-4xl font-bold leading-tight text-[#101A26] sm:text-5xl">
-            Everything your marketing team does.
-            <br />
-            Built into one platform.
+      {/* SECTION 1 — Opening hero and three ways in */}
+      <section id="ways-in" className="home-opening px-6 pb-12 pt-6 lg:pb-16 lg:pt-8">
+        <div className="relative z-10 mx-auto max-w-6xl">
+          <h1 className="max-w-6xl text-left">
+            <span className="home-pill-line">
+              <span className="home-pill">Your entire marketing team in</span>
+            </span>
+            <span className="home-pill-line">
+              <span className="home-pill">one platform.</span>
+            </span>
           </h1>
-          <p className="mx-auto mt-4 max-w-2xl font-['Plus_Jakarta_Sans'] text-base text-[#101A26]/75">
+          <p className="mt-4 max-w-6xl font-['Plus_Jakarta_Sans'] text-lg leading-snug text-[#0B0B0C] lg:whitespace-nowrap lg:text-xl">
+            Brand Foundations. Customer Insights. Strategy. Content.
+          </p>
+          <p className="mt-4 font-['Plus_Jakarta_Sans'] text-sm text-[#0B0B0C]/80">
             Start in any order. Most people begin by seeing where they stand.
           </p>
-        </div>
 
-        <div className="relative mx-auto mt-10 max-w-6xl">
+        <div className="relative mt-5">
           <div
             aria-hidden
             className="pointer-events-none absolute left-8 right-8 top-9 hidden border-t border-dashed border-[#101A26]/40 lg:block"
@@ -153,6 +158,7 @@ export default function Home() {
             ))}
           </div>
         </div>
+        </div>
       </section>
 
       {/* SECTION 2 — Social proof bar */}
@@ -188,13 +194,8 @@ export default function Home() {
         />
         <div className="relative z-10 mx-auto grid max-w-7xl items-center gap-14 px-6 py-20 lg:grid-cols-5 lg:gap-12 lg:py-24">
           <div className="lg:col-span-3">
-            <h2 className="flex max-w-4xl flex-col items-start gap-3">
-              <span className="inline-block rounded-full bg-[#E8F455] px-5 py-2 font-['Fraunces'] text-4xl font-bold leading-none text-[#101A26] sm:px-7 sm:py-3 sm:text-5xl lg:text-6xl">
-                Marketing that
-              </span>
-              <span className="inline-block rounded-full bg-[#E8F455] px-5 py-2 font-['Fraunces'] text-4xl font-bold leading-none text-[#101A26] sm:px-7 sm:py-3 sm:text-5xl lg:text-6xl">
-                knows your customer.
-              </span>
+            <h2 className="font-['Fraunces'] text-4xl font-bold leading-tight text-[#101A26] sm:text-5xl">
+              See it in action.
             </h2>
 
             <p className="mt-7 max-w-2xl font-['Plus_Jakarta_Sans'] text-lg leading-relaxed text-[#101A26]/80 sm:text-xl">

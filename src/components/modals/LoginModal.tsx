@@ -66,6 +66,15 @@ export function LoginModal({
     setLocalEmail(email ?? "");
   }, [email]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") handleClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const handleGoogle = () => {
@@ -170,12 +179,12 @@ export function LoginModal({
         onClose={closeModal}
         onAgree={() => confirmAgreement(setLegalAgreed)}
       />
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-background border border-black rounded-design shadow-2xl w-full max-w-md p-6">
-        <div className="flex items-start justify-between gap-4 mb-4">
+    <div className="auth-modal-backdrop fixed inset-0 z-[60] flex items-center justify-center p-4">
+      <div className="auth-modal-panel w-full max-w-md p-6 sm:p-8">
+        <div className="mb-5 flex items-start justify-between gap-4">
           <div>
-            <h2 className="font-['Fraunces'] text-2xl mb-1">Sign in to marktr.</h2>
-            <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70">
+            <h2 className="mb-2 font-['Fraunces'] text-2xl font-bold text-[#101A26]">Sign in to marktr.</h2>
+            <p className="font-['Plus_Jakarta_Sans'] text-sm leading-relaxed text-[#101A26]/70">
               New here? Signing in with Google creates your account automatically.
             </p>
           </div>
@@ -183,44 +192,46 @@ export function LoginModal({
             onClick={() => {
               void handleClose();
             }}
-            className="p-2 hover:bg-accent-grey/20 rounded-design transition-colors"
+            className="auth-modal-close p-2 font-['Plus_Jakarta_Sans'] transition-colors"
             aria-label="Close"
           >
             ✕
           </button>
         </div>
 
-        <LegalAgreementCheckbox
-          id="login-modal-legal"
-          checked={legalAgreed}
-          onCheckedChange={setLegalAgreed}
-          disabled={loading || googleLoading}
-        />
+        <div className="mb-6">
+          <LegalAgreementCheckbox
+            id="login-modal-legal"
+            checked={legalAgreed}
+            onCheckedChange={setLegalAgreed}
+            disabled={loading || googleLoading}
+          />
+        </div>
 
         <button
           type="button"
           onClick={() => void handleGoogle()}
           disabled={googleLoading || loading}
-          className="w-full flex items-center justify-center gap-3 border border-black rounded-design px-4 py-3 bg-white font-['Plus_Jakarta_Sans'] text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-60"
+          className="auth-modal-google flex w-full items-center justify-center gap-3 px-4 py-3 text-sm disabled:opacity-50"
         >
           <GoogleIcon />
           {googleLoading ? "Redirecting…" : "Continue with Google"}
         </button>
 
-        <div className="relative my-4">
+        <div className="relative my-5">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-warm-grey" />
+            <div className="w-full border-t border-[#101A26]/15" />
           </div>
           <div className="relative flex justify-center text-xs">
-            <span className="bg-background px-2 text-muted-foreground">
+            <span className="bg-[#FBFAF0] px-2 font-['Plus_Jakarta_Sans'] text-[#101A26]/55">
               or continue with email
             </span>
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-5">
           <div className="space-y-2">
-            <Label htmlFor="login-email" className="font-medium">
+            <Label htmlFor="login-email" className="font-['Plus_Jakarta_Sans'] font-medium text-[#101A26]">
               Email
             </Label>
           <Input
@@ -233,12 +244,12 @@ export function LoginModal({
             onInput={(e) => setLocalEmail((e.target as HTMLInputElement).value)}
             readOnly={Boolean(email)}
             required
-            className="border border-black rounded-design px-4 py-3 bg-white"
+            className="auth-modal-input px-4"
           />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="login-password" className="font-medium">
+            <Label htmlFor="login-password" className="font-['Plus_Jakarta_Sans'] font-medium text-[#101A26]">
               Password
             </Label>
             <Input
@@ -249,13 +260,13 @@ export function LoginModal({
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               onInput={(e) => setPassword((e.target as HTMLInputElement).value)}
-              className="border border-black rounded-design px-4 py-3 bg-white"
+              className="auth-modal-input px-4"
               required
             />
           </div>
 
           {error && (
-            <p className="text-sm text-red-600 font-['Plus_Jakarta_Sans']">{error}</p>
+            <p className="auth-modal-error font-['Plus_Jakarta_Sans'] text-sm">{error}</p>
           )}
 
           <Button
@@ -266,7 +277,7 @@ export function LoginModal({
               e.preventDefault();
             }}
             onClick={() => void handleSubmitClick()}
-            className="w-full bg-button-green text-text-dark hover:bg-button-green/90 border border-black rounded-design px-6 py-4 font-['Fraunces']"
+            className="auth-modal-primary h-auto w-full rounded-full px-6 py-3 font-['Plus_Jakarta_Sans'] font-semibold hover:bg-[#EBFD84]/90 hover:shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
           >
             {loading ? "Signing in..." : "Log in"}
           </Button>

@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import "../../styles/Modal.css";
 import { LegalAgreementCheckbox } from "./LegalAgreement";
 
 type LegalAgreementRequiredModalProps = {
@@ -22,9 +21,9 @@ export function LegalAgreementRequiredModal({
   if (!open) return null;
 
   return (
-    <div className="modal-overlay legal-agreement-modal-overlay" onClick={onClose} role="presentation">
+    <div className="auth-modal-backdrop legal-agreement-modal-overlay fixed inset-0 z-[70] flex items-center justify-center p-4" onClick={onClose} role="presentation">
       <div
-        className="modal-content modal-content-wide"
+        className="auth-modal-panel relative w-full max-w-md p-6 sm:p-8"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -32,7 +31,7 @@ export function LegalAgreementRequiredModal({
       >
         <button
           type="button"
-          className="modal-close"
+          className="auth-modal-close absolute right-4 top-4 p-2"
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -45,12 +44,12 @@ export function LegalAgreementRequiredModal({
 
         <h2
           id="legal-agreement-modal-title"
-          className="font-['Fraunces'] text-2xl font-bold pr-8"
+          className="pr-8 font-['Fraunces'] text-2xl font-bold text-[#101A26]"
         >
           Agreement required
         </h2>
 
-        <p className="mt-4 font-['Plus_Jakarta_Sans'] text-sm text-foreground/80 leading-relaxed">
+        <p className="mt-4 font-['Plus_Jakarta_Sans'] text-sm leading-relaxed text-[#101A26]/80">
           To continue, please confirm you agree to our Terms of Use, Privacy Policy, and Cookie
           Policy.
         </p>
@@ -63,13 +62,17 @@ export function LegalAgreementRequiredModal({
           />
         </div>
 
-        <div className="modal-buttons modal-buttons-2">
-          <button type="button" className="modal-cancel" onClick={onClose}>
+        <div className="mt-7 flex justify-between gap-4">
+          <button
+            type="button"
+            className="auth-modal-google min-h-11 px-5 py-3 font-['Plus_Jakarta_Sans'] text-sm"
+            onClick={onClose}
+          >
             Cancel
           </button>
           <button
             type="button"
-            className="modal-save"
+            className="auth-modal-primary min-h-11 px-5 py-3 font-['Plus_Jakarta_Sans'] text-sm disabled:opacity-50"
             disabled={!agreed}
             onClick={() => {
               if (!agreed) return;

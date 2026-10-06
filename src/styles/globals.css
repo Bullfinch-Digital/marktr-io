@@ -625,6 +625,109 @@ html {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
+.auth-modal-backdrop {
+  background: rgb(16 26 38 / 0.5);
+}
+
+.auth-modal-panel {
+  border-radius: 28px;
+  border: 1px solid rgb(16 26 38 / 0.1);
+  background: #fbfaf0;
+  box-shadow: 0 22px 44px rgb(16 26 38 / 0.18);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.auth-modal-close {
+  border-radius: 999px;
+  color: #101a26;
+}
+
+.auth-modal-close:hover,
+.auth-modal-close:focus-visible {
+  background: rgb(16 26 38 / 0.08);
+}
+
+.auth-modal-close:focus-visible {
+  outline: 2px solid #101a26;
+  outline-offset: 2px;
+}
+
+.auth-modal-primary {
+  min-height: 44px;
+  border-radius: 999px;
+  border: 2px solid #0b0b0c;
+  background: #ebfd84;
+  color: #0b0b0c;
+  font-family: "Plus Jakarta Sans", sans-serif;
+  font-weight: 600;
+}
+
+.auth-modal-primary:hover {
+  background: rgb(235 253 132 / 0.9);
+}
+
+.auth-modal-primary:focus-visible {
+  outline: 2px solid #101a26;
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+.auth-modal-primary:disabled {
+  opacity: 0.5;
+  background: #ebfd84;
+}
+
+.auth-modal-google {
+  min-height: 44px;
+  border-radius: 999px;
+  border: 2px solid #0b0b0c;
+  background: #fff;
+  color: #0b0b0c;
+  font-family: "Plus Jakarta Sans", sans-serif;
+  font-weight: 600;
+}
+
+.auth-modal-google:hover {
+  background: #fbfaf0;
+}
+
+.auth-modal-google:focus-visible {
+  outline: 2px solid #101a26;
+  outline-offset: 2px;
+}
+
+.auth-modal-google:disabled {
+  opacity: 0.5;
+}
+
+.auth-modal-input {
+  height: 48px;
+  border-radius: 16px;
+  border: 2px solid #0b0b0c;
+  background: #fff;
+  font-family: "Plus Jakarta Sans", sans-serif;
+  color: #101a26;
+  box-shadow: none;
+}
+
+.auth-modal-input:focus,
+.auth-modal-input:focus-visible {
+  outline: 2px solid #101a26;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgb(235 253 132 / 0.55);
+}
+
+.auth-modal-error {
+  color: #b4534a;
+}
+
+.auth-modal-check[data-state="checked"] {
+  background: #101a26;
+  border-color: #101a26;
+  color: #ebfd84;
+}
+
 .home-pill-line {
   display: block;
   font-size: clamp(30px, 4.2vw, 58px);

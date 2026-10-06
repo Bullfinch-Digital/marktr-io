@@ -28,18 +28,6 @@ const benefits = [
 const WAYS_IN = [
   {
     step: "01",
-    href: "/onboarding-build",
-    eyebrow: "Know your customer",
-    title: "Start with who you sell to",
-    description:
-      "Define your ideal customer profile once. Every piece of content is written for them, not everyone.",
-    image: "/images/graphics/start-with-your-ideal-customer.png",
-    imageAlt: "Ideal customer profiles in marktr",
-    tags: ["Ideal customer", "Free"],
-    recommended: true,
-  },
-  {
-    step: "02",
     href: "/health-check",
     eyebrow: "Check your digital health",
     title: "See where you stand",
@@ -48,10 +36,10 @@ const WAYS_IN = [
     image: "/images/graphics/replace-your-agency.png",
     imageAlt: "Digital health scores in marktr",
     tags: ["Five scores", "Free"],
-    recommended: false,
+    recommended: true,
   },
   {
-    step: "03",
+    step: "02",
     href: "/story",
     eyebrow: "Find your brand story",
     title: "Say what makes you different",
@@ -60,6 +48,18 @@ const WAYS_IN = [
     image: "/images/graphics/generate-content-in-your-voice.png",
     imageAlt: "Brand story questions in marktr",
     tags: ["Brand story", "Free"],
+    recommended: false,
+  },
+  {
+    step: "03",
+    href: "/onboarding-build",
+    eyebrow: "Know your customer",
+    title: "Start with who you sell to",
+    description:
+      "Define your ideal customer profile once. Every piece of content is written for them, not everyone.",
+    image: "/images/graphics/start-with-your-ideal-customer.png",
+    imageAlt: "Ideal customer profiles in marktr",
+    tags: ["Ideal customer", "Free"],
     recommended: false,
   },
 ] as const;
@@ -82,7 +82,7 @@ export default function Home() {
             Built into one platform.
           </h1>
           <p className="mx-auto mt-4 max-w-2xl font-['Plus_Jakarta_Sans'] text-base text-[#101A26]/75">
-            Start in any order. Most people begin with their customer.
+            Start in any order. Most people begin by seeing where they stand.
           </p>
         </div>
 
@@ -96,9 +96,13 @@ export default function Home() {
               <Link
                 key={way.step}
                 to={way.href}
-                className="relative flex flex-col overflow-hidden rounded-[24px] border border-[#101A26]/10 bg-white shadow-sm transition-transform hover:-translate-y-1"
+                className={
+                  way.recommended
+                    ? "relative z-10 flex flex-col overflow-hidden rounded-[24px] border-2 border-[#101A26] bg-white shadow-xl transition-transform hover:-translate-y-1"
+                    : "relative flex flex-col overflow-hidden rounded-[24px] border border-[#101A26]/10 bg-white shadow-sm transition-transform hover:-translate-y-1 lg:self-start"
+                }
               >
-                <div className="relative h-52 overflow-hidden bg-[#FBFAF0]">
+                <div className={`relative overflow-hidden bg-[#FBFAF0] ${way.recommended ? "h-64" : "h-52"}`}>
                   <img
                     src={way.image}
                     alt={way.imageAlt}
@@ -131,6 +135,11 @@ export default function Home() {
                       </span>
                     ))}
                   </div>
+                  {way.recommended ? (
+                    <span className="mt-6 inline-flex w-full items-center justify-center rounded-full bg-[#101A26] px-7 py-3.5 font-['Plus_Jakarta_Sans'] text-base font-medium text-white">
+                      Check your digital health
+                    </span>
+                  ) : null}
                 </div>
               </Link>
             ))}

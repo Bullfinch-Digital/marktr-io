@@ -73,8 +73,85 @@ export default function Home() {
 
   return (
     <main className="overflow-x-hidden bg-[#FBFAF0] font-['Plus_Jakarta_Sans'] text-[#101A26]">
-      {/* SECTION 1 — Hero */}
-      <section className="relative min-h-[100dvh] overflow-hidden">
+      {/* SECTION 1 — Three ways in */}
+      <section id="ways-in" className="bg-[#FBFAF0] px-6 pb-16 pt-8 lg:pb-20 lg:pt-12">
+        <div className="mx-auto max-w-6xl text-center">
+          <h1 className="mx-auto max-w-4xl font-['Fraunces'] text-4xl font-bold leading-tight text-[#101A26] sm:text-5xl">
+            Everything your marketing team does.
+            <br />
+            Built into one platform.
+          </h1>
+          <p className="mx-auto mt-4 max-w-2xl font-['Plus_Jakarta_Sans'] text-base text-[#101A26]/75">
+            Start in any order. Most people begin with their customer.
+          </p>
+        </div>
+
+        <div className="relative mx-auto mt-10 max-w-6xl">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute left-8 right-8 top-9 hidden border-t border-dashed border-[#101A26]/40 lg:block"
+          />
+          <div className="grid gap-8 lg:grid-cols-3">
+            {WAYS_IN.map((way) => (
+              <Link
+                key={way.step}
+                to={way.href}
+                className="relative flex flex-col overflow-hidden rounded-[24px] border border-[#101A26]/10 bg-white shadow-sm transition-transform hover:-translate-y-1"
+              >
+                <div className="relative h-52 overflow-hidden bg-[#FBFAF0]">
+                  <img
+                    src={way.image}
+                    alt={way.imageAlt}
+                    className="h-full w-full object-cover object-top"
+                  />
+                  <span className="absolute left-4 top-4 flex h-10 w-10 items-center justify-center rounded-full border border-[#101A26] bg-[#FBFAF0] font-['Plus_Jakarta_Sans'] text-sm font-medium text-[#101A26]">
+                    {way.step}
+                  </span>
+                </div>
+                <div className="flex flex-1 flex-col p-6 text-left">
+                  {way.recommended ? (
+                    <p className="font-['Plus_Jakarta_Sans'] text-[11px] font-medium uppercase tracking-[0.14em] text-[#101A26]/70">
+                      Recommended starting point
+                    </p>
+                  ) : null}
+                  <p className="mt-2 font-['Plus_Jakarta_Sans'] text-[11px] font-medium uppercase tracking-[0.16em] text-[#101A26]/55">
+                    {way.eyebrow}
+                  </p>
+                  <h3 className="mt-2 font-['Fraunces'] text-2xl font-bold text-[#101A26]">{way.title}</h3>
+                  <p className="mt-2 font-['Plus_Jakarta_Sans'] text-sm leading-relaxed text-[#101A26]/80">
+                    {way.description}
+                  </p>
+                  <div className="mt-5 flex flex-wrap gap-2">
+                    {way.tags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="rounded-full border border-[#101A26] bg-[#E8F455] px-3 py-1 font-['Plus_Jakarta_Sans'] text-xs font-medium text-[#101A26]"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* SECTION 2 — Social proof bar */}
+      <section className="border-y border-border bg-white py-10">
+        <div className="mx-auto max-w-7xl px-6 text-center">
+          <p className="mb-6 inline-flex items-center rounded-full border border-[#101A26] bg-[#FBFAF0] px-4 py-1.5 font-['Plus_Jakarta_Sans'] text-xs font-medium text-[#101A26]">
+            Trusted by ambitious founders
+          </p>
+          <p className="font-['Plus_Jakarta_Sans'] text-sm uppercase tracking-widest text-muted-foreground">
+            Apostle Coffee · British Log Cabins · The Green · McCartneys LLP · Continental Fireplaces
+          </p>
+        </div>
+      </section>
+
+      {/* SECTION 3 — Hero */}
+      <section className="relative overflow-hidden">
         <div
           aria-hidden
           className="absolute inset-0 bg-no-repeat"
@@ -90,16 +167,16 @@ export default function Home() {
           aria-hidden
           className="pointer-events-none absolute -bottom-24 -left-16 w-64 opacity-80 sm:w-80"
         />
-        <div className="relative z-10 mx-auto grid min-h-[100dvh] max-w-7xl items-center gap-14 px-6 py-20 lg:grid-cols-5 lg:gap-12 lg:py-10">
+        <div className="relative z-10 mx-auto grid max-w-7xl items-center gap-14 px-6 py-20 lg:grid-cols-5 lg:gap-12 lg:py-24">
           <div className="lg:col-span-3">
-            <h1 className="flex max-w-4xl flex-col items-start gap-3">
+            <h2 className="flex max-w-4xl flex-col items-start gap-3">
               <span className="inline-block rounded-full bg-[#E8F455] px-5 py-2 font-['Fraunces'] text-4xl font-bold leading-none text-[#101A26] sm:px-7 sm:py-3 sm:text-5xl lg:text-6xl">
                 Marketing that
               </span>
               <span className="inline-block rounded-full bg-[#E8F455] px-5 py-2 font-['Fraunces'] text-4xl font-bold leading-none text-[#101A26] sm:px-7 sm:py-3 sm:text-5xl lg:text-6xl">
                 knows your customer.
               </span>
-            </h1>
+            </h2>
 
             <p className="mt-7 max-w-2xl font-['Plus_Jakarta_Sans'] text-lg leading-relaxed text-[#101A26]/80 sm:text-xl">
               Three ways in. One platform. Choose the starting point that speaks to you — each one is free and takes under 5 minutes.
@@ -113,7 +190,7 @@ export default function Home() {
                 Know your customer
               </Link>
               <a
-                href="#ways-in"
+                href="#how-it-works"
                 className="inline-flex items-center justify-center rounded-full border border-[#101A26] bg-white/70 px-7 py-3 font-['Plus_Jakarta_Sans'] text-sm font-medium text-[#101A26] hover:bg-white"
               >
                 See how it works
@@ -170,85 +247,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* SECTION 2 — Social proof bar */}
-      <section className="border-y border-border bg-white py-10">
-        <div className="mx-auto max-w-7xl px-6 text-center">
-          <p className="mb-6 inline-flex items-center rounded-full border border-[#101A26] bg-[#FBFAF0] px-4 py-1.5 font-['Plus_Jakarta_Sans'] text-xs font-medium text-[#101A26]">
-            Trusted by ambitious founders
-          </p>
-          <p className="font-['Plus_Jakarta_Sans'] text-sm uppercase tracking-widest text-muted-foreground">
-            Apostle Coffee · British Log Cabins · The Green · McCartneys LLP · Continental Fireplaces
-          </p>
-        </div>
-      </section>
-
-      {/* SECTION 3 — Three ways in */}
-      <section id="ways-in" className="bg-[#FBFAF0] px-6 py-20 lg:py-28">
-        <div className="mx-auto max-w-6xl text-center">
-          <h2 className="mx-auto max-w-4xl font-['Fraunces'] text-4xl font-bold leading-tight text-[#101A26] sm:text-5xl lg:text-6xl">
-            Everything your marketing team does.
-            <br className="hidden sm:block" />
-            Built into one platform.
-          </h2>
-          <p className="mx-auto mt-4 max-w-2xl font-['Plus_Jakarta_Sans'] text-base text-[#101A26]/75">
-            Start in any order. Most people begin with their customer.
-          </p>
-        </div>
-
-        <div className="relative mx-auto mt-14 max-w-6xl">
-          <div
-            aria-hidden
-            className="pointer-events-none absolute left-8 right-8 top-9 hidden border-t border-dashed border-[#101A26]/40 lg:block"
-          />
-          <div className="grid gap-8 lg:grid-cols-3">
-            {WAYS_IN.map((way) => (
-              <Link
-                key={way.step}
-                to={way.href}
-                className="relative flex flex-col overflow-hidden rounded-[24px] border border-[#101A26]/10 bg-white shadow-sm transition-transform hover:-translate-y-1"
-              >
-                <div className="relative h-52 overflow-hidden bg-[#FBFAF0]">
-                  <img
-                    src={way.image}
-                    alt={way.imageAlt}
-                    className="h-full w-full object-cover object-top"
-                  />
-                  <span className="absolute left-4 top-4 flex h-10 w-10 items-center justify-center rounded-full border border-[#101A26] bg-[#FBFAF0] font-['Plus_Jakarta_Sans'] text-sm font-medium text-[#101A26]">
-                    {way.step}
-                  </span>
-                </div>
-                <div className="flex flex-1 flex-col p-6 text-left">
-                  {way.recommended ? (
-                    <p className="font-['Plus_Jakarta_Sans'] text-[11px] font-medium uppercase tracking-[0.14em] text-[#101A26]/70">
-                      Recommended starting point
-                    </p>
-                  ) : null}
-                  <p className="mt-2 font-['Plus_Jakarta_Sans'] text-[11px] font-medium uppercase tracking-[0.16em] text-[#101A26]/55">
-                    {way.eyebrow}
-                  </p>
-                  <h3 className="mt-2 font-['Fraunces'] text-2xl font-bold text-[#101A26]">{way.title}</h3>
-                  <p className="mt-2 font-['Plus_Jakarta_Sans'] text-sm leading-relaxed text-[#101A26]/80">
-                    {way.description}
-                  </p>
-                  <div className="mt-5 flex flex-wrap gap-2">
-                    {way.tags.map((tag) => (
-                      <span
-                        key={tag}
-                        className="rounded-full border border-[#101A26] bg-[#E8F455] px-3 py-1 font-['Plus_Jakarta_Sans'] text-xs font-medium text-[#101A26]"
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* SECTION 4 — Old way vs new way */}
-      <section className="border-y border-border bg-white px-6 py-20 lg:py-28">
+      <section id="how-it-works" className="border-y border-border bg-white px-6 py-20 lg:py-28">
         <div className="mx-auto grid max-w-7xl gap-0 lg:grid-cols-2">
           <div className="bg-[#F5F4F0] p-8 sm:p-10 lg:p-12">
             <p className="mb-4 inline-flex items-center rounded-full border border-[#101A26] bg-[#FBFAF0] px-4 py-1.5 font-['Plus_Jakarta_Sans'] text-xs font-medium text-[#101A26]">

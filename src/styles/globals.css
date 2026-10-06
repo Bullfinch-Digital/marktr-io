@@ -608,26 +608,41 @@ html {
 
 .home-pill-line {
   display: block;
+  font-size: clamp(30px, 4.2vw, 58px);
+  line-height: 1.15;
 }
 
 .home-pill-line + .home-pill-line {
-  margin-top: 10px;
+  margin-top: 0.22em;
 }
 
 .home-pill {
-  display: inline;
+  display: inline-block;
+  max-width: 100%;
   box-decoration-break: clone;
   -webkit-box-decoration-break: clone;
   background: rgb(235, 253, 132);
   border: 2px solid rgb(11, 11, 12);
   border-radius: 999px;
-  padding: 0.02em 0.32em 0.08em;
-  letter-spacing: -0.05em;
-  line-height: 1.05;
+  padding: 0.14em 0.4em 0.2em;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
   color: #0b0b0c;
   font-family: Fraunces, serif;
   font-weight: 400;
-  font-size: clamp(32px, 4.6vw, 64px);
+  font-size: 1em;
+  vertical-align: top;
+}
+
+@media (max-width: 767px) {
+  .home-pill {
+    display: inline;
+    padding: 0.12em 0.36em 0.16em;
+  }
+
+  .home-pill-line {
+    line-height: 2.05;
+  }
 }
 
 /* Homepage way-in cards: spotlight only for a fine pointer that can hover. */

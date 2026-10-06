@@ -78,7 +78,7 @@ export default function Home() {
   return (
     <main className="overflow-x-hidden bg-[#FBFAF0] font-['Plus_Jakarta_Sans'] text-[#101A26]">
       {/* SECTION 1 — Opening hero and three ways in */}
-      <section id="ways-in" className="home-opening px-6 pb-12 pt-6 lg:pb-16 lg:pt-8">
+      <section id="ways-in" className="home-opening px-6 pb-12 pt-12 lg:pb-14">
         <div className="relative z-10 mx-auto max-w-6xl">
           <h1 className="max-w-6xl text-left">
             <span className="home-pill-line">
@@ -88,14 +88,14 @@ export default function Home() {
               <span className="home-pill">one platform.</span>
             </span>
           </h1>
-          <p className="mt-4 max-w-6xl font-['Plus_Jakarta_Sans'] text-lg leading-snug text-[#0B0B0C] lg:whitespace-nowrap lg:text-xl">
+          <p className="mt-6 max-w-6xl font-['Plus_Jakarta_Sans'] text-lg leading-snug text-[#0B0B0C] lg:whitespace-nowrap lg:text-xl">
             Brand Foundations. Customer Insights. Strategy. Content.
           </p>
           <p className="mt-4 font-['Plus_Jakarta_Sans'] text-sm text-[#0B0B0C]/80">
             Start in any order. Most people begin by seeing where they stand.
           </p>
 
-        <div className="relative mt-5">
+        <div className="relative mt-4">
           <div
             aria-hidden
             className="pointer-events-none absolute left-8 right-8 top-9 hidden border-t border-dashed border-[#101A26]/40 lg:block"

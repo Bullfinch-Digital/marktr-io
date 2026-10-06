@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Check } from "lucide-react";
+import JourneyMap from "@/components/home/JourneyMap";
 
 const benefits = [
   {
@@ -37,6 +38,7 @@ const WAYS_IN = [
     imageAlt: "Digital health scores in marktr",
     tags: ["Five scores", "Free"],
     recommended: true,
+    cta: "Check your digital health",
   },
   {
     step: "02",
@@ -49,6 +51,7 @@ const WAYS_IN = [
     imageAlt: "Brand story questions in marktr",
     tags: ["Brand story", "Free"],
     recommended: false,
+    cta: "Find your brand story",
   },
   {
     step: "03",
@@ -61,6 +64,7 @@ const WAYS_IN = [
     imageAlt: "Ideal customer profiles in marktr",
     tags: ["Ideal customer", "Free"],
     recommended: false,
+    cta: "Build your ideal customer profile",
   },
 ] as const;
 
@@ -91,15 +95,15 @@ export default function Home() {
             aria-hidden
             className="pointer-events-none absolute left-8 right-8 top-9 hidden border-t border-dashed border-[#101A26]/40 lg:block"
           />
-          <div className="grid gap-8 lg:grid-cols-3">
+          <div className="ways-in-grid grid gap-8 lg:grid-cols-3">
             {WAYS_IN.map((way) => (
               <Link
                 key={way.step}
                 to={way.href}
                 className={
                   way.recommended
-                    ? "relative z-10 flex flex-col overflow-hidden rounded-[24px] border-2 border-[#101A26] bg-white shadow-xl transition-transform hover:-translate-y-1"
-                    : "relative flex flex-col overflow-hidden rounded-[24px] border border-[#101A26]/10 bg-white shadow-sm transition-transform hover:-translate-y-1 lg:self-start"
+                    ? "ways-in-card relative z-10 flex flex-col overflow-hidden rounded-[24px] border-2 border-[#101A26] bg-white shadow-xl outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#101A26]"
+                    : "ways-in-card relative flex flex-col overflow-hidden rounded-[24px] border border-[#101A26]/10 bg-white shadow-sm outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#101A26] lg:self-start"
                 }
               >
                 <div className={`relative overflow-hidden bg-[#FBFAF0] ${way.recommended ? "h-64" : "h-52"}`}>
@@ -135,11 +139,15 @@ export default function Home() {
                       </span>
                     ))}
                   </div>
-                  {way.recommended ? (
-                    <span className="mt-6 inline-flex w-full items-center justify-center rounded-full bg-[#101A26] px-7 py-3.5 font-['Plus_Jakarta_Sans'] text-base font-medium text-white">
-                      Check your digital health
-                    </span>
-                  ) : null}
+                  <span
+                    className={
+                      way.recommended
+                        ? "ways-in-cta mt-6 inline-flex w-full items-center justify-center rounded-full bg-[#101A26] px-7 py-3.5 font-['Plus_Jakarta_Sans'] text-base font-medium text-white"
+                        : "ways-in-cta mt-6 inline-flex w-full items-center justify-center rounded-full border border-[#101A26] bg-white px-7 py-3 font-['Plus_Jakarta_Sans'] text-sm font-medium text-[#101A26]"
+                    }
+                  >
+                    {way.cta} →
+                  </span>
                 </div>
               </Link>
             ))}
@@ -158,6 +166,8 @@ export default function Home() {
           </p>
         </div>
       </section>
+
+      <JourneyMap />
 
       {/* SECTION 3 — Hero */}
       <section className="relative overflow-hidden">

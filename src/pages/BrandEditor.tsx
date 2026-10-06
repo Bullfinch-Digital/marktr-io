@@ -561,7 +561,7 @@ export default function BrandEditor() {
                   <span className="font-['Plus_Jakarta_Sans']">Back to My Brands</span>
                 </Link>
                 {isDirty && saveStatus !== "saving" && (
-                  <span className="text-sm text-amber-700 bg-amber-100 border border-amber-300 rounded-full px-3 py-1 font-['Plus_Jakarta_Sans']">
+                  <span className="text-sm text-foreground bg-brand-coral/40 border border-brand-stroke rounded-full px-3 py-1 font-['Plus_Jakarta_Sans']">
                     Unsaved changes
                   </span>
                 )}
@@ -574,7 +574,7 @@ export default function BrandEditor() {
                   {isSaving ? "Saving..." : "Save Changes"}
                 </Button>
                 {saveStatus === "saved" && !isDirty && (
-                  <span className="text-sm text-green-700 bg-green-100 border border-green-300 rounded-full px-3 py-1 font-['Plus_Jakarta_Sans']">
+                  <span className="text-sm text-brand-navy bg-brand-lime/50 border border-brand-stroke rounded-full px-3 py-1 font-['Plus_Jakarta_Sans']">
                     Saved
                   </span>
                 )}
@@ -618,7 +618,7 @@ export default function BrandEditor() {
                 )}
 
                 {generateStatus === "success" && !isGenerating && (
-                  <span className="text-sm text-green-700 bg-green-100 border border-green-300 rounded-full px-3 py-1 font-['Plus_Jakarta_Sans']">
+                  <span className="text-sm text-brand-navy bg-brand-lime/50 border border-brand-stroke rounded-full px-3 py-1 font-['Plus_Jakarta_Sans']">
                     Generated
                   </span>
                 )}

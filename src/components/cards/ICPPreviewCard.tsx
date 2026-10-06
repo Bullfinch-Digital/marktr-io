@@ -165,7 +165,7 @@ export function ICPPreviewCard(props: ICPPreviewCardProps) {
     previewOnly = false,
     collectionNames = [],
     bandColor,
-    branded = false,
+    branded = true,
   } = props;
   const [isHovered, setIsHovered] = useState(false);
   const [shake, setShake] = useState(false);

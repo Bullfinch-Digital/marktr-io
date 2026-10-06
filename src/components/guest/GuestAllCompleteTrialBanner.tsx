@@ -6,7 +6,7 @@ export const GUEST_ALL_COMPLETE_TRIAL_SUBCOPY =
 export const GUEST_ALL_COMPLETE_TRIAL_CTA = "Start your free trial →";
 
 const GRADIENT =
-  "bg-gradient-to-br from-[#D4EDE8] via-[#E8F5F2] to-[#B8E0D4]";
+  "bg-gradient-to-br from-brand-lime/50 via-brand-cream to-brand-lavender/40";
 
 type GuestAllCompleteTrialBannerProps = {
   onStartTrial: () => void;
@@ -18,7 +18,7 @@ function TrialBannerContent({ onStartTrial }: { onStartTrial: () => void }) {
   return (
     <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
       <div className="max-w-2xl">
-        <p className="font-['Plus_Jakarta_Sans'] text-xs font-semibold uppercase tracking-widest text-[#2D7A5F]">
+        <p className="font-['Plus_Jakarta_Sans'] text-xs font-semibold uppercase tracking-widest text-foreground">
           All three complete
         </p>
         <h2 className="mt-2 font-['Fraunces'] text-3xl font-bold text-[#0D1833] sm:text-4xl">
@@ -29,7 +29,7 @@ function TrialBannerContent({ onStartTrial }: { onStartTrial: () => void }) {
         </p>
       </div>
       <Button
-        className="shrink-0 rounded-full bg-[#2D7A5F] px-8 py-6 font-['Plus_Jakarta_Sans'] text-base font-semibold text-white shadow-md hover:bg-[#256B52]"
+        className="shrink-0 h-11 px-8"
         onClick={onStartTrial}
       >
         {GUEST_ALL_COMPLETE_TRIAL_CTA}
@@ -45,7 +45,7 @@ export function GuestAllCompleteTrialBanner({
   if (variant === "contained") {
     return (
       <section
-        className={`rounded-2xl border-2 border-[#2D7A5F] ${GRADIENT} p-8`}
+        className={`rounded-2xl border-2 border-brand-navy ${GRADIENT} p-8`}
         aria-label="Start your free trial"
       >
         <TrialBannerContent onStartTrial={onStartTrial} />
@@ -55,7 +55,7 @@ export function GuestAllCompleteTrialBanner({
 
   return (
     <section
-      className={`border-b-2 border-[#2D7A5F] ${GRADIENT} px-6 py-10 lg:px-12`}
+      className={`border-b-2 border-brand-navy ${GRADIENT} px-6 py-10 lg:px-12`}
       aria-label="Start your free trial"
     >
       <div className="container mx-auto max-w-7xl">

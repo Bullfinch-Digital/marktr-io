@@ -165,7 +165,7 @@ export default function BetaSignup() {
               </div>
             )}
             {success && (
-              <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-design text-sm">
+              <div className="bg-brand-lime/40 border border-brand-stroke text-brand-navy px-4 py-3 rounded-design text-sm">
                 {success}
               </div>
             )}

@@ -71,12 +71,12 @@ export default function ICPAvatarModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
       <button
-        className="absolute inset-0 bg-black/40"
+        className="absolute inset-0 bg-[rgb(16_26_38_/_0.55)]"
         onClick={onClose}
         aria-label="Close avatar picker"
       />
 
-      <Card className="relative w-[92%] max-w-lg border border-black rounded-design bg-background p-6 shadow-xl">
+      <Card className="relative w-[92%] max-w-lg bg-background p-6">
         <div className="mb-4">
           <h3 className="font-['Fraunces'] text-2xl">Choose an avatar</h3>
           <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70 mt-1">
@@ -94,7 +94,7 @@ export default function ICPAvatarModal({
                 type="button"
                 onClick={() => setSelected(key)}
                 className={`rounded-full border-2 overflow-hidden transition-transform active:scale-[0.98] ${
-                  active ? "border-black" : "border-black/30"
+                  active ? "border-brand-navy" : "border-brand-stroke/40"
                 }`}
                 aria-label="Select avatar"
               >
@@ -117,14 +117,14 @@ export default function ICPAvatarModal({
         <div className="flex items-center justify-end gap-2">
           <Button
             variant="outline"
-            className="border-black rounded-design"
+            className="h-11"
             onClick={onClose}
             disabled={isSaving}
           >
             Cancel
           </Button>
           <Button
-            className="bg-button-green hover:bg-button-green/90 text-foreground border border-black rounded-design"
+            className="h-11"
             onClick={save}
             disabled={isSaving}
           >

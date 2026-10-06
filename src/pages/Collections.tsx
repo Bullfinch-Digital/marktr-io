@@ -12,6 +12,7 @@ import CollectionDeleteModal from "../components/CollectionDeleteModal";
 import CollectionRenameModal from "../components/CollectionRenameModal";
 import { supabase } from "../config/supabase";
 import { usePaywall } from "../contexts/PaywallContext";
+import { BRAND_SWATCHES } from "../lib/brandPalette";
 import DashboardShell from "../layouts/DashboardShell";
 
 export default function Collections() {
@@ -39,7 +40,7 @@ export default function Collections() {
       ...col,
       icpCount: col.icpCount || 0,
       lastUpdated: col.updated_at || col.created_at,
-      color: col.color || "#BBA0E5",
+      color: col.color || "#A9B7DC",
       tags: col.tags || [],
       _index: col._index ?? idx,
       isLocked: !canViewICP(effectiveTier as any, col._index ?? idx),
@@ -62,7 +63,7 @@ export default function Collections() {
       openPaywall();
       return null;
     }
-    const colors = ["#BBA0E5", "#FFD336", "#FF9922", "#4ECDC4", "#FF6B6B"];
+    const colors = [...BRAND_SWATCHES];
     const randomColor = colors[Math.floor(Math.random() * colors.length)];
     
     const newCollection = await createCollection({

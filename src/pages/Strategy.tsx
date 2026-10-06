@@ -342,7 +342,7 @@ function StrategyPageBody() {
                 </button>
 
                 {restoreNudge ? (
-                  <p className="mt-3 font-['Plus_Jakarta_Sans'] text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-design px-3 py-2 max-w-2xl">
+                  <p className="mt-3 font-['Plus_Jakarta_Sans'] text-xs text-foreground bg-brand-coral/30 border border-brand-stroke rounded-design px-3 py-2 max-w-2xl">
                     {restoreNudge}
                   </p>
                 ) : null}

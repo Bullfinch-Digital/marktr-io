@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { Card } from "../ui/card";
 import { Button } from "../ui/button";
 import { avatarUrlFromKey } from "../../utils/avatarLibrary";
+import { brandBandForIndex } from "../../lib/brandPalette";
 
 export type GuestICPCardIcp = {
   _index: number;
@@ -46,13 +47,13 @@ export function GuestICPCard({ icp }: GuestICPCardProps) {
 
   return (
     <div className="relative animate-fade-in-up h-full">
-      <Card className="h-full border border-black rounded-design overflow-hidden transition-all duration-300 hover:shadow-lg">
+      <Card className="h-full overflow-hidden transition-all duration-300 hover:shadow-[var(--brand-shadow)]">
         <div
-          className="h-24 border-b border-black relative"
-          style={{ backgroundColor: icp.color || "#EDEDED" }}
+          className="h-24 border-b-2 border-brand-stroke relative"
+          style={{ backgroundColor: icp.color || brandBandForIndex(icp._index) }}
         >
           <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2">
-            <div className="w-20 h-20 bg-background rounded-full border-2 border-black flex items-center justify-center shadow-md overflow-hidden">
+            <div className="w-20 h-20 bg-background rounded-full border-[3px] border-brand-navy flex items-center justify-center shadow-md overflow-hidden">
               <img
                 src={avatarSrc}
                 alt={icp.name}
@@ -94,7 +95,7 @@ export function GuestICPCard({ icp }: GuestICPCardProps) {
           <div className="mt-auto pt-2">
             <Button
               type="button"
-              className="w-full rounded-design border border-black bg-button-green hover:bg-button-green/90 text-foreground font-['Plus_Jakarta_Sans'] text-sm"
+              className="w-full h-11"
               onClick={handleViewProfile}
             >
               View full profile →

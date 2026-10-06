@@ -75,11 +75,11 @@ export default function GuestHealthPreview() {
   return (
     <GuestPreviewShell>
       <section className="mx-auto max-w-3xl">
-        <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 font-['Plus_Jakarta_Sans'] text-xs font-medium text-primary">
+        <span className="inline-flex items-center rounded-full bg-brand-lime px-3 py-1 font-['Plus_Jakarta_Sans'] text-xs font-medium text-brand-navy">
           Your Digital Health Report
         </span>
 
-        <h1 className="mt-4 font-['Fraunces'] text-4xl font-bold leading-tight text-[#0D1833] sm:text-5xl">
+        <h1 className="mt-4 font-['Fraunces'] text-4xl font-bold leading-tight text-foreground sm:text-5xl">
           Your digital health findings
         </h1>
 
@@ -102,7 +102,7 @@ export default function GuestHealthPreview() {
           {report.findings.map(({ dimension, score }) => (
             <div
               key={dimension}
-              className="min-w-[100px] flex-1 rounded-xl border border-border bg-white px-4 py-3 text-center"
+              className="min-w-[100px] flex-1 rounded-[24px] border-2 border-brand-stroke bg-card px-4 py-3 text-center"
             >
               <p className="font-['Plus_Jakarta_Sans'] text-[10px] uppercase tracking-widest text-muted-foreground">
                 {dimension.replace("Website Clarity", "Clarity").replace("Content Consistency", "Content")}
@@ -116,9 +116,9 @@ export default function GuestHealthPreview() {
 
         <div className="mt-10 space-y-4">
           {report.findings.map(({ dimension, score, finding }) => (
-            <article key={dimension} className="rounded-2xl border border-border bg-white p-6">
+            <article key={dimension} className="rounded-[24px] border-2 border-brand-stroke bg-card p-6">
               <div className="flex items-start justify-between gap-4">
-                <h2 className="font-['Fraunces'] text-xl font-semibold text-[#0D1833]">{dimension}</h2>
+                <h2 className="font-['Fraunces'] text-xl font-semibold text-foreground">{dimension}</h2>
                 <p className={`font-['Fraunces'] text-3xl font-bold leading-none ${getScoreColor(score)}`}>
                   {score}
                 </p>
@@ -134,7 +134,7 @@ export default function GuestHealthPreview() {
           ))}
         </div>
 
-        <div className="mt-10 rounded-2xl bg-[#0D1833] p-8">
+        <div className="mt-10 rounded-2xl bg-brand-navy p-8">
           <h2 className="font-['Fraunces'] text-2xl font-bold text-white sm:text-3xl">
             Turn these findings into a plan
           </h2>
@@ -145,7 +145,7 @@ export default function GuestHealthPreview() {
           <Button
             type="button"
             onClick={() => openPaywall()}
-            className="mt-6 rounded-full bg-primary px-7 py-3 font-['Plus_Jakarta_Sans'] text-sm font-medium text-primary-foreground hover:opacity-90"
+            className="mt-6 h-11 px-7 font-['Plus_Jakarta_Sans'] text-sm"
           >
             Start your 14-day free trial →
           </Button>

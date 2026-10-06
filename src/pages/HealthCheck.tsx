@@ -580,7 +580,7 @@ export default function HealthCheck() {
               {config.start.eyebrow}
             </p>
           ) : null}
-          <h1 className="font-display text-4xl font-bold leading-tight text-[#0D1833] sm:text-5xl">
+          <h1 className="font-display text-4xl font-bold leading-tight text-foreground sm:text-5xl">
             {config.start.h1}
           </h1>
           <p className="mt-5 max-w-2xl font-body text-base leading-relaxed text-muted-foreground sm:text-lg">
@@ -598,7 +598,7 @@ export default function HealthCheck() {
 
           <Button
             onClick={() => setStep("inputs")}
-            className="mt-10 rounded-full bg-primary px-8 py-6 font-body text-base font-medium text-primary-foreground hover:opacity-90"
+            className="mt-10 rounded-full border-2 border-brand-stroke bg-brand-lime px-8 py-6 min-h-11 font-body text-base font-medium text-brand-navy hover:bg-brand-lime-hover"
           >
             {config.start.button}
           </Button>
@@ -627,7 +627,7 @@ export default function HealthCheck() {
           </Link>
           ) : null}
         </div>
-        <h1 className="font-display text-4xl font-bold leading-tight text-[#0D1833] sm:text-5xl">
+        <h1 className="font-display text-4xl font-bold leading-tight text-foreground sm:text-5xl">
           Where can we find you online?
         </h1>
         <p className="mt-5 max-w-2xl font-body text-base leading-relaxed text-muted-foreground sm:text-lg">
@@ -636,7 +636,7 @@ export default function HealthCheck() {
 
         <div className="mt-8 space-y-6">
           <div className="space-y-2">
-            <Label htmlFor="businessName" className="font-body text-sm text-[#0D1833]">
+            <Label htmlFor="businessName" className="font-body text-sm text-foreground">
               Business name
             </Label>
             <Input
@@ -650,13 +650,13 @@ export default function HealthCheck() {
                 updateGuestContext({ business: { businessName: value.trim() || undefined } });
               }}
               placeholder="Your business name"
-              className="border border-black rounded-design bg-white px-4 py-6 text-foreground placeholder:text-foreground/40"
+              className="px-4 h-12 text-foreground placeholder:text-foreground/40"
             />
           </div>
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label htmlFor="websiteUrl" className="font-body text-sm text-[#0D1833]">
+              <Label htmlFor="websiteUrl" className="font-body text-sm text-foreground">
                 Website URL
               </Label>
               <span className="font-body text-xs text-muted-foreground">optional</span>
@@ -681,14 +681,14 @@ export default function HealthCheck() {
                   });
                 }}
                 placeholder="https://yourbusiness.com"
-                className="border border-black rounded-design bg-white px-4 py-6 text-foreground placeholder:text-foreground/40"
+                className="px-4 h-12 text-foreground placeholder:text-foreground/40"
               />
             </div>
           </div>
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label htmlFor="instagramHandle" className="font-body text-sm text-[#0D1833]">
+              <Label htmlFor="instagramHandle" className="font-body text-sm text-foreground">
                 Instagram handle
               </Label>
               <span className="font-body text-xs text-muted-foreground">optional</span>
@@ -722,7 +722,7 @@ export default function HealthCheck() {
                   });
                 }}
                 placeholder={config.placeholders.instagramHandle}
-                className="border border-black rounded-design bg-white px-4 py-6 text-foreground placeholder:text-foreground/40"
+                className="px-4 h-12 text-foreground placeholder:text-foreground/40"
               />
             </div>
             <p className="font-body text-xs text-muted-foreground">Public profile only</p>
@@ -730,7 +730,7 @@ export default function HealthCheck() {
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label htmlFor="facebookUrl" className="font-body text-sm text-[#0D1833]">
+              <Label htmlFor="facebookUrl" className="font-body text-sm text-foreground">
                 Facebook page URL
               </Label>
               <span className="font-body text-xs text-muted-foreground">optional</span>
@@ -760,7 +760,7 @@ export default function HealthCheck() {
                   });
                 }}
                 placeholder="yourbusiness (or full URL)"
-                className="border border-black rounded-design bg-white px-4 py-6 text-foreground placeholder:text-foreground/40"
+                className="px-4 h-12 text-foreground placeholder:text-foreground/40"
               />
             </div>
           </div>
@@ -800,7 +800,7 @@ export default function HealthCheck() {
           ) : null}
 
           {edition === "bullfinch" && !turnstileConfigured ? (
-            <p className="font-body text-sm text-amber-700" role="status">
+            <p className="font-body text-sm text-foreground" role="status">
               Verification isn&apos;t configured in this environment, so the scan is unavailable here.
             </p>
           ) : null}
@@ -833,7 +833,7 @@ export default function HealthCheck() {
             onClick={flushGuestIdentityAndProceed}
             disabled={!canAnalyse || preparingScan}
             aria-busy={awaitingTurnstile || preparingScan}
-            className="rounded-full bg-primary px-8 py-6 font-body text-base font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
+            className="rounded-full border-2 border-brand-stroke bg-brand-lime px-8 py-6 min-h-11 font-body text-base font-medium text-brand-navy hover:bg-brand-lime-hover disabled:opacity-50"
           >
             {awaitingTurnstile ? (
               <>
@@ -867,7 +867,7 @@ export default function HealthCheck() {
   const renderLoading = () => (
     <section className="mx-auto flex min-h-screen w-full max-w-3xl flex-col justify-center px-6 py-12">
       <div className="rounded-3xl border border-border bg-white p-8 shadow-sm sm:p-12">
-        <h1 className="font-display text-4xl font-bold leading-tight text-[#0D1833] sm:text-5xl">
+        <h1 className="font-display text-4xl font-bold leading-tight text-foreground sm:text-5xl">
           {edition === "bullfinch"
             ? "Checking your presence..."
             : "marktr is checking your presence..."}
@@ -883,7 +883,7 @@ export default function HealthCheck() {
             return (
               <div key={item.id} className="flex items-center gap-3">
                 {done ? (
-                  <CheckCircle2 className="h-5 w-5 text-[#E8650A]" />
+                  <CheckCircle2 className="h-5 w-5 text-foreground" />
                 ) : active ? (
                   <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                 ) : (

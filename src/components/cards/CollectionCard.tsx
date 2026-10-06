@@ -8,6 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
+import { BRAND_SWATCHES } from "../../lib/brandPalette";
 
 const stop = (e: React.MouseEvent | Event) => {
   e.stopPropagation();
@@ -15,7 +16,7 @@ const stop = (e: React.MouseEvent | Event) => {
   if (target) target.setAttribute("data-no-card-click", "true");
 };
 
-const fallbackColors = ["#FF9922", "#F28482", "#84A59D", "#4EA8DE", "#9D4EDD", "#F2C94C"];
+const fallbackColors = [...BRAND_SWATCHES];
 
 interface Collection {
   id: string;

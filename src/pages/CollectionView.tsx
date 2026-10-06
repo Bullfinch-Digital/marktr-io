@@ -159,7 +159,7 @@ export default function CollectionView() {
       setCollection({
         id: collectionData.id,
         name: collectionData.name,
-        color: collectionData.color || "#BBA0E5",
+        color: collectionData.color || "#A9B7DC",
         description: collectionData.description,
         tags: collectionData.tags || [],
       });

@@ -413,7 +413,7 @@ function StrategyEditorBody() {
       {isDirty ? (
         <div className="fixed inset-x-0 bottom-0 z-40 border-t border-black/15 bg-white/95 backdrop-blur-sm px-6 py-3 shadow-[0_-4px_16px_rgba(0,0,0,0.08)]">
           <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-between gap-3">
-            <span className="font-['Plus_Jakarta_Sans'] text-sm text-amber-800">Unsaved changes</span>
+            <span className="font-['Plus_Jakarta_Sans'] text-sm text-foreground">Unsaved changes</span>
             <div className="flex flex-wrap items-center gap-2">
               <Button
                 type="button"
@@ -460,7 +460,7 @@ function StrategyEditorBody() {
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="min-w-0">
                 {isArchived ? (
-                  <span className="inline-flex rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 font-['Plus_Jakarta_Sans'] text-[11px] text-amber-900 mb-2">
+                  <span className="inline-flex rounded-full border border-brand-stroke bg-brand-coral/30 px-2.5 py-1 font-['Plus_Jakarta_Sans'] text-[11px] text-foreground mb-2">
                     Archived (read-only)
                   </span>
                 ) : null}

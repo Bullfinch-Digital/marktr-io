@@ -185,7 +185,7 @@ export function StrategySuggestedContentChecklist({
               <div className="min-w-0 flex-1 flex gap-2">
                 <span className="mt-0.5 shrink-0">
                   {done ? (
-                    <Check className="h-4 w-4 text-emerald-700" />
+                    <Check className="h-4 w-4 text-brand-navy" />
                   ) : (
                     <Circle className="h-4 w-4 text-foreground/30" />
                   )}
@@ -207,7 +207,7 @@ export function StrategySuggestedContentChecklist({
                   </div>
                   <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/80 mt-1">{row.rationale}</p>
                   {row.ideaRemoved ? (
-                    <p className="font-['Plus_Jakarta_Sans'] text-[11px] text-amber-800 mt-1">
+                    <p className="font-['Plus_Jakarta_Sans'] text-[11px] text-foreground mt-1">
                       Campaign idea no longer on this strategy — create as strategy-level.
                     </p>
                   ) : null}

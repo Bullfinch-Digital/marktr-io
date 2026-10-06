@@ -505,7 +505,7 @@ export default function ICPEditor() {
                 <span className="font-['Plus_Jakarta_Sans']">Back to Dashboard</span>
               </Link>
               {isDirty && saveStatus !== "saving" && (
-                <span className="text-sm text-amber-700 bg-amber-100 border border-amber-300 rounded-full px-3 py-1 font-['Plus_Jakarta_Sans']">
+                <span className="text-sm text-foreground bg-brand-coral/40 border border-brand-stroke rounded-full px-3 py-1 font-['Plus_Jakarta_Sans']">
                   Unsaved changes
                 </span>
               )}
@@ -537,7 +537,7 @@ export default function ICPEditor() {
               {isSaving ? "Saving..." : "Save Changes"}
             </Button>
             {saveStatus === "saved" && !isDirty && (
-              <span className="text-sm text-green-700 bg-green-100 border border-green-300 rounded-full px-3 py-1 font-['Plus_Jakarta_Sans']">
+              <span className="text-sm text-brand-navy bg-brand-lime/50 border border-brand-stroke rounded-full px-3 py-1 font-['Plus_Jakarta_Sans']">
                 Saved
               </span>
             )}
@@ -896,7 +896,7 @@ export default function ICPEditor() {
         footerCta={
           effectiveTier === "free" ? (
             <div className="text-center animate-fade-in-up">
-              <div className="bg-gradient-to-br from-[#FFD336]/20 to-[#FF9922]/20 rounded-design p-8">
+              <div className="bg-gradient-to-br from-brand-lime/20 to-brand-coral/20 rounded-design p-8">
                 <Lock className="w-8 h-8 mx-auto mb-4 text-foreground/60" />
                 <h3 className="font-['Fraunces'] text-xl mb-3">
                   Unlock full editing & exports

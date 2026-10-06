@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { insertIcpVersionRpc } from "../lib/icpVersioning";
+import { BRAND_SWATCHES } from "../lib/brandPalette";
 
-const COLORS = ["#FF9922", "#FF6B6B", "#6BCB77", "#4D96FF", "#9D4EDD", "#FFD93D"];
+const COLORS = [...BRAND_SWATCHES];
 
 type Props = {
   isOpen: boolean;
@@ -12,7 +13,7 @@ type Props = {
 };
 
 export default function ICPColorModal({ isOpen, id, currentColor, onClose, onSaved }: Props) {
-  const [selectedColor, setSelectedColor] = useState(currentColor ?? "#FF9922");
+  const [selectedColor, setSelectedColor] = useState(currentColor ?? COLORS[0]);
   const [saving, setSaving] = useState(false);
 
   if (!isOpen || !id) return null;
@@ -69,7 +70,7 @@ export default function ICPColorModal({ isOpen, id, currentColor, onClose, onSav
 
         <div className="flex justify-end gap-2 mt-6">
           <button
-            className="border border-black rounded-design px-4 py-2 bg-background hover:bg-foreground/5 font-['Plus_Jakarta_Sans'] text-sm"
+            className="border-2 border-brand-stroke rounded-full px-4 py-2 min-h-11 bg-background hover:bg-muted/40 font-['Plus_Jakarta_Sans'] text-sm"
             onClick={(e) => {
               e.stopPropagation();
               onClose();
@@ -78,7 +79,7 @@ export default function ICPColorModal({ isOpen, id, currentColor, onClose, onSav
             Cancel
           </button>
           <button
-            className="border border-black rounded-design px-4 py-2 bg-button-green hover:bg-button-green/90 font-['Plus_Jakarta_Sans'] text-sm"
+            className="border-2 border-brand-stroke rounded-full px-4 py-2 min-h-11 bg-brand-lime text-brand-navy hover:bg-brand-lime-hover font-['Plus_Jakarta_Sans'] text-sm font-semibold"
             onClick={(e) => {
               e.stopPropagation();
               save();

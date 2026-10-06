@@ -50,7 +50,7 @@ function SectionShell({
         isEditing
           ? "border-black/30 shadow-md"
           : isStaged
-            ? "border-amber-300/80 bg-amber-50/30"
+            ? "border-brand-stroke bg-brand-coral/20"
             : "border-black/10"
       }`}
     >
@@ -62,7 +62,7 @@ function SectionShell({
             </p>
           ) : null}
           {isStaged && !isEditing ? (
-            <span className="font-['Plus_Jakarta_Sans'] text-[11px] text-amber-800 bg-amber-100 border border-amber-200 rounded-full px-2 py-0.5">
+            <span className="font-['Plus_Jakarta_Sans'] text-[11px] text-foreground bg-brand-coral/40 border border-brand-stroke rounded-full px-2 py-0.5">
               Unsaved
             </span>
           ) : null}

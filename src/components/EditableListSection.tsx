@@ -135,10 +135,10 @@ export function EditableListSection({
                 <button
                   type="button"
                   onClick={() => saveEdit(index)}
-                  className="p-1 hover:bg-green-100 rounded transition-colors"
+                  className="p-1 hover:bg-brand-lime/40 rounded transition-colors"
                   title="Save"
                 >
-                  <Check className="w-4 h-4 text-green-600" />
+                  <Check className="w-4 h-4 text-foreground" />
                 </button>
                 <button
                   type="button"

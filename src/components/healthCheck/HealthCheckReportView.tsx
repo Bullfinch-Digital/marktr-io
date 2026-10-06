@@ -186,8 +186,8 @@ function BrandStoryPanel({
   const signpost = sa.storySystemSignpost;
 
   return (
-    <div className="mt-4 rounded-xl border border-[#D4871A]/20 bg-[#FDF0CC] p-4">
-      <p className="mb-3 font-body text-[10px] font-medium uppercase tracking-widest text-[#BA7517]">
+    <div className="mt-4 rounded-xl border border-brand-stroke/20 bg-brand-lime/30 p-4">
+      <p className="mb-3 font-body text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
         Brand story assessment
       </p>
 
@@ -195,12 +195,12 @@ function BrandStoryPanel({
         <span
           className={`inline-flex rounded-full px-2.5 py-1 font-body text-xs font-medium ${
             sa.founderStoryQuality === "compelling"
-              ? "bg-[#2D7A5F] text-white"
+              ? "bg-brand-lime text-brand-navy"
               : sa.founderStoryQuality === "good"
-                ? "bg-[#2D7A5F]/20 text-[#2D7A5F]"
+                ? "bg-brand-lavender/40 text-foreground"
                 : sa.founderStoryQuality === "basic"
-                  ? "bg-[#BA7517]/20 text-[#BA7517]"
-                  : "bg-[#E24B4A]/20 text-[#E24B4A]"
+                  ? "bg-muted text-muted-foreground"
+                  : "bg-brand-coral/50 text-brand-navy"
           }`}
         >
           {sa.founderStoryQuality === "compelling"
@@ -215,14 +215,14 @@ function BrandStoryPanel({
 
       {sa.missingElements?.length > 0 && (
         <div>
-          <p className="mb-2 font-body text-[10px] font-medium uppercase tracking-widest text-[#BA7517]">
+          <p className="mb-2 font-body text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
             Missing story elements
           </p>
           <div className="flex flex-wrap gap-1.5">
             {sa.missingElements.map((el) => (
               <span
                 key={el}
-                className="rounded-full border border-[#D4871A]/30 bg-white px-2.5 py-1 font-body text-[10px] text-[#0D1833]"
+                className="rounded-full border border-brand-stroke/30 bg-white px-2.5 py-1 font-body text-[10px] text-foreground"
               >
                 {el}
               </span>
@@ -232,8 +232,8 @@ function BrandStoryPanel({
       )}
 
       {signpost && showStoryLinks ? (
-        <div className="mt-3 border-t border-[#D4871A]/20 pt-3">
-          <p className="font-body text-xs leading-relaxed text-[#0D1833]">
+        <div className="mt-3 border-t border-brand-stroke/20 pt-3">
+          <p className="font-body text-xs leading-relaxed text-foreground">
             {signpost.copy}
           </p>
           <Link
@@ -244,8 +244,8 @@ function BrandStoryPanel({
           </Link>
         </div>
       ) : signpost ? (
-        <div className="mt-3 border-t border-[#D4871A]/20 pt-3">
-          <p className="font-body text-xs leading-relaxed text-[#0D1833]">
+        <div className="mt-3 border-t border-brand-stroke/20 pt-3">
+          <p className="font-body text-xs leading-relaxed text-foreground">
             {signpost.copy}
           </p>
         </div>
@@ -275,8 +275,8 @@ function WebsiteBullets({
           </p>
           {working.map((item) => (
             <div key={item} className="flex items-start gap-2">
-              <span className="mt-0.5 text-xs text-[#2D7A5F]">✓</span>
-              <p className="font-body text-xs leading-relaxed text-[#0D1833]">{item}</p>
+              <span className="mt-0.5 text-xs text-foreground">✓</span>
+              <p className="font-body text-xs leading-relaxed text-foreground">{item}</p>
             </div>
           ))}
         </>
@@ -289,7 +289,7 @@ function WebsiteBullets({
           {missing.map((item) => (
             <div key={item} className="flex items-start gap-2">
               <span className="mt-0.5 text-xs text-primary">→</span>
-              <p className="font-body text-xs leading-relaxed text-[#0D1833]">{item}</p>
+              <p className="font-body text-xs leading-relaxed text-foreground">{item}</p>
             </div>
           ))}
         </>
@@ -324,12 +324,12 @@ function ScoreCard({
       : config.unassessedSocial;
   if (notChecked) {
     return (
-      <article className="rounded-2xl border border-border bg-white p-6">
+      <article className="rounded-[24px] border-2 border-brand-stroke bg-card p-6">
         <p className="font-body text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
           {dimension.name}
         </p>
         <p className="mt-3 font-body text-sm font-medium text-[#6B7280]">{notChecked.label}</p>
-        <p className="mt-3 font-body text-sm font-medium leading-relaxed text-[#0D1833]">
+        <p className="mt-3 font-body text-sm font-medium leading-relaxed text-foreground">
           {notChecked.cardLine}
         </p>
       </article>
@@ -393,7 +393,7 @@ function ScoreCard({
       : undefined;
 
   return (
-    <article className="rounded-2xl border border-border bg-white p-6">
+    <article className="rounded-[24px] border-2 border-brand-stroke bg-card p-6">
       <p className="font-body text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
         {dimension.name}
       </p>
@@ -411,7 +411,7 @@ function ScoreCard({
           style={{ width: `${displayScore ?? 0}%` }}
         />
       </div>
-      <p className="mt-3 font-body text-sm font-medium leading-relaxed text-[#0D1833]">
+      <p className="mt-3 font-body text-sm font-medium leading-relaxed text-foreground">
         {observation}
       </p>
       {nextStep ? (
@@ -419,7 +419,7 @@ function ScoreCard({
           <p className="mb-1 font-body text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
             Next step
           </p>
-          <p className="font-body text-xs leading-relaxed text-[#0D1833]">{nextStep}</p>
+          <p className="font-body text-xs leading-relaxed text-foreground">{nextStep}</p>
         </div>
       ) : null}
       {missingNote ? (
@@ -430,7 +430,7 @@ function ScoreCard({
       ) : null}
       {help ? (
         <p className="mt-3 font-body text-xs leading-relaxed text-muted-foreground">
-          <span className="font-medium text-[#0D1833]">How Bullfinch helps. </span>
+          <span className="font-medium text-foreground">How Bullfinch helps. </span>
           {help}
         </p>
       ) : null}
@@ -461,7 +461,7 @@ function ScoreOverviewChip({
   unassessedLabel?: string;
   note?: string;
 }) {
-  const className = `flex-1 min-w-[100px] rounded-xl border border-border bg-white px-4 py-3 text-center transition-colors ${
+  const className = `flex-1 min-w-[100px] rounded-[24px] border-2 border-brand-stroke bg-card px-4 py-3 text-center transition-colors ${
     href ? "hover:border-primary/40" : ""
   } ${featured ? "min-w-[120px] border-primary/20 bg-primary/5 sm:flex-[1.2]" : ""}`;
 
@@ -569,7 +569,7 @@ function StoredNextStep({
       ) : null}
       <a
         href={primaryHref}
-        className="mt-8 inline-flex items-center justify-center rounded-full bg-primary px-7 py-3 font-body text-sm font-medium text-primary-foreground hover:opacity-90"
+        className="mt-8 inline-flex items-center justify-center rounded-full border-2 border-brand-stroke bg-brand-lime px-7 py-3 min-h-11 font-body text-sm font-medium text-brand-navy hover:bg-brand-lime-hover"
         rel="noopener noreferrer"
         onClick={() => {
           const target = ctaTarget(step.primary.href);
@@ -627,12 +627,12 @@ function WhereWeStart({
   return (
     <section className="mt-8 rounded-[18px] border border-border bg-white px-6 py-6 sm:px-8">
       <h2 className="font-display text-2xl font-semibold text-foreground">{spotlight.heading}</h2>
-      <p className="mt-3 font-body text-sm font-medium text-[#0D1833]">{lowest.shortName}</p>
-      {next ? <p className="mt-2 font-body text-sm leading-relaxed text-[#0D1833]">{next}</p> : null}
+      <p className="mt-3 font-body text-sm font-medium text-foreground">{lowest.shortName}</p>
+      {next ? <p className="mt-2 font-body text-sm leading-relaxed text-foreground">{next}</p> : null}
       <p className="mt-3 max-w-2xl font-body text-sm leading-relaxed text-muted-foreground">{spotlight.follow}</p>
       <a
         href={href}
-        className="mt-6 inline-flex items-center justify-center rounded-full bg-primary px-7 py-3 font-body text-sm font-medium text-primary-foreground hover:opacity-90"
+        className="mt-6 inline-flex items-center justify-center rounded-full border-2 border-brand-stroke bg-brand-lime px-7 py-3 min-h-11 font-body text-sm font-medium text-brand-navy hover:bg-brand-lime-hover"
         rel="noopener noreferrer"
         onClick={() => {
           track("bf_cta_click", { route, target: "spotlight" }, { beacon: true });
@@ -687,11 +687,11 @@ export function HealthCheckReportView({
     <>
       {!pillarMode && (
         <>
-          <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 font-body text-xs font-medium text-primary">
+          <span className="inline-flex items-center rounded-full bg-brand-lime px-3 py-1 font-body text-xs font-medium text-brand-navy">
             {config.titles.reportEyebrow}
           </span>
 
-          <h1 className="mt-4 font-display text-4xl font-bold leading-tight text-[#0D1833] sm:text-5xl">
+          <h1 className="mt-4 font-display text-4xl font-bold leading-tight text-foreground sm:text-5xl">
             Here&apos;s how your marketing scores today.
           </h1>
 
@@ -735,7 +735,7 @@ export function HealthCheckReportView({
       ) : null}
 
       {scores.socialIncompleteSummary ? (
-        <p className="mt-4 rounded-xl border border-[#BA7517]/30 bg-[#FDF0CC] px-4 py-3 font-body text-sm text-[#0D1833]">
+        <p className="mt-4 rounded-xl border border-brand-stroke/30 bg-brand-lime/30 px-4 py-3 font-body text-sm text-foreground">
           {scores.socialIncompleteSummary}
         </p>
       ) : null}
@@ -760,7 +760,7 @@ export function HealthCheckReportView({
           <button
             type="button"
             onClick={() => onGoToDashboard?.()}
-            className="shrink-0 whitespace-nowrap rounded-full bg-primary px-5 py-2.5 font-body text-sm font-semibold text-white transition-colors hover:bg-primary/90"
+            className="shrink-0 whitespace-nowrap rounded-full border-2 border-brand-stroke bg-brand-lime px-5 py-2.5 min-h-11 font-body text-sm font-semibold text-brand-navy hover:bg-brand-lime-hover"
           >
             Go to dashboard →
           </button>
@@ -823,7 +823,7 @@ export function HealthCheckReportView({
       ) : null}
 
       {showDashboardCta && (
-        <div className="mt-8 rounded-2xl bg-[#0D1833] px-8 py-8 text-white">
+        <div className="mt-8 rounded-2xl bg-brand-navy px-8 py-8 text-white">
           <h2 className="mb-3 font-display text-3xl font-semibold">Your scores are saved.</h2>
           <p className="mb-6 max-w-lg font-body text-sm text-white/70">
             Connect your Instagram and Facebook in the dashboard to unlock real engagement data and a
@@ -832,7 +832,7 @@ export function HealthCheckReportView({
           <button
             type="button"
             onClick={() => onGoToDashboard?.()}
-            className="rounded-full bg-primary px-6 py-3 font-body text-sm font-semibold text-white transition-colors hover:bg-primary/90"
+            className="rounded-full border-2 border-brand-stroke bg-brand-lime px-6 py-3 min-h-11 font-body text-sm font-semibold text-brand-navy hover:bg-brand-lime-hover"
           >
             Go to your dashboard →
           </button>

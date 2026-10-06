@@ -535,7 +535,7 @@ export default function StoryBuild() {
             type="button"
             disabled={!canContinueQuestion}
             onClick={advanceFromQuestion}
-            className="mt-8 w-fit rounded-full bg-primary px-8 py-6 font-['Plus_Jakarta_Sans'] text-base font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
+            className="mt-8 w-fit h-12 px-8 font-['Plus_Jakarta_Sans'] text-base disabled:opacity-50"
           >
             Continue →
           </Button>
@@ -612,7 +612,7 @@ export default function StoryBuild() {
             e.preventDefault();
           }}
           onClick={handleEmailStepContinue}
-          className="mt-8 w-fit rounded-full bg-primary px-8 py-6 font-['Plus_Jakarta_Sans'] text-base font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
+          className="mt-8 w-fit h-12 px-8 font-['Plus_Jakarta_Sans'] text-base disabled:opacity-50"
         >
           Continue building →
         </Button>
@@ -635,7 +635,7 @@ export default function StoryBuild() {
             return (
               <div key={item} className="flex items-center gap-3">
                 {done ? (
-                  <CheckCircle2 className="h-5 w-5 text-[#E8650A]" />
+                  <CheckCircle2 className="h-5 w-5 text-foreground" />
                 ) : active ? (
                   <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                 ) : (

@@ -167,15 +167,14 @@ function QuoteCard({ quote, tabbable = false }: { quote: QuoteTestimonial; tabba
         className={`mt-3 font-['Plus_Jakarta_Sans'] text-lg leading-relaxed sm:text-base ${
           quote.isPlaceholder ? "text-[#101A26]/55" : "text-[#101A26]/80"
         }`}
-      >
-        {quote.quote}
-      </p>
+      >{`“${quote.quote}”`}</p>
       </div>
     </li>
   );
 }
 
-function QuoteStrip({ quotes }: { quotes: QuoteTestimonial[] }) {
+export function QuoteStrip() {
+  const quotes = TESTIMONIALS.filter(isQuoteTestimonial);
   const [paused, setPaused] = useState(false);
 
   return (
@@ -224,7 +223,6 @@ function QuoteStrip({ quotes }: { quotes: QuoteTestimonial[] }) {
 
 export default function Testimonials() {
   const videos = TESTIMONIALS.filter(isVideoTestimonial);
-  const quotes = TESTIMONIALS.filter(isQuoteTestimonial);
   const [active, setActive] = useState<VideoTestimonial | null>(null);
   const videoHolder = useRef({ el: null as HTMLVideoElement | null }).current;
   const triggerRef = useRef<HTMLButtonElement | null>(null);
@@ -250,8 +248,6 @@ export default function Testimonials() {
   };
 
   return (
-    <>
-    <QuoteStrip quotes={quotes} />
     <section id="testimonials" className="bg-[#FBFAF0] py-16 lg:py-20">
       <div className="mx-auto max-w-6xl px-6">
         <p className="inline-flex rounded-full border-2 border-[#0B0B0C] bg-[#EBFD84] px-3 py-1 font-['Plus_Jakarta_Sans'] text-[13px] font-medium text-[#0B0B0C]">
@@ -351,6 +347,5 @@ export default function Testimonials() {
         <TestimonialModal testimonial={active} videoHolder={videoHolder} onClose={close} />
       ) : null}
     </section>
-    </>
   );
 }

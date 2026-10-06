@@ -55,7 +55,7 @@ const WAYS_IN = [
     eyebrow: "Start with who you sell to",
     title: "Build your ideal customer profile",
     description:
-      "Define your ideal customer profile once. Every piece of content is written for them, not everyone.",
+      "Define your ideal customer profile once. Then create laser focused content that speaks directly to them.",
     image: "/images/graphics/start-with-your-ideal-customer.png",
     imageAlt: "Ideal customer profiles in marktr",
     recommended: false,
@@ -76,10 +76,10 @@ export default function Home() {
         <div className="relative z-10 mx-auto max-w-6xl">
           <h1 className="max-w-6xl text-left">
             <span className="home-pill-line">
-              <span className="home-pill">Your entire marketing team in</span>
+              <span className="home-pill">Your entire marketing team</span>
             </span>
             <span className="home-pill-line">
-              <span className="home-pill">one platform.</span>
+              <span className="home-pill">in one platform.</span>
             </span>
           </h1>
           <p className="mt-6 max-w-6xl font-['Plus_Jakarta_Sans'] text-lg leading-snug text-[#0B0B0C] lg:whitespace-nowrap lg:text-xl">

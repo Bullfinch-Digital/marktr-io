@@ -18,6 +18,7 @@ const ONBOARD_PREFIX = "marktr_onboarding_complete_";
 const FUNNEL_HEALTH_STARTED = "marktr_funnel_health_started";
 const FUNNEL_HEALTH_COMPLETED = "marktr_funnel_health_completed";
 const FUNNEL_HEALTH_LAST_STEP = "marktr_funnel_health_last_step";
+const FUNNEL_HEALTH_ABANDON_SENT = "marktr_funnel_health_abandon_sent";
 const TRIAL_CLIENT_KEY = "marktr_trial_start_sent_v1";
 
 const BLOCKED_PARAM_KEYS = new Set([
@@ -240,10 +241,15 @@ export function peekAuthTrigger(fallback = "header"): string {
   return readStorage("sessionStorage", AUTH_TRIGGER_KEY) || fallback;
 }
 
+let healthAbandonSentThisAttempt = false;
+
 export function markHealthStarted(step = 1): void {
+  healthAbandonSentThisAttempt = false;
   safeStorage("sessionStorage", (s) => {
     s.setItem(FUNNEL_HEALTH_STARTED, "1");
     s.setItem(FUNNEL_HEALTH_LAST_STEP, String(step));
+    s.removeItem(FUNNEL_HEALTH_COMPLETED);
+    s.removeItem(FUNNEL_HEALTH_ABANDON_SENT);
   });
 }
 
@@ -252,7 +258,11 @@ export function markHealthStep(step: number): void {
 }
 
 export function markHealthCompleted(): void {
-  safeStorage("sessionStorage", (s) => s.setItem(FUNNEL_HEALTH_COMPLETED, "1"));
+  healthAbandonSentThisAttempt = true;
+  safeStorage("sessionStorage", (s) => {
+    s.setItem(FUNNEL_HEALTH_COMPLETED, "1");
+    s.setItem(FUNNEL_HEALTH_ABANDON_SENT, "1");
+  });
 }
 
 export function healthFunnelState(): { started: boolean; completed: boolean; lastStep: number } {
@@ -261,6 +271,17 @@ export function healthFunnelState(): { started: boolean; completed: boolean; las
     completed: readStorage("sessionStorage", FUNNEL_HEALTH_COMPLETED) === "1",
     lastStep: Number(readStorage("sessionStorage", FUNNEL_HEALTH_LAST_STEP) || 0) || 0,
   };
+}
+
+/** At most once per start. No-op if never started or already completed. */
+export function maybeTrackHealthAbandon(): boolean {
+  const state = healthFunnelState();
+  if (!state.started || state.completed) return false;
+  if (healthAbandonSentThisAttempt) return false;
+  if (readStorage("sessionStorage", FUNNEL_HEALTH_ABANDON_SENT) === "1") return false;
+  healthAbandonSentThisAttempt = true;
+  safeStorage("sessionStorage", (s) => s.setItem(FUNNEL_HEALTH_ABANDON_SENT, "1"));
+  return track("health_check_abandon", { last_step: state.lastStep });
 }
 
 export function setAnalyticsUserId(userId: string | null): void {
@@ -488,14 +509,18 @@ function installScrollDepth(): () => void {
 }
 
 function installHealthAbandon(): () => void {
-  const onHide = () => {
-    const state = healthFunnelState();
-    if (state.started && !state.completed) {
-      track("health_check_abandon", { last_step: state.lastStep });
-    }
+  const onLeave = () => {
+    maybeTrackHealthAbandon();
   };
-  window.addEventListener("pagehide", onHide);
-  return () => window.removeEventListener("pagehide", onHide);
+  // pagehide is the real unload signal. beforeunload often fires too on desktop
+  // close/navigate; both share maybeTrackHealthAbandon's once-per-attempt lock.
+  // visibilitychange is not used — tab switches are not abandons.
+  window.addEventListener("pagehide", onLeave);
+  window.addEventListener("beforeunload", onLeave);
+  return () => {
+    window.removeEventListener("pagehide", onLeave);
+    window.removeEventListener("beforeunload", onLeave);
+  };
 }
 
 /** Homepage + site-wide declarative listeners. */

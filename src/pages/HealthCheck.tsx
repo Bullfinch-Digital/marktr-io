@@ -40,6 +40,7 @@ import { buildPriorRunPayload } from "../lib/healthCheckPriorRun";
 import { fetchBrandStoryPillarForHealth } from "../lib/healthCheckPillarContext";
 import { scanErrorCode, track } from "../lib/bullfinchAnalytics";
 import {
+  markHealthCompleted,
   markHealthStarted,
   markHealthStep,
   track as trackMarktr,
@@ -555,6 +556,7 @@ export default function HealthCheck() {
           facebookUrl: facebookUrl || undefined,
         },
       });
+      markHealthCompleted();
       navigate("/health-check/results", {
         state: {
           ...formData,

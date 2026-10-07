@@ -2,6 +2,9 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { COOKIE_CONSENT_STORAGE_KEY } from "./cookieConsent";
 import {
   captureFirstTouch,
+  markHealthCompleted,
+  markHealthStarted,
+  maybeTrackHealthAbandon,
   sanitizeMarktrParams,
   scoreBand,
   track,
@@ -128,5 +131,28 @@ describe("marktr analytics", () => {
     const again = captureFirstTouch();
     expect(again.first_touch_source).toBe("google");
     window.history.pushState({}, "", "/");
+  });
+
+  it("fires health_check_abandon at most once per started attempt", () => {
+    grantAnalytics();
+    const gtag = vi.fn();
+    (window as Window & { gtag?: typeof gtag }).gtag = gtag;
+    markHealthStarted(2);
+    expect(maybeTrackHealthAbandon()).toBe(true);
+    expect(maybeTrackHealthAbandon()).toBe(false);
+    window.dispatchEvent(new Event("pagehide"));
+    window.dispatchEvent(new Event("beforeunload"));
+    expect(gtag.mock.calls.filter((c) => c[1] === "health_check_abandon")).toHaveLength(1);
+  });
+
+  it("does not fire health_check_abandon when never started or already completed", () => {
+    grantAnalytics();
+    const gtag = vi.fn();
+    (window as Window & { gtag?: typeof gtag }).gtag = gtag;
+    expect(maybeTrackHealthAbandon()).toBe(false);
+    markHealthStarted(1);
+    markHealthCompleted();
+    expect(maybeTrackHealthAbandon()).toBe(false);
+    expect(gtag).not.toHaveBeenCalled();
   });
 });

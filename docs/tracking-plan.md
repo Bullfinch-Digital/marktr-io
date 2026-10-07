@@ -54,7 +54,7 @@ Sections: `data-track-section="hero"`. Case studies: `data-track-case-study` + `
 | `health_check_start` | — | Health check start button |
 | `health_check_step` | `step_number`, `step_total` | Steps 1 (start), 2 (inputs), 3 (loading) |
 | `health_check_complete` | `score_band` (`0-49`, `50-74`, `75-89`, `90-100`) | Results page, once. No URL or brand text. |
-| `health_check_abandon` | `last_step` | `pagehide` if started and not completed |
+| `health_check_abandon` | `last_step` | `pagehide` / `beforeunload` if started and not completed; once per attempt |
 | `brand_story_start` | — | Brand story build starts |
 | `brand_story_complete` | — | Story results once a story exists |
 | `icp_start` | — | Onboarding leaves the welcome step |

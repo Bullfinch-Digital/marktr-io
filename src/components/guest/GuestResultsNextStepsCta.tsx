@@ -1,5 +1,7 @@
+import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { getGuestNextStepsCta, type GuestToolId } from "../../lib/guestNextStepsCta";
+import { trackOnceLoad } from "../../lib/analytics";
 
 type GuestResultsNextStepsCtaProps = {
   currentTool: GuestToolId;
@@ -8,6 +10,16 @@ type GuestResultsNextStepsCtaProps = {
 
 export function GuestResultsNextStepsCta({ currentTool, className = "mt-8" }: GuestResultsNextStepsCtaProps) {
   const cta = getGuestNextStepsCta(currentTool);
+  const trigger =
+    currentTool === "health"
+      ? "after_health_check"
+      : currentTool === "story"
+        ? "after_brand_story"
+        : "after_icp";
+
+  useEffect(() => {
+    trackOnceLoad(`signup_prompt:${trigger}`, "signup_prompt_shown", { trigger });
+  }, [trigger]);
 
   return (
     <div className={`rounded-2xl bg-[#0D1833] p-8 ${className}`}>
@@ -16,6 +28,8 @@ export function GuestResultsNextStepsCta({ currentTool, className = "mt-8" }: Gu
 
       <Link
         to="/guest-dashboard"
+        data-track-id={`next_steps_${currentTool}`}
+        data-track-location={currentTool === "health" ? "hero" : currentTool === "story" ? "journey" : "card_3"}
         className="mt-8 inline-flex items-center justify-center rounded-full bg-primary px-7 py-3 font-body text-sm font-medium text-primary-foreground hover:opacity-90"
       >
         {cta.buttonLabel}

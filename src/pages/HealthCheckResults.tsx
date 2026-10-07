@@ -15,6 +15,7 @@ import {
   resolveBrandIdForHealthWrite,
 } from "../lib/healthCheckPersistence";
 import { resolveScopedBrandId } from "../lib/brandScopedReads";
+import { markHealthCompleted, scoreBand, track } from "../lib/analytics";
 
 type LocationState = HealthCheckInput | null;
 
@@ -35,6 +36,7 @@ export default function HealthCheckResults() {
     hasPaidAccess || (isLoggedInReal && subscriptionLoading);
   const showPaywallUpsell = !showDashboardCta;
   const saveInFlightRef = useRef(false);
+  const completeTrackedRef = useRef(false);
   const lastPersistedRunKeyRef = useRef<string | null>(null);
 
   const scopedBrandId = resolveScopedBrandId(activeBrandId, brands);
@@ -62,6 +64,11 @@ export default function HealthCheckResults() {
 
   useEffect(() => {
     if (!state || !scores) return;
+    if (!completeTrackedRef.current) {
+      completeTrackedRef.current = true;
+      markHealthCompleted();
+      track("health_check_complete", { score_band: scoreBand(scores.overall) });
+    }
     const email = state.email?.trim() || getGuestIdentityEmail() || "";
     if (!email) return;
     const findings = mergeHealthFindings(scores, state.websiteScore?.findings);

@@ -112,7 +112,7 @@ export default function GuestDashboardPreview() {
       </div>
 
       {allComplete && (
-        <GuestAllCompleteTrialBanner onStartTrial={() => openPaywall("annual")} />
+        <GuestAllCompleteTrialBanner onStartTrial={() => openPaywall("annual", "trial_banner")} />
       )}
 
       <div className="container mx-auto max-w-7xl space-y-8 px-6 pb-12 pt-8 lg:px-12">
@@ -270,7 +270,7 @@ export default function GuestDashboardPreview() {
         {allComplete && (
           <GuestAllCompleteTrialBanner
             variant="contained"
-            onStartTrial={() => openPaywall("annual")}
+            onStartTrial={() => openPaywall("annual", "trial_banner")}
           />
         )}
       </div>

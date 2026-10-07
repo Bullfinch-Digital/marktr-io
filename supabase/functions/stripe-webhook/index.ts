@@ -3,6 +3,7 @@
 // Deploy with: supabase functions deploy stripe-webhook
 // Set secrets with:
 //   supabase secrets set STRIPE_WEBHOOK_SECRET=whsec_... SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=...
+//   supabase secrets set GA4_API_SECRET=...   # Measurement Protocol for trial_start / purchase
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 // IMPORTANT:
@@ -10,6 +11,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 // that crash in the Supabase Edge runtime (e.g. Deno.core.runMicrotasks).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2?target=deno";
 import Stripe from "https://esm.sh/stripe@12.18.0?target=deno";
+import { sendGa4MeasurementProtocolEvent } from "../_shared/ga4MeasurementProtocol.ts";
 
 function json(resBody: unknown, status = 200) {
   return new Response(JSON.stringify(resBody), {
@@ -632,12 +634,76 @@ Deno.serve(async (req) => {
 
           await handleSubscription(subscription, userId, email);
 
+          const gaClientId = (session.metadata as { ga_client_id?: string } | null)?.ga_client_id ?? null;
+          const amountTotal = typeof session.amount_total === "number" ? session.amount_total : 0;
+          const currency = String(session.currency || "gbp").toUpperCase();
+          const firstTouch = {
+            first_touch_source: (session.metadata as { first_touch_source?: string } | null)?.first_touch_source,
+            first_touch_medium: (session.metadata as { first_touch_medium?: string } | null)?.first_touch_medium,
+            first_touch_campaign: (session.metadata as { first_touch_campaign?: string } | null)?.first_touch_campaign,
+          };
+          const gaParams: Record<string, string | number | boolean> = {
+            plan: "annual",
+            transaction_id: String(session.id),
+          };
+          if (firstTouch.first_touch_source) gaParams.first_touch_source = firstTouch.first_touch_source;
+          if (firstTouch.first_touch_medium) gaParams.first_touch_medium = firstTouch.first_touch_medium;
+          if (firstTouch.first_touch_campaign) gaParams.first_touch_campaign = firstTouch.first_touch_campaign;
+
+          const subStatus = String(subscription.status || "");
+          if (subStatus === "trialing" || amountTotal === 0) {
+            await sendGa4MeasurementProtocolEvent({
+              name: "trial_start",
+              clientId: gaClientId,
+              userId,
+              params: gaParams,
+            });
+          } else if (amountTotal > 0) {
+            await sendGa4MeasurementProtocolEvent({
+              name: "purchase",
+              clientId: gaClientId,
+              userId,
+              params: {
+                ...gaParams,
+                value: amountTotal / 100,
+                currency,
+              },
+            });
+          }
+
           await tryMigrateAnonymousSubscriptionToRealUser(supabaseAdmin, {
             anonymousUserId: userId,
             customerEmail: email,
             stripeCustomerId,
           });
         }
+        break;
+      }
+      case "invoice.paid": {
+        const invoice = event.data.object as {
+          id?: string;
+          amount_paid?: number;
+          currency?: string;
+          billing_reason?: string;
+          subscription?: string | null;
+          customer?: string | null;
+        };
+        if (!invoice.amount_paid || invoice.amount_paid <= 0) break;
+        if (invoice.billing_reason === "subscription_create" && invoice.amount_paid === 0) break;
+        const stripeCustomerId = invoice.customer ? String(invoice.customer) : null;
+        const userId = stripeCustomerId
+          ? await resolveUserIdFromCustomer(supabaseAdmin, stripeCustomerId)
+          : null;
+        await sendGa4MeasurementProtocolEvent({
+          name: "purchase",
+          userId: userId ?? undefined,
+          params: {
+            transaction_id: String(invoice.id || ""),
+            value: invoice.amount_paid / 100,
+            currency: String(invoice.currency || "gbp").toUpperCase(),
+            plan: "annual",
+          },
+        });
         break;
       }
       default:

@@ -1,5 +1,6 @@
 import { supabase } from "../config/supabase";
 import { clearPendingCheckoutPlan } from "../utils/pendingCheckout";
+import { getFirstTouchParams, getGaClientId } from "./analytics";
 
 /** Marktr Pro is annual-only. "yearly" is accepted as an alias. */
 export type CheckoutPlan = "annual";
@@ -42,12 +43,18 @@ export async function createStripeCheckoutSession(
   const supabaseAnonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY || "").trim();
   const checkoutUrl = `${supabaseUrl}/functions/v1/create-checkout-session`;
 
+  const gaClientId = await getGaClientId();
+  const firstTouch = getFirstTouchParams();
   const payload = {
     priceId,
     successUrl: `${origin}/dashboard?checkout=success`,
     cancelUrl: `${origin}/dashboard?checkout=cancel`,
     force: Boolean(options?.force),
     customerEmail: authedUser.email ?? undefined,
+    gaClientId: gaClientId ?? undefined,
+    firstTouchSource: firstTouch.first_touch_source,
+    firstTouchMedium: firstTouch.first_touch_medium,
+    firstTouchCampaign: firstTouch.first_touch_campaign,
   };
 
   const res = await fetch(checkoutUrl, {

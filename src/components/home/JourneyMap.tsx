@@ -248,6 +248,7 @@ export default function JourneyMap() {
     <section
       ref={sectionRef}
       id="journey"
+      data-track-section="journey"
       className="bg-[#FBFAF0] px-6 pt-20 pb-8 lg:pt-28 lg:pb-10"
     >
       <div data-journey-reveal="intro" className="mx-auto max-w-5xl text-center">
@@ -288,6 +289,8 @@ export default function JourneyMap() {
               <Link
                 to={step.href}
                 aria-label={step.linkLabel}
+                data-track-id={`journey_card_${step.image.id}`}
+                data-track-location="journey"
                 data-journey-reveal="figure"
                 data-journey-side={index % 2 === 1 ? "right" : "left"}
                 className="block rounded-[24px] outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#101A26]"
@@ -326,6 +329,8 @@ export default function JourneyMap() {
                 </div>
                 <Link
                   to={step.href}
+                  data-track-id={`journey_link_${step.image.id}`}
+                  data-track-location="journey"
                   className="mt-5 inline-flex items-center font-['Plus_Jakarta_Sans'] text-sm font-medium text-[#101A26] underline-offset-4 hover:underline"
                 >
                   {step.linkLabel} →
@@ -433,6 +438,8 @@ export default function JourneyMap() {
         >
           <Link
             to="/health-check"
+            data-track-id="journey_final_health"
+            data-track-location="journey"
             className="inline-flex items-center justify-center rounded-full border-2 border-[#0B0B0C] bg-[#EBFD84] px-8 py-3.5 font-['Plus_Jakarta_Sans'] text-base font-medium text-[#0B0B0C] hover:bg-[#EBFD84]/90"
           >
             Start with your digital health check — free

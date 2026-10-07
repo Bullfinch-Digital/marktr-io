@@ -8,6 +8,8 @@ import { QuoteStrip } from "@/components/home/Testimonials";
 const WAYS_IN = [
   {
     step: "01",
+    trackId: "hero_card_1",
+    location: "card_1",
     href: "/health-check",
     eyebrow: "See where you stand",
     title: "Check your digital health",
@@ -19,6 +21,8 @@ const WAYS_IN = [
   },
   {
     step: "02",
+    trackId: "hero_card_2",
+    location: "card_2",
     href: "/story",
     eyebrow: "Say what makes you different",
     title: "Find your brand story",
@@ -30,6 +34,8 @@ const WAYS_IN = [
   },
   {
     step: "03",
+    trackId: "hero_card_3",
+    location: "card_3",
     href: "/onboarding-build",
     eyebrow: "Start with who you sell to",
     title: "Build your ideal customer profile",
@@ -49,7 +55,7 @@ export default function Home() {
   return (
     <main className="overflow-x-hidden bg-[#FBFAF0] font-['Plus_Jakarta_Sans'] text-[#101A26]">
       {/* SECTION 1 — Opening hero and three ways in */}
-      <section id="ways-in" className="home-opening px-6 pb-12 pt-12 lg:pb-14">
+      <section id="ways-in" data-track-section="hero" className="home-opening px-6 pb-12 pt-12 lg:pb-14">
         <div className="relative z-10 mx-auto max-w-6xl">
           <h1 className="max-w-6xl text-left">
             <span className="home-pill-line">
@@ -71,11 +77,14 @@ export default function Home() {
             aria-hidden
             className="pointer-events-none absolute left-8 right-8 top-9 hidden border-t border-dashed border-[#101A26]/40 lg:block"
           />
-          <div className="ways-in-grid grid gap-8 lg:grid-cols-3">
+          <div data-track-section="cards" className="ways-in-grid grid gap-8 lg:grid-cols-3">
             {WAYS_IN.map((way) => (
               <Link
                 key={way.step}
                 to={way.href}
+                data-track-id={way.trackId}
+                data-track-location={way.location}
+                data-track-text="Get started free →"
                 className={
                   way.recommended
                     ? "ways-in-card relative z-10 flex flex-col overflow-hidden rounded-[24px] border-2 border-[#101A26] bg-white shadow-xl outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#101A26]"
@@ -128,7 +137,7 @@ export default function Home() {
 
       <JourneyMap />
 
-      <section className="bg-[#FBFAF0] px-6 py-20 lg:py-28">
+      <section data-track-section="comparison" className="bg-[#FBFAF0] px-6 py-20 lg:py-28">
         <div className="mx-auto grid max-w-6xl items-stretch gap-6 lg:grid-cols-2 lg:gap-8">
           <article className="compare-card flex h-full flex-col rounded-[28px] border border-[#101A26]/12 bg-white p-8 shadow-sm sm:p-10 lg:p-12">
             <p className="inline-flex w-fit items-center rounded-full border-2 border-[#0B0B0C] bg-[#FBFAF0] px-3 py-1 font-['Plus_Jakarta_Sans'] text-[13px] font-medium text-[#0B0B0C]">
@@ -185,7 +194,7 @@ export default function Home() {
       <CaseStudies />
 
       {/* SECTION 7 — CTA band */}
-      <section className="relative overflow-hidden bg-[#FBFAF0] px-6 py-20 text-center lg:py-28">
+      <section data-track-section="final_cta" className="relative overflow-hidden bg-[#FBFAF0] px-6 py-20 text-center lg:py-28">
         <img
           src="/brand/Bullfinch_Icons_21.png"
           alt=""
@@ -201,6 +210,8 @@ export default function Home() {
           </p>
           <Link
             to="/health-check"
+            data-track-id="final_cta_get_started"
+            data-track-location="final_cta"
             className="mt-10 inline-flex items-center justify-center rounded-full border-2 border-[#0B0B0C] bg-[#EBFD84] px-10 py-4 font-['Plus_Jakarta_Sans'] text-lg font-medium text-[#0B0B0C] transition-opacity hover:bg-[#EBFD84]/90"
           >
             Get started - Free

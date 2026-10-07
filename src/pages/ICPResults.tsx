@@ -15,6 +15,7 @@ import { resolveAvatarSrc } from "../utils/avatar";
 import { BrandCard } from "../components/cards/BrandCard";
 import { getGuestBrandSeed } from "../lib/guestBrandSeed";
 import { isRealUser } from "../utils/isRealUser";
+import { rememberAuthTrigger, trackOnceLoad } from "../lib/analytics";
 
 // Fallback avatars + colours for generated data that doesn't include them
 const DEFAULT_COLORS = ["#A9B7DC", "#EBFD84", "#F4B6AC"];
@@ -41,16 +42,23 @@ export default function ICPResults() {
   };
 
   const handleSignupToSave = () => {
+    rememberAuthTrigger("after_icp");
     openPaywall();
   };
 
   const handleLoginToSave = () => {
+    rememberAuthTrigger("after_icp");
     openLogin();
   };
 
   useEffect(() => {
     setGuestICPsState(getGuestICPs());
   }, []);
+
+  useEffect(() => {
+    if (!isGuest) return;
+    trackOnceLoad("signup_prompt:after_icp", "signup_prompt_shown", { trigger: "after_icp" });
+  }, [isGuest]);
 
   useEffect(() => {
     if (isRealUserFlag) {
@@ -234,6 +242,9 @@ export default function ICPResults() {
                   )}
                   <div className="flex justify-center gap-3 mt-6">
                     <Button
+                      data-track-id="icp_signup_save"
+                      data-track-location="card_3"
+                      data-track-destination="paywall"
                       onClick={handleSignupToSave}
                       className="bg-button-green hover:bg-button-green/90 text-foreground border border-black rounded-design px-6 py-4"
                     >
@@ -241,6 +252,9 @@ export default function ICPResults() {
                     </Button>
                     <Button
                       variant="outline"
+                      data-track-id="icp_login_save"
+                      data-track-location="card_3"
+                      data-track-destination="signin_modal"
                       onClick={handleLoginToSave}
                       className="border-black rounded-design px-6 py-4"
                     >
@@ -276,6 +290,9 @@ export default function ICPResults() {
                   </p>
                   <div className="flex justify-center gap-3">
                     <Button
+                      data-track-id="icp_signup_save"
+                      data-track-location="card_3"
+                      data-track-destination="paywall"
                       onClick={handleSignupToSave}
                       className="bg-button-green hover:bg-button-green/90 text-foreground border border-black rounded-design px-6 py-4"
                     >
@@ -283,6 +300,9 @@ export default function ICPResults() {
                     </Button>
                     <Button
                       variant="outline"
+                      data-track-id="icp_login_save"
+                      data-track-location="card_3"
+                      data-track-destination="signin_modal"
                       onClick={handleLoginToSave}
                       className="border-black rounded-design px-6 py-4"
                     >

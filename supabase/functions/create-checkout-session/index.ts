@@ -17,6 +17,10 @@ type CreateCheckoutInput = {
   customerEmail?: string;
   email?: string;
   force?: boolean;
+  gaClientId?: string;
+  firstTouchSource?: string;
+  firstTouchMedium?: string;
+  firstTouchCampaign?: string;
 };
 
 const ACTIVE_STATUSES = ["trialing", "active", "past_due", "unpaid"];
@@ -333,7 +337,14 @@ Deno.serve(async (req) => {
       }
     }
 
-    const userMetadata = user?.id ? { user_id: user.id } : {};
+    const gaMeta =
+      typeof body.gaClientId === "string" && body.gaClientId.trim()
+        ? { ga_client_id: body.gaClientId.trim().slice(0, 64) }
+        : {};
+    const userMetadata = {
+      ...(user?.id ? { user_id: user.id } : {}),
+      ...gaMeta,
+    };
 
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
@@ -350,6 +361,18 @@ Deno.serve(async (req) => {
       metadata: {
         price_id: body.priceId,
         ...userMetadata,
+        ...(typeof body.gaClientId === "string" && body.gaClientId.trim()
+          ? { ga_client_id: body.gaClientId.trim().slice(0, 64) }
+          : {}),
+        ...(typeof body.firstTouchSource === "string" && body.firstTouchSource.trim()
+          ? { first_touch_source: body.firstTouchSource.trim().slice(0, 100) }
+          : {}),
+        ...(typeof body.firstTouchMedium === "string" && body.firstTouchMedium.trim()
+          ? { first_touch_medium: body.firstTouchMedium.trim().slice(0, 100) }
+          : {}),
+        ...(typeof body.firstTouchCampaign === "string" && body.firstTouchCampaign.trim()
+          ? { first_touch_campaign: body.firstTouchCampaign.trim().slice(0, 100) }
+          : {}),
       },
       // Promo field on Checkout; skip card when a 100%-off forever coupon zeroes the total.
       allow_promotion_codes: true,

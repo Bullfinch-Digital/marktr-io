@@ -14,6 +14,7 @@ import {
   insertStrategyVersionRpc,
 } from "../lib/brandStrategyVersioning";
 import { subscribeStrategyCompositionStale } from "../lib/strategyEvents";
+import { track } from "../lib/analytics";
 
 export type StrategyRow = {
   id: string;
@@ -295,6 +296,7 @@ export function useBrandStrategies(brandId: string) {
         window.dispatchEvent(new Event("strategies:changed"));
       } catch {}
       await fetchStrategies();
+      track("strategy_generate");
       return data.record as StrategyRow;
     },
     [brandId, fetchStrategies, user?.id]

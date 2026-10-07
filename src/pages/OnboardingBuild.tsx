@@ -45,6 +45,7 @@ import {
 } from "../components/onboarding/screens";
 import { LegalAgreementRequiredModal } from "../components/legal/LegalAgreementRequiredModal";
 import { useLegalAgreementGate } from "../hooks/useLegalAgreementGate";
+import { track } from "../lib/analytics";
 
 type Step = 
   | "1_Welcome"
@@ -107,6 +108,7 @@ export default function OnboardingBuild() {
   /** Input fingerprint for the last successful generate-icps run (not cleared on loading re-entry). */
   const completedGenerationKeyRef = useRef<string | null>(null);
   const generationInFlightKeyRef = useRef<string | null>(null);
+  const icpStartTracked = useRef(false);
   const [formData, setFormData] = useState<FormData>({
     name: "",
     brandName: "",
@@ -265,6 +267,13 @@ export default function OnboardingBuild() {
   );
 
   const currentStepIndex = STEPS.indexOf(currentStep);
+
+  useEffect(() => {
+    if (icpStartTracked.current) return;
+    if (currentStep === "1_Welcome") return;
+    icpStartTracked.current = true;
+    track("icp_start");
+  }, [currentStep]);
   // Layout-only Back (screens do not render onBack). From 2_Name → welcome; loading has no Back.
   const showBackButton = currentStepIndex > 0 && currentStep !== "10_Loading";
   const showProgressBar = currentStep !== "10_Loading";
@@ -518,6 +527,7 @@ export default function OnboardingBuild() {
     setLastGenerated(result.icps || []);
     // Also store for guest flow
     setGuestICPs(result.icps || []);
+    track("icp_complete", { icp_count: (result.icps || []).length });
     // Store brand seed locally for post-signup brand creation
     setGuestBrandSeed({
       brandName: formData.brandName,

@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "../ui/button";
 import { useAuth } from "../../contexts/AuthContext";
 import { useAuthModal } from "../../contexts/AuthModalContext";
+import { rememberAuthTrigger } from "../../lib/analytics";
 
 export function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -98,6 +99,8 @@ export function Header() {
                   <Link
                     key={index}
                     to={item.target}
+                    data-track-id={`header_nav_${item.target.replace(/^\//, "").replace(/-/g, "_")}`}
+                    data-track-location="header"
                     className="relative text-sm transition-colors hover:text-text-dark after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-button-green after:transition-all hover:after:w-full flex items-center gap-1.5"
                   >
                     {item.label}
@@ -111,7 +114,7 @@ export function Header() {
           <div className="flex items-center gap-4">
             {isLoggedIn ? (
               <>
-                <Link to="/dashboard">
+                <Link to="/dashboard" data-track-id="header_dashboard" data-track-location="header">
                   <Button
                     variant="outline"
                     className="hidden bg-transparent text-foreground transition-all hover:scale-105 hover:bg-accent-grey/20 active:scale-95 md:flex font-['Plus_Jakarta_Sans'] font-semibold"
@@ -121,6 +124,9 @@ export function Header() {
                 </Link>
                 <Button
                   type="button"
+                  data-track-id="header_sign_out"
+                  data-track-location="header"
+                  data-track-destination="/"
                   onClick={async (e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -144,14 +150,20 @@ export function Header() {
               <>
                 <Button
                   type="button"
-                  onClick={() => openLogin()}
+                  data-track-id="header_login"
+                  data-track-location="header"
+                  data-track-destination="signin_modal"
+                  onClick={() => {
+                    rememberAuthTrigger("header");
+                    openLogin();
+                  }}
                   variant="outline"
                   className="hidden bg-transparent text-foreground transition-all hover:scale-105 hover:bg-accent-grey/20 active:scale-95 md:flex font-['Plus_Jakarta_Sans'] font-semibold"
                 >
                   Login
                 </Button>
 
-                <Link to="/health-check">
+                <Link to="/health-check" data-track-id="header_get_started" data-track-location="header">
                   <Button
                     variant="default"
                     className="hidden rounded-full border-2 border-[#0B0B0C] bg-[#EBFD84] text-[#0B0B0C] transition-all hover:scale-105 hover:bg-[#EBFD84]/90 hover:shadow-lg active:scale-95 md:flex font-['Plus_Jakarta_Sans'] font-semibold"
@@ -196,6 +208,8 @@ export function Header() {
                     <Link
                       key={index}
                       to={item.target}
+                      data-track-id={`header_nav_${item.target.replace(/^\//, "").replace(/-/g, "_")}`}
+                      data-track-location="header"
                       className="px-2 py-1 transition-colors hover:text-button-green flex items-center gap-2"
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
@@ -207,7 +221,7 @@ export function Header() {
             )}
             {isLoggedIn ? (
               <>
-                <Link to="/dashboard" onClick={() => setIsMobileMenuOpen(false)}>
+                <Link to="/dashboard" data-track-id="header_dashboard" data-track-location="header" onClick={() => setIsMobileMenuOpen(false)}>
                   <Button 
                     variant="outline"
                     className="w-full bg-transparent text-foreground hover:bg-accent-grey/20 font-['Plus_Jakarta_Sans'] font-semibold"
@@ -217,6 +231,9 @@ export function Header() {
                 </Link>
                 <Button
                   type="button"
+                  data-track-id="header_sign_out"
+                  data-track-location="header"
+                  data-track-destination="/"
                   onClick={async (e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -241,8 +258,12 @@ export function Header() {
               <>
                 <Button
                   type="button"
+                  data-track-id="header_login"
+                  data-track-location="header"
+                  data-track-destination="signin_modal"
                   onClick={() => {
                     setIsMobileMenuOpen(false);
+                    rememberAuthTrigger("header");
                     openLogin();
                   }}
                   variant="outline"
@@ -250,7 +271,7 @@ export function Header() {
                 >
                   Login
                 </Button>
-                <Link to="/health-check" onClick={() => setIsMobileMenuOpen(false)}>
+                <Link to="/health-check" data-track-id="header_get_started" data-track-location="header" onClick={() => setIsMobileMenuOpen(false)}>
                   <Button className="w-full rounded-full border-2 border-[#0B0B0C] bg-[#EBFD84] text-[#0B0B0C] hover:bg-[#EBFD84]/90 font-['Plus_Jakarta_Sans'] font-semibold">
                     Get started - Free
                   </Button>

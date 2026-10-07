@@ -33,6 +33,8 @@ export function Footer() {
               <li>
                 <Link
                   to="/pricing"
+                  data-track-id="footer_pricing"
+                  data-track-location="footer"
                   className="text-muted-foreground transition-colors hover:text-foreground"
                 >
                   Pricing
@@ -41,6 +43,8 @@ export function Footer() {
               <li>
                 <Link
                   to="/resources"
+                  data-track-id="footer_resources"
+                  data-track-location="footer"
                   className="text-muted-foreground transition-colors hover:text-foreground"
                 >
                   Resources
@@ -49,6 +53,8 @@ export function Footer() {
               <li>
                 <Link
                   to="/downloads"
+                  data-track-id="footer_downloads"
+                  data-track-location="footer"
                   className="text-muted-foreground transition-colors hover:text-foreground"
                 >
                   Downloads
@@ -57,6 +63,8 @@ export function Footer() {
               <li>
                 <Link
                   to={dashboardPath}
+                  data-track-id="footer_dashboard"
+                  data-track-location="footer"
                   className="text-muted-foreground transition-colors hover:text-foreground"
                 >
                   Dashboard

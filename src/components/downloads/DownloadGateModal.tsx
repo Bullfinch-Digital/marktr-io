@@ -3,6 +3,7 @@ import { ExternalLink, Loader2, X } from "lucide-react";
 import { Button } from "../ui/button";
 import { isTurnstileConfigured } from "../../lib/leadCapture";
 import { supabase } from "../../config/supabase";
+import { track } from "../../lib/analytics";
 
 export type DownloadResource = {
   id: string;
@@ -196,6 +197,7 @@ export function DownloadGateModal({ resource, onClose }: Props) {
       }
       setDownloadUrl(url);
       setExpiresInSeconds(typeof expires === "number" ? expires : 600);
+      track("resource_download", { resource_id: resource.slug || resource.id });
     } catch (err) {
       console.error("[DownloadGateModal] submit failed", err);
       resetWidget();

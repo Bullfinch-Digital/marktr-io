@@ -68,6 +68,9 @@ export function SignInModal({
 
         <button
           type="button"
+          data-track-id="signin_google"
+          data-track-location="signin_modal"
+          data-track-destination="oauth"
           onClick={handleGoogle}
           disabled={loading}
           className="auth-modal-google flex w-full items-center justify-center gap-3 px-4 py-3 text-sm disabled:opacity-50"
@@ -87,6 +90,8 @@ export function SignInModal({
 
         <button
           type="button"
+          data-track-id="signin_email"
+          data-track-location="signin_modal"
           onClick={handleEmail}
           className="w-full font-['Plus_Jakarta_Sans'] text-sm text-[#101A26]/70 underline-offset-4 transition-colors hover:text-[#101A26] hover:underline"
         >

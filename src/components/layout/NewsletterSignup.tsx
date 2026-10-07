@@ -3,6 +3,7 @@ import { Loader2 } from "lucide-react";
 import { Button } from "../ui/button";
 import { isTurnstileConfigured } from "../../lib/leadCapture";
 import { supabase } from "../../config/supabase";
+import { track } from "../../lib/analytics";
 
 function isValidEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
@@ -199,6 +200,10 @@ export function NewsletterSignup({
         return;
       }
 
+      track("newsletter_signup", {
+        source,
+        location: variant === "landing" ? "newsletter_landing" : "footer",
+      });
       setDone(true);
     } catch (err) {
       console.error("[NewsletterSignup] submit failed", err);

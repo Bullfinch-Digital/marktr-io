@@ -7,7 +7,7 @@ import {
   type QuoteTestimonial,
   type VideoTestimonial,
 } from "@/data/testimonials";
-import { hasAnalyticsConsent } from "@/lib/cookieConsent";
+import { track } from "@/lib/analytics";
 
 const TEMPLATE_POSTERS: Record<string, string> = {
   "charlotte-sla-school": "/images/testimonials/charlotte.svg",
@@ -19,10 +19,7 @@ const POSTER_WIDTH = 540;
 const POSTER_HEIGHT = 960;
 
 function trackTestimonialPlay(testimonial: VideoTestimonial): void {
-  if (!hasAnalyticsConsent()) return;
-  const send = (window as Window & { gtag?: (...args: unknown[]) => void }).gtag;
-  if (!send) return;
-  send("event", "testimonial_video_play", {
+  track("testimonial_video_play", {
     testimonial_id: testimonial.id,
     business: testimonial.business,
   });
@@ -178,7 +175,7 @@ export function QuoteStrip() {
   const [paused, setPaused] = useState(false);
 
   return (
-    <section className="quote-strip overflow-hidden bg-[#FBFAF0] pb-4 pt-16 lg:pt-20" data-paused={paused ? "true" : "false"}>
+    <section data-track-section="quotes" className="quote-strip overflow-hidden bg-[#FBFAF0] pb-4 pt-16 lg:pt-20" data-paused={paused ? "true" : "false"}>
       <div className="mx-auto flex max-w-6xl items-end justify-between gap-6 px-6">
         <div>
           <h2 className="font-['Fraunces'] text-3xl font-bold leading-tight text-[#101A26] sm:text-4xl">
@@ -248,7 +245,7 @@ export default function Testimonials() {
   };
 
   return (
-    <section id="testimonials" className="bg-[#FBFAF0] pt-4 pb-16 lg:pt-6 lg:pb-20">
+    <section id="testimonials" data-track-section="testimonials" className="bg-[#FBFAF0] pt-4 pb-16 lg:pt-6 lg:pb-20">
       <div className="mx-auto max-w-6xl px-6">
         <p className="inline-flex rounded-full border-2 border-[#0B0B0C] bg-[#EBFD84] px-3 py-1 font-['Plus_Jakarta_Sans'] text-[13px] font-medium text-[#0B0B0C]">
           In their words

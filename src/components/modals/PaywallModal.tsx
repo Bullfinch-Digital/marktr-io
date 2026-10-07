@@ -112,6 +112,9 @@ export function PaywallModal({
 
           <div className="space-y-4">
             <Button
+              data-track-id="paywall_start_trial"
+              data-track-location="pricing"
+              data-track-destination="checkout"
               onClick={() => onUpgrade(MARKTR_DEFAULT_CHECKOUT_PLAN)}
               disabled={isStartingCheckout}
               className="w-full h-12 text-lg"

@@ -50,9 +50,11 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import CookiePolicy from "./pages/CookiePolicy";
 import { CookieConsentBanner } from "./components/legal/CookieConsentBanner";
+import { MarktrAnalytics } from "./components/analytics/MarktrAnalytics";
 import { trackBullfinchPageView } from "./lib/bullfinchAnalytics";
 import { applyBullfinchDocumentTitle } from "./lib/editionDocumentTitle";
 import { hasAnalyticsConsent } from "./lib/cookieConsent";
+import { track as trackMarktr } from "./lib/analytics";
 import { useEdition } from "./contexts/EditionContext";
 import OnboardingLayout from "./layouts/OnboardingLayout";
 import HealthCheckPublicReport from "./pages/HealthCheckPublicReport";
@@ -64,7 +66,7 @@ function GA4RouteTracker() {
   const { edition, config } = useEdition();
 
   useEffect(() => {
-    const track = () => {
+    const sendPageView = () => {
       if (!hasAnalyticsConsent()) return;
       if (!config.ga4Id) return;
 
@@ -78,11 +80,7 @@ function GA4RouteTracker() {
         return;
       }
 
-      const gtag = (window as Window & { gtag?: (...args: unknown[]) => void }).gtag;
-      if (!gtag) return;
-
-      gtag("event", "page_view", {
-        send_to: config.ga4Id,
+      trackMarktr("page_view", {
         page_title: document.title,
         page_location: window.location.href,
         page_path: pagePath,
@@ -90,9 +88,9 @@ function GA4RouteTracker() {
       });
     };
 
-    track();
-    window.addEventListener("marktr:analytics-consent-granted", track);
-    return () => window.removeEventListener("marktr:analytics-consent-granted", track);
+    sendPageView();
+    window.addEventListener("marktr:analytics-consent-granted", sendPageView);
+    return () => window.removeEventListener("marktr:analytics-consent-granted", sendPageView);
   }, [location.pathname, location.search, location.hash, edition, config.ga4Id]);
 
   return null;
@@ -344,6 +342,7 @@ export default function App() {
         <AuthModalProvider>
           <PaywallProvider>
             <GA4RouteTracker />
+            <MarktrAnalytics />
             <OAuthReturnHandler />
             <div className="min-h-screen bg-background">
               <AppRoutes />

@@ -18,6 +18,7 @@ import {
   restoreContentItemLineage,
   softDeleteContentItemLineage,
 } from "../lib/contentItemVersioning";
+import { track } from "../lib/analytics";
 
 export type ContentItemWithComposition = ContentItemRow & {
   composition: ContentComposition;
@@ -116,6 +117,7 @@ export function useContentItems(brandId: string) {
         window.dispatchEvent(new Event("content-items:changed"));
       } catch {}
       await fetchItems();
+      track("content_generate", { content_type: input.type });
       return data.record as ContentItemRow;
     },
     [brandId, fetchItems, user?.id]
@@ -165,6 +167,7 @@ export function useContentItems(brandId: string) {
         window.dispatchEvent(new Event("content-items:changed"));
       } catch {}
       await fetchItems();
+      track("content_copy", { content_type: source.type });
       return saved as ContentItemRow;
     },
     [brandId, fetchItems, user?.id]

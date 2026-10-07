@@ -139,8 +139,9 @@ export function track(name: string, params: Record<string, unknown> = {}): boole
 
 export function trackOnceLoad(key: string, name: string, params?: Record<string, unknown>): boolean {
   if (onceThisLoad.has(key)) return false;
-  onceThisLoad.add(key);
-  return track(name, params);
+  const sent = track(name, params);
+  if (sent) onceThisLoad.add(key);
+  return sent;
 }
 
 export function trackOnceSession(key: string, name: string, params?: Record<string, unknown>): boolean {
@@ -431,15 +432,16 @@ function onDelegatedClick(event: Event): void {
 function observeOnce(
   selector: string,
   threshold: number,
-  fire: (el: Element) => void,
+  fire: (el: Element) => boolean | void,
 ): () => void {
   const seen = new WeakSet<Element>();
   const observer = new IntersectionObserver(
     (entries) => {
       for (const entry of entries) {
         if (!entry.isIntersecting || seen.has(entry.target)) continue;
+        const sent = fire(entry.target);
+        if (sent === false) continue;
         seen.add(entry.target);
-        fire(entry.target);
         observer.unobserve(entry.target);
       }
     },
@@ -453,9 +455,11 @@ function observeOnce(
   scan();
   const mo = new MutationObserver(scan);
   mo.observe(document.body, { childList: true, subtree: true });
+  window.addEventListener("marktr:analytics-consent-granted", scan);
   return () => {
     observer.disconnect();
     mo.disconnect();
+    window.removeEventListener("marktr:analytics-consent-granted", scan);
   };
 }
 
@@ -469,14 +473,17 @@ function installScrollDepth(): () => void {
     const percent = (doc.scrollTop / scrollable) * 100;
     for (const mark of marks) {
       if (percent >= mark && !fired.has(mark)) {
-        fired.add(mark);
-        track("scroll_depth", { percent: mark });
+        if (track("scroll_depth", { percent: mark })) fired.add(mark);
       }
     }
   };
   window.addEventListener("scroll", onScroll, { passive: true });
+  window.addEventListener("marktr:analytics-consent-granted", onScroll);
   onScroll();
-  return () => window.removeEventListener("scroll", onScroll);
+  return () => {
+    window.removeEventListener("scroll", onScroll);
+    window.removeEventListener("marktr:analytics-consent-granted", onScroll);
+  };
 }
 
 function installHealthAbandon(): () => void {
@@ -497,11 +504,13 @@ export function installMarktrAnalyticsListeners(): () => void {
   document.addEventListener("click", onDelegatedClick, true);
   const stopSections = observeOnce("[data-track-section]", 0.5, (el) => {
     const sectionId = el.getAttribute("data-track-section");
-    if (sectionId) trackOnceLoad(`section:${sectionId}`, "section_view", { section_id: sectionId });
+    if (!sectionId) return false;
+    return trackOnceLoad(`section:${sectionId}`, "section_view", { section_id: sectionId });
   });
   const stopCases = observeOnce("[data-track-case-study]", 0.6, (el) => {
     const client = el.getAttribute("data-track-client") || el.getAttribute("data-track-case-study");
-    if (client) trackOnceLoad(`case:${client}`, "case_study_view", { client });
+    if (!client) return false;
+    return trackOnceLoad(`case:${client}`, "case_study_view", { client });
   });
   const stopScroll = installScrollDepth();
   const stopAbandon = installHealthAbandon();

@@ -79,6 +79,16 @@ describe("marktr analytics", () => {
     expect(gtag).toHaveBeenCalledTimes(1);
   });
 
+  it("retries once-per-load events until they actually send", () => {
+    const gtag = vi.fn();
+    (window as Window & { gtag?: typeof gtag }).gtag = gtag;
+    expect(trackOnceLoad("section:cards", "section_view", { section_id: "cards" })).toBe(false);
+    expect(gtag).not.toHaveBeenCalled();
+    grantAnalytics();
+    expect(trackOnceLoad("section:cards", "section_view", { section_id: "cards" })).toBe(true);
+    expect(gtag).toHaveBeenCalledTimes(1);
+  });
+
   it("never throws if gtag throws", () => {
     grantAnalytics();
     (window as Window & { gtag?: () => void }).gtag = () => {

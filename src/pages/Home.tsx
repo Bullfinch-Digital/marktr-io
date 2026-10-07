@@ -84,6 +84,7 @@ export default function Home() {
                 to={way.href}
                 data-track-id={way.trackId}
                 data-track-location={way.location}
+                data-track-text="Get started free →"
                 className={
                   way.recommended
                     ? "ways-in-card relative z-10 flex flex-col overflow-hidden rounded-[24px] border-2 border-[#101A26] bg-white shadow-xl outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#101A26]"

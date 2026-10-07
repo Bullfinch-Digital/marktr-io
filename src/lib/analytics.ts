@@ -121,6 +121,7 @@ function eventNameOk(name: string): boolean {
 export function track(name: string, params: Record<string, unknown> = {}): boolean {
   try {
     if (getEdition() !== "marktr") return false;
+    if (typeof window !== "undefined" && window.location.pathname.startsWith("/admin")) return false;
     if (!hasAnalyticsConsent()) return false;
     if (!eventNameOk(name)) return false;
     const send = gtagFn();

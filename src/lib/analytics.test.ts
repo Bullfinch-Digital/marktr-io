@@ -55,6 +55,16 @@ describe("marktr analytics", () => {
     expect(track("cta_click", { cta_id: "x" })).toBe(false);
   });
 
+  it("is a no-op on /admin even with consent", () => {
+    grantAnalytics();
+    window.history.pushState({}, "", "/admin");
+    const gtag = vi.fn();
+    (window as Window & { gtag?: typeof gtag }).gtag = gtag;
+    expect(track("cta_click", { cta_id: "x", email: "ada@example.com" })).toBe(false);
+    expect(gtag).not.toHaveBeenCalled();
+    window.history.pushState({}, "", "/");
+  });
+
   it("sends consented events to the marktr property", () => {
     grantAnalytics();
     const gtag = vi.fn();

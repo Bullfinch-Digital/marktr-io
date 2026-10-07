@@ -20,6 +20,7 @@ import {
   softDeleteIcpById,
   withVersioningDefaults,
 } from "../lib/icpVersioning";
+import { track } from "../lib/analytics";
 
 export interface ICP {
   id: string;
@@ -450,6 +451,7 @@ export function useICPs() {
       });
 
       setIsOffline(false);
+      track("icp_create");
       return created;
     } catch (err) {
       console.error("Error creating ICP in Supabase:", err);

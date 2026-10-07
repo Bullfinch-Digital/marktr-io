@@ -68,6 +68,18 @@ export default function DashboardShell({
       onGuestAction?.();
       return;
     }
+    if (showTrialOverlay) {
+      openPaywall(undefined, "trial_banner");
+      return;
+    }
+    if (showProGateOverlay) {
+      const path = window.location.pathname;
+      openPaywall(
+        undefined,
+        path.startsWith("/content") ? "locked_content" : "locked_strategy"
+      );
+      return;
+    }
     openPaywall();
   };
 

@@ -60,7 +60,7 @@ export default function Pricing() {
 
   return (
     <div className="min-h-screen bg-background">
-      <section className="pt-24 pb-16 px-4 sm:px-6 lg:px-8">
+      <section data-track-section="pricing" className="pt-24 pb-16 px-4 sm:px-6 lg:px-8">
         <div className="container mx-auto max-w-4xl text-center">
           <h1 className="font-['Fraunces'] text-4xl sm:text-5xl lg:text-6xl mb-6">
             Plans built to help you target smarter & grow faster
@@ -97,8 +97,11 @@ export default function Pricing() {
 
             <Button
               type="button"
+              data-track-id="pricing_start_trial"
+              data-track-location="pricing"
+              data-track-destination="paywall"
               disabled={isStartingCheckout}
-              onClick={() => openPaywall("annual")}
+              onClick={() => openPaywall("annual", "pricing_page")}
               className="w-full font-['Fraunces'] bg-button-green text-text-dark hover:bg-button-green/90 transition-all hover:scale-105 active:scale-95"
             >
               {isStartingCheckout ? "Redirecting…" : "Start free trial"}

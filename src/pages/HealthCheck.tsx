@@ -39,6 +39,11 @@ import { fetchLatestHealthCheck, resolveBrandIdForHealthWrite } from "../lib/hea
 import { buildPriorRunPayload } from "../lib/healthCheckPriorRun";
 import { fetchBrandStoryPillarForHealth } from "../lib/healthCheckPillarContext";
 import { scanErrorCode, track } from "../lib/bullfinchAnalytics";
+import {
+  markHealthStarted,
+  markHealthStep,
+  track as trackMarktr,
+} from "../lib/analytics";
 import { useEdition } from "../contexts/EditionContext";
 import { getStoredUtms } from "../lib/utmCapture";
 import { useEditionDocumentMeta } from "../hooks/useEditionDocumentMeta";
@@ -81,6 +86,7 @@ export default function HealthCheck() {
   const { activeBrandId, loading: brandLoading, brands } = useBrand();
   const isLoggedIn = Boolean(user && !(user as { is_anonymous?: boolean }).is_anonymous);
   const [step, setStep] = useState<Step>("welcome");
+  const healthStepTracked = useRef<Step | null>(null);
   const [existingRun, setExistingRun] = useState<{ id: string; created_at: string } | null>(
     null
   );
@@ -141,6 +147,21 @@ export default function HealthCheck() {
       setBusinessNameTouched(true);
     }
   }, []);
+
+  useEffect(() => {
+    if (edition !== "marktr") return;
+    if (healthStepTracked.current === step) return;
+    healthStepTracked.current = step;
+    if (step === "inputs") {
+      markHealthStarted(2);
+      markHealthStep(2);
+      trackMarktr("health_check_step", { step_number: 2, step_total: 3 });
+    }
+    if (step === "loading") {
+      markHealthStep(3);
+      trackMarktr("health_check_step", { step_number: 3, step_total: 3 });
+    }
+  }, [step, edition]);
 
   useEffect(() => {
     if (businessNameTouched || formData.businessName.trim()) return;
@@ -597,7 +618,12 @@ export default function HealthCheck() {
           ) : null}
 
           <Button
-            onClick={() => setStep("inputs")}
+            onClick={() => {
+              markHealthStarted(1);
+              trackMarktr("health_check_start");
+              trackMarktr("health_check_step", { step_number: 1, step_total: 3 });
+              setStep("inputs");
+            }}
             className="mt-10 rounded-full border-2 border-brand-stroke bg-brand-lime px-8 py-6 min-h-11 font-body text-base font-medium text-brand-navy hover:bg-brand-lime-hover"
           >
             {config.start.button}

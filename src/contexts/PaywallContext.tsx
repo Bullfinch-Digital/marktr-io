@@ -20,12 +20,15 @@ import {
   AlertDialogDescription,
 } from "../components/ui/alert-dialog";
 import { Button } from "../components/ui/button";
+import { getFirstTouchParams, rememberAuthTrigger, track } from "../lib/analytics";
 
 // Annual-only. UI may say "Yearly"; value must remain "annual".
 type Plan = "annual";
 
+type PaywallTrigger = "trial_banner" | "locked_strategy" | "locked_content" | "pricing_page" | "upgrade";
+
 type PaywallContextValue = {
-  openPaywall: (plan?: Plan) => void;
+  openPaywall: (plan?: Plan, trigger?: PaywallTrigger) => void;
   startCheckout: (plan?: Plan, force?: boolean) => Promise<void>;
   closePaywall: () => void;
   isStartingCheckout: boolean;
@@ -61,8 +64,17 @@ export function PaywallProvider({ children }: { children: React.ReactNode }) {
     plan: null,
   });
 
-  const openPaywall = useCallback((plan?: Plan) => {
+  const inferPaywallTrigger = (): PaywallTrigger => {
+    const path = window.location.pathname;
+    if (path.startsWith("/strategy")) return "locked_strategy";
+    if (path.startsWith("/content")) return "locked_content";
+    if (path.startsWith("/pricing")) return "pricing_page";
+    return "upgrade";
+  };
+
+  const openPaywall = useCallback((plan?: Plan, trigger?: PaywallTrigger) => {
     if (plan) setSelectedPlan(plan);
+    track("paywall_open", { trigger: trigger || inferPaywallTrigger() });
     setShowPaywall(true);
   }, []);
 
@@ -79,6 +91,7 @@ export function PaywallProvider({ children }: { children: React.ReactNode }) {
         setIsStartingCheckout(true);
         console.log("[paywall] proceedToStripe", { plan: nextPlan });
 
+        track("begin_checkout", { plan: nextPlan, ...getFirstTouchParams() });
         const result = await createStripeCheckoutSession(nextPlan, { force });
 
         if (result.status === "already_subscribed") {
@@ -133,6 +146,7 @@ export function PaywallProvider({ children }: { children: React.ReactNode }) {
       if (!isRealUser) {
         setPendingCheckoutPlan(nextPlan);
         setShowPaywall(false);
+        rememberAuthTrigger("save_results");
         openSignIn({
           // Embed plan in next URL so OAuth can resume even if sessionStorage drops.
           redirectPath: checkoutResumePath(nextPlan, "/dashboard"),

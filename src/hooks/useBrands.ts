@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "../config/supabase";
 import { useAuth } from "../contexts/AuthContext";
+import { track } from "../lib/analytics";
 
 export interface Brand {
   id: string;
@@ -159,6 +160,7 @@ export function useBrands() {
         try {
           window.dispatchEvent(new Event("brands:changed"));
         } catch {}
+        track("brand_create");
         return created;
       } catch (err) {
         console.error("useBrands: createBrand error", err);

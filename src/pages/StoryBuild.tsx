@@ -19,6 +19,7 @@ import { resolveScopedBrandId } from "../lib/brandScopedReads";
 import { IdentityCapture, type IdentityCaptureHandle } from "../components/guest/IdentityCapture";
 import { LegalAgreementRequiredModal } from "../components/legal/LegalAgreementRequiredModal";
 import { useLegalAgreementGate } from "../hooks/useLegalAgreementGate";
+import { track } from "../lib/analytics";
 import {
   getGuestContext,
   getGuestBusinessName,
@@ -147,6 +148,7 @@ export default function StoryBuild() {
   const [identityName, setIdentityName] = useState("");
   const [leadToken, setLeadToken] = useState<string | null>(null);
   const identityCaptureRef = useRef<IdentityCaptureHandle>(null);
+  const storyStartTracked = useRef(false);
   const { open: legalModalOpen, gate, closeModal, confirmAgreement } = useLegalAgreementGate();
   /** Input fingerprint for the last successful generate-brand-story run (not cleared on loading re-entry). */
   const completedStoryKeyRef = useRef<string | null>(null);
@@ -238,6 +240,13 @@ export default function StoryBuild() {
     if (questionIndex === null) return;
     setDraft(answers[questionIndex] ?? "");
   }, [step, questionIndex, answers]);
+
+  useEffect(() => {
+    if (storyStartTracked.current) return;
+    if (step === "intro") return;
+    storyStartTracked.current = true;
+    track("brand_story_start");
+  }, [step]);
 
   useEffect(() => {
     if (step === "email" && (isLoggedIn || hasGuestIdentity())) {

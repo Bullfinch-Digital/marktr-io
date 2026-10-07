@@ -6,7 +6,11 @@ function CaseStudyCard({ study, tone }: { study: CaseStudy; tone: string }) {
   const pills = (study.pills ?? []).slice(0, 2);
 
   return (
-    <article className={`case-study-card flex h-full min-w-0 flex-col rounded-2xl p-6 text-left shadow-sm sm:p-7 ${tone}`}>
+    <article
+      data-track-case-study={study.client}
+      data-track-client={study.client}
+      className={`case-study-card flex h-full min-w-0 flex-col rounded-2xl p-6 text-left shadow-sm sm:p-7 ${tone}`}
+    >
       {study.imageSrc ? (
         <div className="mb-5 aspect-[2/1] w-full overflow-hidden rounded-lg bg-white/60">
           <img
@@ -67,7 +71,7 @@ function CaseStudyCard({ study, tone }: { study: CaseStudy; tone: string }) {
 
 export default function CaseStudies() {
   return (
-    <section className="bg-[#FBFAF0] px-6 py-20 lg:py-28">
+    <section data-track-section="case_studies" className="bg-[#FBFAF0] px-6 py-20 lg:py-28">
       <div className="mx-auto max-w-[90rem] text-center">
         <h2 className="font-['Fraunces'] text-4xl font-bold text-[#101A26] sm:text-5xl">
           Proven results, real founders

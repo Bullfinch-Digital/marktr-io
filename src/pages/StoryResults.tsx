@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { supabase } from "../config/supabase";
@@ -12,6 +12,7 @@ import { getGuestBusinessName, getGuestIdentityEmail } from "../lib/guestContext
 import { BrandStoryFindingsSection } from "../components/story/BrandStoryFindingsSection";
 import { GuestPreviewShell } from "../layouts/GuestPreviewShell";
 import { GuestResultsNextStepsCta } from "../components/guest/GuestResultsNextStepsCta";
+import { track } from "../lib/analytics";
 
 export type { BrandStoryOutput } from "../lib/brandStory";
 
@@ -53,6 +54,13 @@ export default function StoryResults() {
   const [story, setStory] = useState<BrandStoryOutput | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const completeTracked = useRef(false);
+
+  useEffect(() => {
+    if (!story || completeTracked.current) return;
+    completeTracked.current = true;
+    track("brand_story_complete");
+  }, [story]);
 
   useEffect(() => {
     if (isRealUser(user)) return;

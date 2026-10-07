@@ -30,6 +30,9 @@ function TrialBannerContent({ onStartTrial }: { onStartTrial: () => void }) {
       </div>
       <Button
         className="shrink-0 h-11 px-8"
+        data-track-id="guest_trial_cta"
+        data-track-location="pricing"
+        data-track-destination="paywall"
         onClick={onStartTrial}
       >
         {GUEST_ALL_COMPLETE_TRIAL_CTA}

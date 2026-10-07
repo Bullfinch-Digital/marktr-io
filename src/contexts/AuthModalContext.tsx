@@ -2,6 +2,7 @@ import { createContext, useContext, useMemo, useState } from "react";
 import { LoginModal } from "../components/modals/LoginModal";
 import { FinishAccountModal } from "../components/modals/FinishAccountModal";
 import { SignInModal } from "../components/modals/SignInModal";
+import { consumeAuthTrigger, peekAuthTrigger, rememberAuthTrigger, track } from "../lib/analytics";
 
 type LoginPayload = {
   email?: string | null;
@@ -43,15 +44,26 @@ export function AuthModalProvider({
 }) {
   const [state, setState] = useState<AuthModalState>(null);
 
-  const openLogin = (payload?: LoginPayload) => {
+  const openLogin = (payload?: LoginPayload, opts?: { skipAnalytics?: boolean }) => {
+    if (!opts?.skipAnalytics) {
+      const trigger = peekAuthTrigger("header");
+      track("signup_prompt_shown", { trigger });
+      track("signin_modal_open", { trigger: consumeAuthTrigger(trigger) });
+    }
     setState({ type: "login", payload: payload ?? {} });
   };
 
   const openFinishAccount = (payload?: FinishPayload) => {
+    rememberAuthTrigger("save_results");
+    track("signup_prompt_shown", { trigger: "save_results" });
+    track("signin_modal_open", { trigger: "save_results" });
     setState({ type: "finish", payload: payload ?? {} });
   };
 
   const openSignIn = (payload?: SignInPayload) => {
+    const trigger = peekAuthTrigger("save_results");
+    track("signup_prompt_shown", { trigger });
+    track("signin_modal_open", { trigger: consumeAuthTrigger(trigger) });
     setState({ type: "signin", payload: payload ?? {} });
   };
 
@@ -76,7 +88,7 @@ export function AuthModalProvider({
           state?.type === "signin" ? state.payload.subheading : undefined
         }
         onClose={closeAuthModal}
-        onEmailClick={() => openLogin()}
+        onEmailClick={() => openLogin(undefined, { skipAnalytics: true })}
       />
 
       <LoginModal
@@ -92,7 +104,7 @@ export function AuthModalProvider({
         guestRef={state?.type === "finish" ? state.payload.guestRef ?? null : null}
         onClose={closeAuthModal}
         onOpenLogin={(payload) => {
-          openLogin(payload);
+          openLogin(payload, { skipAnalytics: true });
         }}
       />
     </AuthModalContext.Provider>

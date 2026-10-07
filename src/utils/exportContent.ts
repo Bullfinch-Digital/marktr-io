@@ -11,6 +11,7 @@ import type {
 } from "../types/contentItemPayload";
 import { CONTENT_TYPE_LABELS } from "../lib/contentTypeLabels";
 import { createTextPdf, downloadCsv, sanitizeExportFilename } from "./pdfTextExport";
+import { track } from "../lib/analytics";
 
 function formatDate(iso: string): string {
   const d = new Date(iso);
@@ -149,6 +150,7 @@ export function exportContentAsPDF(item: ContentItemWithComposition) {
   }
 
   pdf.save(filename);
+  track("content_export", { content_type: item.type });
 }
 
 export function exportContentListAsCSV(items: ContentItemWithComposition[]) {
@@ -175,6 +177,7 @@ export function exportContentListAsCSV(items: ContentItemWithComposition[]) {
     formatDate(item.updated_at || item.created_at),
   ]);
   downloadCsv(filename, headers, rows);
+  track("content_export", { content_type: "list_csv" });
 }
 
 export default {

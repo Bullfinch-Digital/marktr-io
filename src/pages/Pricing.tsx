@@ -19,18 +19,6 @@ import {
   PRICING_PRO_CARD_ID,
 } from "../lib/marktrPricing";
 
-function CompareCell({ value }: { value: boolean | string }) {
-  if (value === true) {
-    return (
-      <Check className="w-5 h-5 mx-auto" strokeWidth={3} style={{ color: "#4A9D3C" }} />
-    );
-  }
-  if (value === false) {
-    return <span>—</span>;
-  }
-  return <>{value}</>;
-}
-
 export default function Pricing() {
   const { openPaywall, isStartingCheckout } = usePaywall();
 
@@ -80,7 +68,7 @@ export default function Pricing() {
             <ul className="space-y-3 mb-8 flex-grow">
               {MARKTR_PRO_BENEFITS.map((feature) => (
                 <li key={feature.id} className="flex items-start gap-2">
-                  <Check className="w-5 h-5 text-button-green shrink-0 mt-0.5" />
+                  <Check className="w-5 h-5 shrink-0 mt-0.5 text-foreground" strokeWidth={2.5} />
                   <span className="font-['Plus_Jakarta_Sans'] text-sm">{feature.label}</span>
                 </li>
               ))}
@@ -127,46 +115,6 @@ export default function Pricing() {
                 Privacy Policy
               </Link>
             </p>
-          </div>
-        </div>
-      </section>
-
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-accent-grey/20">
-        <div className="container mx-auto max-w-5xl">
-          <h2 className="font-['Fraunces'] text-3xl sm:text-4xl text-center mb-12">Compare Plans</h2>
-
-          <div className="bg-background rounded-design border border-black overflow-hidden">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-warm-grey">
-                  <th className="text-left p-4 sm:p-6 font-['Fraunces'] text-lg">Features</th>
-                  <th className="text-center p-4 sm:p-6 font-['Fraunces'] text-lg">Before you sign up</th>
-                  <th className="text-center p-4 sm:p-6 font-['Fraunces'] text-lg bg-button-green/10">
-                    Marktr Pro — {MARKTR_TRIAL_DAYS}-day free trial
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="font-['Plus_Jakarta_Sans'] text-sm">
-                {MARKTR_PRO_BENEFITS.map((feature) => (
-                  <tr key={feature.id} className="border-b border-warm-grey">
-                    <td className="p-4 sm:p-6">{feature.compareLabel}</td>
-                    <td className="text-center p-4 sm:p-6 text-foreground/60">
-                      <CompareCell value={feature.free} />
-                    </td>
-                    <td className="text-center p-4 sm:p-6 bg-button-green/5">
-                      <CompareCell value={feature.pro} />
-                    </td>
-                  </tr>
-                ))}
-                <tr>
-                  <td className="p-4 sm:p-6">{MARKTR_MONEY_BACK_DAYS}-day money-back guarantee</td>
-                  <td className="text-center p-4 sm:p-6 text-foreground/60">—</td>
-                  <td className="text-center p-4 sm:p-6 bg-button-green/5">
-                    <CompareCell value={true} />
-                  </td>
-                </tr>
-              </tbody>
-            </table>
           </div>
         </div>
       </section>

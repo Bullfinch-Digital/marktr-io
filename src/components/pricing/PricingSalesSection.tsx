@@ -64,7 +64,7 @@ export function PricingSalesSection() {
       <div className="pricing-sales-reveal mx-auto mt-16 max-w-[1040px] text-center delay-200 lg:mt-20">
         <p className="mx-auto max-w-3xl font-['Fraunces'] text-2xl font-medium leading-snug text-foreground sm:text-3xl lg:text-[2.15rem]">
           {copy.bridgeBefore}
-          <span className="inline rounded-full border-2 border-brand-stroke bg-brand-lime px-[0.35em] py-[0.05em] text-brand-navy [box-decoration-break:clone] [-webkit-box-decoration-break:clone]">
+          <span className="inline-block whitespace-nowrap rounded-full border-2 border-brand-stroke bg-brand-lime px-[0.35em] py-[0.05em] text-brand-navy">
             {copy.bridgeHighlight}
           </span>
           {copy.bridgeAfter}

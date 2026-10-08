@@ -42,12 +42,6 @@ export type MarktrProBenefit = {
   id: string;
   /** Full copy used in the paywall modal and pricing card checklist. */
   label: string;
-  /** Short label for the Compare Plans table. */
-  compareLabel: string;
-  /** Free-column value: true = check, false = em dash, string = text. */
-  free: boolean | string;
-  /** Pro-column value: true = check, string = text. */
-  pro: boolean | string;
 };
 
 export const MARKTR_PRO_BENEFITS: readonly MarktrProBenefit[] = [
@@ -55,47 +49,29 @@ export const MARKTR_PRO_BENEFITS: readonly MarktrProBenefit[] = [
     id: "brand-story",
     label:
       "Full Brand Story System — beyond your free story: the messaging, value props, and objection-handling to help you know exactly what to say about your business, on your website, in ads, anywhere.",
-    compareLabel: "Full Brand Story System",
-    free: "Free story preview",
-    pro: true,
   },
   {
     id: "unlimited-icps",
     label:
       "Unlimited ICPs — go past the free 3 personas, with full detail for every type of customer you sell to.",
-    compareLabel: "ICPs included",
-    free: "3 ICP previews (read-only)",
-    pro: "Unlimited ICPs",
   },
   {
     id: "health-report",
     label:
       "Your complete health report — see exactly why each score is what it is, with specific suggestions on what to fix first.",
-    compareLabel: "Complete health report",
-    free: "Score overview",
-    pro: true,
   },
   {
     id: "content-strategy",
     label:
       "A content strategy built from your brand and customers — campaign ideas and clear content briefs, so you're never starting from a blank page.",
-    compareLabel: "Content strategy & campaign ideas",
-    free: false,
-    pro: true,
   },
   {
     id: "multiple-brands",
     label: "Manage multiple brands in one place.",
-    compareLabel: "Manage multiple brands",
-    free: false,
-    pro: true,
   },
   {
     id: "export-icp-brand",
     label: "Export and share your ICPs, brand stories, strategies, and content.",
-    compareLabel: "Export ICPs, brand stories, strategies & content",
-    free: false,
-    pro: true,
   },
 ] as const;
 

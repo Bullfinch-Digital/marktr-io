@@ -27,6 +27,8 @@ export type QuoteTestimonial = {
   /** Render a star row only when a genuine rating is set. */
   rating?: number;
   isPlaceholder: boolean;
+  /** Omit from the live strip without deleting the copy. */
+  hidden?: boolean;
 };
 
 // Extension point: a later entry may use kind: "stat" once Jon has a real number.
@@ -114,6 +116,7 @@ const QUOTE_TESTIMONIALS: QuoteTestimonial[] = [
     quote:
       "Knowing what my website was doing well, but most importantly where I could improve things has made a massive difference to the quality of enquiries I'm now getting. Knowing who I'm speaking to has changed everything.",
     isPlaceholder: false,
+    hidden: true,
   },
   {
     kind: "quote",
@@ -141,10 +144,14 @@ const QUOTE_TESTIMONIALS: QuoteTestimonial[] = [
     quote:
       "Trying to generate content ideas to post each week used to take so much time that we'd rather spend designing new product, but with marktr.io we can build an entire strategy around product launches, newsletter sign-ups, and so much more - it's been a game changer.",
     isPlaceholder: false,
+    hidden: true,
   },
 ];
 
-export const TESTIMONIALS: Testimonial[] = [...QUOTE_TESTIMONIALS, ...VIDEO_TESTIMONIALS];
+export const TESTIMONIALS: Testimonial[] = [
+  ...QUOTE_TESTIMONIALS,
+  ...VIDEO_TESTIMONIALS,
+].filter((item) => !(item.kind === "quote" && item.hidden));
 
 export function isVideoTestimonial(item: Testimonial): item is VideoTestimonial {
   return item.kind === "video";

@@ -6,6 +6,13 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.2";
 import {
+  createDefaultAdminNotifier,
+  emailHasExistingAccount,
+  functionLogsUrl,
+  scheduleAdminNotify,
+  shouldNotifyNewLead,
+} from "../_shared/adminNotify.ts";
+import {
   clientIpFromRequest,
   turnstileRejectCode,
   TURNSTILE_REJECT_STATUS,
@@ -34,6 +41,22 @@ function json(body: unknown, status = 200) {
 
 function isValidEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+function notifyCaptureError(code: string) {
+  const notifier = createDefaultAdminNotifier(supabase);
+  scheduleAdminNotify(
+    notifier.notifyAdmin({
+      type: "error",
+      dedupeKey: `error:request-resource-download:${code}:${Date.now()}`,
+      subject: "Error: request-resource-download",
+      lines: [
+        "Function: request-resource-download",
+        `Error: ${code}`,
+        `Logs: ${functionLogsUrl("request-resource-download", supabaseUrl)}`,
+      ],
+    }),
+  );
 }
 
 serve(async (req) => {
@@ -85,6 +108,7 @@ serve(async (req) => {
     const { data: resource, error: resourceError } = await query.maybeSingle();
     if (resourceError) {
       console.error("request-resource-download: resource lookup failed", resourceError);
+      notifyCaptureError("resource_lookup_failed");
       return json({ error: "Unable to load resource", code: "resource_lookup_failed" }, 500);
     }
     if (!resource) {
@@ -93,8 +117,18 @@ serve(async (req) => {
 
     const storagePath = String(resource.storage_path || "").trim();
     if (!storagePath) {
+      notifyCaptureError("storage_path_missing");
       return json({ error: "Resource file missing", code: "storage_path_missing" }, 500);
     }
+
+    const emailNormalized = email.trim().toLowerCase();
+    const { data: existingLead } = await supabase
+      .from("resource_leads")
+      .select("id")
+      .eq("resource_id", resource.id)
+      .eq("email_normalized", emailNormalized)
+      .limit(1)
+      .maybeSingle();
 
     const { error: leadError } = await supabase.from("resource_leads").insert({
       resource_id: resource.id,
@@ -102,6 +136,7 @@ serve(async (req) => {
     });
     if (leadError) {
       console.error("request-resource-download: lead insert failed", leadError);
+      notifyCaptureError("lead_insert_failed");
       return json({ error: "Unable to save email", code: "lead_insert_failed" }, 500);
     }
 
@@ -111,6 +146,7 @@ serve(async (req) => {
 
     if (signedError || !signed?.signedUrl) {
       console.error("request-resource-download: signed URL failed", signedError);
+      notifyCaptureError("signed_url_failed");
       return json(
         {
           error: "Unable to create download link",
@@ -118,6 +154,28 @@ serve(async (req) => {
           hint: "Confirm the PDF exists at resources.storage_path inside the resource-downloads bucket.",
         },
         500,
+      );
+    }
+
+    const hasAccount = await emailHasExistingAccount(supabase, email);
+    if (shouldNotifyNewLead({ isNewRow: !existingLead, hasExistingAccount: hasAccount })) {
+      const notifier = createDefaultAdminNotifier(supabase);
+      scheduleAdminNotify(
+        notifier.notifyAdmin({
+          type: "lead",
+          dedupeKey: `lead:resource:${resource.id}:${emailNormalized}`,
+          subject: `Lead: resource (${resource.slug})`,
+          email,
+          replyTo: email,
+          lines: [
+            `Email: ${email}`,
+            `Source: resource-download`,
+            `Resource id: ${resource.id}`,
+            `Resource: ${resource.slug}`,
+            `Time: ${new Date().toISOString()}`,
+            "Marketing opt-in: —",
+          ],
+        }),
       );
     }
 
@@ -130,6 +188,7 @@ serve(async (req) => {
     });
   } catch (err) {
     console.error("request-resource-download error", err);
+    notifyCaptureError("server_error");
     return json({ error: "Server error" }, 500);
   }
 });

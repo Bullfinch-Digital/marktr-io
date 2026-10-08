@@ -5,6 +5,13 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.2";
 import {
+  createDefaultAdminNotifier,
+  emailHasExistingAccount,
+  functionLogsUrl,
+  scheduleAdminNotify,
+  shouldNotifyNewLead,
+} from "../_shared/adminNotify.ts";
+import {
   clientIpFromRequest,
   turnstileRejectCode,
   TURNSTILE_REJECT_STATUS,
@@ -26,6 +33,22 @@ const json = (body: any, status = 200) =>
     status,
     headers: { "Content-Type": "application/json", ...corsHeaders },
   });
+
+function notifyCaptureError(code: string) {
+  const notifier = createDefaultAdminNotifier(supabase);
+  scheduleAdminNotify(
+    notifier.notifyAdmin({
+      type: "error",
+      dedupeKey: `error:capture-onboarding-lead:${code}:${Date.now()}`,
+      subject: "Error: capture-onboarding-lead",
+      lines: [
+        "Function: capture-onboarding-lead",
+        `Error: ${code}`,
+        `Logs: ${functionLogsUrl("capture-onboarding-lead", supabaseUrl)}`,
+      ],
+    }),
+  );
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -86,6 +109,13 @@ serve(async (req) => {
     }
 
     const now = new Date().toISOString();
+    const emailNormalized = email.trim().toLowerCase();
+    const { data: existing } = await supabase
+      .from("onboarding_leads")
+      .select("id, has_account")
+      .eq("email_normalized", emailNormalized)
+      .maybeSingle();
+
     const payload: any = {
       email,
       source,
@@ -113,9 +143,32 @@ serve(async (req) => {
 
     if (error) throw error;
 
+    const alreadyAccount = intent === "convert" || existing?.has_account === true;
+    const hasAccount = alreadyAccount || (await emailHasExistingAccount(supabase, email));
+    if (shouldNotifyNewLead({ isNewRow: !existing, hasExistingAccount: hasAccount })) {
+      const notifier = createDefaultAdminNotifier(supabase);
+      scheduleAdminNotify(
+        notifier.notifyAdmin({
+          type: "lead",
+          dedupeKey: `lead:onboarding:${emailNormalized}`,
+          subject: `Lead: onboarding (${typeof source === "string" && source.trim() ? source : "onboarding"})`,
+          email,
+          replyTo: email,
+          lines: [
+            `Email: ${email}`,
+            `Source: ${typeof source === "string" && source.trim() ? source : "onboarding"}`,
+            `Has account: ${hasAccount ? "yes" : "no"}`,
+            `Time: ${now}`,
+            "Marketing opt-in: —",
+          ],
+        }),
+      );
+    }
+
     return json({ ok: true });
   } catch (err) {
     console.error("capture-onboarding-lead error", err);
+    notifyCaptureError("server_error");
     return json({ error: "Server error" }, 500);
   }
 });

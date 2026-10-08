@@ -1,0 +1,2 @@
+# Database Webhook sends the service-role Bearer. Checked in the function body.
+verify_jwt = false

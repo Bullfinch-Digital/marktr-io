@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createDefaultAdminNotifier, scheduleAdminNotify } from "../_shared/adminNotify.ts";
 
 type BetaSignupInput = {
   email: string;
@@ -192,6 +193,28 @@ Deno.serve(async (req) => {
         updated_at: nowIso,
       })
       .eq("id", invite.id);
+
+    const notifier = createDefaultAdminNotifier(admin);
+    scheduleAdminNotify(
+      notifier.notifyAdmin({
+        type: "signup",
+        dedupeKey: `signup:${userId}`,
+        subject: `Sign-up: ${email} (email)`,
+        email,
+        replyTo: email,
+        lines: [
+          `Email: ${email}`,
+          "Method: email",
+          `Time: ${nowIso}`,
+          `User id: ${userId}`,
+          "Beta invite: yes",
+          "Guest checkout: no",
+          "Health-check lead: no",
+          "Onboarding source: —",
+          "First-touch source: —",
+        ],
+      }),
+    );
 
     return json({ ok: true, email });
   } catch (err) {

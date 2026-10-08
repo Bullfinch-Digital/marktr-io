@@ -12,6 +12,12 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2?target=deno";
 import Stripe from "https://esm.sh/stripe@12.18.0?target=deno";
 import { sendGa4MeasurementProtocolEvent } from "../_shared/ga4MeasurementProtocol.ts";
+import {
+  createDefaultAdminNotifier,
+  formatMoney,
+  functionLogsUrl,
+  scheduleAdminNotify,
+} from "../_shared/adminNotify.ts";
 
 function json(resBody: unknown, status = 200) {
   return new Response(JSON.stringify(resBody), {
@@ -436,6 +442,7 @@ Deno.serve(async (req) => {
   }
 
   const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
+  const adminNotifier = createDefaultAdminNotifier(supabaseAdmin);
 
   const handleSubscription = async (
     subscription: any,
@@ -651,6 +658,7 @@ Deno.serve(async (req) => {
           if (firstTouch.first_touch_campaign) gaParams.first_touch_campaign = firstTouch.first_touch_campaign;
 
           const subStatus = String(subscription.status || "");
+          const notifyTime = new Date().toISOString();
           if (subStatus === "trialing" || amountTotal === 0) {
             await sendGa4MeasurementProtocolEvent({
               name: "trial_start",
@@ -658,6 +666,21 @@ Deno.serve(async (req) => {
               userId,
               params: gaParams,
             });
+            scheduleAdminNotify(
+              adminNotifier.notifyAdmin({
+                type: "trial",
+                dedupeKey: `trial:${session.id}`,
+                subject: `Trial started: ${email || "unknown"}`,
+                email: email || undefined,
+                replyTo: email || undefined,
+                lines: [
+                  `Email: ${email || "—"}`,
+                  "Plan: annual",
+                  `Time: ${notifyTime}`,
+                  `User id: ${userId}`,
+                ],
+              }),
+            );
           } else if (amountTotal > 0) {
             await sendGa4MeasurementProtocolEvent({
               name: "purchase",
@@ -669,6 +692,22 @@ Deno.serve(async (req) => {
                 currency,
               },
             });
+            scheduleAdminNotify(
+              adminNotifier.notifyAdmin({
+                type: "purchase",
+                dedupeKey: `purchase:${session.id}`,
+                subject: `Purchase: ${email || "unknown"} · ${formatMoney(amountTotal, currency)}`,
+                email: email || undefined,
+                replyTo: email || undefined,
+                lines: [
+                  `Email: ${email || "—"}`,
+                  "Plan: annual",
+                  `Amount: ${formatMoney(amountTotal, currency)}`,
+                  `Time: ${notifyTime}`,
+                  `User id: ${userId}`,
+                ],
+              }),
+            );
           }
 
           await tryMigrateAnonymousSubscriptionToRealUser(supabaseAdmin, {
@@ -677,6 +716,34 @@ Deno.serve(async (req) => {
             stripeCustomerId,
           });
         }
+        break;
+      }
+      case "invoice.payment_failed": {
+        const invoice = event.data.object as {
+          id?: string;
+          customer_email?: string | null;
+          amount_due?: number;
+          currency?: string;
+        };
+        const failedEmail = invoice.customer_email?.trim() || "";
+        scheduleAdminNotify(
+          adminNotifier.notifyAdmin({
+            type: "error",
+            dedupeKey: `error:stripe-webhook:payment_failed:${invoice.id || Date.now()}`,
+            subject: "Error: invoice.payment_failed",
+            email: failedEmail || undefined,
+            lines: [
+              "Function: stripe-webhook",
+              "Error: invoice.payment_failed",
+              `Invoice: ${invoice.id || "—"}`,
+              `Email: ${failedEmail || "—"}`,
+              typeof invoice.amount_due === "number"
+                ? `Amount: ${formatMoney(invoice.amount_due, invoice.currency || "gbp")}`
+                : "Amount: —",
+              `Logs: ${functionLogsUrl("stripe-webhook", supabaseUrl)}`,
+            ],
+          }),
+        );
         break;
       }
       case "invoice.paid": {
@@ -711,6 +778,20 @@ Deno.serve(async (req) => {
     }
   } catch (err) {
     console.error("[stripe-webhook] Handler error", err);
+    const message = err instanceof Error ? err.message : "handler_exception";
+    scheduleAdminNotify(
+      adminNotifier.notifyAdmin({
+        type: "error",
+        dedupeKey: `error:stripe-webhook:handler:${Date.now()}`,
+        subject: "Error: stripe-webhook",
+        lines: [
+          "Function: stripe-webhook",
+          `Error: ${message.slice(0, 200)}`,
+          `Event: ${typeof event?.type === "string" ? event.type : "unknown"}`,
+          `Logs: ${functionLogsUrl("stripe-webhook", supabaseUrl)}`,
+        ],
+      }),
+    );
     return json({ error: "Webhook handler error" }, 500);
   }
 

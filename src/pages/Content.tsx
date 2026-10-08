@@ -473,7 +473,10 @@ function ContentPageBody() {
                   >
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <h3 className="font-['Fraunces'] text-lg text-[#0D1833] truncate">
+                        <h3
+                          className="font-['Fraunces'] text-lg text-[#0D1833] truncate"
+                          title={item.title}
+                        >
                           {item.title}
                         </h3>
                         <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/50 mt-1">

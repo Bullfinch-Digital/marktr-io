@@ -406,6 +406,17 @@ html {
   box-shadow: var(--brand-shadow);
 }
 
+@media (max-width: 480px) {
+  .roster-card-actions {
+    width: 100%;
+  }
+
+  .roster-card-actions button,
+  .roster-card-actions a {
+    min-height: 44px;
+  }
+}
+
 .app-card-nested.app-card-hover:hover,
 .app-card .app-card-hover:hover {
   box-shadow: none;

@@ -287,9 +287,14 @@ export function StrategyAimsSection({
                 className="rounded-design border border-black/15 bg-accent-grey/20 px-4 py-3"
               >
                 <div className="flex flex-wrap items-start justify-between gap-2">
-                  <div className="min-w-0 flex-1">
+                  <div className="min-w-0 flex-1 max-[480px]:basis-full">
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className="font-['Plus_Jakarta_Sans'] text-sm font-medium text-foreground">{aim.title}</p>
+                      <p
+                        className="font-['Plus_Jakarta_Sans'] text-sm font-medium text-foreground line-clamp-2"
+                        title={aim.title}
+                      >
+                        {aim.title}
+                      </p>
                       <span className="rounded-full border border-primary/30 bg-primary/5 px-2 py-0.5 font-['Plus_Jakarta_Sans'] text-[10px] text-primary">
                         {AIM_TYPE_LABELS[aim.aim_type]}
                       </span>
@@ -303,7 +308,7 @@ export function StrategyAimsSection({
                       </p>
                     ) : null}
                   </div>
-                  <div className="flex flex-wrap items-center gap-2">
+                  <div className="roster-card-actions flex flex-wrap items-center gap-2">
                     <Button
                       type="button"
                       variant="outline"
@@ -315,13 +320,11 @@ export function StrategyAimsSection({
                     </Button>
                     <Button
                       type="button"
-                      variant="outline"
                       size="sm"
-                      className="border-black rounded-design gap-1.5"
+                      className="border-brand-navy whitespace-nowrap"
                       onClick={() => startEdit(aim)}
                     >
-                      <Plus className="h-3.5 w-3.5" />
-                      Edit
+                      View/Edit
                     </Button>
                     <ArchiveActionTooltip>
                       <Button
@@ -388,7 +391,12 @@ export function StrategyAimsSection({
                   >
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div className="min-w-0">
-                        <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground truncate">{aim.title}</p>
+                        <p
+                          className="font-['Plus_Jakarta_Sans'] text-sm text-foreground truncate"
+                          title={aim.title}
+                        >
+                          {aim.title}
+                        </p>
                         <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/55">
                           {AIM_TYPE_LABELS[aim.aim_type]} · archived{" "}
                           {aim.deleted_at ? formatDate(aim.deleted_at) : ""}

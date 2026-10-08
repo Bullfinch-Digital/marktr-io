@@ -6,6 +6,10 @@ import { ArchiveActionTooltip } from "../ArchiveActionTooltip";
 import { ContentCompositionBanner } from "./ContentCompositionBanner";
 import { exportContentAsPDF } from "../../utils/exportContent";
 
+function clickIsOnControl(target: EventTarget | null) {
+  return target instanceof Element && Boolean(target.closest("button, a, input, textarea, select"));
+}
+
 type Props = {
   item: ContentItemWithComposition;
   onArchive?: () => void;
@@ -24,17 +28,29 @@ export function ContentRosterCard({
   const navigate = useNavigate();
   const typeLabel = CONTENT_TYPE_LABELS[item.type] ?? item.type;
   const statusLabel = item.status === "approved" ? "Approved" : "Draft";
+  const openItem = () => navigate(`/content/${item.id}`);
 
   return (
-    <article className="app-card p-8">
+    <article
+      className="app-card app-card-hover cursor-pointer p-8 transition-transform duration-200 hover:-translate-y-0.5"
+      onClick={(event) => {
+        if (clickIsOnControl(event.target)) return;
+        openItem();
+      }}
+    >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <button
           type="button"
-          className="text-left min-w-0 flex-1"
-          onClick={() => navigate(`/content/${item.id}`)}
+          className="text-left min-w-0 flex-1 max-[480px]:basis-full"
+          onClick={openItem}
         >
           <div className="flex flex-wrap items-center gap-2">
-            <h3 className="app-heading font-['Fraunces'] text-xl text-foreground truncate">{item.title}</h3>
+            <h3
+              className="app-heading font-['Fraunces'] text-xl text-foreground line-clamp-2"
+              title={item.title}
+            >
+              {item.title}
+            </h3>
             <span className="inline-flex items-center rounded-full border border-black/15 bg-accent-grey/30 px-2 py-0.5 font-['Plus_Jakarta_Sans'] text-[11px] text-foreground/70">
               {typeLabel}
             </span>
@@ -53,15 +69,14 @@ export function ContentRosterCard({
           </p>
         </button>
         {!readOnly ? (
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="roster-card-actions flex flex-wrap items-center gap-2">
             <Button
               type="button"
-              variant="outline"
               size="sm"
-              className="border-black rounded-design"
-              onClick={() => navigate(`/content/${item.id}`)}
+              className="border-brand-navy whitespace-nowrap"
+              onClick={openItem}
             >
-              View & edit
+              View/Edit
             </Button>
             <Button
               type="button"
@@ -99,15 +114,17 @@ export function ContentRosterCard({
             ) : null}
           </div>
         ) : (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="border-black rounded-design"
-            onClick={() => exportContentAsPDF(item)}
-          >
-            Export
-          </Button>
+          <div className="roster-card-actions flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="border-black rounded-design"
+              onClick={() => exportContentAsPDF(item)}
+            >
+              Export
+            </Button>
+          </div>
         )}
       </div>
 

@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronDown, ChevronUp, Plus } from "lucide-react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import type { StrategyWithLinks } from "../../hooks/useBrandStrategies";
 import { StrategyCompositionBanner } from "./StrategyCompositionBanner";
 import { StrategyContentView } from "./StrategyContentView";
@@ -14,6 +14,10 @@ function formatDate(iso: string): string {
   return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 }
 
+function clickIsOnControl(target: EventTarget | null) {
+  return target instanceof Element && Boolean(target.closest("button, a, input, textarea, select"));
+}
+
 type Props = {
   strategy: StrategyWithLinks;
   onArchive?: () => void;
@@ -24,6 +28,7 @@ export function StrategyRosterCard({ strategy, onArchive, readOnly = false }: Pr
   const navigate = useNavigate();
   const [expanded, setExpanded] = useState(false);
   const oneLiner = strategy.strategy?.positioning?.one_liner;
+  const openStrategy = () => navigate(`/strategy/${strategy.id}`);
 
   const previewText = useMemo(() => {
     if (oneLiner) return oneLiner;
@@ -31,29 +36,38 @@ export function StrategyRosterCard({ strategy, onArchive, readOnly = false }: Pr
   }, [oneLiner]);
 
   return (
-    <article className="app-card p-8">
+    <article
+      className="app-card app-card-hover cursor-pointer p-8 transition-transform duration-200 hover:-translate-y-0.5"
+      onClick={(event) => {
+        if (clickIsOnControl(event.target)) return;
+        openStrategy();
+      }}
+    >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <button
           type="button"
-          className="text-left min-w-0 flex-1"
-          onClick={() => navigate(`/strategy/${strategy.id}`)}
+          className="text-left min-w-0 flex-1 max-[480px]:basis-full"
+          onClick={openStrategy}
         >
-          <h3 className="app-heading font-['Fraunces'] text-xl text-foreground truncate">{strategy.title}</h3>
+          <h3
+            className="app-heading font-['Fraunces'] text-xl text-foreground line-clamp-2"
+            title={strategy.title}
+          >
+            {strategy.title}
+          </h3>
           <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/55 mt-1">
             v{strategy.version} · updated {formatDate(strategy.updated_at)}
           </p>
         </button>
         {!readOnly ? (
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="roster-card-actions flex flex-wrap items-center gap-2">
             <Button
               type="button"
-              variant="outline"
               size="sm"
-              className="border-black rounded-design gap-1.5"
-              onClick={() => navigate(`/strategy/${strategy.id}`)}
+              className="border-brand-navy whitespace-nowrap"
+              onClick={openStrategy}
             >
-              <Plus className="h-3.5 w-3.5" />
-              Edit
+              View/Edit
             </Button>
             <Button
               type="button"
@@ -79,15 +93,17 @@ export function StrategyRosterCard({ strategy, onArchive, readOnly = false }: Pr
             ) : null}
           </div>
         ) : (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="border-black rounded-design"
-            onClick={() => exportStrategyAsPDF(strategy)}
-          >
-            Export
-          </Button>
+          <div className="roster-card-actions flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="border-black rounded-design"
+              onClick={() => exportStrategyAsPDF(strategy)}
+            >
+              Export
+            </Button>
+          </div>
         )}
       </div>
 

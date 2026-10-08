@@ -395,6 +395,7 @@ function StrategyPageBody() {
                                   <Link
                                     to={`/strategy/${strategy.id}`}
                                     className="font-['Plus_Jakarta_Sans'] text-sm text-foreground truncate hover:underline block"
+                                    title={strategy.title}
                                   >
                                     {strategy.title}
                                   </Link>

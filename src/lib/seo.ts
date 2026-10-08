@@ -1,3 +1,5 @@
+import { PRICING_SALES } from "./marktrPricing";
+
 /** Canonical public origin — always www, always https, no trailing slash. */
 export const SITE_ORIGIN = "https://www.marktr.io";
 export const APEX_HOST = "marktr.io";
@@ -21,10 +23,10 @@ export const MARKETING_PAGES: MarketingPageSeo[] = [
   },
   {
     path: "/pricing",
-    title: "Pricing | marktr",
+    title: "Pricing | marktr — £25/month, billed annually",
     description:
-      "Start free on marktr. Upgrade for the full Brand Story System, unlimited ICPs, health report, content strategy, and exportable deliverables.",
-    h1: "Plans built to help you target smarter & grow faster",
+      "One plan, everything included. A dedicated marketing team for less than one month of agency fees.",
+    h1: PRICING_SALES.h1,
   },
   {
     path: "/health-check",

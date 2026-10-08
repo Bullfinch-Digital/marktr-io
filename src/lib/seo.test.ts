@@ -58,7 +58,10 @@ describe("marketing pages", () => {
       ]),
     );
     expect(paths).not.toContain("/onboarding-build");
-    expect(getMarketingPage("/pricing")).toMatchObject({ title: "Pricing | marktr" });
+    expect(getMarketingPage("/pricing")).toMatchObject({
+      title: "Pricing | marktr — £25/month, billed annually",
+      h1: "Your own dedicated marketing team for less than one month of agency fees.",
+    });
     expect(isResourcePostPath("/resources/hormozi-marketing-strategy-tested")).toBe(true);
     expect(isResourcePostPath("/resources")).toBe(false);
   });

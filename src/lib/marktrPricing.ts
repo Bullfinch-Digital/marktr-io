@@ -101,3 +101,54 @@ export const MARKTR_PRO_BENEFITS: readonly MarktrProBenefit[] = [
 
 /** Convenience strings for checklists that only need the full benefit copy. */
 export const MARKTR_PRO_BENEFIT_LABELS = MARKTR_PRO_BENEFITS.map((b) => b.label);
+
+/** /pricing sales section above the Pro card. Edit here — copy is used as-is. */
+export const PRICING_PRO_CARD_ID = "pricing-pro";
+
+export const PRICING_SALES = {
+  pill: "One plan. Everything included.",
+  h1: "Your own dedicated marketing team for less than one month of agency fees.",
+  subhead:
+    "Agencies and freelancers charge hundreds, often thousands, to work out who your customers are, what to say and what to post. marktr does that thinking in minutes for £25 a month, billed annually (£300 a year).",
+  costsLabel: "What marketing usually costs",
+  costs: [
+    {
+      title: "Brand strategy and messaging",
+      usualCost: "From £2,500, and often £5,000–£20,000 for strategy plus identity.",
+      withMarktr: "Your brand story, messaging and value props, included.",
+    },
+    {
+      title: "Social media management",
+      usualCost: "Typically £500–£1,500 a month for UK small businesses.",
+      withMarktr: "A content strategy with ready-to-use briefs and scripts, included.",
+    },
+    {
+      title: "Your own time",
+      usualCost:
+        "Hours each week deciding what to post and who it's for. For example, at £30 an hour, 10 hours a month is £300.",
+      withMarktr: "You never start from a blank page.",
+    },
+  ],
+  usualCostLabel: "Usual cost",
+  withMarktrLabel: "With marktr",
+  bridgeBefore: "A whole year of marktr costs ",
+  bridgeHighlight: "less than one month",
+  bridgeAfter: " of a typical agency retainer.",
+  honest:
+    "marktr isn't an agency. It gives you the strategy and the content, and you stay in control of your brand.",
+  cta: "Start your 14-day free trial",
+  ctaFinePrint: "£0 today · Cancel anytime before day 14 · 30-day money-back guarantee",
+  footnoteBefore: "Based on published UK pricing guides, 2026. Your quotes will vary. Sources: ",
+  sources: [
+    {
+      id: "pricing_source_whito_social",
+      label: "UK social media management costs",
+      href: "https://whito.co.uk/research/uk-social-media-management-costs/",
+    },
+    {
+      id: "pricing_source_whito_branding",
+      label: "UK branding design costs",
+      href: "https://whito.co.uk/research/branding-design-costs-uk/",
+    },
+  ],
+} as const;

@@ -1,6 +1,7 @@
 import { Check, Lock, RotateCcw, Heart } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Link } from "react-router-dom";
+import { PricingSalesSection } from "../components/pricing/PricingSalesSection";
 import { usePaywall } from "../contexts/PaywallContext";
 import {
   MARKTR_MONEY_BACK_DAYS,
@@ -15,6 +16,7 @@ import {
   MARKTR_TRIAL_DAYS,
   MARKTR_TRIAL_FINE_PRINT,
   MARKTR_TRIAL_LEGAL_STRIP,
+  PRICING_PRO_CARD_ID,
 } from "../lib/marktrPricing";
 
 function CompareCell({ value }: { value: boolean | string }) {
@@ -60,20 +62,9 @@ export default function Pricing() {
 
   return (
     <div className="min-h-screen bg-background">
-      <section data-track-section="pricing" className="pt-24 pb-16 px-4 sm:px-6 lg:px-8">
-        <div className="container mx-auto max-w-4xl text-center">
-          <h1 className="font-['Fraunces'] text-4xl sm:text-5xl lg:text-6xl mb-6">
-            Plans built to help you target smarter & grow faster
-          </h1>
-          <p className="font-['Plus_Jakarta_Sans'] text-lg sm:text-xl text-foreground/70 max-w-2xl mx-auto">
-            Start free. Upgrade for the full Brand Story System, unlimited ICPs, your complete
-            health report, content strategy, and exportable ICPs, brand stories, strategies, and
-            content.
-          </p>
-        </div>
-      </section>
+      <PricingSalesSection />
 
-      <section className="pb-16 px-4 sm:px-6 lg:px-8">
+      <section id={PRICING_PRO_CARD_ID} data-track-section="pricing" className="scroll-mt-32 pb-16 px-4 sm:px-6 lg:px-8">
         <div className="container mx-auto max-w-xl">
           <div className="relative bg-background rounded-design p-8 flex flex-col border-2 border-black shadow-lg">
             <div className="mb-6">

@@ -433,7 +433,7 @@ export function ICPPreviewCard(props: ICPPreviewCardProps) {
       }}
     >
       <Card className={cls(
-        "transition-all duration-300 group cursor-pointer h-full overflow-hidden",
+        "flex flex-col transition-all duration-300 group cursor-pointer h-full overflow-hidden",
         nested
           ? "app-card-nested border border-[color:var(--brand-nested-stroke)] shadow-none hover:shadow-none"
           : branded
@@ -442,7 +442,7 @@ export function ICPPreviewCard(props: ICPPreviewCardProps) {
       )}>
         {/* Header area: colour + avatar + menu (mirrors CollectionCard structure) */}
         <div
-          className="h-24 border-b border-black relative"
+          className="relative h-24 shrink-0 border-b border-black"
           style={{ backgroundColor: bandColor || icp.color || "#EDEDED" }}
         >
           {/* Lock icon (if locked) */}
@@ -693,7 +693,7 @@ export function ICPPreviewCard(props: ICPPreviewCardProps) {
 
         {/* Body */}
         {previewOnly ? (
-          <div className="p-6 pt-12 bg-background text-left">
+          <div className="flex-1 p-6 pt-12 bg-background text-left">
             <h3 className="app-heading font-['Fraunces'] text-lg mb-1 truncate">{icp.name}</h3>
 
             {previewMetaLine && (
@@ -727,7 +727,7 @@ export function ICPPreviewCard(props: ICPPreviewCardProps) {
             </p>
           </div>
         ) : (
-        <div className="p-6 pt-12 text-center bg-background">
+        <div className="flex-1 p-6 pt-12 text-center bg-background">
           <h3 className="app-heading font-['Fraunces'] text-lg mb-2 truncate">
             {icp.name}
           </h3>

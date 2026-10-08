@@ -62,9 +62,9 @@ export function BrandCard({
       }}
       className="cursor-pointer active:scale-[0.98] transition-transform group h-full"
     >
-      <Card className="h-full overflow-hidden border-2 border-brand-stroke rounded-[24px] hover:shadow-[var(--brand-shadow)] transition-all duration-300 group cursor-pointer">
+      <Card className="flex h-full flex-col overflow-hidden border-2 border-brand-stroke rounded-[24px] hover:shadow-[var(--brand-shadow)] transition-all duration-300 group cursor-pointer">
         <div
-          className="h-24 border-b border-black relative"
+          className="relative h-24 shrink-0 border-b border-black"
           style={{ backgroundColor: bgColor }}
         >
           <div className="absolute top-3 right-3">
@@ -150,7 +150,7 @@ export function BrandCard({
           </div>
         </div>
 
-        <div className="p-6 pt-12 text-left bg-background">
+        <div className="flex-1 p-6 pt-12 text-left bg-background">
           <h3 className="app-heading font-['Fraunces'] text-xl mb-1 truncate">
             {brand.name || "Untitled Brand"}
           </h3>

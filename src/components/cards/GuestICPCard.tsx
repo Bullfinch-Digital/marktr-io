@@ -47,9 +47,9 @@ export function GuestICPCard({ icp }: GuestICPCardProps) {
 
   return (
     <div className="relative animate-fade-in-up h-full">
-      <Card className="app-card-nested border border-[color:var(--brand-nested-stroke)] shadow-none h-full overflow-hidden transition-all duration-300">
+      <Card className="app-card-nested flex h-full flex-col overflow-hidden border border-[color:var(--brand-nested-stroke)] shadow-none transition-all duration-300">
         <div
-          className="h-24 border-b border-brand-nested-stroke relative"
+          className="relative h-24 shrink-0 border-b border-brand-nested-stroke"
           style={{ backgroundColor: icp.color || brandBandForIndex(icp._index) }}
         >
           <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2">
@@ -63,7 +63,7 @@ export function GuestICPCard({ icp }: GuestICPCardProps) {
           </div>
         </div>
 
-        <div className="p-6 pt-12 bg-background text-left flex flex-col h-[calc(100%-6rem)]">
+        <div className="flex flex-1 flex-col bg-background p-6 pt-12 text-left">
           <h3 className="app-heading font-['Fraunces'] text-lg mb-1 truncate">{icp.name}</h3>
 
           {metaLine && (

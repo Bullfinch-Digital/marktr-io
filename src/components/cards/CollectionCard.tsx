@@ -70,9 +70,9 @@ export default function CollectionCard({
         locked ? "collection-locked" : "collection-clickable"
       }`}
     >
-      <Card className="h-full overflow-hidden border-2 border-brand-stroke rounded-[24px] hover:shadow-[var(--brand-shadow)] transition-all duration-300 group cursor-pointer">
+      <Card className="flex h-full flex-col overflow-hidden border-2 border-brand-stroke rounded-[24px] hover:shadow-[var(--brand-shadow)] transition-all duration-300 group cursor-pointer">
         <div
-          className="h-24 border-b border-black relative"
+          className="relative h-24 shrink-0 border-b border-black"
           style={{ backgroundColor: bgColor }}
         >
           <div className="absolute top-3 right-3">
@@ -124,7 +124,7 @@ export default function CollectionCard({
           </div>
         </div>
 
-        <div className="p-6 pt-10 text-center bg-background">
+        <div className="flex-1 p-6 pt-10 text-center bg-background">
           <h3 className="app-heading font-['Fraunces'] text-lg mb-2">{collection.name}</h3>
 
           {collection.tags?.length ? (

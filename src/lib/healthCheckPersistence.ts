@@ -1,6 +1,5 @@
 import { supabase } from "../config/supabase";
 import { scopeQueryToActiveBrand, readStoredActiveBrandId } from "./brandScopedReads";
-import { resolveBrandIdForIcpOps } from "./icpBrandAttach";
 import type { DeterministicHealthCheckRun } from "./healthCheck";
 import {
   serializeScoresForDb,
@@ -204,30 +203,52 @@ export async function countHealthChecksForBrand(
   return count ?? 0;
 }
 
+async function fetchOwnedBrandIds(userId: string): Promise<string[]> {
+  const { data, error } = await supabase
+    .from("brands")
+    .select("id")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.warn("[healthCheck] brand list for write failed", error);
+    return [];
+  }
+  return ((data ?? []) as { id: string }[]).map((row) => row.id);
+}
+
 /**
- * Resolve brand_id for health writes on routes outside BrandProvider (e.g. /health-check/results).
- * Context → localStorage → primary brand in DB (same chain as StoryBuild).
+ * Resolve brand_id for a logged-in health-check save/read.
+ * Only returns a brand the user currently owns — never a deleted localStorage id,
+ * and never creates a guest/draft brand.
  */
 export async function resolveBrandIdForHealthWrite(
   userId: string,
   contextBrandId: string | null,
   brands: { id: string }[]
 ): Promise<{ brandId: string | null; source: "context" | "localStorage" | "db" | null }> {
-  const fromContext =
-    (contextBrandId && brands.some((b) => b.id === contextBrandId) ? contextBrandId : null) ??
-    (brands.length === 1 ? brands[0].id : null);
+  const owned =
+    brands.length > 0 ? brands.map((b) => b.id) : await fetchOwnedBrandIds(userId);
+  const ownedSet = new Set(owned);
 
-  if (fromContext) {
-    return { brandId: fromContext, source: "context" };
+  if (contextBrandId && ownedSet.has(contextBrandId)) {
+    return { brandId: contextBrandId, source: "context" };
   }
 
   const stored = readStoredActiveBrandId();
-  if (stored) {
-    return { brandId: stored, source: "localStorage" };
+  if (stored && ownedSet.has(stored)) {
+    return { brandId: stored, source: brands.length > 0 ? "localStorage" : "db" };
   }
 
-  const fromDb = await resolveBrandIdForIcpOps(userId, null);
-  return fromDb ? { brandId: fromDb, source: "db" } : { brandId: null, source: null };
+  if (owned.length === 1) {
+    return { brandId: owned[0], source: brands.length > 0 ? "context" : "db" };
+  }
+
+  if (owned[0]) {
+    return { brandId: owned[0], source: brands.length > 0 ? "context" : "db" };
+  }
+
+  return { brandId: null, source: null };
 }
 
 export function formatHealthCheckDate(iso: string): string {

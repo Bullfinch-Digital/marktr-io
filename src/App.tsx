@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { PaywallProvider } from "./contexts/PaywallContext";
 import { AuthModalProvider } from "./contexts/AuthModalContext";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
+import { BrandProvider } from "./contexts/BrandContext";
 import { OAuthReturnHandler } from "./components/auth/OAuthReturnHandler";
 import { AdminRoute } from "./components/auth/AdminRoute";
 import { Header, Footer } from "./components";
@@ -213,8 +214,22 @@ function AppRoutes() {
             {/* Onboarding flows — public Header, no Footer */}
             <Route element={<OnboardingLayout />}>
               <Route path="/onboarding-build" element={<OnboardingBuild />} />
-              <Route path="/health-check" element={<HealthCheck />} />
-              <Route path="/health-check/results" element={<HealthCheckResults />} />
+              <Route
+                path="/health-check"
+                element={
+                  <BrandProvider>
+                    <HealthCheck />
+                  </BrandProvider>
+                }
+              />
+              <Route
+                path="/health-check/results"
+                element={
+                  <BrandProvider>
+                    <HealthCheckResults />
+                  </BrandProvider>
+                }
+              />
               <Route path="/story" element={<StoryBuild />} />
               <Route path="/story/results" element={<StoryResults />} />
               <Route path="/guest-dashboard" element={<GuestDashboardPreview />} />

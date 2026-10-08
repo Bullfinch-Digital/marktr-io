@@ -48,8 +48,12 @@ export function pickActiveBrandId(
   if (stored && brands.some((b) => b.id === stored)) {
     return stored;
   }
-  if (preferredId) return preferredId;
-  if (stored) return stored;
+  // Keep pending/stored only while the list is empty (create/loading).
+  // Once brands have loaded, never keep a deleted or foreign id — that
+  // made dashboard scoped reads miss health checks saved under the live brand.
+  if (brands.length === 0) {
+    return preferredId ?? stored ?? null;
+  }
   return brands[0]?.id ?? null;
 }
 

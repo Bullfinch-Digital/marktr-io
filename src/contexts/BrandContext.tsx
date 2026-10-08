@@ -68,9 +68,9 @@ export function BrandProvider({ children }: { children: ReactNode }) {
     if (!user?.id || isLoading || !resolvedActiveBrandId) return;
 
     const pendingSelection =
+      brands.length === 0 &&
       !!selectedBrandId &&
-      selectedBrandId === readStoredActiveBrandId() &&
-      !brands.some((b) => b.id === selectedBrandId);
+      selectedBrandId === readStoredActiveBrandId();
 
     if (pendingSelection) return;
 

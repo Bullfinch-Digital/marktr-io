@@ -325,6 +325,7 @@ export default function HealthCheck() {
       setExistingRun(null);
       return;
     }
+    if (brandLoading) return;
 
     let cancelled = false;
 

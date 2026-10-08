@@ -18,9 +18,14 @@ describe("pickActiveBrandId", () => {
     expect(pickActiveBrandId(brands, "new")).toBe("new");
   });
 
-  it("keeps a pending preferred id instead of snapping to brands[0]", () => {
+  it("keeps a pending preferred id only while the brand list is empty", () => {
     persistActiveBrandId("pending");
-    expect(pickActiveBrandId([{ id: "old" }], "pending")).toBe("pending");
+    expect(pickActiveBrandId([], "pending")).toBe("pending");
+  });
+
+  it("drops a stored id that is not in the loaded brand list", () => {
+    persistActiveBrandId("deleted-turnstile");
+    expect(pickActiveBrandId([{ id: "apostle" }], "deleted-turnstile")).toBe("apostle");
   });
 
   it("falls back to brands[0] when nothing is selected", () => {

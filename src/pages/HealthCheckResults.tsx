@@ -35,7 +35,6 @@ export default function HealthCheckResults() {
   const showDashboardCta =
     hasPaidAccess || (isLoggedInReal && subscriptionLoading);
   const showPaywallUpsell = !showDashboardCta;
-  const saveInFlightRef = useRef(false);
   const completeTrackedRef = useRef(false);
   const lastPersistedRunKeyRef = useRef<string | null>(null);
 
@@ -97,7 +96,7 @@ export default function HealthCheckResults() {
   useEffect(() => {
     const isAnonymous = (user as { is_anonymous?: boolean } | null)?.is_anonymous === true;
     if (!user?.id || isAnonymous || !scores || !state || !persistRunKey) return;
-    if (saveInFlightRef.current) return;
+    if (brandLoading) return;
     if (lastPersistedRunKeyRef.current === persistRunKey) {
       console.debug("[HealthCheckResults] save skipped — already persisted this run", {
         persistRunKey,
@@ -106,30 +105,25 @@ export default function HealthCheckResults() {
     }
 
     let cancelled = false;
-    saveInFlightRef.current = true;
+    const userId = user.id;
 
     void (async () => {
       const { brandId, source } = await resolveBrandIdForHealthWrite(
-        user.id,
+        userId,
         scopedBrandId,
         brands
       );
 
-      if (cancelled) {
-        saveInFlightRef.current = false;
-        return;
-      }
-
       if (!brandId) {
-        console.error("[HealthCheckResults] save skipped — brand_id unresolved after fallbacks", {
-          userId: user.id,
-          activeBrandId,
-          scopedBrandId,
-          brandCount: brands.length,
-          brandLoading,
-          hasBrandProvider: brands.length > 0 || Boolean(activeBrandId),
-        });
-        saveInFlightRef.current = false;
+        if (!cancelled) {
+          console.error("[HealthCheckResults] save skipped — brand_id unresolved after fallbacks", {
+            userId,
+            activeBrandId,
+            scopedBrandId,
+            brandCount: brands.length,
+            brandLoading,
+          });
+        }
         return;
       }
 
@@ -141,7 +135,7 @@ export default function HealthCheckResults() {
       });
 
       console.log("[HealthCheckResults] save inserting", {
-        userId: user.id,
+        userId,
         brandId,
         brandSource: source,
         overall: scores.overall,
@@ -149,19 +143,17 @@ export default function HealthCheckResults() {
         persistRunKey,
       });
 
-      const row = await insertHealthCheckResult(user.id, brandId, {
+      const row = await insertHealthCheckResult(userId, brandId, {
         scores,
         websiteScore: state.websiteScore,
         inputSnapshot,
       });
 
-      saveInFlightRef.current = false;
-
       if (cancelled) return;
 
       if (!row) {
         console.warn("[HealthCheckResults] save failed — insert returned null", {
-          userId: user.id,
+          userId,
           brandId,
         });
         return;
@@ -180,7 +172,7 @@ export default function HealthCheckResults() {
       cancelled = true;
     };
   }, [
-    user,
+    user?.id,
     scores,
     state,
     persistRunKey,

@@ -1,7 +1,9 @@
 import { Fragment, type ReactNode, useEffect } from "react";
 import { Link, useParams } from "react-router-dom";
-import { getResourceBySlug } from "../content/resources";
+import { getRelatedResources, getResourceBySlug } from "../content/resources";
 import { Button } from "../components/ui/button";
+import { applyDocumentSeo } from "../lib/documentSeo";
+import { canonicalUrl } from "../lib/seo";
 
 /** Lightweight inline formatting: **bold** and [label](/path) links. */
 function renderInline(text: string): ReactNode {
@@ -62,22 +64,16 @@ export default function ResourcePost() {
   useEffect(() => {
     if (!post) return;
 
-    const siteUrl = "https://marktr.io";
-    const pageUrl = `${siteUrl}/resources/${post.slug}`;
+    const pageUrl = canonicalUrl(`/resources/${post.slug}`);
     const title = post.seoTitle ?? post.title;
     const description = post.metaDescription ?? post.description;
 
-    document.title = title;
-
-    let meta = document.querySelector(
-      'meta[name="description"]',
-    ) as HTMLMetaElement | null;
-    if (!meta) {
-      meta = document.createElement("meta");
-      meta.name = "description";
-      document.head.appendChild(meta);
-    }
-    meta.content = description;
+    applyDocumentSeo({
+      title,
+      description,
+      canonicalPath: `/resources/${post.slug}`,
+      robots: "index, follow",
+    });
 
     const articleJsonLd = {
       "@type": "Article",
@@ -147,6 +143,8 @@ export default function ResourcePost() {
       }
     };
   }, [post]);
+
+  const related = post ? getRelatedResources(post.slug, 3) : [];
 
   if (!post) {
     return (
@@ -379,6 +377,31 @@ export default function ResourcePost() {
               );
             })}
           </article>
+
+          <nav
+            aria-label="Related resources"
+            className="mt-10 rounded-design border border-black bg-white p-6 sm:p-8"
+          >
+            <h2 className="font-['Fraunces'] text-2xl font-bold">Related reading</h2>
+            <ul className="mt-4 list-disc space-y-2 pl-6 text-foreground/80">
+              {related.map((item) => (
+                <li key={item.slug}>
+                  <Link
+                    className="underline hover:no-underline"
+                    to={`/resources/${item.slug}`}
+                  >
+                    {item.title}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+            <Link
+              to="/resources"
+              className="mt-6 inline-block text-sm underline font-['Fraunces']"
+            >
+              ← Back to Resources
+            </Link>
+          </nav>
         </div>
       </div>
     </main>

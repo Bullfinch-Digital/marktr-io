@@ -3075,3 +3075,29 @@ export const RESOURCE_POSTS: ResourcePost[] = [
 export function getResourceBySlug(slug: string) {
   return RESOURCE_POSTS.find((p) => p.slug === slug) ?? null;
 }
+
+const STOP_WORDS = new Set(["and", "the", "for", "your", "with", "into", "from"]);
+
+function tokensFor(post: ResourcePost): string[] {
+  return `${post.topic} ${post.searchIntent}`
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((t) => t.length > 2 && !STOP_WORDS.has(t));
+}
+
+/** 2–3 related posts for internal linking (topic overlap, then recency). */
+export function getRelatedResources(slug: string, count = 3): ResourcePost[] {
+  const current = getResourceBySlug(slug);
+  const others = RESOURCE_POSTS.filter((p) => p.slug !== slug);
+  if (!current) return others.slice(0, count);
+  const currentTokens = new Set(tokensFor(current));
+  return others
+    .map((p) => ({
+      post: p,
+      overlap: tokensFor(p).filter((t) => currentTokens.has(t)).length,
+      date: p.date ?? "",
+    }))
+    .sort((a, b) => b.overlap - a.overlap || b.date.localeCompare(a.date) || a.post.slug.localeCompare(b.post.slug))
+    .slice(0, count)
+    .map((row) => row.post);
+}

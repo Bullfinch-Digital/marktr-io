@@ -2,9 +2,15 @@
   "redirects": [
     {
       "source": "/:path*",
+      "has": [{ "type": "host", "value": "marktr.io" }],
+      "destination": "https://www.marktr.io/:path*",
+      "statusCode": 301
+    },
+    {
+      "source": "/:path*",
       "has": [{ "type": "host", "value": "app.marktr.io" }],
-      "destination": "https://marktr.io/:path*",
-      "permanent": true
+      "destination": "https://www.marktr.io/:path*",
+      "statusCode": 301
     },
     {
       "source": "/yt04",
@@ -113,8 +119,21 @@
       "source": "/resources",
       "destination": "/resources/index.html"
     },
+    { "source": "/health-check/results", "destination": "/health-check/results/index.html" },
+    { "source": "/story/results", "destination": "/story/results/index.html" },
+    { "source": "/guest-dashboard", "destination": "/guest-dashboard/index.html" },
+    { "source": "/dashboard", "destination": "/dashboard/index.html" },
+    { "source": "/admin", "destination": "/admin/index.html" },
+    { "source": "/account", "destination": "/account/index.html" },
+    { "source": "/strategy", "destination": "/strategy/index.html" },
+    { "source": "/content", "destination": "/content/index.html" },
+    { "source": "/icps", "destination": "/icps/index.html" },
+    { "source": "/my-brands", "destination": "/my-brands/index.html" },
+    { "source": "/collections", "destination": "/collections/index.html" },
+    { "source": "/scheduling", "destination": "/scheduling/index.html" },
+    { "source": "/team", "destination": "/team/index.html" },
     {
-      "source": "/((?!robots\\.txt$|sitemap\\.xml$).*)",
+      "source": "/((?!robots\\.txt$|sitemap\\.xml$|api/).*)",
       "destination": "/"
     }
   ],

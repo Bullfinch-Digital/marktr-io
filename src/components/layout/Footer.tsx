@@ -52,6 +52,16 @@ export function Footer() {
               </li>
               <li>
                 <Link
+                  to="/newsletter"
+                  data-track-id="footer_newsletter"
+                  data-track-location="footer"
+                  className="text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  Newsletter
+                </Link>
+              </li>
+              <li>
+                <Link
                   to="/downloads"
                   data-track-id="footer_downloads"
                   data-track-location="footer"

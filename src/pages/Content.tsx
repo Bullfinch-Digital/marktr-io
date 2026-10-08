@@ -4,7 +4,6 @@ import {
   Archive,
   ChevronDown,
   ChevronUp,
-  Eye,
   FileText,
   Plus,
   RotateCcw,
@@ -12,6 +11,7 @@ import {
 } from "lucide-react";
 import DashboardShell from "../layouts/DashboardShell";
 import { Button } from "../components/ui/button";
+import { ViewEditButton } from "../components/ui/ViewEditButton";
 import { useBrand } from "../contexts/BrandContext";
 import { useContentItems, type ContentItemWithComposition } from "../hooks/useContentItems";
 import { useBrandStrategies } from "../hooks/useBrandStrategies";
@@ -46,6 +46,31 @@ function formatArchivedDate(iso: string): string {
     month: "short",
     year: "numeric",
   });
+}
+
+function readContentFilterParams(search: string) {
+  const params = new URLSearchParams(search);
+  return {
+    strategy: params.get("strategy") ?? "",
+    idea: params.get("idea") ?? "",
+    type: params.get("type") ?? "",
+    status: params.get("status") ?? "",
+  };
+}
+
+function writeContentFilterSearch(filters: {
+  strategy: string;
+  idea: string;
+  type: string;
+  status: string;
+}) {
+  const params = new URLSearchParams();
+  if (filters.strategy) params.set("strategy", filters.strategy);
+  if (filters.idea) params.set("idea", filters.idea);
+  if (filters.type) params.set("type", filters.type);
+  if (filters.status) params.set("status", filters.status);
+  const encoded = params.toString();
+  return encoded ? `?${encoded}` : "";
 }
 
 export default function ContentPage() {
@@ -92,10 +117,11 @@ function ContentPageBody() {
   const [showCreate, setShowCreate] = useState(false);
   const [createPanelKey, setCreatePanelKey] = useState(0);
 
-  const [filterStrategy, setFilterStrategy] = useState("");
-  const [filterIdea, setFilterIdea] = useState("");
-  const [filterType, setFilterType] = useState("");
-  const [filterStatus, setFilterStatus] = useState("");
+  const initialFilters = readContentFilterParams(location.search);
+  const [filterStrategy, setFilterStrategy] = useState(initialFilters.strategy);
+  const [filterIdea, setFilterIdea] = useState(initialFilters.idea);
+  const [filterType, setFilterType] = useState(initialFilters.type);
+  const [filterStatus, setFilterStatus] = useState(initialFilters.status);
 
   const [archivedOpen, setArchivedOpen] = useState(false);
   const [archiveTarget, setArchiveTarget] = useState<ContentItemWithComposition | null>(null);
@@ -129,8 +155,20 @@ function ContentPageBody() {
     launcherIntentRef.current = intent;
     setLauncherIntent(intent);
     if (intent.brandId) setActiveBrand(intent.brandId);
-    navigate(location.pathname, { replace: true, state: {} });
-  }, [location.pathname, location.state, navigate, setActiveBrand]);
+    navigate(`${location.pathname}${location.search}`, { replace: true, state: {} });
+  }, [location.pathname, location.search, location.state, navigate, setActiveBrand]);
+
+  useEffect(() => {
+    const nextSearch = writeContentFilterSearch({
+      strategy: filterStrategy,
+      idea: filterIdea,
+      type: filterType,
+      status: filterStatus,
+    });
+    const currentSearch = location.search || "";
+    if (nextSearch === currentSearch) return;
+    navigate(`${location.pathname}${nextSearch}`, { replace: true, state: location.state });
+  }, [filterStrategy, filterIdea, filterType, filterStatus, location.pathname, location.search, location.state, navigate]);
 
   useEffect(() => {
     if (!brandReady || !scopedBrandId) return;
@@ -484,17 +522,8 @@ function ContentPageBody() {
                           {formatArchivedDate(item.deleted_at || item.updated_at)}
                         </p>
                       </div>
-                      <div className="flex flex-wrap gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="border-black rounded-design gap-1"
-                          onClick={() => navigate(`/content/${item.id}`)}
-                        >
-                          <Eye className="h-3.5 w-3.5" />
-                          View
-                        </Button>
+                      <div className="roster-card-actions flex flex-wrap gap-2">
+                        <ViewEditButton href={`/content/${item.id}`} />
                         <Button
                           type="button"
                           variant="outline"

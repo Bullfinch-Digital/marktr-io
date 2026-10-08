@@ -1,5 +1,6 @@
 import React from "react";
 import { Card } from "../ui/card";
+import { ViewEditButton } from "../ui/ViewEditButton";
 import { MoreVertical, Edit, Trash2, Folder, ExternalLink } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -161,6 +162,13 @@ export function CollectionCard({
               Created {formattedDate}
             </p>
           )}
+          <div
+            className="mt-4 flex justify-center"
+            data-no-card-click="true"
+            onClick={(e) => stop(e)}
+          >
+            <ViewEditButton href={`/collections/${collection.id}`} />
+          </div>
         </div>
       </Card>
     </div>

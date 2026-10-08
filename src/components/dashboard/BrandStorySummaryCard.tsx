@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import type { BrandStoryOutput } from "../../lib/brandStory";
+import { ViewEditButton } from "../ui/ViewEditButton";
 
 type Props = {
   story: BrandStoryOutput | null;
@@ -38,9 +39,7 @@ export function BrandStorySummaryCard({
     <section className="app-card p-8">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <h2 className="app-heading font-['Fraunces'] text-2xl text-foreground">Brand story</h2>
-        <Link to={editHref} className="app-text-link font-['Plus_Jakarta_Sans']">
-          Edit brand story →
-        </Link>
+        <ViewEditButton href={editHref} />
       </div>
       <div className="mt-6 space-y-3">
         {snippets.slice(0, 3).map(({ label, body }) => (

@@ -32,7 +32,13 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     // If href is provided, render as Link
     if (href || asLink) {
       return (
-        <Link to={href || "#"} className={buttonClasses}>
+        <Link
+          to={href || "#"}
+          className={buttonClasses}
+          onClick={props.onClick as React.MouseEventHandler<HTMLAnchorElement> | undefined}
+          aria-label={props["aria-label"]}
+          title={props.title}
+        >
           {props.children}
         </Link>
       )

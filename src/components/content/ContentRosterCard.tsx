@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import type { ContentItemWithComposition } from "../../hooks/useContentItems";
 import { CONTENT_TYPE_LABELS } from "../../lib/contentTypeLabels";
 import { Button } from "../ui/button";
+import { ViewEditButton } from "../ui/ViewEditButton";
 import { ArchiveActionTooltip } from "../ArchiveActionTooltip";
 import { ContentCompositionBanner } from "./ContentCompositionBanner";
 import { exportContentAsPDF } from "../../utils/exportContent";
@@ -70,14 +71,7 @@ export function ContentRosterCard({
         </button>
         {!readOnly ? (
           <div className="roster-card-actions flex flex-wrap items-center gap-2">
-            <Button
-              type="button"
-              size="sm"
-              className="border-brand-navy whitespace-nowrap"
-              onClick={openItem}
-            >
-              View/Edit
-            </Button>
+            <ViewEditButton onClick={openItem} />
             <Button
               type="button"
               variant="outline"

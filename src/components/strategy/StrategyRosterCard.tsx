@@ -5,6 +5,7 @@ import type { StrategyWithLinks } from "../../hooks/useBrandStrategies";
 import { StrategyCompositionBanner } from "./StrategyCompositionBanner";
 import { StrategyContentView } from "./StrategyContentView";
 import { Button } from "../ui/button";
+import { ViewEditButton } from "../ui/ViewEditButton";
 import { ArchiveActionTooltip } from "../ArchiveActionTooltip";
 import { exportStrategyAsPDF } from "../../utils/exportStrategy";
 
@@ -61,14 +62,7 @@ export function StrategyRosterCard({ strategy, onArchive, readOnly = false }: Pr
         </button>
         {!readOnly ? (
           <div className="roster-card-actions flex flex-wrap items-center gap-2">
-            <Button
-              type="button"
-              size="sm"
-              className="border-brand-navy whitespace-nowrap"
-              onClick={openStrategy}
-            >
-              View/Edit
-            </Button>
+            <ViewEditButton onClick={openStrategy} />
             <Button
               type="button"
               variant="outline"

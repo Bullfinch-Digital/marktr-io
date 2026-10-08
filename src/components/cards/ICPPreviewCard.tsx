@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Card } from "../ui/card";
 import { Button } from "../ui/button";
+import { ViewEditButton } from "../ui/ViewEditButton";
 import {
   Eye,
   Copy,
@@ -770,6 +771,25 @@ export function ICPPreviewCard(props: ICPPreviewCardProps) {
           <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/50 mb-4">
             Created {formatDate(createdAt)}
           </p>
+
+          {!previewOnly ? (
+            <div
+              className="mb-4 flex justify-center"
+              data-no-card-click="true"
+              onClick={(e) => stop(e)}
+            >
+              <ViewEditButton
+                href={locked ? undefined : `/icp/${icp.id}`}
+                onClick={(e) => {
+                  stop(e);
+                  if (locked) {
+                    triggerShake();
+                    onUpgrade?.();
+                  }
+                }}
+              />
+            </div>
+          ) : null}
 
           {/* Hover quick actions (view / duplicate / export PDF) */}
           <TooltipProvider>

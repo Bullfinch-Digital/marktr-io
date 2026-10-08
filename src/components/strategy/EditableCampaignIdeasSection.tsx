@@ -51,7 +51,8 @@ export function EditableCampaignIdeasSection({ ideas, isLocked = false, onChange
         {ideas.map((idea, index) => (
           <div
             key={idea.id}
-            className="rounded-design border border-black/15 bg-white p-4 space-y-3"
+            id={idea.id ? `campaign-idea-${idea.id}` : undefined}
+            className="rounded-design border border-black/15 bg-white p-4 space-y-3 scroll-mt-24"
           >
             <div className="flex items-center justify-between gap-2">
               <p className="font-['Plus_Jakarta_Sans'] text-xs font-medium text-foreground/55">

@@ -415,6 +415,12 @@ html {
   .roster-card-actions a {
     min-height: 44px;
   }
+
+  .composition-chip {
+    min-height: 44px;
+    padding-left: 12px;
+    padding-right: 12px;
+  }
 }
 
 .app-card-nested.app-card-hover:hover,

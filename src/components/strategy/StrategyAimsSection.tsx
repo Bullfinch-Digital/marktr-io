@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Archive, ChevronDown, ChevronUp, Eye, Plus, RotateCcw, Trash2 } from "lucide-react";
 import { Button } from "../ui/button";
+import { ViewEditButton } from "../ui/ViewEditButton";
 import { Input } from "../ui/input";
 import { Textarea } from "../ui/textarea";
 import { useAuth } from "../../contexts/AuthContext";
@@ -318,14 +319,7 @@ export function StrategyAimsSection({
                     >
                       {isExpanded ? "Collapse" : "Details"}
                     </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      className="border-brand-navy whitespace-nowrap"
-                      onClick={() => startEdit(aim)}
-                    >
-                      View/Edit
-                    </Button>
+                    <ViewEditButton onClick={() => startEdit(aim)} />
                     <ArchiveActionTooltip>
                       <Button
                         type="button"

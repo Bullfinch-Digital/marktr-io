@@ -1,5 +1,6 @@
 import React from "react";
 import { Card } from "../ui/card";
+import { ViewEditButton } from "../ui/ViewEditButton";
 import { MoreVertical, Eye, Trash2, Building2, Palette, Copy, FileText } from "lucide-react";
 import {
   DropdownMenu,
@@ -161,6 +162,18 @@ export function BrandCard({
           <p className="text-xs text-foreground/50 font-['Plus_Jakarta_Sans']">
             Last updated: {lastUpdated}
           </p>
+          <div
+            className="mt-4"
+            data-no-card-click="true"
+            onClick={(e) => stop(e)}
+          >
+            <ViewEditButton
+              onClick={(e) => {
+                stop(e);
+                onView();
+              }}
+            />
+          </div>
         </div>
       </Card>
     </div>

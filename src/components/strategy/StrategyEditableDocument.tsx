@@ -62,7 +62,8 @@ function SectionShell({
 }) {
   return (
     <div
-      className={`rounded-design border bg-white ${
+      id={sectionId === "campaign_ideas" ? "campaign-ideas" : undefined}
+      className={`rounded-design border bg-white scroll-mt-24 ${
         isEditing
           ? "border-black/30 shadow-md"
           : isStaged

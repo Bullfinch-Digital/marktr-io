@@ -4,6 +4,8 @@ import type { CompositionLinkState } from "./strategyComposition";
 
 export type ContentCompositionStrategy = {
   lineage_id: string;
+  /** Current (or best archived) strategy row id for `/strategy/:id`. */
+  currentId: string | null;
   title: string;
   linkState: CompositionLinkState;
   isArchived: boolean;
@@ -12,6 +14,8 @@ export type ContentCompositionStrategy = {
 
 export type ContentCompositionPersona = {
   lineage_id: string;
+  /** Current (or best archived) ICP row id for `/icp/:id`. */
+  currentId: string | null;
   name: string;
   linkState: CompositionLinkState;
   isArchived: boolean;
@@ -32,6 +36,7 @@ export type ContentComposition = {
 };
 
 type StrategyRowLite = {
+  id: string;
   lineage_id: string;
   title: string;
   strategy?: { campaign_ideas?: Array<{ id?: string; name?: string }> } | null;
@@ -41,6 +46,7 @@ type StrategyRowLite = {
 };
 
 type IcpRowLite = {
+  id: string;
   lineage_id: string;
   name: string;
   superseded_at?: string | null;
@@ -84,6 +90,7 @@ function resolveStrategyLink(
   if (!best) {
     return {
       lineage_id: lineageId,
+      currentId: null,
       title: "Unknown strategy",
       linkState: "deleted",
       isArchived: false,
@@ -93,6 +100,7 @@ function resolveStrategyLink(
   if (!best.superseded_at && !best.deleted_at) {
     return {
       lineage_id: lineageId,
+      currentId: best.id,
       title: best.title,
       linkState: "live",
       isArchived: false,
@@ -101,6 +109,7 @@ function resolveStrategyLink(
   }
   return {
     lineage_id: lineageId,
+    currentId: best.id,
     title: best.title,
     linkState: "archived",
     isArchived: true,
@@ -116,6 +125,7 @@ function resolvePersonaLink(
   if (!best) {
     return {
       lineage_id: lineageId,
+      currentId: null,
       name: snapshotName || "Unknown persona",
       linkState: "deleted",
       isArchived: false,
@@ -125,6 +135,7 @@ function resolvePersonaLink(
   if (!best.superseded_at && !best.deleted_at) {
     return {
       lineage_id: lineageId,
+      currentId: best.id,
       name: best.name,
       linkState: "live",
       isArchived: false,
@@ -133,6 +144,7 @@ function resolvePersonaLink(
   }
   return {
     lineage_id: lineageId,
+    currentId: best.id,
     name: best.name || snapshotName,
     linkState: "archived",
     isArchived: true,
@@ -206,12 +218,12 @@ export async function attachCompositionToContentItems(
   const [{ data: strategyRows }, { data: icpRows }] = await Promise.all([
     supabase
       .from("strategies")
-      .select("lineage_id, title, strategy, superseded_at, deleted_at, version")
+      .select("id, lineage_id, title, strategy, superseded_at, deleted_at, version")
       .eq("user_id", userId)
       .in("lineage_id", strategyLineageIds),
     supabase
       .from("icps")
-      .select("lineage_id, name, superseded_at, deleted_at, version")
+      .select("id, lineage_id, name, superseded_at, deleted_at, version")
       .eq("user_id", userId)
       .in("lineage_id", icpLineageIds),
   ]);

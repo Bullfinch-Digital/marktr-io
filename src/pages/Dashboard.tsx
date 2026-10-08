@@ -32,6 +32,7 @@ import {
 import { CONTENT_TYPE_LABELS } from "../lib/contentTypeLabels";
 import type { ContentItemType } from "../types/contentItemPayload";
 import DashboardShell from "../layouts/DashboardShell";
+import { ViewEditButton } from "../components/ui/ViewEditButton";
 
 type HealthCheckRow = {
   id: string;
@@ -671,19 +672,34 @@ export default function Dashboard() {
             {strategiesLoading ? (
               <p className="mt-4 font-['Plus_Jakarta_Sans'] text-base text-muted-foreground">Loading…</p>
             ) : latestStrategy ? (
-              <button
-                type="button"
+              <div
+                role="link"
+                tabIndex={0}
                 onClick={() => navigate(`/strategy/${latestStrategy.id}`)}
-                className="app-card-nested app-focus-ring mt-4 w-full p-4 text-left transition-colors"
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    navigate(`/strategy/${latestStrategy.id}`);
+                  }
+                }}
+                className="app-card-nested app-focus-ring mt-4 flex w-full cursor-pointer flex-wrap items-start justify-between gap-3 p-4 text-left transition-colors"
               >
-                <p className="app-heading font-['Fraunces'] text-lg truncate text-foreground">
-                  {latestStrategy.title}
-                </p>
-                <p className="mt-1 font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground">
-                  v{latestStrategy.version} · updated {formatDate(latestStrategy.updated_at)} ·{" "}
-                  {campaignIdeaCount} campaign idea{campaignIdeaCount === 1 ? "" : "s"}
-                </p>
-              </button>
+                <div className="min-w-0 flex-1">
+                  <p
+                    className="app-heading font-['Fraunces'] text-lg line-clamp-2 text-foreground"
+                    title={latestStrategy.title}
+                  >
+                    {latestStrategy.title}
+                  </p>
+                  <p className="mt-1 font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground">
+                    v{latestStrategy.version} · updated {formatDate(latestStrategy.updated_at)} ·{" "}
+                    {campaignIdeaCount} campaign idea{campaignIdeaCount === 1 ? "" : "s"}
+                  </p>
+                </div>
+                <span onClick={(event) => event.stopPropagation()}>
+                  <ViewEditButton href={`/strategy/${latestStrategy.id}`} />
+                </span>
+              </div>
             ) : (
               <div className="mt-4">
                 <p className="font-['Plus_Jakarta_Sans'] text-base text-muted-foreground">
@@ -731,9 +747,17 @@ export default function Dashboard() {
                 <ul className="mt-4 space-y-2">
                   {recentDrafts.map((item) => (
                     <li key={item.id}>
-                      <Link
-                        to={`/content/${item.id}`}
-                        className="app-card-nested flex min-h-11 items-center justify-between gap-3 px-4 py-3"
+                      <div
+                        role="link"
+                        tabIndex={0}
+                        onClick={() => navigate(`/content/${item.id}`)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            navigate(`/content/${item.id}`);
+                          }
+                        }}
+                        className="app-card-nested flex min-h-11 cursor-pointer flex-wrap items-center justify-between gap-3 px-4 py-3"
                       >
                         <span className="min-w-0 truncate font-['Plus_Jakarta_Sans'] text-base text-foreground">
                           {CONTENT_TYPE_LABELS[item.type]}
@@ -741,10 +765,15 @@ export default function Dashboard() {
                             ? ` · ${item.composition.persona.name}`
                             : ""}
                         </span>
-                        <span className="shrink-0 font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground">
-                          {formatDate(item.updated_at)}
-                        </span>
-                      </Link>
+                        <div className="flex shrink-0 items-center gap-3">
+                          <span className="font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground">
+                            {formatDate(item.updated_at)}
+                          </span>
+                          <span onClick={(event) => event.stopPropagation()}>
+                            <ViewEditButton href={`/content/${item.id}`} />
+                          </span>
+                        </div>
+                      </div>
                     </li>
                   ))}
                 </ul>

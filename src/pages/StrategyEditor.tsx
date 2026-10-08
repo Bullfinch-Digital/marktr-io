@@ -150,6 +150,14 @@ function StrategyEditorBody() {
   }, [strategy?.id, strategy?.version, resetEditDraft]);
 
   useEffect(() => {
+    if (!strategy || loading) return;
+    const hash = window.location.hash.replace(/^#/, "");
+    if (!hash) return;
+    const el = document.getElementById(hash);
+    el?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [strategy?.id, loading]);
+
+  useEffect(() => {
     if (!user?.id || !strategy?.lineage_id) return;
     const lineageId = strategy.lineage_id;
 

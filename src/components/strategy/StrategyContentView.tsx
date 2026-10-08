@@ -107,7 +107,8 @@ export function StrategyContentView({ strategy, compact = false, bare = false, s
           {(campaignLimit ? campaigns.slice(0, campaignLimit) : campaigns).map((c) => (
             <div
               key={c.id}
-              className="rounded-design border border-black/10 bg-accent-grey/10 p-3"
+              id={c.id ? `campaign-idea-${c.id}` : undefined}
+              className="rounded-design border border-black/10 bg-accent-grey/10 p-3 scroll-mt-24"
             >
               <p className="font-['Plus_Jakarta_Sans'] text-sm font-medium text-foreground">{c.name}</p>
               <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/70 mt-1">{c.hook}</p>

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Check, Circle } from "lucide-react";
+import { Check } from "lucide-react";
 import { Button } from "../ui/button";
 import type { ICPStrategyPayload, SuggestedContentItem } from "../../types/icpStrategyPayload";
 import type { CompositionIcp } from "../../lib/strategyComposition";
@@ -182,50 +182,47 @@ export function StrategySuggestedContentChecklist({
               key={row.id}
               className="flex flex-wrap items-start justify-between gap-3 rounded-design border border-black/10 px-3 py-2.5"
             >
-              <div className="min-w-0 flex-1 flex gap-2">
-                <span className="mt-0.5 shrink-0">
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-1.5">
                   {done ? (
-                    <Check className="h-4 w-4 text-brand-navy" />
-                  ) : (
-                    <Circle className="h-4 w-4 text-foreground/30" />
-                  )}
-                </span>
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="inline-flex items-center rounded-full border border-black/15 bg-accent-grey/30 px-2 py-0.5 font-['Plus_Jakarta_Sans'] text-[10px]">
-                      {typeLabel}
+                    <span className="inline-flex items-center gap-1 rounded-full bg-brand-navy px-2 py-0.5 font-['Plus_Jakarta_Sans'] text-[10px] font-medium text-brand-lime">
+                      <Check className="h-3 w-3" aria-hidden />
+                      Created
                     </span>
-                    <span className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/60">
-                      {row.ideaRemoved ? (
-                        <>
-                          (removed: {row.ideaName})
-                        </>
-                      ) : (
-                        row.ideaName
-                      )}
-                    </span>
-                  </div>
-                  <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/80 mt-1">{row.rationale}</p>
-                  {row.ideaRemoved ? (
-                    <p className="font-['Plus_Jakarta_Sans'] text-[11px] text-foreground mt-1">
-                      Campaign idea no longer on this strategy — create as strategy-level.
-                    </p>
                   ) : null}
+                  <span className="inline-flex items-center rounded-full border border-black/15 bg-accent-grey/30 px-2 py-0.5 font-['Plus_Jakarta_Sans'] text-[10px]">
+                    {typeLabel}
+                  </span>
+                  <span className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/60">
+                    {row.ideaRemoved ? (
+                      <>
+                        (removed: {row.ideaName})
+                      </>
+                    ) : (
+                      row.ideaName
+                    )}
+                  </span>
                 </div>
+                <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/80 mt-1">{row.rationale}</p>
+                {row.ideaRemoved ? (
+                  <p className="font-['Plus_Jakarta_Sans'] text-[11px] text-foreground mt-1">
+                    Campaign idea no longer on this strategy — create as strategy-level.
+                  </p>
+                ) : null}
               </div>
               <div className="shrink-0">
                 {done && contentId ? (
                   <Link
                     to={`/content/${contentId}`}
-                    className="inline-flex items-center h-8 px-3 rounded-design border border-black font-['Plus_Jakarta_Sans'] text-xs hover:bg-accent-grey/30"
+                    className="inline-flex h-8 items-center whitespace-nowrap rounded-design border border-black px-3 font-['Plus_Jakarta_Sans'] text-xs hover:bg-accent-grey/30"
                   >
-                    Open
+                    Open in Content
                   </Link>
                 ) : (
                   <Button
                     type="button"
                     size="sm"
-                    className="bg-button-green hover:bg-button-green/90 text-foreground border border-black rounded-design h-8"
+                    className="bg-button-green hover:bg-button-green/90 text-foreground border border-black rounded-design h-8 whitespace-nowrap"
                     onClick={() => handleCreate(row)}
                   >
                     Create this

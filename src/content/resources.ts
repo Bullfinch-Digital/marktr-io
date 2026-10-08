@@ -33,7 +33,7 @@ export type ResourcePost = {
         href?: string;
         linkText?: string;
       }
-    | { type: "youtube"; videoId: string; title?: string }
+    | { type: "youtube"; videoId: string; title?: string } // add another of these blocks to embed a second video
     | { type: "table"; headers: string[]; rows: string[][] }
   >;
 };
@@ -42,6 +42,8 @@ export type ResourcePost = {
  * Add/edit posts here.
  * - These power /resources and /resources/:slug
  * - bgColor keeps the same colourful card vibe as the homepage ResourcesSection
+ * - YouTube: add `{ type: "youtube", videoId, title }` in `body` (as many as you need).
+ *   Each block uses the same 16:9 youtube-nocookie embed — no extra player config.
  */
 export const RESOURCE_POSTS: ResourcePost[] = [
   {
@@ -2849,6 +2851,13 @@ export const RESOURCE_POSTS: ResourcePost[] = [
         videoId: "69GW3omZUuc",
         title: "The Psychology of Premium Branding (And What It Nearly Cost Me)",
       },
+      { type: "h2", text: "Short on time? The 5-minute version." },
+      {
+        type: "youtube",
+        videoId: "2LOKhfy3UDU",
+        title:
+          "Give Me 5 Minutes I'll Give You 5 Psychology Tricks That Let Brands Charge More",
+      },
       {
         type: "p",
         text:
@@ -3074,6 +3083,29 @@ export const RESOURCE_POSTS: ResourcePost[] = [
 
 export function getResourceBySlug(slug: string) {
   return RESOURCE_POSTS.find((p) => p.slug === slug) ?? null;
+}
+
+export type YoutubeBlock = Extract<ResourcePost["body"][number], { type: "youtube" }>;
+
+export function youtubeEmbedUrl(videoId: string): string {
+  return `https://www.youtube-nocookie.com/embed/${videoId}`;
+}
+
+/** Every `{ type: "youtube" }` block in a post, in body order. */
+export function getYoutubeBlocks(post: ResourcePost): YoutubeBlock[] {
+  return post.body.filter((block): block is YoutubeBlock => block.type === "youtube");
+}
+
+export function youtubeVideoObjects(post: ResourcePost, pageUrl: string) {
+  return getYoutubeBlocks(post).map((block) => ({
+    "@type": "VideoObject",
+    "@id": `${pageUrl}#video-${block.videoId}`,
+    name: block.title ?? post.title,
+    embedUrl: youtubeEmbedUrl(block.videoId),
+    thumbnailUrl: `https://i.ytimg.com/vi/${block.videoId}/hqdefault.jpg`,
+    url: `https://www.youtube.com/watch?v=${block.videoId}`,
+    uploadDate: post.date,
+  }));
 }
 
 const STOP_WORDS = new Set(["and", "the", "for", "your", "with", "into", "from"]);

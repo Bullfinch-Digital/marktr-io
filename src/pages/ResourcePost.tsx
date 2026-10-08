@@ -1,6 +1,11 @@
 import { Fragment, type ReactNode, useEffect } from "react";
 import { Link, useParams } from "react-router-dom";
-import { getRelatedResources, getResourceBySlug } from "../content/resources";
+import {
+  getRelatedResources,
+  getResourceBySlug,
+  youtubeVideoObjects,
+} from "../content/resources";
+import { YoutubeEmbed } from "../components/resources/YoutubeEmbed";
 import { Button } from "../components/ui/button";
 import { applyDocumentSeo } from "../lib/documentSeo";
 import { canonicalUrl } from "../lib/seo";
@@ -124,6 +129,7 @@ export default function ResourcePost() {
         })),
       });
     }
+    graph.push(...youtubeVideoObjects(post, pageUrl));
 
     const oldScript = document.getElementById("resource-jsonld");
     if (oldScript) oldScript.remove();
@@ -167,7 +173,7 @@ export default function ResourcePost() {
   }
 
   return (
-    <main className="bg-background py-16 sm:py-20 lg:py-24">
+    <main className="overflow-x-hidden bg-background py-16 sm:py-20 lg:py-24">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl">
           <Link to="/resources" className="text-sm underline font-['Fraunces']">
@@ -315,22 +321,7 @@ export default function ResourcePost() {
                 const title =
                   block.title ?? "YouTube video related to this article";
                 return (
-                  <div
-                    key={idx}
-                    className="mt-6 overflow-hidden rounded-design border border-black bg-black/5"
-                  >
-                    <div className="relative w-full" style={{ paddingTop: "56.25%" }}>
-                      <iframe
-                        className="absolute inset-0 h-full w-full"
-                        src={`https://www.youtube-nocookie.com/embed/${block.videoId}`}
-                        title={title}
-                        loading="lazy"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                        referrerPolicy="strict-origin-when-cross-origin"
-                        allowFullScreen
-                      />
-                    </div>
-                  </div>
+                  <YoutubeEmbed key={idx} videoId={block.videoId} title={title} />
                 );
               }
               if (block.type === "table") {

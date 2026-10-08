@@ -31,9 +31,8 @@ await build({
   logLevel: "silent",
 });
 
-const { RESOURCE_POSTS, getRelatedResources } = await import(
-  pathToFileURL(tmpPosts).href
-);
+const { RESOURCE_POSTS, getRelatedResources, youtubeEmbedUrl, youtubeVideoObjects } =
+  await import(pathToFileURL(tmpPosts).href);
 const { MARKETING_PAGES, NOINDEX_SHELLS, canonicalUrl } = await import(
   pathToFileURL(tmpSeo).href
 );
@@ -145,7 +144,25 @@ function buildPostJsonLd(post, title, description) {
       })),
     });
   }
+  graph.push(...youtubeVideoObjects(post, pageUrl));
   return { "@context": "https://schema.org", "@graph": graph };
+}
+
+function youtubeShellHtml(post) {
+  const chunks = [];
+  for (let i = 0; i < post.body.length; i += 1) {
+    const block = post.body[i];
+    if (block.type !== "youtube") continue;
+    const prev = post.body[i - 1];
+    if (prev?.type === "h2") {
+      chunks.push(`<h2>${escapeHtml(prev.text)}</h2>`);
+    }
+    const title = block.title ?? post.title;
+    chunks.push(
+      `<div class="mt-6 w-full max-w-full overflow-hidden rounded-design border border-black bg-black/5"><div class="relative w-full max-w-full" style="padding-top:56.25%"><iframe class="absolute inset-0 h-full w-full max-w-full" src="${escapeAttr(youtubeEmbedUrl(block.videoId))}" title="${escapeAttr(title)}" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div></div>`,
+    );
+  }
+  return chunks.join("");
 }
 
 function escapeHtml(s) {
@@ -207,7 +224,7 @@ for (const post of RESOURCE_POSTS) {
   const description = post.metaDescription ?? post.description;
   const jsonLd = buildPostJsonLd(post, title, description);
   const related = getRelatedResources(post.slug, 3);
-  const relatedHtml = `<nav aria-label="Related resources"><ul>${related
+  const relatedHtml = `${youtubeShellHtml(post)}<nav aria-label="Related resources"><ul>${related
     .map(
       (item) =>
         `<li><a href="/resources/${escapeAttr(item.slug)}">${escapeHtml(item.title)}</a></li>`,

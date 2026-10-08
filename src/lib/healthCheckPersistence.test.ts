@@ -14,6 +14,7 @@ vi.mock("../config/supabase", () => ({
 import {
   fetchLatestHealthCheck,
   insertHealthCheckResult,
+  persistHealthCheckForActiveBrand,
   resolveBrandIdForHealthWrite,
 } from "./healthCheckPersistence";
 
@@ -147,5 +148,79 @@ describe("health check save + read against the active brand", () => {
       { id: "brand-b" },
     ]);
     expect(resolved).toEqual({ brandId: "brand-b", source: "localStorage" });
+  });
+});
+
+describe("persistHealthCheckForActiveBrand", () => {
+  const payload = {
+    userId: "user-jon",
+    contextBrandId: "brand-apostle",
+    brands: [{ id: "brand-apostle" }],
+    scores: sampleScores(),
+    input: {
+      websiteUrl: "https://apostle.coffee",
+      instagramHandle: "",
+      facebookUrl: "",
+    },
+  };
+
+  const matchingRow = {
+    id: "row-1",
+    user_id: "user-jon",
+    brand_id: "brand-apostle",
+    domain: "apostle.coffee",
+    instagram_handle: "",
+    facebook_url: "",
+    overall_score: 55,
+    scores: sampleScores(),
+    created_at: "2026-10-08T10:00:00.000Z",
+  };
+
+  beforeEach(() => {
+    from.mockReset();
+    localStorage.removeItem(ACTIVE_BRAND_STORAGE_KEY);
+  });
+
+  it("returns no_brand when the user has no owned brand", async () => {
+    from.mockImplementation((table: string) => {
+      if (table === "brands") return chain({ data: [], error: null });
+      return chain({ data: null, error: null });
+    });
+
+    const result = await persistHealthCheckForActiveBrand({
+      ...payload,
+      contextBrandId: null,
+      brands: [],
+    });
+    expect(result).toEqual({ ok: false, reason: "no_brand" });
+  });
+
+  it("returns insert_error when the insert fails", async () => {
+    const fetchQuery = chain({ data: null, error: null });
+    const insertQuery = chain({ data: null, error: { message: "rls" } });
+    let resultsCalls = 0;
+    from.mockImplementation((table: string) => {
+      if (table === "health_check_results") {
+        resultsCalls += 1;
+        return resultsCalls === 1 ? fetchQuery : insertQuery;
+      }
+      return chain({ data: [], error: null });
+    });
+
+    const result = await persistHealthCheckForActiveBrand(payload);
+    expect(result).toEqual({ ok: false, reason: "insert_error" });
+    expect(insertQuery.insert).toHaveBeenCalled();
+  });
+
+  it("does not insert a duplicate when this run is already saved", async () => {
+    const fetchQuery = chain({ data: matchingRow, error: null });
+    from.mockImplementation((table: string) => {
+      if (table === "health_check_results") return fetchQuery;
+      return chain({ data: [], error: null });
+    });
+
+    const result = await persistHealthCheckForActiveBrand(payload);
+    expect(result).toEqual({ ok: true, row: matchingRow, alreadySaved: true });
+    expect(fetchQuery.insert).not.toHaveBeenCalled();
   });
 });

@@ -1,3 +1,4 @@
+import { type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { GuestResultsNextStepsCta } from "../guest/GuestResultsNextStepsCta";
 import { SendScoreCard } from "./SendScoreCard";
@@ -523,6 +524,8 @@ export type HealthCheckReportViewProps = {
   showPaywallUpsell: boolean;
   showDashboardCta: boolean;
   onGoToDashboard?: () => void;
+  /** Inline, non-blocking notice above the report (e.g. dashboard save failed). */
+  saveNotice?: ReactNode;
   /** When true, omits standalone page chrome (used inside DashboardShell). */
   embedded?: boolean;
   /** Pillar mode: skip badge/title intro — parent supplies header chrome. */
@@ -650,6 +653,7 @@ export function HealthCheckReportView({
   showPaywallUpsell,
   showDashboardCta,
   onGoToDashboard,
+  saveNotice = null,
   embedded = false,
   pillarMode = false,
   bfRoute = null,
@@ -685,6 +689,7 @@ export function HealthCheckReportView({
 
   const reportContent = (
     <>
+      {saveNotice}
       {!pillarMode && (
         <>
           <span className="inline-flex items-center rounded-full bg-brand-lime px-3 py-1 font-body text-xs font-medium text-brand-navy">
@@ -746,7 +751,7 @@ export function HealthCheckReportView({
         </p>
       ) : null}
 
-      {showDashboardCta && (
+      {showDashboardCta && !saveNotice && (
         <div className="mt-6 flex flex-col gap-4 rounded-2xl border border-primary/20 bg-primary/5 px-6 py-5 sm:flex-row sm:items-center">
           <div className="flex-1">
             <p className="font-body text-sm font-semibold text-foreground">
@@ -822,7 +827,7 @@ export function HealthCheckReportView({
         />
       ) : null}
 
-      {showDashboardCta && (
+      {showDashboardCta && !saveNotice && (
         <div className="mt-8 rounded-2xl bg-brand-navy px-8 py-8 text-white">
           <h2 className="mb-3 font-display text-3xl font-semibold">Your scores are saved.</h2>
           <p className="mb-6 max-w-lg font-body text-sm text-white/70">

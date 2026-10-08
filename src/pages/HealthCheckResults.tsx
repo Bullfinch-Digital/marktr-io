@@ -1,5 +1,5 @@
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
-import { useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { calculateScores, type HealthCheckInput } from "../lib/healthCheckScoring";
 import { mergeHealthFindings } from "../lib/healthCheckFindings";
 import { setGuestHealthCheck } from "../lib/guestHealthCheck";
@@ -9,10 +9,10 @@ import { useBrand } from "../contexts/BrandContext";
 import useSubscription from "../hooks/useSubscription";
 import useProfile from "../hooks/useProfile";
 import { HealthCheckReportView } from "../components/healthCheck/HealthCheckReportView";
+import { DashboardSaveFailedNotice } from "../components/DashboardSaveFailedNotice";
 import {
-  buildHealthCheckInputSnapshot,
-  insertHealthCheckResult,
-  resolveBrandIdForHealthWrite,
+  persistHealthCheckForActiveBrand,
+  type HealthCheckSaveFailureReason,
 } from "../lib/healthCheckPersistence";
 import { resolveScopedBrandId } from "../lib/brandScopedReads";
 import { markHealthCompleted, scoreBand, track } from "../lib/analytics";
@@ -37,6 +37,9 @@ export default function HealthCheckResults() {
   const showPaywallUpsell = !showDashboardCta;
   const completeTrackedRef = useRef(false);
   const lastPersistedRunKeyRef = useRef<string | null>(null);
+  const saveInFlightRef = useRef(false);
+  const [saveFailed, setSaveFailed] = useState(false);
+  const [retrying, setRetrying] = useState(false);
 
   const scopedBrandId = resolveScopedBrandId(activeBrandId, brands);
 
@@ -60,6 +63,50 @@ export default function HealthCheckResults() {
       modelVersion: scores.deterministic?.modelVersion ?? "",
     });
   }, [state, scores]);
+
+  const persistResult = useCallback(async (): Promise<boolean> => {
+    const isAnonymous = (user as { is_anonymous?: boolean } | null)?.is_anonymous === true;
+    if (!user?.id || isAnonymous || !scores || !state || !persistRunKey) return true;
+    if (brandLoading) return true;
+    if (lastPersistedRunKeyRef.current === persistRunKey) return true;
+    if (saveInFlightRef.current) return true;
+
+    saveInFlightRef.current = true;
+    const result = await persistHealthCheckForActiveBrand({
+      userId: user.id,
+      contextBrandId: scopedBrandId,
+      brands,
+      scores,
+      websiteScore: state.websiteScore,
+      input: {
+        websiteUrl: state.websiteUrl,
+        instagramHandle: state.instagramHandle,
+        facebookUrl: state.facebookUrl,
+        businessName: state.businessName,
+      },
+    });
+    saveInFlightRef.current = false;
+
+    if (result.ok) {
+      lastPersistedRunKeyRef.current = persistRunKey;
+      setSaveFailed(false);
+      return true;
+    }
+
+    const reason: HealthCheckSaveFailureReason = result.reason;
+    setSaveFailed(true);
+    track("health_check_save_failed", { reason });
+    console.warn("[HealthCheckResults] save failed", { reason });
+    return false;
+  }, [
+    user?.id,
+    scores,
+    state,
+    persistRunKey,
+    brandLoading,
+    scopedBrandId,
+    brands,
+  ]);
 
   useEffect(() => {
     if (!state || !scores) return;
@@ -94,93 +141,18 @@ export default function HealthCheckResults() {
   }, [state, scores]);
 
   useEffect(() => {
-    const isAnonymous = (user as { is_anonymous?: boolean } | null)?.is_anonymous === true;
-    if (!user?.id || isAnonymous || !scores || !state || !persistRunKey) return;
-    if (brandLoading) return;
-    if (lastPersistedRunKeyRef.current === persistRunKey) {
-      console.debug("[HealthCheckResults] save skipped — already persisted this run", {
-        persistRunKey,
-      });
-      return;
+    void persistResult();
+  }, [persistResult]);
+
+  const handleRetrySave = async () => {
+    setRetrying(true);
+    try {
+      lastPersistedRunKeyRef.current = null;
+      await persistResult();
+    } finally {
+      setRetrying(false);
     }
-
-    let cancelled = false;
-    const userId = user.id;
-
-    void (async () => {
-      const { brandId, source } = await resolveBrandIdForHealthWrite(
-        userId,
-        scopedBrandId,
-        brands
-      );
-
-      if (!brandId) {
-        if (!cancelled) {
-          console.error("[HealthCheckResults] save skipped — brand_id unresolved after fallbacks", {
-            userId,
-            activeBrandId,
-            scopedBrandId,
-            brandCount: brands.length,
-            brandLoading,
-          });
-        }
-        return;
-      }
-
-      const inputSnapshot = buildHealthCheckInputSnapshot({
-        websiteUrl: state.websiteUrl,
-        instagramHandle: state.instagramHandle,
-        facebookUrl: state.facebookUrl,
-        businessName: state.businessName,
-      });
-
-      console.log("[HealthCheckResults] save inserting", {
-        userId,
-        brandId,
-        brandSource: source,
-        overall: scores.overall,
-        hasDeterministic: Boolean(scores.deterministic ?? state.websiteScore?.deterministic),
-        persistRunKey,
-      });
-
-      const row = await insertHealthCheckResult(userId, brandId, {
-        scores,
-        websiteScore: state.websiteScore,
-        inputSnapshot,
-      });
-
-      if (cancelled) return;
-
-      if (!row) {
-        console.warn("[HealthCheckResults] save failed — insert returned null", {
-          userId,
-          brandId,
-        });
-        return;
-      }
-
-      lastPersistedRunKeyRef.current = persistRunKey;
-      console.log("[HealthCheckResults] save inserted", {
-        rowId: row.id,
-        brandId: row.brand_id,
-        createdAt: row.created_at,
-        hasDeterministic: Boolean(row.scores?.deterministic),
-      });
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [
-    user?.id,
-    scores,
-    state,
-    persistRunKey,
-    scopedBrandId,
-    activeBrandId,
-    brands,
-    brandLoading,
-  ]);
+  };
 
   if (!state || !effectiveEmail || !scores) {
     return <Navigate to="/health-check" replace />;
@@ -198,6 +170,11 @@ export default function HealthCheckResults() {
       showPaywallUpsell={showPaywallUpsell}
       showDashboardCta={showDashboardCta}
       onGoToDashboard={() => navigate("/dashboard")}
+      saveNotice={
+        saveFailed ? (
+          <DashboardSaveFailedNotice onRetry={() => void handleRetrySave()} retrying={retrying} />
+        ) : null
+      }
     />
   );
 }

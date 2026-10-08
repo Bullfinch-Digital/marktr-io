@@ -39,6 +39,12 @@ export type HealthCheckInsertPayload = {
   inputSnapshot: HealthCheckInputSnapshot;
 };
 
+export type HealthCheckSaveFailureReason = "insert_error" | "no_brand" | "unknown";
+
+export type HealthCheckPersistResult =
+  | { ok: true; row: HealthCheckRow; alreadySaved: boolean }
+  | { ok: false; reason: HealthCheckSaveFailureReason };
+
 function extractDomain(url: string): string {
   try {
     const prefixed = /^https?:\/\//i.test(url) ? url : `https://${url}`;
@@ -249,6 +255,104 @@ export async function resolveBrandIdForHealthWrite(
   }
 
   return { brandId: null, source: null };
+}
+
+export function healthCheckRunKey(opts: {
+  domain: string;
+  instagramHandle: string;
+  facebookUrl: string;
+  overall: number;
+  modelVersion: string;
+}): string {
+  return JSON.stringify({
+    domain: opts.domain,
+    instagramHandle: opts.instagramHandle,
+    facebookUrl: opts.facebookUrl,
+    overall: opts.overall,
+    modelVersion: opts.modelVersion,
+  });
+}
+
+export function healthCheckRunKeyFromPayload(
+  scores: HealthCheckScores,
+  inputSnapshot: HealthCheckInputSnapshot
+): string {
+  return healthCheckRunKey({
+    domain: inputSnapshot.domain,
+    instagramHandle: inputSnapshot.instagram_handle,
+    facebookUrl: inputSnapshot.facebook_url,
+    overall: scores.overall,
+    modelVersion: scores.deterministic?.modelVersion ?? "",
+  });
+}
+
+export function healthCheckRunKeyFromRow(row: HealthCheckRow): string {
+  const snapshot = inputSnapshotFromRow(row);
+  const parsed = parseStoredScores(row.scores);
+  return healthCheckRunKey({
+    domain: snapshot.domain,
+    instagramHandle: snapshot.instagram_handle,
+    facebookUrl: snapshot.facebook_url,
+    overall: parsed?.scores.overall ?? row.overall_score ?? 0,
+    modelVersion: parsed?.scores.deterministic?.modelVersion ?? "",
+  });
+}
+
+export async function findExistingHealthCheckForRun(
+  userId: string,
+  brandId: string,
+  runKey: string
+): Promise<HealthCheckRow | null> {
+  const latest = await fetchLatestHealthCheck(userId, brandId);
+  if (latest && healthCheckRunKeyFromRow(latest) === runKey) {
+    return latest;
+  }
+  return null;
+}
+
+/** Resolve the active brand, skip insert if this run is already saved, otherwise insert. */
+export async function persistHealthCheckForActiveBrand(opts: {
+  userId: string;
+  contextBrandId: string | null;
+  brands: { id: string }[];
+  scores: HealthCheckScores;
+  websiteScore?: HealthCheckInput["websiteScore"] | null;
+  input: Pick<HealthCheckInput, "websiteUrl" | "instagramHandle" | "facebookUrl" | "businessName">;
+}): Promise<HealthCheckPersistResult> {
+  try {
+    const { brandId } = await resolveBrandIdForHealthWrite(
+      opts.userId,
+      opts.contextBrandId,
+      opts.brands
+    );
+    if (!brandId) {
+      return { ok: false, reason: "no_brand" };
+    }
+
+    const inputSnapshot = buildHealthCheckInputSnapshot({
+      websiteUrl: opts.input.websiteUrl,
+      instagramHandle: opts.input.instagramHandle,
+      facebookUrl: opts.input.facebookUrl,
+      businessName: opts.input.businessName,
+    });
+    const runKey = healthCheckRunKeyFromPayload(opts.scores, inputSnapshot);
+    const existing = await findExistingHealthCheckForRun(opts.userId, brandId, runKey);
+    if (existing) {
+      return { ok: true, row: existing, alreadySaved: true };
+    }
+
+    const row = await insertHealthCheckResult(opts.userId, brandId, {
+      scores: opts.scores,
+      websiteScore: opts.websiteScore,
+      inputSnapshot,
+    });
+    if (!row) {
+      return { ok: false, reason: "insert_error" };
+    }
+    return { ok: true, row, alreadySaved: false };
+  } catch {
+    return { ok: false, reason: "unknown" };
+  }
 }
 
 export function formatHealthCheckDate(iso: string): string {

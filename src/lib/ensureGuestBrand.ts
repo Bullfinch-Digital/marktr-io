@@ -1,4 +1,5 @@
 import { supabase } from "../config/supabase";
+import { persistActiveBrandId } from "./brandScopedReads";
 import { clearGuestBrandSeed, getGuestBrandSeed } from "./guestBrandSeed";
 import {
   getGuestContext,
@@ -105,6 +106,7 @@ export async function ensureBrandForPostAuth(userId: string): Promise<string | n
     }
 
     clearGuestBrandSeed();
+    if (data?.id) persistActiveBrandId(data.id);
     try {
       window.dispatchEvent(new Event("brands:changed"));
     } catch {

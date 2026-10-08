@@ -3,6 +3,7 @@
  */
 
 export const ACTIVE_BRAND_STORAGE_KEY = "marktr_active_brand_id";
+export const ACTIVE_BRAND_SET_EVENT = "active-brand:set";
 
 export type BrandRowRef = { id: string };
 
@@ -12,6 +13,44 @@ export function readStoredActiveBrandId(): string | null {
   } catch {
     return null;
   }
+}
+
+/** Persist the active brand and notify BrandContext — safe to call outside React. */
+export function persistActiveBrandId(id: string | null): void {
+  try {
+    if (id) {
+      localStorage.setItem(ACTIVE_BRAND_STORAGE_KEY, id);
+    } else {
+      localStorage.removeItem(ACTIVE_BRAND_STORAGE_KEY);
+    }
+  } catch {
+    // ignore storage failures
+  }
+  try {
+    window.dispatchEvent(new CustomEvent(ACTIVE_BRAND_SET_EVENT, { detail: { id } }));
+  } catch {
+    // ignore
+  }
+}
+
+/**
+ * Choose the active brand without snapping to brands[0] while a just-created
+ * id is still catching up in the in-memory list.
+ */
+export function pickActiveBrandId(
+  brands: BrandRowRef[],
+  preferredId: string | null
+): string | null {
+  if (preferredId && brands.some((b) => b.id === preferredId)) {
+    return preferredId;
+  }
+  const stored = readStoredActiveBrandId();
+  if (stored && brands.some((b) => b.id === stored)) {
+    return stored;
+  }
+  if (preferredId) return preferredId;
+  if (stored) return stored;
+  return brands[0]?.id ?? null;
 }
 
 /**

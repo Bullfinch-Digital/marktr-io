@@ -8,7 +8,7 @@ import {
   ICP_CURRENT_CAP,
 } from "../lib/icpPersonaCap";
 import { getCachedICPs, setCachedICPs, addPendingOp, getPendingOps, type PendingOp } from "../lib/localCache";
-import { isBrandScopeReady, resolveScopedBrandId } from "../lib/brandScopedReads";
+import { isBrandScopeReady, persistActiveBrandId, resolveScopedBrandId } from "../lib/brandScopedReads";
 import { attachOrphanIcpsToBrand, resolveBrandIdForIcpWrite } from "../lib/icpBrandAttach";
 import {
   applyCurrentIcpFilter,
@@ -385,6 +385,7 @@ export function useICPs() {
       console.error("createICP: brand resolution failed", brandErr);
       return null;
     }
+    persistActiveBrandId(resolvedBrandId);
     const generationId = explicitGenerationId ?? newGenerationId();
     const newICP = withVersioningDefaults(
       {

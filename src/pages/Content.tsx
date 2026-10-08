@@ -18,6 +18,9 @@ import { useBrandStrategies } from "../hooks/useBrandStrategies";
 import { useBrandAims } from "../hooks/useBrandAims";
 import { useICPs } from "../hooks/useICPs";
 import { isBrandScopeReady, resolveScopedBrandId } from "../lib/brandScopedReads";
+import { fetchCurrentContentCountsByBrand, otherBrandCounts } from "../lib/otherBrandCounts";
+import { OtherBrandScopeNotice } from "../components/brand/OtherBrandScopeNotice";
+import { useAuth } from "../contexts/AuthContext";
 import {
   readContentLauncherIntent,
   type ContentLauncherIntent,
@@ -56,7 +59,9 @@ export default function ContentPage() {
 function ContentPageBody() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { activeBrandId, brands, loading: brandLoading, setActiveBrand, activeBrand } = useBrand();
+  const [contentCountsByBrand, setContentCountsByBrand] = useState<Record<string, number>>({});
   const scopedBrandId = useMemo(
     () => resolveScopedBrandId(activeBrandId, brands || []),
     [activeBrandId, brands]
@@ -101,6 +106,22 @@ function ContentPageBody() {
   const [isPermanentDeleting, setIsPermanentDeleting] = useState(false);
 
   const brandReady = isBrandScopeReady(brandLoading, brands || [], scopedBrandId);
+  const otherContent = useMemo(
+    () => otherBrandCounts(contentCountsByBrand, scopedBrandId, brands || []),
+    [contentCountsByBrand, scopedBrandId, brands]
+  );
+  const activeBrandName = activeBrand?.name?.trim() || "this brand";
+
+  useEffect(() => {
+    if (!user?.id) return;
+    let cancelled = false;
+    void fetchCurrentContentCountsByBrand(user.id).then((counts) => {
+      if (!cancelled) setContentCountsByBrand(counts);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id, scopedBrandId]);
 
   useEffect(() => {
     const intent = readContentLauncherIntent(location.state);
@@ -292,6 +313,17 @@ function ContentPageBody() {
           <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/60">Loading content…</p>
         ) : items.length === 0 && !showCreate ? (
           <div className="rounded-design border border-dashed border-black/20 bg-accent-grey/10 px-6 py-12 text-center">
+            {otherContent.total > 0 ? (
+              <div className="text-left max-w-2xl mx-auto mb-6">
+                <OtherBrandScopeNotice
+                  noun="content items"
+                  activeBrandName={activeBrandName}
+                  otherCount={otherContent.total}
+                  otherBrands={otherContent.brands}
+                  onSwitchBrand={setActiveBrand}
+                />
+              </div>
+            ) : null}
             <FileText className="h-8 w-8 text-foreground/35 mx-auto mb-3" />
             <h2 className="app-heading font-['Fraunces'] text-xl text-foreground">
               Content comes from a strategy

@@ -23,6 +23,7 @@ import {
   wouldExceedIcpCap,
 } from "../lib/icpPersonaCap";
 import { useAuth } from "../contexts/AuthContext";
+import { useBrand } from "../contexts/BrandContext";
 import { ICPPreviewCard } from "../components/cards/ICPPreviewCard";
 import ICPColorModal from "../components/ICPColorModal";
 import ICPAvatarModal from "../components/ICPAvatarModal";
@@ -69,6 +70,7 @@ export default function BrandEditor() {
   const [generateNudgeMessage, setGenerateNudgeMessage] = useState<string | null>(null);
 
   const { user } = useAuth();
+  const { setActiveBrand } = useBrand();
 
   useEffect(() => {
     if (!isGenerating) return;
@@ -153,13 +155,14 @@ export default function BrandEditor() {
         setBrandData(brand);
         originalDataRef.current = brand;
         setIsDirty(false);
+        setActiveBrand(brand.id);
       } else {
         navigate("/my-brands");
       }
       setIsLoading(false);
     };
     load();
-  }, [id, getBrand, navigate]);
+  }, [id, getBrand, navigate, setActiveBrand]);
 
   // Warn on browser/tab close if dirty
   useEffect(() => {
@@ -367,6 +370,7 @@ export default function BrandEditor() {
 
       const created = await createBrand(copyPayload as any);
       if (created?.id) {
+        setActiveBrand(created.id);
         navigate(`/my-brands/${created.id}`);
       }
     } catch (err) {
@@ -447,6 +451,7 @@ export default function BrandEditor() {
         return;
       }
 
+      setActiveBrand(id);
       const generationId = newGenerationId();
       const created: any[] = [];
       for (const icp of generated) {

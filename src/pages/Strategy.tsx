@@ -12,11 +12,14 @@ import {
 } from "lucide-react";
 import DashboardShell from "../layouts/DashboardShell";
 import { Button } from "../components/ui/button";
+import { useAuth } from "../contexts/AuthContext";
 import { useBrand } from "../contexts/BrandContext";
 import { useICPs } from "../hooks/useICPs";
 import { useBrandAims, type BrandAim } from "../hooks/useBrandAims";
 import { useBrandStrategies, type StrategyWithLinks } from "../hooks/useBrandStrategies";
 import { isBrandScopeReady, resolveScopedBrandId } from "../lib/brandScopedReads";
+import { fetchCurrentStrategyCountsByBrand, otherBrandCounts } from "../lib/otherBrandCounts";
+import { OtherBrandScopeNotice } from "../components/brand/OtherBrandScopeNotice";
 import { compositionHasArchivedLinks } from "../lib/strategyComposition";
 import {
   readStrategyLauncherIntent,
@@ -51,6 +54,7 @@ export default function StrategyPage() {
 function StrategyPageBody() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { activeBrandId, brands, loading: brandLoading, setActiveBrand, activeBrand } =
     useBrand();
   const scopedBrandId = useMemo(
@@ -95,6 +99,7 @@ function StrategyPageBody() {
   const [isPermanentDeleting, setIsPermanentDeleting] = useState(false);
   const [restoreNudge, setRestoreNudge] = useState<string | null>(null);
   const [launcherCreateOpened, setLauncherCreateOpened] = useState(false);
+  const [strategyCountsByBrand, setStrategyCountsByBrand] = useState<Record<string, number>>({});
 
   const brandReady = isBrandScopeReady(brandLoading, brands || [], scopedBrandId);
   const isLoading = !brandReady || aimsLoading || strategiesLoading;
@@ -202,6 +207,21 @@ function StrategyPageBody() {
   };
 
   const canStartNewStrategy = hasAims && brandIcps.length > 0;
+  const otherStrategies = useMemo(
+    () => otherBrandCounts(strategyCountsByBrand, scopedBrandId, brands || []),
+    [strategyCountsByBrand, scopedBrandId, brands]
+  );
+
+  useEffect(() => {
+    if (!user?.id) return;
+    let cancelled = false;
+    void fetchCurrentStrategyCountsByBrand(user.id).then((counts) => {
+      if (!cancelled) setStrategyCountsByBrand(counts);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id, scopedBrandId]);
 
   return (
     <>
@@ -279,6 +299,16 @@ function StrategyPageBody() {
               ) : null}
 
               {error ? <p className="font-['Plus_Jakarta_Sans'] text-sm text-red-700">{error}</p> : null}
+
+              {!isLoading && !hasStrategies && otherStrategies.total > 0 ? (
+                <OtherBrandScopeNotice
+                  noun="strategies"
+                  activeBrandName={activeBrandName}
+                  otherCount={otherStrategies.total}
+                  otherBrands={otherStrategies.brands}
+                  onSwitchBrand={setActiveBrand}
+                />
+              ) : null}
 
               {isLoading ? (
                 <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/60">Loading strategies…</p>

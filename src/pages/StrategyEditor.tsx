@@ -4,6 +4,7 @@ import { ArrowLeft, Trash2 } from "lucide-react";
 import DashboardShell from "../layouts/DashboardShell";
 import { Button } from "../components/ui/button";
 import { useAuth } from "../contexts/AuthContext";
+import { persistActiveBrandId } from "../lib/brandScopedReads";
 import { supabase } from "../config/supabase";
 import type { ICPStrategyPayload } from "../types/icpStrategyPayload";
 import {
@@ -129,6 +130,7 @@ function StrategyEditorBody() {
         }
       }
       setStrategy(detail);
+      if (detail.brand_id) persistActiveBrandId(detail.brand_id);
     } catch (err) {
       console.error("[StrategyEditor] load failed", err);
       setError("Failed to load strategy.");

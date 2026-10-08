@@ -4,6 +4,7 @@ import { ArrowLeft, Trash2 } from "lucide-react";
 import DashboardShell from "../layouts/DashboardShell";
 import { Button } from "../components/ui/button";
 import { useAuth } from "../contexts/AuthContext";
+import { persistActiveBrandId } from "../lib/brandScopedReads";
 import { supabase } from "../config/supabase";
 import type { ContentItemRow, ContentItemStatus } from "../types/contentItemPayload";
 import { normalizeContentPayload } from "../lib/contentItemPayload";
@@ -124,6 +125,7 @@ function ContentEditorBody() {
         }
       }
       setItem(detail);
+      if (detail.brand_id) persistActiveBrandId(detail.brand_id);
     } catch (err) {
       console.error("[ContentEditor] load failed", err);
       setError("Failed to load content.");

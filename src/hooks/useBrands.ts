@@ -2,6 +2,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "../config/supabase";
 import { useAuth } from "../contexts/AuthContext";
 import { track } from "../lib/analytics";
+import {
+  persistActiveBrandId,
+  readStoredActiveBrandId,
+} from "../lib/brandScopedReads";
 
 export interface Brand {
   id: string;
@@ -54,10 +58,14 @@ export function useBrands() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const isFetchingRef = useRef(false);
+  const pendingRefetchRef = useRef(false);
 
   const fetchBrands = useCallback(async () => {
     if (!user?.id) return;
-    if (isFetchingRef.current) return;
+    if (isFetchingRef.current) {
+      pendingRefetchRef.current = true;
+      return;
+    }
     isFetchingRef.current = true;
 
     setIsLoading(true);
@@ -78,6 +86,12 @@ export function useBrands() {
     } finally {
       isFetchingRef.current = false;
       setIsLoading(false);
+      if (pendingRefetchRef.current) {
+        pendingRefetchRef.current = false;
+        queueMicrotask(() => {
+          void fetchBrands();
+        });
+      }
     }
   }, [user?.id]);
 
@@ -94,7 +108,11 @@ export function useBrands() {
   // Refresh when brands are created/updated elsewhere (e.g., onboarding/auth pipeline)
   useEffect(() => {
     if (!user?.id) return;
-    const handler = () => {
+    const handler = (event: Event) => {
+      const brand = (event as CustomEvent<{ brand?: Brand }>).detail?.brand;
+      if (brand?.id) {
+        setBrands((prev) => (prev.some((b) => b.id === brand.id) ? prev : [brand, ...prev]));
+      }
       void fetchBrands();
     };
     window.addEventListener("brands:changed", handler);
@@ -157,8 +175,13 @@ export function useBrands() {
 
         const created = data as Brand;
         setBrands((prev) => [created, ...prev]);
+        persistActiveBrandId(created.id);
         try {
-          window.dispatchEvent(new Event("brands:changed"));
+          window.dispatchEvent(
+            new CustomEvent("brands:changed", {
+              detail: { brand: created, activeBrandId: created.id },
+            })
+          );
         } catch {}
         track("brand_create");
         return created;
@@ -212,7 +235,12 @@ export function useBrands() {
       if (!user?.id) return false;
 
       const prev = brands;
-      setBrands((p) => p.filter((b) => b.id !== id));
+      const remaining = brands.filter((b) => b.id !== id);
+      const wasActive = readStoredActiveBrandId() === id;
+      setBrands(remaining);
+      if (wasActive) {
+        persistActiveBrandId(remaining[0]?.id ?? null);
+      }
 
       try {
         const { error } = await supabase
@@ -231,6 +259,7 @@ export function useBrands() {
       } catch (err) {
         console.error("useBrands: deleteBrand error", err);
         setBrands(prev);
+        if (wasActive) persistActiveBrandId(id);
         return false;
       }
     },

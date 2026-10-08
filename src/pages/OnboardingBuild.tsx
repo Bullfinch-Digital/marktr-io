@@ -22,6 +22,7 @@ import {
   updateGuestContext,
 } from "../lib/guestContext";
 import { resolveBrandIdForIcpWrite } from "../lib/icpBrandAttach";
+import { persistActiveBrandId } from "../lib/brandScopedReads";
 import {
   countCurrentIcpsForBrand,
   formatIcpCapBlockMessage,
@@ -371,6 +372,7 @@ export default function OnboardingBuild() {
         .limit(1);
 
       if (!existingErr && existing && existing.length) {
+        persistActiveBrandId(existing[0].id);
         return existing[0].id;
       }
     } catch (err) {
@@ -434,7 +436,9 @@ export default function OnboardingBuild() {
         window.dispatchEvent(new Event("brands:changed"));
       } catch {}
 
-      return (data as any)?.id ?? null;
+      const createdId = (data as any)?.id ?? null;
+      if (createdId) persistActiveBrandId(createdId);
+      return createdId;
     } catch (err) {
       if (import.meta.env.DEV) console.warn("[Onboarding] brand insert unexpected", err);
       return null;
@@ -589,6 +593,7 @@ export default function OnboardingBuild() {
           }
 
           if (resolvedBrandId) {
+          persistActiveBrandId(resolvedBrandId);
           const brandName = formData.brandName.trim() || "this brand";
           const batchSize = Array.isArray(result.icps) ? result.icps.length : 0;
           let currentCount = 0;

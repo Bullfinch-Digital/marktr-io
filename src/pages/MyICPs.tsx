@@ -16,6 +16,8 @@ import { useBrand } from "../contexts/BrandContext";
 import { usePaywall } from "../contexts/PaywallContext";
 import { seedExampleICPs } from "../utils/seedExampleICPs";
 import { isBrandScopeReady, resolveScopedBrandId } from "../lib/brandScopedReads";
+import { fetchCurrentIcpCountsByBrand, otherBrandCounts } from "../lib/otherBrandCounts";
+import { OtherBrandScopeNotice } from "../components/brand/OtherBrandScopeNotice";
 import { brandBandForIndex } from "../lib/brandPalette";
 import { fetchArchivedIcpsForBrand, hardDeleteIcpLineage, type ArchivedIcpRow } from "../lib/icpVersioning";
 import IcpPermanentDeleteModal from "../components/IcpPermanentDeleteModal";
@@ -65,7 +67,9 @@ export default function MyICPsPage() {
   const { user, loading: authLoading } = useAuth();
   const { icps: rawICPs, isLoading: icpsLoading, fetchICPs, isOffline: icpsOffline, updateICP, restoreICP } = useICPs();
   const { brands } = useBrands();
-  const { activeBrandId, loading: brandLoading } = useBrand();
+  const { activeBrandId, activeBrand, loading: brandLoading, setActiveBrand } = useBrand();
+  const [otherBrandIcpCounts, setOtherBrandIcpCounts] = useState<Record<string, number>>({});
+  const [otherCountsLoaded, setOtherCountsLoaded] = useState(false);
   const { addICPToCollection, createCollection } = useCollections();
   const { tier: userTier, effectiveTier, trialActive, isLoading: subscriptionLoading } = useSubscription();
   const { isSyncing, pendingCount } = useOutboxSync();
@@ -266,6 +270,24 @@ export default function MyICPsPage() {
 
   const showEmptyState = !authLoading && !icpsLoading && icps.length === 0;
   const isLoading = authLoading || icpsLoading || subscriptionLoading;
+  const otherIcps = useMemo(
+    () => otherBrandCounts(otherBrandIcpCounts, scopedBrandId, brands || []),
+    [otherBrandIcpCounts, scopedBrandId, brands]
+  );
+
+  useEffect(() => {
+    if (!user?.id) return;
+    let cancelled = false;
+    setOtherCountsLoaded(false);
+    void fetchCurrentIcpCountsByBrand(user.id).then((counts) => {
+      if (cancelled) return;
+      setOtherBrandIcpCounts(counts);
+      setOtherCountsLoaded(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id, scopedBrandId]);
 
   useEffect(() => {
     if (authLoading || icpsLoading || subscriptionLoading) {
@@ -374,7 +396,28 @@ export default function MyICPsPage() {
             </div>
           )}
 
-          {!isLoading && showEmptyState && (
+          {!isLoading && showEmptyState && otherCountsLoaded && otherIcps.total > 0 && (
+            <div className="animate-fade-in-up">
+              <OtherBrandScopeNotice
+                noun="ICPs"
+                activeBrandName={activeBrand?.name?.trim() || "this brand"}
+                otherCount={otherIcps.total}
+                otherBrands={otherIcps.brands}
+                onSwitchBrand={setActiveBrand}
+              />
+              <div className="flex flex-wrap gap-3">
+                <Button
+                  onClick={handleCreateNew}
+                  className="bg-button-green hover:bg-button-green/90 text-foreground border border-black rounded-design px-6 py-5 flex items-center gap-2"
+                >
+                  <Plus className="w-5 h-5" />
+                  Generate New ICP
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {!isLoading && showEmptyState && otherCountsLoaded && otherIcps.total === 0 && (
             <div className="flex items-center justify-center min-h-[500px] animate-fade-in-up">
               <div className="text-center max-w-lg px-6">
                 <div className="w-32 h-32 mx-auto mb-8 bg-gradient-to-br from-brand-lavender to-brand-lime rounded-full border-2 border-brand-stroke flex items-center justify-center shadow-lg">

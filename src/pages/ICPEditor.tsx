@@ -10,6 +10,7 @@ import { exportICPAsPDF } from "../utils/exportICP";
 import { canExportICP } from "../config/accessRules";
 import { usePaywall } from "../contexts/PaywallContext";
 import { useAuth } from "../contexts/AuthContext";
+import { useBrand } from "../contexts/BrandContext";
 import DashboardShell from "../layouts/DashboardShell";
 import { ICPProfileLayout } from "../components/icp/ICPProfileLayout";
 import { IcpVersionHistorySection } from "../components/icp/IcpVersionHistorySection";
@@ -50,6 +51,7 @@ export default function ICPEditor() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { setActiveBrand } = useBrand();
   const { getICP, updateICP, duplicateICP, deleteICP } = useICPs();
   const { brands, isLoading: brandsLoading } = useBrands();
   const { tier: userTier, trialActive } = useSubscription();
@@ -127,13 +129,14 @@ export default function ICPEditor() {
         originalDataRef.current = icp;
         setIsDirty(false);
         setMoveBrandId((icp as any)?.brand_id ?? null);
+        if ((icp as any)?.brand_id) setActiveBrand((icp as any).brand_id);
       } else {
         navigate("/dashboard");
       }
       setIsLoading(false);
     };
     loadICP();
-  }, [id, getICP, navigate]);
+  }, [id, getICP, navigate, setActiveBrand]);
 
   // Warn on browser/tab close if there are unsaved changes
   useEffect(() => {
@@ -324,6 +327,7 @@ export default function ICPEditor() {
 
     setBrandSaveStatus("saved");
     setTimeout(() => setBrandSaveStatus("idle"), 1500);
+    if (nextBrandId) setActiveBrand(nextBrandId);
     try {
       window.dispatchEvent(new Event("icps:changed"));
     } catch {}
@@ -418,6 +422,7 @@ export default function ICPEditor() {
     }
     setIsDirty(false);
     setMoveBrandOpen(false);
+    if (moveBrandId) setActiveBrand(moveBrandId);
     try {
       window.dispatchEvent(new Event("icps:changed"));
     } catch {}

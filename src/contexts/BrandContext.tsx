@@ -9,7 +9,10 @@ import {
 } from "react";
 import { useBrands, type Brand } from "../hooks/useBrands";
 import {
+  ACTIVE_BRAND_SET_EVENT,
   ACTIVE_BRAND_STORAGE_KEY,
+  persistActiveBrandId,
+  pickActiveBrandId,
   readStoredActiveBrandId,
 } from "../lib/brandScopedReads";
 import { useAuth } from "./AuthContext";
@@ -35,24 +38,14 @@ const defaultBrandContext: BrandContextType = {
 
 const BrandContext = createContext<BrandContextType | undefined>(undefined);
 
-function pickActiveBrandId(brands: Brand[], preferredId: string | null): string | null {
-  if (preferredId && brands.some((b) => b.id === preferredId)) {
-    return preferredId;
-  }
-  const stored = readStoredActiveBrandId();
-  if (stored && brands.some((b) => b.id === stored)) {
-    return stored;
-  }
-  return brands[0]?.id ?? null;
-}
-
 export function BrandProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const { brands, isLoading } = useBrands();
   const [selectedBrandId, setSelectedBrandId] = useState<string | null>(null);
 
   const resolvedActiveBrandId = useMemo(() => {
-    if (!user?.id || isLoading) return null;
+    if (!user?.id) return null;
+    if (isLoading && brands.length === 0 && !selectedBrandId) return null;
     return pickActiveBrandId(brands, selectedBrandId);
   }, [user?.id, isLoading, brands, selectedBrandId]);
 
@@ -61,9 +54,25 @@ export function BrandProvider({ children }: { children: ReactNode }) {
     [brands, resolvedActiveBrandId]
   );
 
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const id = (event as CustomEvent<{ id?: string | null }>).detail?.id;
+      setSelectedBrandId(typeof id === "string" && id ? id : null);
+    };
+    window.addEventListener(ACTIVE_BRAND_SET_EVENT, handler);
+    return () => window.removeEventListener(ACTIVE_BRAND_SET_EVENT, handler);
+  }, []);
+
   // Keep React state + localStorage aligned when we fall back to brands[0].
   useEffect(() => {
     if (!user?.id || isLoading || !resolvedActiveBrandId) return;
+
+    const pendingSelection =
+      !!selectedBrandId &&
+      selectedBrandId === readStoredActiveBrandId() &&
+      !brands.some((b) => b.id === selectedBrandId);
+
+    if (pendingSelection) return;
 
     if (selectedBrandId !== resolvedActiveBrandId) {
       setSelectedBrandId(resolvedActiveBrandId);
@@ -76,7 +85,7 @@ export function BrandProvider({ children }: { children: ReactNode }) {
     } catch {
       // ignore storage failures
     }
-  }, [user?.id, isLoading, resolvedActiveBrandId, selectedBrandId]);
+  }, [user?.id, isLoading, resolvedActiveBrandId, selectedBrandId, brands]);
 
   useEffect(() => {
     if (!user?.id) {
@@ -84,18 +93,10 @@ export function BrandProvider({ children }: { children: ReactNode }) {
     }
   }, [user?.id]);
 
-  const setActiveBrand = useCallback(
-    (id: string) => {
-      if (!brands.some((b) => b.id === id)) return;
-      setSelectedBrandId(id);
-      try {
-        localStorage.setItem(ACTIVE_BRAND_STORAGE_KEY, id);
-      } catch {
-        // ignore storage failures
-      }
-    },
-    [brands]
-  );
+  const setActiveBrand = useCallback((id: string) => {
+    setSelectedBrandId(id);
+    persistActiveBrandId(id);
+  }, []);
 
   const value = useMemo(
     () => ({

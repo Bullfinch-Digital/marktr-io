@@ -81,6 +81,7 @@ Sections: `data-track-section="hero"`. Case studies: `data-track-case-study` + `
 | Event | Params | Where it fires |
 | --- | --- | --- |
 | `strategy_generate` | — | Strategy generate succeeds |
+| `strategy_all_content_created_cta_click` | `strategy_id` | “Create more content” on the suggested-content panel when every suggestion is created |
 | `content_generate` | `content_type` | Content generate succeeds |
 | `content_copy` | `content_type` | Content duplicate succeeds |
 | `content_export` | `content_type` | PDF export, or `list_csv` for the roster CSV |

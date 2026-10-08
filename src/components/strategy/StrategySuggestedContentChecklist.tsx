@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Check } from "lucide-react";
 import { Button } from "../ui/button";
+import { ViewEditButton } from "../ui/ViewEditButton";
 import type { ICPStrategyPayload, SuggestedContentItem } from "../../types/icpStrategyPayload";
 import type { CompositionIcp } from "../../lib/strategyComposition";
 import {
@@ -15,9 +16,11 @@ import {
 import { CONTENT_TYPE_LABELS } from "../../lib/contentTypeLabels";
 import { isContentItemType } from "../../lib/contentItemPayload";
 import { useAuth } from "../../contexts/AuthContext";
+import { track } from "../../lib/analytics";
 
 type Props = {
   brandId: string;
+  strategyId: string;
   strategyLineageId: string;
   strategyTitle: string;
   strategy: ICPStrategyPayload;
@@ -31,6 +34,7 @@ type ChecklistRow = SuggestedContentItem & {
 
 export function StrategySuggestedContentChecklist({
   brandId,
+  strategyId,
   strategyLineageId,
   strategyTitle,
   strategy,
@@ -142,6 +146,26 @@ export function StrategySuggestedContentChecklist({
     });
   };
 
+  const allCreated =
+    !loading && suggestions.length > 0 && suggestions.every((row) => doneIds.has(row.id));
+
+  const handleCreateMore = () => {
+    track("strategy_all_content_created_cta_click", { strategy_id: strategyId });
+    const intent = buildContentLauncherIntent({
+      brandId,
+      strategyLineageId,
+      strategyTitle,
+      campaignIdeaId: null,
+      campaignIdeaName: null,
+      icpLineageId: defaultPersona?.lineage_id ?? null,
+      icpName: defaultPersona?.name ?? null,
+      type: "",
+    });
+    navigate("/content", {
+      state: { [CONTENT_LAUNCHER_STATE_KEY]: intent },
+    });
+  };
+
   if (suggestions.length === 0) {
     return (
       <div className="rounded-design border border-black/10 bg-accent-grey/10 px-4 py-3">
@@ -233,6 +257,16 @@ export function StrategySuggestedContentChecklist({
           );
         })}
       </ul>
+
+      {allCreated ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-black/10 pt-3">
+          <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/75">
+            All suggested pieces are created.
+          </p>
+          {/* TODO: later — capped "Suggest 3 more" (no generate-more-suggestions now). */}
+          <ViewEditButton onClick={handleCreateMore}>Create more content</ViewEditButton>
+        </div>
+      ) : null}
     </div>
   );
 }

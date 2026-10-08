@@ -9,7 +9,8 @@ export type ContentLauncherIntent = {
   /** Pre-selected persona; user can change in the create panel */
   icpLineageId?: string | null;
   icpName?: string | null;
-  type: string;
+  /** Empty when opening freehand create with a strategy preselected (no suggestion type). */
+  type?: string;
   suggestedContentId?: string | null;
   rationale?: string | null;
   /** True when the suggestion's campaign idea was removed from the current strategy */
@@ -29,7 +30,7 @@ export function buildContentLauncherIntent(
     campaignIdeaName: input.campaignIdeaName?.trim() || null,
     icpLineageId: input.icpLineageId ?? null,
     icpName: input.icpName?.trim() || null,
-    type: input.type,
+    type: input.type ?? "",
     suggestedContentId: input.suggestedContentId ?? null,
     rationale: input.rationale ?? null,
     campaignIdeaRemoved: input.campaignIdeaRemoved ?? false,
@@ -41,7 +42,7 @@ export function readContentLauncherIntent(state: unknown): ContentLauncherIntent
   const raw = (state as Record<string, unknown>)[CONTENT_LAUNCHER_STATE_KEY];
   if (!raw || typeof raw !== "object") return null;
   const intent = raw as Partial<ContentLauncherIntent>;
-  if (!intent.brandId || !intent.strategyLineageId || !intent.type) return null;
+  if (!intent.brandId || !intent.strategyLineageId) return null;
   return {
     brandId: intent.brandId,
     strategyLineageId: intent.strategyLineageId,
@@ -50,7 +51,7 @@ export function readContentLauncherIntent(state: unknown): ContentLauncherIntent
     campaignIdeaName: intent.campaignIdeaName ?? null,
     icpLineageId: intent.icpLineageId ?? null,
     icpName: intent.icpName ?? null,
-    type: intent.type,
+    type: typeof intent.type === "string" ? intent.type : "",
     suggestedContentId: intent.suggestedContentId ?? null,
     rationale: intent.rationale ?? null,
     campaignIdeaRemoved: intent.campaignIdeaRemoved ?? false,

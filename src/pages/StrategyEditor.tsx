@@ -522,6 +522,7 @@ function StrategyEditorBody() {
             {!readOnly && strategy ? (
               <StrategySuggestedContentChecklist
                 brandId={strategy.brand_id}
+                strategyId={strategy.id}
                 strategyLineageId={strategy.lineage_id}
                 strategyTitle={strategy.title}
                 strategy={draftStrategy ?? strategy.strategy}

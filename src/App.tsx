@@ -50,6 +50,7 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import CookiePolicy from "./pages/CookiePolicy";
 import { CookieConsentBanner } from "./components/legal/CookieConsentBanner";
+import { SeoManager } from "./components/seo/SeoManager";
 import { MarktrAnalytics } from "./components/analytics/MarktrAnalytics";
 import { trackBullfinchPageView } from "./lib/bullfinchAnalytics";
 import { applyBullfinchDocumentTitle } from "./lib/editionDocumentTitle";
@@ -342,6 +343,7 @@ export default function App() {
         <AuthModalProvider>
           <PaywallProvider>
             <GA4RouteTracker />
+            <SeoManager />
             <MarktrAnalytics />
             <OAuthReturnHandler />
             <div className="min-h-screen bg-background">

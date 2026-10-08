@@ -1,4 +1,5 @@
 import { next, rewrite } from "@vercel/functions";
+import { canonicalRedirectUrl } from "./src/lib/seo";
 import { BULLFINCH_CHECK_HOST } from "./supabase/functions/_shared/bullfinchHosts";
 
 /**
@@ -6,7 +7,7 @@ import { BULLFINCH_CHECK_HOST } from "./supabase/functions/_shared/bullfinchHost
  * Routing Middleware runs before the filesystem. Only the check host is rewritten.
  */
 export const config = {
-  matcher: ["/", "/index.html"],
+  matcher: ["/((?!_vercel/|_next/).*)"],
 };
 
 function hostnameOf(value: string | null): string {
@@ -28,8 +29,18 @@ export function requestHostname(request: {
 }
 
 export default function middleware(request: Request) {
-  if (requestHostname(request) !== BULLFINCH_CHECK_HOST) return next();
-  const url = new URL(request.url);
-  url.pathname = "/bullfinch.html";
-  return rewrite(url);
+  const host = requestHostname(request);
+  if (host === BULLFINCH_CHECK_HOST) {
+    const url = new URL(request.url);
+    if (url.pathname !== "/" && url.pathname !== "/index.html") return next();
+    url.pathname = "/bullfinch.html";
+    return rewrite(url);
+  }
+
+  const canonical = canonicalRedirectUrl(request.url, request.headers.get("host"));
+  if (canonical) {
+    return Response.redirect(canonical, 301);
+  }
+
+  return next();
 }

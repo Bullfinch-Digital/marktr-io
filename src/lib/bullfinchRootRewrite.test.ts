@@ -29,9 +29,8 @@ describe("bullfinch root rewrite", () => {
     );
   });
 
-  it("leaves marktr and the preview host on index.html", () => {
+  it("leaves www marktr and the preview host on index.html", () => {
     for (const host of [
-      "marktr.io",
       "www.marktr.io",
       "marktr-app-git-bullfinch-preview-bullfinch-digital.vercel.app",
     ]) {
@@ -39,6 +38,20 @@ describe("bullfinch root rewrite", () => {
       expect(response.headers.get("x-middleware-next")).toBe("1");
       expect(response.headers.get("x-middleware-rewrite")).toBeNull();
     }
+  });
+
+  it("301s http and apex marktr hosts to https www in one hop", () => {
+    const fromHttpApex = call("http://marktr.io/", "marktr.io");
+    expect(fromHttpApex.status).toBe(301);
+    expect(fromHttpApex.headers.get("location")).toBe("https://www.marktr.io/");
+
+    const fromHttpWww = call("http://www.marktr.io/", "www.marktr.io");
+    expect(fromHttpWww.status).toBe(301);
+    expect(fromHttpWww.headers.get("location")).toBe("https://www.marktr.io/");
+
+    const fromHttps = call("https://marktr.io/story", "marktr.io");
+    expect(fromHttps.status).toBe(301);
+    expect(fromHttps.headers.get("location")).toBe("https://www.marktr.io/story");
   });
 
   it("reads the hostname from the URL when the host header is missing", () => {

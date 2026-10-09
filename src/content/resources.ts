@@ -1,9 +1,42 @@
+export const RESOURCE_TOPICS = [
+  { id: "icp", label: "ICPs & Audience" },
+  { id: "brand", label: "Brand & Story" },
+  { id: "strategy", label: "Marketing Strategy" },
+  { id: "pricing", label: "Pricing & Offers" },
+  { id: "ads", label: "Ads & Content" },
+] as const;
+
+export type TopicId = (typeof RESOURCE_TOPICS)[number]["id"];
+
+export function isTopicId(value: string | null | undefined): value is TopicId {
+  return RESOURCE_TOPICS.some((topic) => topic.id === value);
+}
+
+export function topicLabel(id: TopicId): string {
+  return RESOURCE_TOPICS.find((topic) => topic.id === id)?.label ?? id;
+}
+
+export function countPostsByTopic(
+  posts: readonly ResourcePost[],
+): Record<"all" | TopicId, number> {
+  const counts = { all: posts.length } as Record<"all" | TopicId, number>;
+  for (const topic of RESOURCE_TOPICS) counts[topic.id] = 0;
+  for (const post of posts) {
+    for (const id of new Set(post.topics)) {
+      counts[id] += 1;
+    }
+  }
+  return counts;
+}
+
 export type ResourcePost = {
   slug: string;
   title: string;
   description: string;
   /** Core subject label for the topic-cluster map (avoid duplicate topics). */
   topic: string;
+  /** Filter tags. First entry is the primary topic shown first on the card. */
+  topics: readonly [TopicId, ...TopicId[]];
   /** Primary search phrase this post is written to own. */
   searchIntent: string;
   introLine?: string;
@@ -53,6 +86,7 @@ export const RESOURCE_POSTS: ResourcePost[] = [
     description:
       "How to build a real Ideal Customer Profile — six questions, real examples, and the technique for writing copy your ICP will think was written just for them.",
     topic: "ICP definition & framework",
+    topics: ["icp"],
     searchIntent: "what is an ICP",
     bgColor: "#BBA0E5",
     readingTime: "14 min read",
@@ -393,6 +427,7 @@ export const RESOURCE_POSTS: ResourcePost[] = [
     description:
       "Turn your Ideal Customer Profile (ICP) into clear content ideas, stronger messaging, and higher-performing ads using a practical framework.",
     topic: "ICP → content/ads",
+    topics: ["ads", "icp"],
     searchIntent: "how to turn an ICP into content and ads",
     bgColor: "#96CBB6",
     readingTime: "10 min read",
@@ -665,6 +700,7 @@ export const RESOURCE_POSTS: ResourcePost[] = [
     description:
       "Most ICP definitions are hypotheses. This guide shows you how to test them against real commercial performance data.",
     topic: "ICP validation",
+    topics: ["icp"],
     searchIntent: "how to validate an ICP",
     bgColor: "#FF9922",
     readingTime: "11 min read",
@@ -945,6 +981,7 @@ export const RESOURCE_POSTS: ResourcePost[] = [
     description:
       "If your marketing gets clicks but no conversions, the issue is usually ICP clarity. Learn how to fix targeting misalignment and improve conversion rate.",
     topic: "Marketing conversion clarity",
+    topics: ["strategy", "icp"],
     searchIntent: "why marketing isn't converting",
     introLine:
       "Most marketing problems are not creative problems. They are clarity problems.",
@@ -1138,6 +1175,7 @@ export const RESOURCE_POSTS: ResourcePost[] = [
     description:
       "If your ads are underperforming, the issue is usually ICP clarity. Learn how better segment definition improves targeting and reduces wasted spend.",
     topic: "ICP → ad targeting",
+    topics: ["ads", "icp"],
     searchIntent: "how ICPs improve ad targeting",
     introLine:
       "Most underperforming ad accounts do not have a creative problem. They have a targeting clarity problem.",
@@ -1362,6 +1400,7 @@ export const RESOURCE_POSTS: ResourcePost[] = [
     description:
       "The story behind the tool - and how deeper audience clarity leads to better content, smarter targeting, and faster growth.",
     topic: "Product story",
+    topics: ["icp"],
     searchIntent: "why we built the ICP generator",
     introLine: "Most marketing problems start with unclear audience definition.",
     bgColor: "#FFD336",
@@ -1543,6 +1582,7 @@ export const RESOURCE_POSTS: ResourcePost[] = [
     description:
       "A filmmaker's three-act framework for founders who can't find the words for their own brand story — five lines, one logline, no fluff.",
     topic: "Brand story",
+    topics: ["brand"],
     searchIntent: "how to write my brand story",
     introLine:
       "A filmmaker's three-act framework for founders who can't find the words for their own brand story — five lines, one logline, no fluff.",
@@ -1984,6 +2024,7 @@ export const RESOURCE_POSTS: ResourcePost[] = [
     description:
       "The exact framework I use with every client: brand story, ideal customer, transformation, offer, distribution. Five stages, real examples, no fluff.",
     topic: "Marketing strategy framework",
+    topics: ["strategy", "brand"],
     searchIntent: "marketing strategy framework for founders",
     introLine:
       "The exact framework I use with every client: brand story, ideal customer, transformation, offer, distribution. Five stages, real examples, no fluff.",
@@ -2418,6 +2459,7 @@ export const RESOURCE_POSTS: ResourcePost[] = [
     description:
       "I put Alex Hormozi's Offers, Leads and Money Models frameworks against my own coffee business, Apostle — real pricing mistakes, real numbers, and the one offer I've been too scared to try.",
     topic: "Offer & lead-gen strategy (applied)",
+    topics: ["pricing", "strategy"],
     searchIntent: "hormozi marketing strategy tested on a real business",
     introLine:
       "I put Alex Hormozi's Offers, Leads and Money Models frameworks against my own coffee business, Apostle — real pricing mistakes, real numbers, and the one offer I've been too scared to try.",
@@ -2784,6 +2826,7 @@ export const RESOURCE_POSTS: ResourcePost[] = [
     description:
       "The five psychological triggers premium brands use to justify higher prices — price, scarcity, identity, legacy and framing — plus the real mistake I made trying to build a premium coffee brand from a converted stable.",
     topic: "Premium brand positioning & pricing psychology",
+    topics: ["brand", "pricing"],
     searchIntent: "psychology of premium branding / how to make a brand feel premium",
     introLine:
       "The five psychological triggers premium brands use to justify higher prices — price, scarcity, identity, legacy and framing — plus the real mistake I made trying to build a premium coffee brand from a converted stable.",

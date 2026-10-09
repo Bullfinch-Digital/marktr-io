@@ -195,12 +195,20 @@ function writePageShell(path, html) {
 
 let marketingCount = 0;
 for (const page of MARKETING_PAGES) {
+  const relatedHtml =
+    page.path === "/resources"
+      ? `<nav aria-label="Resources"><ul>${RESOURCE_POSTS.map(
+          (post) =>
+            `<li><a href="/resources/${escapeAttr(post.slug)}">${escapeHtml(post.title)}</a></li>`,
+        ).join("")}</ul></nav>`
+      : undefined;
   const html = applySeo(viteIndexHtml, {
     title: page.title,
     description: page.description,
     canonical: canonicalUrl(page.path),
     h1: page.h1,
     robots: "index, follow",
+    relatedHtml,
   });
   writePageShell(page.path, html);
   marketingCount += 1;

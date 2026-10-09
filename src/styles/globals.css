@@ -634,6 +634,40 @@ html {
   animation: pricingFadeUp 550ms ease-out both;
 }
 
+@keyframes resourcesFilterFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.resources-filter-results {
+  animation: resourcesFilterFade 180ms ease-out;
+}
+
+.resources-topic-pills-wrap {
+  position: relative;
+}
+
+.resources-topic-pills {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  mask-image: linear-gradient(
+    to right,
+    #000 0,
+    #000 calc(100% - 1.5rem),
+    transparent 100%
+  );
+}
+
+.resources-topic-pills::-webkit-scrollbar {
+  display: none;
+}
+
 .animate-float {
   animation: float 3s ease-in-out infinite;
 }
@@ -1259,6 +1293,10 @@ html {
 
 @media (prefers-reduced-motion: reduce) {
   .pricing-sales-reveal {
+    animation: none;
+  }
+
+  .resources-filter-results {
     animation: none;
   }
 

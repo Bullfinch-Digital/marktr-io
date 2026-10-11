@@ -24,6 +24,14 @@ import { LegalAgreementRequiredModal } from "../legal/LegalAgreementRequiredModa
 import { useLegalAgreementGate } from "../../hooks/useLegalAgreementGate";
 import { stashPendingLegalAcceptance } from "../../lib/legal";
 
+const RESEND_COOLDOWN_SECONDS = 60;
+const RESEND_SENT_NOTICE_MS = 3000;
+
+type ResendUiState =
+  | { status: "ready" }
+  | { status: "cooldown"; seconds: number }
+  | { status: "sent" };
+
 type LoginModalProps = {
   isOpen: boolean;
   email: string | null;
@@ -60,6 +68,11 @@ export function LoginModal({
   const [password, setPassword] = useState("");
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [awaitingConfirm, setAwaitingConfirm] = useState(false);
+  const [confirmEmail, setConfirmEmail] = useState("");
+  const [confirmRedirectTo, setConfirmRedirectTo] = useState("");
+  const [resendUi, setResendUi] = useState<ResendUiState>({ status: "ready" });
+  const [resendError, setResendError] = useState(false);
+  const [resendBusy, setResendBusy] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -78,6 +91,25 @@ export function LoginModal({
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [isOpen]);
+
+  useEffect(() => {
+    if (resendUi.status === "cooldown") {
+      const timer = window.setTimeout(() => {
+        setResendUi((current) => {
+          if (current.status !== "cooldown") return current;
+          if (current.seconds <= 1) return { status: "sent" };
+          return { status: "cooldown", seconds: current.seconds - 1 };
+        });
+      }, 1000);
+      return () => window.clearTimeout(timer);
+    }
+    if (resendUi.status === "sent") {
+      const timer = window.setTimeout(() => {
+        setResendUi({ status: "ready" });
+      }, RESEND_SENT_NOTICE_MS);
+      return () => window.clearTimeout(timer);
+    }
+  }, [resendUi]);
 
   if (!isOpen) return null;
 
@@ -171,10 +203,11 @@ export function LoginModal({
       const params = new URLSearchParams(window.location.search);
       const next = params.get("next");
       const redirectPath = next && next.startsWith("/") ? next : "/dashboard";
+      const emailRedirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectPath)}`;
       const outcome = await signUpWithEmail({
         email: resolvedEmail,
         password: resolvedPassword,
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectPath)}`,
+        emailRedirectTo,
       });
 
       if (outcome.status === "error") {
@@ -187,6 +220,10 @@ export function LoginModal({
       }
       if (outcome.status === "confirm_email") {
         track("sign_up", { method: "email", ...getFirstTouchParams() });
+        setConfirmEmail(resolvedEmail);
+        setConfirmRedirectTo(emailRedirectTo);
+        setResendUi({ status: "ready" });
+        setResendError(false);
         setAwaitingConfirm(true);
         return;
       }
@@ -204,6 +241,30 @@ export function LoginModal({
     setMode(next);
     setError(null);
     setAwaitingConfirm(false);
+    setResendUi({ status: "ready" });
+    setResendError(false);
+  };
+
+  const handleResendConfirmation = async () => {
+    if (resendBusy || resendUi.status !== "ready") return;
+    setResendBusy(true);
+    setResendError(false);
+    try {
+      const { error: resendErrorResult } = await supabase.auth.resend({
+        type: "signup",
+        email: confirmEmail,
+        options: { emailRedirectTo: confirmRedirectTo },
+      });
+      if (resendErrorResult) {
+        setResendError(true);
+        return;
+      }
+      setResendUi({ status: "cooldown", seconds: RESEND_COOLDOWN_SECONDS });
+    } catch {
+      setResendError(true);
+    } finally {
+      setResendBusy(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -292,9 +353,33 @@ export function LoginModal({
 
         {awaitingConfirm ? (
           <div className="space-y-4">
-            <p className="font-['Plus_Jakarta_Sans'] text-sm leading-relaxed text-[#101A26]">
-              Check your email to confirm.
-            </p>
+            <div className="space-y-2">
+              <p className="font-['Plus_Jakarta_Sans'] text-sm leading-relaxed text-[#101A26]">
+                Check your email to confirm.
+              </p>
+              <p className="font-['Plus_Jakarta_Sans'] text-sm leading-relaxed text-[#101A26]/70">
+                Can't see it? Check your junk or spam folder.
+              </p>
+            </div>
+            {resendUi.status === "sent" ? (
+              <p className="font-['Plus_Jakarta_Sans'] text-sm text-[#101A26]">Email sent again</p>
+            ) : (
+              <button
+                type="button"
+                onClick={() => void handleResendConfirmation()}
+                disabled={resendBusy || resendUi.status === "cooldown"}
+                className="font-['Plus_Jakarta_Sans'] text-sm text-[#101A26]/70 underline-offset-4 transition-colors hover:text-[#101A26] hover:underline disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:text-[#101A26]/70 disabled:hover:no-underline"
+              >
+                {resendUi.status === "cooldown"
+                  ? `Resend confirmation email (${resendUi.seconds}s)`
+                  : "Resend confirmation email"}
+              </button>
+            )}
+            {resendError ? (
+              <p className="auth-modal-error font-['Plus_Jakarta_Sans'] text-sm">
+                Couldn't resend. Please try again shortly.
+              </p>
+            ) : null}
             <button
               type="button"
               onClick={() => switchMode("signin")}

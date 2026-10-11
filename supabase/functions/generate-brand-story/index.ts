@@ -23,6 +23,18 @@ type BrandStoryOutput = {
   findings?: BrandStoryFinding[];
 };
 
+const LOG_BODY_LIMIT = 500;
+
+function trimForLog(body: unknown): string {
+  const text = typeof body === "string" ? body : JSON.stringify(body);
+  if (text.length <= LOG_BODY_LIMIT) return text;
+  return `${text.slice(0, LOG_BODY_LIMIT)}…`;
+}
+
+function logFailure(status: number, body: unknown) {
+  console.error("[generate-brand-story]", status, trimForLog(body));
+}
+
 function json(resBody: unknown, status = 200) {
   return new Response(JSON.stringify(resBody), {
     status,
@@ -141,27 +153,32 @@ Deno.serve(async (req) => {
 
   try {
     if (req.method !== "POST") {
-      return json({ error: "Method not allowed" }, 405);
+      const resBody = { error: "Method not allowed" };
+      logFailure(405, resBody);
+      return json(resBody, 405);
     }
 
     const apiKey = Deno.env.get("OPENAI_API_KEY");
     if (!apiKey) {
-      return json(
-        {
-          error:
-            "OPENAI_API_KEY missing. Set it via `supabase secrets set OPENAI_API_KEY=...` then redeploy.",
-        },
-        500
-      );
+      const resBody = {
+        error:
+          "OPENAI_API_KEY missing. Set it via `supabase secrets set OPENAI_API_KEY=...` then redeploy.",
+      };
+      logFailure(500, resBody);
+      return json(resBody, 500);
     }
 
     const body = (await req.json()) as GenerateBrandStoryInput;
 
     if (!Array.isArray(body?.answers) || body.answers.length !== 7) {
-      return json({ error: "Invalid input: answers must be an array of 7 strings." }, 400);
+      const resBody = { error: "Invalid input: answers must be an array of 7 strings." };
+      logFailure(400, resBody);
+      return json(resBody, 400);
     }
     if (typeof body?.email !== "string" || !body.email.trim()) {
-      return json({ error: "Invalid input: email is required." }, 400);
+      const resBody = { error: "Invalid input: email is required." };
+      logFailure(400, resBody);
+      return json(resBody, 400);
     }
 
     const businessName =
@@ -171,17 +188,15 @@ Deno.serve(async (req) => {
       businessName || undefined
     );
 
-    const resp = await fetch("https://api.openai.com/v1/chat/completions", {
+    const resp = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "gpt-4o",
-        max_tokens: 1800,
-        temperature: 0.6,
-        messages: [
+        model: "gpt-5.2",
+        input: [
           { role: "system", content: SYSTEM_PROMPT },
           { role: "user", content: userMessage },
         ],
@@ -190,34 +205,46 @@ Deno.serve(async (req) => {
 
     if (!resp.ok) {
       const errText = await resp.text();
-      return json(
-        { error: "OpenAI call failed", status: resp.status, details: errText },
-        500
-      );
+      const resBody = {
+        error: "OpenAI call failed",
+        status: resp.status,
+        details: errText,
+      };
+      logFailure(resp.status, errText);
+      return json(resBody, 500);
     }
 
     const data = await resp.json();
-    const content =
-      data?.choices?.[0]?.message?.content != null
-        ? String(data.choices[0].message.content)
-        : "";
+    const content = String(
+      data?.output_text ??
+        data?.output?.[0]?.content?.[0]?.text ??
+        data?.output?.[0]?.content?.[0]?.value ??
+        ""
+    );
 
     if (!content) {
-      return json({ error: "Empty model response" }, 500);
+      const resBody = { error: "Empty model response" };
+      logFailure(500, resBody);
+      return json(resBody, 500);
     }
 
     let output: BrandStoryOutput;
     try {
       output = parseStoryJson(content);
     } catch (err) {
-      return json(
-        { error: "Failed to parse model JSON", message: String(err), raw: content },
-        500
-      );
+      const resBody = {
+        error: "Failed to parse model JSON",
+        message: String(err),
+        raw: content,
+      };
+      logFailure(500, resBody);
+      return json(resBody, 500);
     }
 
     return json(output);
   } catch (err) {
-    return json({ error: "Unhandled error", message: String(err) }, 500);
+    const resBody = { error: "Unhandled error", message: String(err) };
+    logFailure(500, resBody);
+    return json(resBody, 500);
   }
 });

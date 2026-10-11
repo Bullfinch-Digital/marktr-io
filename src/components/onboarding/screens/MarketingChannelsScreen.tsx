@@ -13,11 +13,11 @@ const channelOptions = [
   "Meta Ads (paid social)",
   "TikTok",
   "LinkedIn",
-  "Email",
+  "Email newsletter",
   "Pinterest",
-  "Website",
+  "Website or online shop",
   "YouTube",
-  "Twitter/X",
+  "X",
   "None yet"
 ];
 
@@ -33,10 +33,10 @@ export function MarketingChannelsScreen({ value, onChange }: MarketingChannelsSc
   return (
     <div className="space-y-6 animate-fade-in-up">
       <h1 className="font-['Fraunces'] font-bold text-4xl">
-        Where do your customers currently show up online?
+        Which platforms do you use to promote your business today?
       </h1>
       <p className="text-foreground/70 max-w-md">
-        This helps tailor your content strategy.
+        Tick everything you use now. Don't worry if it's just one, or none yet.
       </p>
       
       <div className="pt-4">

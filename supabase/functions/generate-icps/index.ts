@@ -81,6 +81,7 @@ Context:
 - Product/service: ${input.productOrService}
 - Assumed audience: ${input.assumedAudience.join(", ")}
 - Marketing channels: ${input.marketingChannels.join(", ")}
+The founder currently uses these platforms: ${input.marketingChannels.join(", ")}. Lean each ICP's tech_stack and opportunities toward the platforms the founder already uses. Also suggest one or two platforms they are not using where this ICP is active, with a one-line reason inside opportunities. If 'None yet', recommend the single best platform to start with and why.
 - Customer geography: ${geoLine || "Not provided"}
 - Currency: ${currency || "Not provided"}
 

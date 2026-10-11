@@ -5,7 +5,6 @@ import {
   MARKTR_DEFAULT_CHECKOUT_PLAN,
   MARKTR_MONEY_BACK_GUARANTEE,
   MARKTR_PRO_BENEFITS,
-  MARKTR_PRO_BILLING_LINE,
   MARKTR_PRO_CARD_SUBTITLE,
   MARKTR_PRO_PLAN_NAME,
   MARKTR_PRO_PRICE_HEADLINE,
@@ -119,9 +118,6 @@ export function PaywallModal({
                   <span className="font-['Fraunces'] text-3xl">Only {MARKTR_PRO_PRICE_HEADLINE}</span>
                 </div>
               </div>
-              <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70">
-                {MARKTR_PRO_BILLING_LINE}
-              </p>
               <p className="font-['Plus_Jakarta_Sans'] text-base text-foreground mt-2">{MARKTR_PRO_CARD_SUBTITLE}</p>
             </div>
           </div>

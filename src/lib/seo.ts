@@ -19,7 +19,7 @@ export const MARKETING_PAGES: MarketingPageSeo[] = [
     title: "marktr — your marketing team, built in",
     description:
       "Marktr is your marketing team, built in. Define your ideal customer, shape your story, and generate content without agency overhead.",
-    h1: "Marketing that knows your customer.",
+    h1: "Your entire marketing team in one platform.",
   },
   {
     path: "/pricing",

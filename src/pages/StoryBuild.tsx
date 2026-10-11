@@ -47,31 +47,31 @@ type StoryStep =
 const QUESTIONS: { heading: string; subtext: string }[] = [
   {
     heading: "What do you do, and who do you do it for?",
-    subtext: "Just like you'd explain it to someone you've just met.",
+    subtext: "Explain it like you would to a friend.",
   },
   {
     heading: "Why did you start this business?",
-    subtext: "What was the moment — or the frustration — that made it inevitable?",
+    subtext: "A moment, a frustration, or a dream. Anything that got you going.",
   },
   {
-    heading: "What do you believe about your industry that most people in it wouldn't say out loud?",
-    subtext: "Your honest opinion. The thing that makes you different.",
+    heading: "What do you do differently, or want to do differently, from others like you?",
+    subtext: "It's fine if you're just starting out. Tell us how you'd like to do things your own way.",
   },
   {
-    heading: "Who is your best customer — not in demographics, but as a person?",
-    subtext: "What do they care about? What keeps them up at night?",
+    heading: "Who do you think your best customer is?",
+    subtext: "Even if you don't have many customers yet, picture the person you most want to help. What do they care about?",
   },
   {
-    heading: "What do your best customers say about you that you couldn't have written yourself?",
-    subtext: "Real words, real feedback. Even rough paraphrases work.",
+    heading: "What do you hope your customers will say about you?",
+    subtext: "If you've had feedback already, add it. If not, tell us the words you'd love to hear.",
   },
   {
-    heading: "What would be lost if your business didn't exist?",
-    subtext: "Think beyond the product or service.",
+    heading: "What difference do you make for your customers?",
+    subtext: "How is their day or their life better because of what you do?",
   },
   {
-    heading: "In five years, what does success look like — not in numbers, but in the world?",
-    subtext: "The change you want to have made.",
+    heading: "Where do you want this business to be in five years?",
+    subtext: "The big picture. What would you love to have built?",
   },
 ];
 

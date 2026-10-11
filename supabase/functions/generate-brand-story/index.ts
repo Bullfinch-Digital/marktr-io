@@ -67,10 +67,12 @@ Hard rules:
 - Use the business's ACTUAL NAME (provided) in every section. Never write "the business", "our business", "the company", or a placeholder like "[business]". If no name is given, refer to it naturally from their answers — never a placeholder.
 - No clichés or filler. Banned: "passionate about quality", "flooded with mediocrity", "game-changing", "elevate", "seamless", "exceptional service", "transformative power". If a sentence could belong to any business, rewrite it until it could only belong to this one.
 - Ground every sentence in what they actually told you. If a detail is missing, write around it honestly — never invent facts, awards, or claims.
+- Answer 3 is how they do things differently, or how they want to. It is not an opinion about their industry. If they are just starting out, treat it as intention.
+- Answer 5 is what they hope customers will say. It may be a hope, not real feedback. Use it as real customer feedback only when they clearly say they have already heard it. Never present hoped-for words as an actual customer quote, testimonial, or review. Never invent social proof.
 
 Sections:
 - foundingStory: A real, human founding moment in the brand's own first-person voice ("we"), anchored in the specific place, decision or frustration that started it. 2-3 sentences. True, not corporate.
-- pointOfView: One brave, specific sentence — an opinion about their industry a lazy competitor would hesitate to say aloud. No safe generalities.
+- pointOfView: One brave, specific sentence in the brand's own voice about how they work differently from others like them, grounded in answer 3. If they describe how they want to work rather than how they already do, write it as intention. Do not recast it as a controversial industry opinion. No safe generalities.
 - positioningStatement: Two sentences: "For [their specific audience] who [their specific need], [ACTUAL BUSINESS NAME] is the [category] that [their real differentiator]." Fill every bracket — leave no placeholder in the output.
 - brandPurpose: One sentence — the deeper why, plain and concrete, not aspirational fluff.
 
@@ -94,13 +96,13 @@ function buildUserMessage(answers: string[], businessName?: string) {
   const a = answers.map((x) => String(x ?? "").trim());
   const name = businessName?.trim();
   const nameBlock = name ? `Business name: ${name}\n\n` : "";
-  return `${nameBlock}Q1 (What they do): ${a[0] ?? ""}
+  return `${nameBlock}Q1 (What they do, and who they do it for): ${a[0] ?? ""}
 Q2 (Why they started): ${a[1] ?? ""}
-Q3 (Industry POV): ${a[2] ?? ""}
-Q4 (Best customer): ${a[3] ?? ""}
-Q5 (Customer feedback): ${a[4] ?? ""}
-Q6 (If gone): ${a[5] ?? ""}
-Q7 (5yr vision): ${a[6] ?? ""}`;
+Q3 (What they do differently, or want to do differently): ${a[2] ?? ""}
+Q4 (Who they think their best customer is — may be who they most want to help, not an existing customer): ${a[3] ?? ""}
+Q5 (What they hope customers will say — a hope unless they clearly include feedback they have already received; never quote this as a testimonial): ${a[4] ?? ""}
+Q6 (The difference they make for customers): ${a[5] ?? ""}
+Q7 (Where they want the business to be in five years): ${a[6] ?? ""}`;
 }
 
 function parseFindings(raw: unknown): BrandStoryFinding[] {

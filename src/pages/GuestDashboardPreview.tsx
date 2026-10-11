@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { GuestAllCompleteTrialBanner } from "../components/guest/GuestAllCompleteTrialBanner";
 import { GuestICPCard } from "../components/cards/GuestICPCard";
 import { MarktrStepCard } from "../components/dashboard/MarktrStepCard";
@@ -11,21 +11,38 @@ import { getGuestICPs } from "../lib/guestICP";
 import { getGuestBrandSeed } from "../lib/guestBrandSeed";
 import { getGuestStory } from "../lib/guestStory";
 import { getGuestHealthCheck } from "../lib/guestHealthCheck";
+import {
+  isOnboardingIcpArrival,
+  revealIcpSection,
+  withoutOnboardingIcpArrival,
+} from "../lib/onboardingIcpArrival";
 
 export default function GuestDashboardPreview() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { openPaywall } = usePaywall();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const icpProfilesRef = useRef<HTMLElement>(null);
+  const [revealIcps, setRevealIcps] = useState(false);
 
   const guestStory = getGuestStory();
   const guestHealth = getGuestHealthCheck();
 
   useEffect(() => {
     if (isRealUser(user)) {
-      navigate("/dashboard", { replace: true });
+      navigate("/dashboard", { replace: true, state: location.state });
     }
-  }, [user, navigate]);
+  }, [user, navigate, location.state]);
+
+  useEffect(() => {
+    if (authLoading || isRealUser(user)) return;
+    if (!isOnboardingIcpArrival(location.state)) return;
+    setRevealIcps(true);
+    navigate(`${location.pathname}${location.search}${location.hash}`, {
+      replace: true,
+      state: withoutOnboardingIcpArrival(location.state),
+    });
+  }, [authLoading, user, location.hash, location.pathname, location.search, location.state, navigate]);
 
   const brandSeed = getGuestBrandSeed();
   const guestBrand = useMemo(
@@ -58,6 +75,14 @@ export default function GuestDashboardPreview() {
   const hasHealth = Boolean(guestHealth?.scores);
   const hasStory = Boolean(guestStory?.output);
   const hasICPs = guestICPs.length > 0;
+
+  useEffect(() => {
+    if (!revealIcps || !hasICPs) return;
+    const el = icpProfilesRef.current;
+    if (!el) return;
+    return revealIcpSection(el);
+  }, [revealIcps, hasICPs]);
+
   const allComplete = hasHealth && hasStory && hasICPs;
 
   const completedCount = [hasHealth, hasStory, hasICPs].filter(Boolean).length;

@@ -33,6 +33,11 @@ import { CONTENT_TYPE_LABELS } from "../lib/contentTypeLabels";
 import type { ContentItemType } from "../types/contentItemPayload";
 import DashboardShell from "../layouts/DashboardShell";
 import { ViewEditButton } from "../components/ui/ViewEditButton";
+import {
+  isOnboardingIcpArrival,
+  revealIcpSection,
+  withoutOnboardingIcpArrival,
+} from "../lib/onboardingIcpArrival";
 
 type HealthCheckRow = {
   id: string;
@@ -154,6 +159,8 @@ export default function Dashboard() {
   const { openPaywall } = usePaywall();
   const { openSignIn } = useAuthModal();
   const finishPromptedRef = useRef(false);
+  const icpSectionRef = useRef<HTMLElement>(null);
+  const [revealIcps, setRevealIcps] = useState(false);
 
   const { user, loading: authLoading } = useAuth();
   const { activeBrandId, loading: brandLoading, brands } = useBrand();
@@ -215,6 +222,15 @@ export default function Dashboard() {
       window.history.replaceState({}, "", `${url.pathname}${url.search}`);
     }
   }, [location.search, openSignIn, user]);
+
+  useEffect(() => {
+    if (!isOnboardingIcpArrival(location.state)) return;
+    setRevealIcps(true);
+    navigate(`${location.pathname}${location.search}${location.hash}`, {
+      replace: true,
+      state: withoutOnboardingIcpArrival(location.state),
+    });
+  }, [location.hash, location.pathname, location.search, location.state, navigate]);
 
   useEffect(() => {
     if (finishPromptedRef.current) return;
@@ -475,6 +491,14 @@ export default function Dashboard() {
 
   const previewIcps = icps.slice(0, 3);
   const showIcpPlaceholder = !hasLoadedOnce || icpsLoading;
+  const icpsReadyToReveal = !showIcpPlaceholder && previewIcps.length > 0;
+
+  useEffect(() => {
+    if (!revealIcps || !icpsReadyToReveal) return;
+    const el = icpSectionRef.current;
+    if (!el) return;
+    return revealIcpSection(el);
+  }, [revealIcps, icpsReadyToReveal]);
 
   if (authLoading || !user) {
     return (
@@ -596,7 +620,7 @@ export default function Dashboard() {
           <BrandStorySummaryCard story={storyOutput} />
 
           {/* 3. ICPs — same card as My ICPs */}
-          <section>
+          <section ref={icpSectionRef} className="scroll-mt-20">
             <div className="mb-4 flex items-center justify-between gap-3">
               <h2 className="app-heading font-['Fraunces'] text-2xl text-foreground">Your ICPs</h2>
               <Link

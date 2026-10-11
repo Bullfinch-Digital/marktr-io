@@ -32,6 +32,7 @@ import {
   wouldExceedIcpCap,
 } from "../lib/icpPersonaCap";
 import { applyCurrentIcpFilter, newGenerationId } from "../lib/icpVersioning";
+import { withOnboardingIcpArrival } from "../lib/onboardingIcpArrival";
 import {
   WelcomeScreen,
   NameScreen,
@@ -311,7 +312,9 @@ export default function OnboardingBuild() {
 
   const handleLoadingComplete = () => {
     // Navigate to dedicated ICP Results page after loading
-    navigate("/guest-dashboard", { state: { unsavedPreview: unsavedPreviewRef.current } });
+    navigate("/guest-dashboard", {
+      state: withOnboardingIcpArrival({ unsavedPreview: unsavedPreviewRef.current }),
+    });
   };
 
   // Only evaluate create limits once BOTH subscription + ICPs have finished loading.
@@ -767,7 +770,9 @@ export default function OnboardingBuild() {
     }
 
     completedGenerationKeyRef.current = inputKey;
-    navigate("/guest-dashboard", { state: { unsavedPreview: unsavedPreviewRef.current } });
+    navigate("/guest-dashboard", {
+      state: withOnboardingIcpArrival({ unsavedPreview: unsavedPreviewRef.current }),
+    });
     console.log("[Onboarding] runIcpGeneration complete");
     } finally {
       if (generationInFlightKeyRef.current === inputKey) {

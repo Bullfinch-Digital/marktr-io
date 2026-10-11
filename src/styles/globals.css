@@ -1310,6 +1310,23 @@ html {
   }
 }
 
+/* Brief lime outline after arriving from ICP onboarding. */
+.icp-arrival-highlight {
+  outline: 2px solid var(--brand-lime);
+  outline-offset: 6px;
+  border-radius: 16px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .icp-arrival-highlight[data-armed="true"] {
+    transition: outline-color 2s ease;
+  }
+
+  .icp-arrival-highlight[data-fade="true"] {
+    outline-color: transparent;
+  }
+}
+
 @keyframes journey-hub-glow {
   0% {
     opacity: 0;

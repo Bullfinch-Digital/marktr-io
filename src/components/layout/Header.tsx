@@ -83,7 +83,7 @@ export function Header() {
           </Link>
 
           {/* Desktop Navigation — same links for logged-in and logged-out visitors */}
-          <nav className="hidden items-center gap-8 md:flex">
+          <nav className="hidden items-center gap-8 xl:flex">
             {navItems.map((item, index) => (
               item.type === "scroll" ? (
                 <Link
@@ -115,7 +115,7 @@ export function Header() {
                 <Link to="/dashboard" data-track-id="header_dashboard" data-track-location="header">
                   <Button
                     variant="outline"
-                    className="hidden bg-transparent text-foreground transition-all hover:scale-105 hover:bg-accent-grey/20 active:scale-95 md:flex font-['Plus_Jakarta_Sans'] font-semibold"
+                    className="hidden bg-transparent text-foreground transition-all hover:scale-105 hover:bg-accent-grey/20 active:scale-95 xl:flex font-['Plus_Jakarta_Sans'] font-semibold"
                   >
                     Dashboard
                   </Button>
@@ -139,7 +139,7 @@ export function Header() {
                     }
                   }}
                   variant="outline"
-                  className="hidden bg-transparent text-foreground transition-all hover:scale-105 hover:bg-accent-grey/20 active:scale-95 md:flex font-['Plus_Jakarta_Sans'] font-semibold"
+                  className="hidden bg-transparent text-foreground transition-all hover:scale-105 hover:bg-accent-grey/20 active:scale-95 xl:flex font-['Plus_Jakarta_Sans'] font-semibold"
                 >
                   Sign Out
                 </Button>
@@ -156,7 +156,7 @@ export function Header() {
                     openLogin();
                   }}
                   variant="outline"
-                  className="hidden bg-transparent text-foreground transition-all hover:scale-105 hover:bg-accent-grey/20 active:scale-95 md:flex font-['Plus_Jakarta_Sans'] font-semibold"
+                  className="hidden bg-transparent text-foreground transition-all hover:scale-105 hover:bg-accent-grey/20 active:scale-95 xl:flex font-['Plus_Jakarta_Sans'] font-semibold"
                 >
                   Login
                 </Button>
@@ -164,7 +164,7 @@ export function Header() {
                 <Link to="/health-check" data-track-id="header_get_started" data-track-location="header">
                   <Button
                     variant="default"
-                    className="hidden rounded-full border-2 border-[#0B0B0C] bg-[#EBFD84] text-[#0B0B0C] transition-all hover:scale-105 hover:bg-[#EBFD84]/90 hover:shadow-lg active:scale-95 md:flex font-['Plus_Jakarta_Sans'] font-semibold"
+                    className="hidden rounded-full border-2 border-[#0B0B0C] bg-[#EBFD84] text-[#0B0B0C] transition-all hover:scale-105 hover:bg-[#EBFD84]/90 hover:shadow-lg active:scale-95 xl:flex font-['Plus_Jakarta_Sans'] font-semibold"
                   >
                     Get started - Free
                   </Button>
@@ -175,7 +175,7 @@ export function Header() {
             {/* Mobile Menu Button */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="rounded-lg p-2 md:hidden"
+              className="rounded-lg p-2 md:flex md:h-11 md:w-11 md:items-center md:justify-center xl:hidden"
               aria-label="Toggle menu"
             >
               {isMobileMenuOpen ? (
@@ -189,14 +189,14 @@ export function Header() {
 
         {/* Mobile Menu */}
         {isMobileMenuOpen && (
-          <nav className="flex flex-col gap-4 border-t border-warm-grey py-4 md:hidden">
+          <nav className="flex flex-col gap-4 border-t border-warm-grey py-4 xl:hidden">
             {navItems.map((item, index) => (
               item.type === "scroll" ? (
                 <Link
                   key={index}
                   to={`/#${item.target}`}
                   onClick={(e) => handleScrollNav(e, item.target)}
-                  className="px-2 py-1 transition-colors hover:text-button-green flex items-center gap-2 text-left"
+                  className="px-2 py-1 transition-colors hover:text-button-green flex items-center gap-2 text-left md:min-h-11"
                 >
                   {item.label}
                 </Link>
@@ -206,7 +206,7 @@ export function Header() {
                   to={item.target}
                   data-track-id={`header_nav_${item.target.replace(/^\//, "").replace(/-/g, "_")}`}
                   data-track-location="header"
-                  className="px-2 py-1 transition-colors hover:text-button-green flex items-center gap-2"
+                  className="px-2 py-1 transition-colors hover:text-button-green flex items-center gap-2 md:min-h-11"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   {item.label}

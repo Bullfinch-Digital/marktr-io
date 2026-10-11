@@ -10,8 +10,7 @@ import {
   MARKTR_PRO_PLAN_NAME,
   MARKTR_PRO_PRICE_HEADLINE,
   MARKTR_TRIAL_CTA_SUBCOPY,
-  MARKTR_TRIAL_DAYS,
-  MARKTR_TRIAL_LEGAL_STRIP,
+  PRICING_SALES,
 } from "../../lib/marktrPricing";
 
 interface PaywallModalProps {
@@ -51,13 +50,7 @@ export function PaywallModal({
     <div className="fixed inset-0 bg-[rgb(16_26_38_/_0.55)] backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-background border-2 border-brand-stroke rounded-[28px] shadow-[var(--brand-shadow)] max-w-4xl w-full max-h-[90vh] overflow-y-auto animate-fade-in-up">
         <div className="sticky top-0 bg-background border-b border-warm-grey p-6 flex items-start justify-between">
-          <div>
-            <h2 className="font-['Fraunces'] text-3xl mb-2">Get full access in 60 seconds</h2>
-            <p className="font-['Plus_Jakarta_Sans'] text-foreground/70 max-w-xl">
-              Start your {MARKTR_TRIAL_DAYS}-day free trial now. £0 today, then billed on day{" "}
-              {MARKTR_TRIAL_DAYS + 1}.
-            </p>
-          </div>
+          <h2 className="font-['Fraunces'] text-2xl sm:text-3xl leading-snug pr-4">{PRICING_SALES.h1}</h2>
           <button
             onClick={onClose}
             className="p-2 hover:bg-muted/40 rounded-full transition-colors flex-shrink-0 min-h-11 min-w-11 flex items-center justify-center"
@@ -68,30 +61,36 @@ export function PaywallModal({
         </div>
 
         <div className="p-6 lg:p-8">
-          <div className="mb-6">
-            <h3 className="font-['Fraunces'] text-xl mb-4">Your plan after the trial</h3>
-
-            <div className="border-2 border-brand-stroke bg-brand-lime/20 shadow-md rounded-[24px] p-6">
-              <div className="mb-2">
-                <h4 className="font-['Fraunces'] text-lg mb-1">{MARKTR_PRO_PLAN_NAME}</h4>
-                <div className="flex items-baseline gap-2">
-                  <span className="font-['Fraunces'] text-3xl">{MARKTR_PRO_PRICE_HEADLINE}</span>
-                </div>
-              </div>
-              <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70">
-                {MARKTR_PRO_BILLING_LINE}
-              </p>
-              <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/60 mt-2">{MARKTR_PRO_CARD_SUBTITLE}</p>
-            </div>
-
-            <div className="bg-muted/40 border border-brand-stroke rounded-[24px] p-4 mt-4 space-y-2">
-              <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/70 text-center">
-                {MARKTR_TRIAL_LEGAL_STRIP}
-              </p>
-              <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/70 text-center">
-                {MARKTR_MONEY_BACK_GUARANTEE}
-              </p>
-            </div>
+          <div className="mb-8">
+            <p className="mb-3 font-['Plus_Jakarta_Sans'] text-[11px] font-medium uppercase tracking-[0.16em] text-foreground/55">
+              {PRICING_SALES.costsLabel}
+            </p>
+            <ul className="grid gap-x-6 gap-y-3 sm:grid-cols-3">
+              {PRICING_SALES.costs.map((cost) => (
+                <li key={cost.title}>
+                  <p className="font-['Fraunces'] text-sm leading-snug">{cost.title}</p>
+                  <p className="mt-1 font-['Plus_Jakarta_Sans'] text-xs leading-relaxed text-foreground/70">
+                    {cost.usualCost}
+                  </p>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-3 font-['Plus_Jakarta_Sans'] text-xs leading-relaxed text-foreground/50">
+              {PRICING_SALES.footnoteBefore}
+              {PRICING_SALES.sources.map((source, index) => (
+                <span key={source.id}>
+                  {index > 0 ? " · " : null}
+                  <a
+                    href={source.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline underline-offset-2 hover:text-foreground"
+                  >
+                    {source.label}
+                  </a>
+                </span>
+              ))}
+            </p>
           </div>
 
           <div className="mb-8">
@@ -107,6 +106,23 @@ export function PaywallModal({
                   </li>
                 ))}
               </ul>
+            </div>
+          </div>
+
+          <div className="mb-6">
+            <h3 className="font-['Fraunces'] text-xl mb-4">Your plan after the trial</h3>
+
+            <div className="border-2 border-brand-stroke bg-brand-lime/20 shadow-md rounded-[24px] p-6">
+              <div className="mb-2">
+                <h4 className="font-['Fraunces'] text-lg mb-1">{MARKTR_PRO_PLAN_NAME}</h4>
+                <div className="flex items-baseline gap-2">
+                  <span className="font-['Fraunces'] text-3xl">Only {MARKTR_PRO_PRICE_HEADLINE}</span>
+                </div>
+              </div>
+              <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70">
+                {MARKTR_PRO_BILLING_LINE}
+              </p>
+              <p className="font-['Plus_Jakarta_Sans'] text-base text-foreground mt-2">{MARKTR_PRO_CARD_SUBTITLE}</p>
             </div>
           </div>
 
@@ -130,6 +146,9 @@ export function PaywallModal({
             </Button>
             <p className="text-center text-xs text-foreground/60 font-['Plus_Jakarta_Sans']">
               {MARKTR_TRIAL_CTA_SUBCOPY}
+            </p>
+            <p className="text-center text-xs text-foreground/60 font-['Plus_Jakarta_Sans']">
+              {MARKTR_MONEY_BACK_GUARANTEE}
             </p>
 
             <button

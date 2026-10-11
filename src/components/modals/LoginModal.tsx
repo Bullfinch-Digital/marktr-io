@@ -8,6 +8,8 @@ import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { useAuth } from "../../contexts/AuthContext";
 import { GoogleIcon } from "../icons/GoogleIcon";
+import { signUpWithEmail } from "../../lib/supabaseAuth";
+import { getFirstTouchParams, track } from "../../lib/analytics";
 import {
   buildLinkBody,
   clearPendingGuestLink,
@@ -56,6 +58,8 @@ export function LoginModal({
   };
   const [localEmail, setLocalEmail] = useState(email ?? "");
   const [password, setPassword] = useState("");
+  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [awaitingConfirm, setAwaitingConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -151,25 +155,82 @@ export function LoginModal({
     }
   };
 
+  const performSignUp = async (resolvedEmail: string, resolvedPassword: string) => {
+    if (!resolvedEmail) {
+      setError("Enter your email to continue.");
+      return;
+    }
+    if (resolvedPassword.length < 8) {
+      setError("Password must be at least 8 characters.");
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      stashPendingLegalAcceptance();
+      const params = new URLSearchParams(window.location.search);
+      const next = params.get("next");
+      const redirectPath = next && next.startsWith("/") ? next : "/dashboard";
+      const outcome = await signUpWithEmail({
+        email: resolvedEmail,
+        password: resolvedPassword,
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectPath)}`,
+      });
+
+      if (outcome.status === "error") {
+        setError(outcome.message);
+        return;
+      }
+      if (outcome.status === "existing") {
+        setError("An account with this email already exists.");
+        return;
+      }
+      if (outcome.status === "confirm_email") {
+        track("sign_up", { method: "email", ...getFirstTouchParams() });
+        setAwaitingConfirm(true);
+        return;
+      }
+
+      onClose();
+      await redirectAfterLogin();
+    } catch {
+      setError("Sign up failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const switchMode = (next: "signin" | "signup") => {
+    setMode(next);
+    setError(null);
+    setAwaitingConfirm(false);
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = e.currentTarget;
     const formData = new FormData(form);
     const emailFromForm = String(formData.get("email") ?? "").trim();
     const passwordFromForm = String(formData.get("password") ?? "");
-    await performSignIn(
-      emailFromForm || localEmail.trim(),
-      passwordFromForm || password
-    );
+    const submitEmail = emailFromForm || localEmail.trim();
+    const submitPassword = passwordFromForm || password;
+    if (mode === "signup") {
+      gate(legalAgreed, () => void performSignUp(submitEmail, submitPassword));
+      return;
+    }
+    await performSignIn(submitEmail, submitPassword);
   };
 
   const handleSubmitClick = async () => {
     const emailEl = document.getElementById("login-email") as HTMLInputElement | null;
     const passwordEl = document.getElementById("login-password") as HTMLInputElement | null;
-    await performSignIn(
-      (emailEl?.value ?? localEmail).trim(),
-      passwordEl?.value ?? password
-    );
+    const submitEmail = (emailEl?.value ?? localEmail).trim();
+    const submitPassword = passwordEl?.value ?? password;
+    if (mode === "signup") {
+      gate(legalAgreed, () => void performSignUp(submitEmail, submitPassword));
+      return;
+    }
+    await performSignIn(submitEmail, submitPassword);
   };
 
   return (
@@ -229,6 +290,20 @@ export function LoginModal({
           </div>
         </div>
 
+        {awaitingConfirm ? (
+          <div className="space-y-4">
+            <p className="font-['Plus_Jakarta_Sans'] text-sm leading-relaxed text-[#101A26]">
+              Check your email to confirm.
+            </p>
+            <button
+              type="button"
+              onClick={() => switchMode("signin")}
+              className="font-['Plus_Jakarta_Sans'] text-sm text-[#101A26]/70 underline-offset-4 transition-colors hover:text-[#101A26] hover:underline"
+            >
+              Already have an account? Sign in
+            </button>
+          </div>
+        ) : (
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="space-y-2">
             <Label htmlFor="login-email" className="font-['Plus_Jakarta_Sans'] font-medium text-[#101A26]">
@@ -256,10 +331,11 @@ export function LoginModal({
               id="login-password"
               type="password"
               name="password"
-              autoComplete="current-password"
+              autoComplete={mode === "signup" ? "new-password" : "current-password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               onInput={(e) => setPassword((e.target as HTMLInputElement).value)}
+              minLength={mode === "signup" ? 8 : undefined}
               className="auth-modal-input px-4"
               required
             />
@@ -279,9 +355,26 @@ export function LoginModal({
             onClick={() => void handleSubmitClick()}
             className="auth-modal-primary h-auto w-full rounded-full px-6 py-3 font-['Plus_Jakarta_Sans'] font-semibold hover:bg-[#EBFD84]/90 hover:shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
           >
-            {loading ? "Signing in..." : "Log in"}
+            {loading
+              ? mode === "signup"
+                ? "Creating account..."
+                : "Signing in..."
+              : mode === "signup"
+                ? "Create account"
+                : "Log in"}
           </Button>
+
+          <button
+            type="button"
+            onClick={() => switchMode(mode === "signin" ? "signup" : "signin")}
+            className="w-full text-left font-['Plus_Jakarta_Sans'] text-sm text-[#101A26]/70 underline-offset-4 transition-colors hover:text-[#101A26] hover:underline"
+          >
+            {mode === "signin"
+              ? "New here? Create an account"
+              : "Already have an account? Sign in"}
+          </button>
         </form>
+        )}
       </div>
     </div>
     </>

@@ -5,45 +5,33 @@ import CaseStudies from "@/components/home/CaseStudies";
 import JourneyMap from "@/components/home/JourneyMap";
 import { QuoteStrip } from "@/components/home/Testimonials";
 
-const WAYS_IN = [
+const THREE_STEPS = [
   {
-    step: "01",
-    trackId: "hero_card_1",
-    location: "card_1",
-    href: "/health-check",
+    step: "1",
     eyebrow: "See where you stand",
     title: "Check your digital health",
     description:
       "Score your digital presence across 5 dimensions — and see exactly where to focus.",
     image: "/images/graphics/marktr-card1-health-simple.png",
     imageAlt: "Digital health scores in marktr",
-    recommended: true,
   },
   {
-    step: "02",
-    trackId: "hero_card_2",
-    location: "card_2",
-    href: "/story",
+    step: "2",
     eyebrow: "Say what makes you different",
     title: "Find your brand story",
     description:
       "Discover the narrative that makes your business impossible to ignore — in minutes.",
     image: "/images/graphics/marktr-card2-brand-story-simple.png",
     imageAlt: "Brand story questions in marktr",
-    recommended: false,
   },
   {
-    step: "03",
-    trackId: "hero_card_3",
-    location: "card_3",
-    href: "/onboarding-build",
+    step: "3",
     eyebrow: "Start with who you sell to",
     title: "Build your ideal customer profile",
     description:
       "Define your ideal customer profile once. Then create laser focused content that speaks directly to them.",
     image: "/images/graphics/marktr-card3-customer-profiles-simple.png",
     imageAlt: "Ideal customer profiles in marktr",
-    recommended: false,
   },
 ] as const;
 
@@ -54,7 +42,7 @@ export default function Home() {
 
   return (
     <main className="overflow-x-hidden bg-[#FBFAF0] font-['Plus_Jakarta_Sans'] text-[#101A26]">
-      {/* SECTION 1 — Opening hero and three ways in */}
+      {/* SECTION 1 — Opening hero */}
       <section id="ways-in" data-track-section="hero" className="home-opening px-6 pb-12 pt-12 lg:pb-14">
         <div className="relative z-10 mx-auto max-w-6xl">
           <h1 className="max-w-6xl text-left">
@@ -68,68 +56,62 @@ export default function Home() {
           <p className="mt-6 max-w-6xl font-['Plus_Jakarta_Sans'] text-lg leading-snug text-[#0B0B0C] lg:whitespace-nowrap lg:text-xl">
             Brand Foundations. Customer Insights. Strategy. Content.
           </p>
-          <p className="mt-4 font-['Plus_Jakarta_Sans'] text-sm text-[#0B0B0C]/80">
-            Start in any order. Most people begin with their Digital Health Check.
+          <p className="mt-8 max-w-3xl font-['Plus_Jakarta_Sans'] text-base leading-snug text-[#0B0B0C] sm:text-lg">
+            By the end you'll have your digital health score, your brand story and your ideal customer profiles.
           </p>
-
-        <div className="relative mt-4">
-          <div
-            aria-hidden
-            className="pointer-events-none absolute left-8 right-8 top-9 hidden border-t border-dashed border-[#101A26]/40 lg:block"
-          />
-          <div data-track-section="cards" className="ways-in-grid grid gap-8 lg:grid-cols-3">
-            {WAYS_IN.map((way) => (
-              <Link
-                key={way.step}
-                to={way.href}
-                data-track-id={way.trackId}
-                data-track-location={way.location}
-                data-track-text="Get started free →"
-                className={
-                  way.recommended
-                    ? "ways-in-card relative z-10 flex flex-col overflow-hidden rounded-[24px] border-2 border-[#101A26] bg-white shadow-xl outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#101A26]"
-                    : "ways-in-card relative flex flex-col overflow-hidden rounded-[24px] border border-[#101A26]/10 bg-white shadow-sm outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#101A26] lg:self-start"
-                }
-              >
-                <div className={`relative overflow-hidden bg-[#FBFAF0] ${way.recommended ? "h-64" : "h-52"}`}>
-                  <img
-                    src={way.image}
-                    alt={way.imageAlt}
-                    className="h-full w-full object-cover object-top"
-                  />
-                  <div className="absolute left-4 top-4 flex max-w-[calc(100%-2rem)] items-center gap-2">
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#101A26] bg-[#FBFAF0] font-['Plus_Jakarta_Sans'] text-sm font-medium text-[#101A26]">
-                      {way.step}
-                    </span>
-                    {way.recommended ? (
-                      <span className="rounded-full border-2 border-[#0B0B0C] bg-[#EBFD84] px-2.5 py-1 font-['Plus_Jakarta_Sans'] text-[13px] font-medium leading-none text-[#0B0B0C]">
-                        Recommended starting point
-                      </span>
-                    ) : null}
-                  </div>
-                </div>
-                <div className="flex flex-1 flex-col p-5 text-left">
-                  <p className="font-['Plus_Jakarta_Sans'] text-[11px] font-medium uppercase tracking-[0.16em] text-[#101A26]/55">
-                    {way.eyebrow}
-                  </p>
-                  <h3 className="mt-1.5 font-['Fraunces'] text-2xl font-bold leading-tight text-[#101A26]">{way.title}</h3>
-                  <p className="mt-1.5 font-['Plus_Jakarta_Sans'] text-sm leading-relaxed text-[#101A26]/80">
-                    {way.description}
-                  </p>
-                  <span
-                    className={
-                      way.recommended
-                        ? "ways-in-cta mt-4 inline-flex w-full items-center justify-center rounded-full bg-[#101A26] px-7 py-3.5 font-['Plus_Jakarta_Sans'] text-base font-medium text-white"
-                        : "ways-in-cta mt-4 inline-flex w-full items-center justify-center rounded-full border border-[#101A26] bg-white px-7 py-3 font-['Plus_Jakarta_Sans'] text-sm font-medium text-[#101A26]"
-                    }
-                  >
-                    Get started free →
-                  </span>
-                </div>
-              </Link>
-            ))}
-          </div>
+          <Link
+            to="/health-check"
+            data-track-id="hero_primary_cta"
+            data-track-location="hero"
+            className="mt-6 flex w-full items-center justify-center rounded-full border-2 border-[#0B0B0C] bg-[#EBFD84] px-10 py-5 font-['Plus_Jakarta_Sans'] text-xl font-medium text-[#0B0B0C] transition-opacity hover:bg-[#EBFD84]/90 sm:inline-flex sm:w-auto"
+          >
+            Get started - Free
+          </Link>
+          <p className="mt-3 font-['Plus_Jakarta_Sans'] text-sm text-[#0B0B0C]/60">
+            Free to start. No account needed to begin.
+          </p>
         </div>
+      </section>
+
+      <section className="bg-[#FBFAF0] px-6 py-16 lg:py-20">
+        <div className="mx-auto max-w-6xl">
+          <h2 className="font-['Fraunces'] text-3xl font-bold text-[#101A26] sm:text-4xl">Your three steps</h2>
+          <div className="relative mt-8">
+            <div
+              aria-hidden
+              className="pointer-events-none absolute left-8 right-8 top-9 hidden border-t border-dashed border-[#101A26]/40 lg:block"
+            />
+            <div className="grid gap-8 lg:grid-cols-3">
+              {THREE_STEPS.map((way) => (
+                <article
+                  key={way.step}
+                  className="relative flex flex-col overflow-hidden rounded-[24px] border border-[#101A26]/10 bg-white shadow-sm"
+                >
+                  <div className="relative h-52 overflow-hidden bg-[#FBFAF0]">
+                    <img
+                      src={way.image}
+                      alt={way.imageAlt}
+                      className="h-full w-full object-cover object-top"
+                    />
+                    <div className="absolute left-4 top-4">
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#101A26] bg-[#FBFAF0] font-['Plus_Jakarta_Sans'] text-sm font-medium text-[#101A26]">
+                        {way.step}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex flex-1 flex-col p-5 text-left">
+                    <p className="font-['Plus_Jakarta_Sans'] text-[11px] font-medium uppercase tracking-[0.16em] text-[#101A26]/55">
+                      {way.eyebrow}
+                    </p>
+                    <h3 className="mt-1.5 font-['Fraunces'] text-2xl font-bold leading-tight text-[#101A26]">{way.title}</h3>
+                    <p className="mt-1.5 font-['Plus_Jakarta_Sans'] text-sm leading-relaxed text-[#101A26]/80">
+                      {way.description}
+                    </p>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 

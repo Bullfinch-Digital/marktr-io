@@ -1012,47 +1012,6 @@ html {
   }
 }
 
-/* Homepage way-in cards: spotlight only for a fine pointer that can hover. */
-@media (hover: hover) and (pointer: fine) {
-  .ways-in-card,
-  .ways-in-cta {
-    transition:
-      transform 200ms ease,
-      opacity 200ms ease,
-      filter 200ms ease,
-      box-shadow 200ms ease,
-      background-color 200ms ease,
-      color 200ms ease,
-      border-color 200ms ease;
-  }
-
-  .ways-in-grid:has(> .ways-in-card:hover) > .ways-in-card,
-  .ways-in-grid:focus-within > .ways-in-card {
-    opacity: 0.55;
-    filter: saturate(0.65);
-  }
-
-  .ways-in-grid:has(> .ways-in-card:hover) > .ways-in-card:hover,
-  .ways-in-grid:focus-within > .ways-in-card:focus,
-  .ways-in-grid:focus-within > .ways-in-card:focus-visible,
-  .ways-in-grid:focus-within > .ways-in-card:focus-within {
-    opacity: 1;
-    filter: none;
-    transform: translateY(-6px);
-    box-shadow: 0 22px 44px rgb(16 26 38 / 0.18);
-  }
-
-  .ways-in-card:hover .ways-in-cta,
-  .ways-in-card:focus .ways-in-cta,
-  .ways-in-card:focus-visible .ways-in-cta,
-  .ways-in-card:focus-within .ways-in-cta {
-    background-color: #e8f455;
-    color: #101a26;
-    border-color: #101a26;
-    transform: scale(1.04);
-  }
-}
-
 .journey-rail {
   position: absolute;
   top: 0;

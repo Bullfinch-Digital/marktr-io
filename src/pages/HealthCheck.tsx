@@ -598,6 +598,24 @@ export default function HealthCheck() {
           onRunAgain={() => setRerunPromptDismissed(true)}
         />
       ) : (
+        <>
+        {edition === "marktr" ? (
+          <nav aria-label="Your journey" className="mb-4">
+            <ol className="flex flex-wrap items-center gap-x-2 gap-y-1 font-body text-sm">
+              <li className="rounded-full border-2 border-brand-stroke bg-brand-lime px-3 py-1 font-medium text-brand-navy">
+                1 Digital health check (you are here)
+              </li>
+              <li aria-hidden className="text-muted-foreground">
+                &gt;
+              </li>
+              <li className="text-muted-foreground">2 Brand story</li>
+              <li aria-hidden className="text-muted-foreground">
+                &gt;
+              </li>
+              <li className="text-muted-foreground">3 Ideal customers</li>
+            </ol>
+          </nav>
+        ) : null}
         <div className="rounded-3xl border border-border bg-white p-8 shadow-sm sm:p-12">
           {config.start.eyebrow ? (
             <p className="font-body text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
@@ -607,6 +625,11 @@ export default function HealthCheck() {
           <h1 className="font-display text-4xl font-bold leading-tight text-foreground sm:text-5xl">
             {config.start.h1}
           </h1>
+          {edition === "marktr" ? (
+            <p className="mt-4 max-w-2xl font-body text-base leading-relaxed text-foreground sm:text-lg">
+              Three short steps. At the end you'll have your health score, brand story and ideal customer profiles, then you can create a free account to save them.
+            </p>
+          ) : null}
           <p className="mt-5 max-w-2xl font-body text-base leading-relaxed text-muted-foreground sm:text-lg">
             {config.start.lede}
           </p>
@@ -638,6 +661,7 @@ export default function HealthCheck() {
           </p>
           ) : null}
         </div>
+        </>
       )}
     </section>
   );

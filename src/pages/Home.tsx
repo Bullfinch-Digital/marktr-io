@@ -13,9 +13,9 @@ const FAMILIAR = [
 
 const MONDAY = [
   "who your customers are and what keeps them up at night",
-  "what to say, in words that sound like you",
+  "what to say, in words that speak directly to them",
   "which channels to focus on, and why",
-  "exactly what to post this week, with the briefs ready to go",
+  "exactly what to post this week, with the scripts and briefs ready to go",
 ] as const;
 
 const THREE_STEPS = [
@@ -71,7 +71,7 @@ export default function Home() {
       <section id="ways-in" data-track-section="hero" className="home-opening px-6 pb-14 pt-12 lg:pb-20 lg:pt-16">
         <div className="relative z-10 mx-auto max-w-6xl">
           <p className="inline-flex max-w-full items-center rounded-full border-2 border-[#0B0B0C] bg-[#FBFAF0] px-3 py-1 font-['Plus_Jakarta_Sans'] text-sm font-medium text-[#0B0B0C]">
-            Marketing your business on your own?
+            Doing your own business marketing?
           </p>
           <h1 className="mt-5 max-w-6xl text-left">
             <span className="home-pill-line">
@@ -82,7 +82,7 @@ export default function Home() {
             </span>
           </h1>
           <p className="mt-8 max-w-3xl font-['Plus_Jakarta_Sans'] text-base leading-relaxed text-[#0B0B0C] sm:text-lg">
-            You know your business inside out. What you don't have is a marketing team, or an agency budget. marktr gives you the thinking agencies charge hundreds, often thousands, for: who your customers are, what to say to them and what to post. In minutes, in one tool.
+            You know your business inside out. Marketing it is another story, and an agency or a team is out of budget. marktr works out who your customers are, what to say to them and what to post, so you can get back to running your business.
           </p>
           <Link
             to="/health-check"
@@ -124,7 +124,7 @@ export default function Home() {
       <section className="bg-[#FBFAF0] px-6 pb-16 lg:pb-20">
         <div className="mx-auto max-w-6xl">
           <h2 className="max-w-3xl font-['Fraunces'] text-3xl font-bold leading-tight text-[#101A26] sm:text-4xl">
-            Imagine opening your laptop on Monday and already knowing:
+            Imagine starting the week and already knowing:
           </h2>
           <ul className="mt-8 max-w-3xl space-y-4">
             {MONDAY.map((item) => (

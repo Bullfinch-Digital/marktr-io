@@ -440,9 +440,9 @@ export default function JourneyMap() {
             to="/health-check"
             data-track-id="journey_final_health"
             data-track-location="journey"
-            className="inline-flex items-center justify-center rounded-full border-2 border-[#0B0B0C] bg-[#EBFD84] px-8 py-3.5 font-['Plus_Jakarta_Sans'] text-base font-medium text-[#0B0B0C] hover:bg-[#EBFD84]/90"
+            className="flex w-full items-center justify-center rounded-full border-2 border-[#0B0B0C] bg-[#EBFD84] px-10 py-6 font-['Plus_Jakarta_Sans'] text-2xl font-medium text-[#0B0B0C] transition-opacity hover:bg-[#EBFD84]/90 sm:w-auto sm:px-14 sm:py-7"
           >
-            Start with your digital health check — free
+            Get started - Free
           </Link>
         </div>
         </div>

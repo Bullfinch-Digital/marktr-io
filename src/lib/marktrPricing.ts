@@ -91,8 +91,10 @@ export const MARKTR_MONEY_BACK_GUARANTEE = `${MARKTR_MONEY_BACK_DAYS}-day money-
  */
 export type MarktrProBenefit = {
   id: string;
-  /** Full copy used in the paywall modal and pricing card checklist. */
+  /** Full copy used on the pricing card checklist. */
   label: string;
+  /** One-line paywall checklist. Same claim, fewer words. */
+  paywallLabel: string;
 };
 
 export const MARKTR_PRO_BENEFITS: readonly MarktrProBenefit[] = [
@@ -100,31 +102,41 @@ export const MARKTR_PRO_BENEFITS: readonly MarktrProBenefit[] = [
     id: "brand-story",
     label:
       "Full Brand Story System — beyond your free story: the messaging, value props, and objection-handling to help you know exactly what to say about your business, on your website, in ads, anywhere.",
+    paywallLabel: "Full brand story system",
   },
   {
     id: "unlimited-icps",
     label:
       "Unlimited ICPs — go past the free 3 personas, with full detail for every type of customer you sell to.",
+    paywallLabel: "Unlimited ICPs",
   },
   {
     id: "health-report",
     label:
       "Your complete health report — see exactly why each score is what it is, with specific suggestions on what to fix first.",
+    paywallLabel: "Complete health report, with fixes",
   },
   {
     id: "content-strategy",
     label:
       "A content strategy built from your brand and customers — campaign ideas and clear content briefs, so you're never starting from a blank page.",
+    paywallLabel: "Content strategy and briefs from your brand",
   },
   {
     id: "multiple-brands",
     label: "Manage multiple brands in one place.",
+    paywallLabel: "Multiple brands in one place",
   },
   {
     id: "export-icp-brand",
     label: "Export and share your ICPs, brand stories, strategies, and content.",
+    paywallLabel: "Export and share everything",
   },
 ] as const;
+
+/** Paywall cost line. Same published figures as PRICING_SALES.costs. */
+export const PAYWALL_COST_ANCHOR =
+  "Brand strategy from £2,500. Social media management £500–£1,500 a month.";
 
 /** Convenience strings for checklists that only need the full benefit copy. */
 export const MARKTR_PRO_BENEFIT_LABELS = MARKTR_PRO_BENEFITS.map((b) => b.label);

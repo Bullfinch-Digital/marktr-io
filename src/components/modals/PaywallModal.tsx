@@ -4,13 +4,14 @@ import { X, Check, Shield } from "lucide-react";
 import { track } from "../../lib/analytics";
 import type { CheckoutPlan } from "../../lib/checkoutPlans";
 import {
-  MARKTR_MONEY_BACK_GUARANTEE,
+  MARKTR_MONEY_BACK_DAYS,
   MARKTR_PAYWALL_ANNUAL_PRICE_LINE,
   MARKTR_PAYWALL_ANNUAL_SAVINGS_BADGE,
   MARKTR_PAYWALL_MONTHLY_PRICE_LINE,
   MARKTR_PRO_BENEFITS,
   MARKTR_PRO_PLAN_NAME,
   MARKTR_TRIAL_DAYS,
+  PAYWALL_COST_ANCHOR,
   PRICING_SALES,
   formatPaywallDay,
   paywallFirstChargeAmount,
@@ -22,41 +23,34 @@ import {
 function PaywallTrialJourney({ plan }: { plan: CheckoutPlan }) {
   const today = new Date();
   const steps = [
+    { date: "Today", rest: "Full access. Nothing to pay." },
+    { date: formatPaywallDay(paywallReminderDate(today)), rest: "We email you a reminder." },
     {
-      label: "Today",
-      body: "Start your free trial. Full access, nothing to pay now.",
-    },
-    {
-      label: formatPaywallDay(paywallReminderDate(today)),
-      body: "We'll email you a reminder before your trial ends.",
-    },
-    {
-      label: formatPaywallDay(paywallFirstChargeDate(today)),
-      body: `Your first payment of ${paywallFirstChargeAmount(plan)} is taken, unless you cancel before then.`,
+      date: formatPaywallDay(paywallFirstChargeDate(today)),
+      rest: `First payment of ${paywallFirstChargeAmount(plan)} unless you cancel.`,
     },
   ];
 
   return (
     <div>
-      <h3 className="font-['Fraunces'] text-lg sm:text-xl mb-3">We'll remind you before your trial ends</h3>
+      <h3 className="mb-1.5 font-['Fraunces'] text-base leading-snug">We'll remind you before your trial ends</h3>
       <ol>
         {steps.map((step, index) => {
           const isFirst = index === 0;
           const isLast = index === steps.length - 1;
           return (
-            <li key={step.label} className="flex gap-3">
-              <div className="flex w-3.5 flex-col items-center" aria-hidden="true">
+            <li key={step.date} className="flex gap-2.5">
+              <div className="flex w-3 flex-col items-center" aria-hidden="true">
                 <span
-                  className={`mt-1 h-3.5 w-3.5 shrink-0 rounded-full border-2 border-brand-navy dark:border-foreground ${
+                  className={`mt-1 h-3 w-3 shrink-0 rounded-full border-2 border-brand-navy dark:border-foreground ${
                     isFirst ? "bg-brand-lime" : "bg-brand-navy dark:bg-foreground"
                   }`}
                 />
                 {!isLast && <span className="w-0.5 flex-1 bg-brand-navy dark:bg-foreground/70" />}
               </div>
-              <div className={isLast ? "min-w-0" : "min-w-0 pb-3"}>
-                <p className="font-['Fraunces'] text-sm leading-snug">{step.label}</p>
-                <p className="font-['Plus_Jakarta_Sans'] text-xs leading-relaxed text-foreground/75">{step.body}</p>
-              </div>
+              <p className={`min-w-0 font-['Plus_Jakarta_Sans'] text-sm leading-snug ${isLast ? "" : "pb-1"}`}>
+                <span className="font-semibold">{step.date}:</span> {step.rest}
+              </p>
             </li>
           );
         })}
@@ -106,13 +100,15 @@ export function PaywallModal({
   };
 
   const firstChargeLabel = formatPaywallDay(paywallFirstChargeDate());
+  const costCaption = PRICING_SALES.footnoteBefore.replace(/\s*Sources:\s*$/, "");
+  const trialCta = `Start my ${MARKTR_TRIAL_DAYS}-day free trial`;
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto overscroll-contain bg-[rgb(16_26_38_/_0.55)] backdrop-blur-sm">
-      <div className="flex min-h-full items-start justify-center p-4 sm:items-center sm:py-8">
-      <div className="bg-background border-2 border-brand-stroke rounded-[28px] shadow-[var(--brand-shadow)] max-w-4xl w-full my-auto animate-fade-in-up">
-        <div className="sticky top-0 z-10 bg-background border-b border-warm-grey p-4 sm:p-6 flex items-start justify-between rounded-t-[26px]">
-          <h2 className="font-['Fraunces'] text-2xl sm:text-3xl leading-snug pr-4">{PRICING_SALES.h1}</h2>
+      <div className="flex min-h-full items-start justify-center p-3 sm:items-center sm:p-4">
+      <div className="bg-background border-2 border-brand-stroke rounded-[28px] shadow-[var(--brand-shadow)] max-w-3xl w-full my-auto animate-fade-in-up">
+        <div className="sticky top-0 z-10 bg-background border-b border-warm-grey px-4 py-3 sm:px-5 flex items-start justify-between rounded-t-[26px]">
+          <h2 className="font-['Fraunces'] text-xl sm:text-2xl leading-snug pr-3">{PRICING_SALES.h1}</h2>
           <button
             type="button"
             onClick={onClose}
@@ -123,61 +119,50 @@ export function PaywallModal({
           </button>
         </div>
 
-        <div className="p-4 sm:p-6 lg:p-8">
-          <div className="mb-5">
-            <p className="mb-3 font-['Plus_Jakarta_Sans'] text-[11px] font-medium uppercase tracking-[0.16em] text-foreground/55">
-              {PRICING_SALES.costsLabel}
+        <div className="space-y-3 px-4 py-3 sm:px-5">
+          <div>
+            <p className="font-['Plus_Jakarta_Sans'] text-sm leading-snug">
+              {PAYWALL_COST_ANCHOR}{" "}
+              <span className="text-xs text-foreground/60">
+                Sources:{" "}
+                {PRICING_SALES.sources.map((source, index) => (
+                  <span key={source.id}>
+                    {index > 0 ? " · " : null}
+                    <a
+                      href={source.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline underline-offset-2 hover:text-foreground"
+                    >
+                      {source.label}
+                    </a>
+                  </span>
+                ))}
+              </span>
             </p>
-            <ul className="grid gap-x-6 gap-y-3 sm:grid-cols-3">
-              {PRICING_SALES.costs.map((cost) => (
-                <li key={cost.title}>
-                  <p className="font-['Fraunces'] text-sm leading-snug">{cost.title}</p>
-                  <p className="mt-1 font-['Plus_Jakarta_Sans'] text-xs leading-relaxed text-foreground/70">
-                    {cost.usualCost}
-                  </p>
+            <p className="mt-0.5 font-['Plus_Jakarta_Sans'] text-[11px] leading-snug text-foreground/50">
+              {costCaption}
+            </p>
+          </div>
+
+          <div>
+            <h3 className="mb-1.5 font-['Fraunces'] text-base leading-snug">What you get</h3>
+            <ul className="grid grid-cols-1 gap-y-1 sm:grid-cols-2 sm:gap-x-4">
+              {MARKTR_PRO_BENEFITS.map((feature) => (
+                <li key={feature.id} className="flex items-center gap-2 min-h-6">
+                  <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-brand-navy dark:bg-foreground">
+                    <Check className="h-2.5 w-2.5 text-brand-lime dark:text-brand-navy" aria-hidden="true" />
+                  </span>
+                  <span className="font-['Plus_Jakarta_Sans'] text-sm leading-snug">{feature.paywallLabel}</span>
                 </li>
               ))}
             </ul>
-            <p className="mt-3 font-['Plus_Jakarta_Sans'] text-xs leading-relaxed text-foreground/50">
-              {PRICING_SALES.footnoteBefore}
-              {PRICING_SALES.sources.map((source, index) => (
-                <span key={source.id}>
-                  {index > 0 ? " · " : null}
-                  <a
-                    href={source.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="underline underline-offset-2 hover:text-foreground"
-                  >
-                    {source.label}
-                  </a>
-                </span>
-              ))}
-            </p>
           </div>
 
-          <div className="mb-5">
-            <h3 className="font-['Fraunces'] text-lg sm:text-xl mb-3">What full access includes</h3>
-            <div className="bg-gradient-to-br from-brand-lime/15 to-brand-lavender/15 border-2 border-brand-stroke rounded-[24px] p-4 sm:p-6">
-              <ul className="grid sm:grid-cols-2 gap-3">
-                {MARKTR_PRO_BENEFITS.map((feature) => (
-                  <li key={feature.id} className="flex items-start gap-3">
-                    <div className="w-5 h-5 bg-brand-navy rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <Check className="w-3 h-3 text-brand-lime" />
-                    </div>
-                    <span className="font-['Plus_Jakarta_Sans'] text-sm">{feature.label}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
+          <PaywallTrialJourney plan={selectedPlan} />
 
-          <div className="mb-5">
-            <PaywallTrialJourney plan={selectedPlan} />
-          </div>
-
-          <div className="mb-5">
-            <h3 className="font-['Fraunces'] text-lg sm:text-xl mb-3">Your plan after the trial</h3>
+          <div>
+            <h3 className="mb-1.5 font-['Fraunces'] text-base leading-snug">Your plan after the trial</h3>
 
             {showAllPlans ? (
               <div className="space-y-2" role="radiogroup" aria-label="Plans">
@@ -224,17 +209,24 @@ export function PaywallModal({
                 </button>
               </div>
             ) : (
-              <div className="border-2 border-brand-stroke bg-brand-lime/20 shadow-md rounded-[24px] p-4 sm:p-5">
-                <h4 className="font-['Fraunces'] text-base mb-1">{MARKTR_PRO_PLAN_NAME}</h4>
-                <p className="font-['Fraunces'] text-lg sm:text-xl leading-snug">{paywallOfferPriceLine(selectedPlan)}</p>
+              <div className="rounded-[20px] border-2 border-brand-navy bg-brand-lime/20 px-3 py-2.5 dark:border-foreground">
+                <h4 className="font-['Fraunces'] text-base leading-snug">{MARKTR_PRO_PLAN_NAME}</h4>
+                <p className="font-['Fraunces'] text-lg leading-snug">{paywallOfferPriceLine(selectedPlan)}</p>
               </div>
             )}
           </div>
 
-          <div className="space-y-3">
-            <div className="flex items-start gap-2.5 rounded-[16px] border-2 border-brand-stroke bg-background px-3 py-2.5">
+          <div className="space-y-2">
+            <div className="flex items-start gap-2.5 rounded-[16px] border-2 border-brand-navy bg-background px-3 py-2 dark:border-foreground">
               <Shield className="mt-0.5 h-4 w-4 shrink-0 text-brand-navy dark:text-brand-lime" aria-hidden="true" />
-              <p className="font-['Plus_Jakarta_Sans'] text-xs leading-snug">{MARKTR_MONEY_BACK_GUARANTEE}</p>
+              <div>
+                <p className="font-['Plus_Jakarta_Sans'] text-sm font-semibold leading-snug">
+                  {MARKTR_MONEY_BACK_DAYS}-day money-back guarantee.
+                </p>
+                <p className="font-['Plus_Jakarta_Sans'] text-xs leading-snug text-foreground/70">
+                  Full refund within {MARKTR_MONEY_BACK_DAYS} days of your first payment.
+                </p>
+              </div>
             </div>
             <Button
               data-track-id="paywall_start_trial"
@@ -242,7 +234,7 @@ export function PaywallModal({
               data-track-destination="checkout"
               onClick={() => onUpgrade(selectedPlan)}
               disabled={isStartingCheckout}
-              className="w-full h-12 text-lg"
+              className="w-full text-base"
             >
               {isStartingCheckout ? (
                 <span className="inline-flex items-center justify-center gap-3">
@@ -250,7 +242,7 @@ export function PaywallModal({
                   Redirecting to checkout…
                 </span>
               ) : (
-                "Get full access"
+                trialCta
               )}
             </Button>
             <p className="text-center text-xs text-foreground/70 font-['Plus_Jakarta_Sans']">
@@ -261,31 +253,31 @@ export function PaywallModal({
               type="button"
               onClick={handleAttemptContinueFree}
               disabled={isStartingCheckout}
-              className="w-full font-['Plus_Jakarta_Sans'] text-sm text-foreground/70 hover:text-foreground transition-colors py-2 min-h-11 text-center"
+              className="w-full min-h-11 font-['Plus_Jakarta_Sans'] text-sm text-foreground/70 underline underline-offset-2 hover:text-foreground transition-colors text-center"
             >
               Continue with limited free version
             </button>
           </div>
 
-          <div className="mt-6 pt-6 border-t border-warm-grey">
-            <div className="flex items-center justify-center gap-4 flex-wrap">
+          <div className="border-t border-warm-grey">
+            <div className="flex items-center justify-center gap-x-3 flex-wrap">
               <a
                 href="/terms-of-service"
-                className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/60 hover:text-foreground transition-colors"
+                className="inline-flex min-h-11 items-center font-['Plus_Jakarta_Sans'] text-xs text-foreground/60 hover:text-foreground transition-colors"
               >
                 Terms of Service
               </a>
               <span className="text-foreground/30">•</span>
               <a
                 href="/privacy-policy"
-                className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/60 hover:text-foreground transition-colors"
+                className="inline-flex min-h-11 items-center font-['Plus_Jakarta_Sans'] text-xs text-foreground/60 hover:text-foreground transition-colors"
               >
                 Privacy Policy
               </a>
               <span className="text-foreground/30">•</span>
               <a
                 href="#"
-                className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/60 hover:text-foreground transition-colors"
+                className="inline-flex min-h-11 items-center font-['Plus_Jakarta_Sans'] text-xs text-foreground/60 hover:text-foreground transition-colors"
               >
                 Cancellation Policy
               </a>

@@ -48,7 +48,7 @@ export default function ICPResults() {
 
   const handleLoginToSave = () => {
     rememberAuthTrigger("after_icp");
-    openLogin();
+    openLogin({ mode: "signin" });
   };
 
   useEffect(() => {

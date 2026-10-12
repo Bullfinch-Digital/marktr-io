@@ -32,12 +32,16 @@ type ResendUiState =
   | { status: "cooldown"; seconds: number }
   | { status: "sent" };
 
+export type AuthFormMode = "signin" | "signup";
+
 type LoginModalProps = {
   isOpen: boolean;
   email: string | null;
   guestRef: string | null;
   sessionId: string | null;
   onClose: () => void;
+  /** Decided by the entry point that opened the modal. Defaults to signup. */
+  initialMode?: AuthFormMode;
 };
 
 export function LoginModal({
@@ -46,6 +50,7 @@ export function LoginModal({
   guestRef,
   sessionId,
   onClose,
+  initialMode = "signup",
 }: LoginModalProps) {
   const { signInWithGoogle } = useAuth();
   const handleClose = () => {
@@ -66,7 +71,9 @@ export function LoginModal({
   };
   const [localEmail, setLocalEmail] = useState(email ?? "");
   const [password, setPassword] = useState("");
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [mode, setMode] = useState<AuthFormMode>(initialMode);
+  const [appliedOpenKey, setAppliedOpenKey] = useState<AuthFormMode | null>(null);
+  const [accountExists, setAccountExists] = useState(false);
   const [awaitingConfirm, setAwaitingConfirm] = useState(false);
   const [confirmEmail, setConfirmEmail] = useState("");
   const [confirmRedirectTo, setConfirmRedirectTo] = useState("");
@@ -82,6 +89,22 @@ export function LoginModal({
   useEffect(() => {
     setLocalEmail(email ?? "");
   }, [email]);
+
+  // Apply the entry-point mode when the modal opens, before paint, without
+  // resetting it when the user later toggles sign-in / sign-up.
+  const openKey = isOpen ? initialMode : null;
+  if (openKey !== appliedOpenKey) {
+    setAppliedOpenKey(openKey);
+    if (openKey) {
+      setMode(openKey);
+      setPassword("");
+      setAccountExists(false);
+      setError(null);
+      setAwaitingConfirm(false);
+      setResendUi({ status: "ready" });
+      setResendError(false);
+    }
+  }
 
   useEffect(() => {
     if (!isOpen) return;
@@ -142,6 +165,7 @@ export function LoginModal({
     if (resolvedPassword !== password) setPassword(resolvedPassword);
     setLoading(true);
     setError(null);
+    setAccountExists(false);
     try {
       const { error: signInError } = await supabase.auth.signInWithPassword({
         email: resolvedEmail,
@@ -198,6 +222,7 @@ export function LoginModal({
     }
     setLoading(true);
     setError(null);
+    setAccountExists(false);
     try {
       stashPendingLegalAcceptance();
       const params = new URLSearchParams(window.location.search);
@@ -215,7 +240,7 @@ export function LoginModal({
         return;
       }
       if (outcome.status === "existing") {
-        setError("An account with this email already exists.");
+        setAccountExists(true);
         return;
       }
       if (outcome.status === "confirm_email") {
@@ -237,9 +262,11 @@ export function LoginModal({
     }
   };
 
-  const switchMode = (next: "signin" | "signup") => {
+  const switchMode = (next: AuthFormMode) => {
     setMode(next);
+    setPassword("");
     setError(null);
+    setAccountExists(false);
     setAwaitingConfirm(false);
     setResendUi({ status: "ready" });
     setResendError(false);
@@ -305,7 +332,9 @@ export function LoginModal({
       <div className="auth-modal-panel w-full max-w-md p-6 sm:p-8">
         <div className="mb-5 flex items-start justify-between gap-4">
           <div>
-            <h2 className="mb-2 font-['Fraunces'] text-2xl font-bold text-[#101A26]">Sign in to marktr.</h2>
+            <h2 className="mb-2 font-['Fraunces'] text-2xl font-bold text-[#101A26]">
+              {mode === "signup" ? "Create your account" : "Welcome back"}
+            </h2>
             <p className="font-['Plus_Jakarta_Sans'] text-sm leading-relaxed text-[#101A26]/70">
               New here? Signing in with Google creates your account automatically.
             </p>
@@ -382,6 +411,7 @@ export function LoginModal({
             ) : null}
             <button
               type="button"
+              data-track-id="auth_switch_to_signin"
               onClick={() => switchMode("signin")}
               className="font-['Plus_Jakarta_Sans'] text-sm text-[#101A26]/70 underline-offset-4 transition-colors hover:text-[#101A26] hover:underline"
             >
@@ -426,9 +456,23 @@ export function LoginModal({
             />
           </div>
 
-          {error && (
+          {accountExists ? (
+            <div className="space-y-2">
+              <p className="auth-modal-error font-['Plus_Jakarta_Sans'] text-sm">
+                An account with this email already exists.
+              </p>
+              <button
+                type="button"
+                data-track-id="auth_switch_to_signin"
+                onClick={() => switchMode("signin")}
+                className="font-['Plus_Jakarta_Sans'] text-sm text-[#101A26] underline-offset-4 transition-colors hover:underline"
+              >
+                Sign in instead
+              </button>
+            </div>
+          ) : error ? (
             <p className="auth-modal-error font-['Plus_Jakarta_Sans'] text-sm">{error}</p>
-          )}
+          ) : null}
 
           <Button
             type="button"
@@ -446,11 +490,12 @@ export function LoginModal({
                 : "Signing in..."
               : mode === "signup"
                 ? "Create account"
-                : "Log in"}
+                : "Sign in"}
           </Button>
 
           <button
             type="button"
+            data-track-id={mode === "signin" ? "auth_switch_to_signup" : "auth_switch_to_signin"}
             onClick={() => switchMode(mode === "signin" ? "signup" : "signin")}
             className="w-full text-left font-['Plus_Jakarta_Sans'] text-sm text-[#101A26]/70 underline-offset-4 transition-colors hover:text-[#101A26] hover:underline"
           >

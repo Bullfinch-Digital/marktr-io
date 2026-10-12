@@ -153,7 +153,7 @@ export function Header() {
                   data-track-destination="signin_modal"
                   onClick={() => {
                     rememberAuthTrigger("header");
-                    openLogin();
+                    openLogin({ mode: "signin" });
                   }}
                   variant="outline"
                   className="hidden bg-transparent text-foreground transition-all hover:scale-105 hover:bg-accent-grey/20 active:scale-95 xl:flex font-['Plus_Jakarta_Sans'] font-semibold"
@@ -258,7 +258,7 @@ export function Header() {
                   onClick={() => {
                     setIsMobileMenuOpen(false);
                     rememberAuthTrigger("header");
-                    openLogin();
+                    openLogin({ mode: "signin" });
                   }}
                   variant="outline"
                   className="w-full bg-transparent text-foreground hover:bg-accent-grey/20 font-['Plus_Jakarta_Sans'] font-semibold"

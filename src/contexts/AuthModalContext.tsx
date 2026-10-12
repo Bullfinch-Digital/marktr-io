@@ -4,10 +4,13 @@ import { FinishAccountModal } from "../components/modals/FinishAccountModal";
 import { SignInModal } from "../components/modals/SignInModal";
 import { consumeAuthTrigger, peekAuthTrigger, rememberAuthTrigger, track } from "../lib/analytics";
 
+type AuthFormMode = "signup" | "signin";
+
 type LoginPayload = {
   email?: string | null;
   guestRef?: string | null;
   sessionId?: string | null;
+  mode?: AuthFormMode;
 };
 
 type FinishPayload = {
@@ -18,6 +21,7 @@ type SignInPayload = {
   redirectPath?: string;
   heading?: string;
   subheading?: string;
+  mode?: AuthFormMode;
 };
 
 type AuthModalState =
@@ -50,7 +54,10 @@ export function AuthModalProvider({
       track("signup_prompt_shown", { trigger });
       track("signin_modal_open", { trigger: consumeAuthTrigger(trigger) });
     }
-    setState({ type: "login", payload: payload ?? {} });
+    setState({
+      type: "login",
+      payload: { ...(payload ?? {}), mode: payload?.mode ?? "signup" },
+    });
   };
 
   const openFinishAccount = (payload?: FinishPayload) => {
@@ -64,7 +71,10 @@ export function AuthModalProvider({
     const trigger = peekAuthTrigger("save_results");
     track("signup_prompt_shown", { trigger });
     track("signin_modal_open", { trigger: consumeAuthTrigger(trigger) });
-    setState({ type: "signin", payload: payload ?? {} });
+    setState({
+      type: "signin",
+      payload: { ...(payload ?? {}), mode: payload?.mode ?? "signup" },
+    });
   };
 
   const closeAuthModal = () => setState(null);
@@ -88,7 +98,10 @@ export function AuthModalProvider({
           state?.type === "signin" ? state.payload.subheading : undefined
         }
         onClose={closeAuthModal}
-        onEmailClick={() => openLogin(undefined, { skipAnalytics: true })}
+        onEmailClick={() => {
+          const mode = state?.type === "signin" ? (state.payload.mode ?? "signup") : "signup";
+          openLogin({ mode }, { skipAnalytics: true });
+        }}
       />
 
       <LoginModal
@@ -96,6 +109,7 @@ export function AuthModalProvider({
         email={state?.type === "login" ? state.payload.email ?? null : null}
         guestRef={state?.type === "login" ? state.payload.guestRef ?? null : null}
         sessionId={state?.type === "login" ? state.payload.sessionId ?? null : null}
+        initialMode={state?.type === "login" ? (state.payload.mode ?? "signup") : "signup"}
         onClose={closeAuthModal}
       />
 
@@ -104,7 +118,7 @@ export function AuthModalProvider({
         guestRef={state?.type === "finish" ? state.payload.guestRef ?? null : null}
         onClose={closeAuthModal}
         onOpenLogin={(payload) => {
-          openLogin(payload, { skipAnalytics: true });
+          openLogin({ ...payload, mode: "signin" }, { skipAnalytics: true });
         }}
       />
     </AuthModalContext.Provider>

@@ -46,7 +46,6 @@ function renderModal() {
 async function reachConfirmScreen() {
   authMocks.signUp.mockResolvedValue({ status: "confirm_email" });
   renderModal();
-  fireEvent.click(screen.getByRole("button", { name: "New here? Create an account" }));
   fireEvent.change(screen.getByLabelText("Email"), { target: { value: "ada@example.com" } });
   fireEvent.change(screen.getByLabelText("Password"), { target: { value: "longpassword" } });
   fireEvent.click(screen.getByRole("button", { name: "Create account" }));

@@ -9,7 +9,9 @@ import useProfile from "../hooks/useProfile";
 import useSubscription from "../hooks/useSubscription";
 import { usePaywall } from "../contexts/PaywallContext";
 import DashboardShell from "../layouts/DashboardShell";
+import { planFromPriceId } from "../lib/checkoutPlans";
 import {
+  MARKTR_PRO_MONTHLY_PLAN_GBP,
   MARKTR_SUPPORT_EMAIL,
   MARKTR_SUPPORT_MAILTO,
   MARKTR_TRIAL_DAYS,
@@ -65,10 +67,6 @@ export default function MyAccount() {
   };
 
   const [stripeSub, setStripeSub] = useState<StripeSubscriptionRow | null>(null);
-
-  const PRICE_ANNUAL = import.meta.env.VITE_STRIPE_PRICE_ANNUAL as
-    | string
-    | undefined;
 
   const isLoading = authLoading || profileLoading || !localReady;
   /**
@@ -188,13 +186,13 @@ export default function MyAccount() {
   const isProFromStripe =
     stripeSub?.status === "trialing" || stripeSub?.status === "active";
 
-  const plan = useMemo<"free" | "annual" | "pro">(() => {
+  const plan = useMemo<"free" | "annual" | "monthly" | "pro">(() => {
     if (!isPro && !isProFromStripe) return "free";
-    const priceId = stripeSub?.price_id ?? null;
-    if (priceId && PRICE_ANNUAL && priceId === PRICE_ANNUAL) return "annual";
+    const fromPrice = planFromPriceId(stripeSub?.price_id);
+    if (fromPrice) return fromPrice;
     // fallback if price_id missing/unknown
     return "pro";
-  }, [isPro, isProFromStripe, stripeSub?.price_id, PRICE_ANNUAL]);
+  }, [isPro, isProFromStripe, stripeSub?.price_id]);
 
   const statusLabel =
     stripeSub?.status === "trialing"
@@ -208,6 +206,8 @@ export default function MyAccount() {
     const priceDisplay =
       plan === "annual"
         ? "£300/year (equivalent £25/month)"
+        : plan === "monthly"
+        ? `£${MARKTR_PRO_MONTHLY_PLAN_GBP}/month`
         : plan === "pro"
         ? "Pro (price updating)"
         : "—";
@@ -793,7 +793,9 @@ export default function MyAccount() {
                 {subscription.plan === "free"
                   ? "Free"
                   : subscription.plan === "annual"
-                  ? "Annual Pro"
+                  ? "Annual"
+                  : subscription.plan === "monthly"
+                  ? "Monthly"
                   : "Pro"}
               </span>
             </div>

@@ -1,10 +1,11 @@
+import { type CheckoutPlan, parseCheckoutPlan } from "../lib/checkoutPlans";
+
 const STORAGE_KEY = "marktr_pending_checkout_plan";
 /** Session-only: set in the same tick as "Start free trial" — not trusted from localStorage alone. */
 const INTENT_KEY = "marktr_checkout_resume_intent";
 const RESUME_QUERY = "resumeCheckout";
 
-/** Annual-only. Legacy "monthly" / "yearly" values are normalised to annual. */
-export type PendingCheckoutPlan = "annual";
+export type PendingCheckoutPlan = CheckoutPlan;
 
 type StoredPayload = {
   plan: PendingCheckoutPlan;
@@ -12,13 +13,14 @@ type StoredPayload = {
   createdAt: number;
 };
 
-function isPlan(value: unknown): value is PendingCheckoutPlan {
-  return value === "annual" || value === "monthly" || value === "yearly";
+/** Bare legacy strings predate the monthly plan and always meant annual. */
+function normaliseBarePlan(value: string): PendingCheckoutPlan | null {
+  if (value === "annual" || value === "yearly" || value === "monthly") return "annual";
+  return null;
 }
 
 function normalisePlan(value: unknown): PendingCheckoutPlan | null {
-  if (!isPlan(value)) return null;
-  return "annual";
+  return parseCheckoutPlan(value);
 }
 
 function writeRaw(value: string) {
@@ -88,7 +90,7 @@ function clearIntentId() {
 function parseStored(raw: string | null): StoredPayload | null {
   if (!raw) return null;
   // Legacy: bare plan string
-  const bare = normalisePlan(raw);
+  const bare = normaliseBarePlan(raw);
   if (bare) {
     return { plan: bare, intentId: "", createdAt: 0 };
   }
@@ -115,11 +117,11 @@ function newIntentId(): string {
 
 /** Path to use as OAuth `next` so checkout intent survives sessionStorage loss. */
 export function checkoutResumePath(
-  _plan?: PendingCheckoutPlan | "monthly" | "yearly",
+  plan?: PendingCheckoutPlan | "monthly" | "yearly",
   basePath = "/dashboard"
 ): string {
   const url = new URL(basePath, "https://marktr.local");
-  url.searchParams.set(RESUME_QUERY, "annual");
+  url.searchParams.set(RESUME_QUERY, parseCheckoutPlan(plan, true) ?? "annual");
   return `${url.pathname}?${url.searchParams.toString()}`;
 }
 
@@ -139,16 +141,17 @@ export function getCheckoutPlanFromPath(pathOrSearch: string): PendingCheckoutPl
  * Call only from the explicit "Start free trial" / checkout CTA.
  * Writes plan + a session-scoped intent id (localStorage alone is not enough to resume).
  */
-export function setPendingCheckoutPlan(_plan?: PendingCheckoutPlan | "monthly" | "yearly") {
+export function setPendingCheckoutPlan(plan?: PendingCheckoutPlan | "monthly" | "yearly") {
+  const nextPlan = parseCheckoutPlan(plan, true) ?? "annual";
   const intentId = newIntentId();
   const payload: StoredPayload = {
-    plan: "annual",
+    plan: nextPlan,
     intentId,
     createdAt: Date.now(),
   };
   writeRaw(JSON.stringify(payload));
   setIntentId(intentId);
-  console.log("[pendingCheckout] stored", { plan: "annual", intentId });
+  console.log("[pendingCheckout] stored", { plan: nextPlan, intentId });
 }
 
 /** Raw stored plan (may be stale). Prefer {@link getResumablePendingCheckoutPlan}. */

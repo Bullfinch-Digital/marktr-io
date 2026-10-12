@@ -1,6 +1,9 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { PaywallModal } from "../components/modals/PaywallModal";
+import { PaywallAbandonOffer, PaywallModal } from "../components/modals/PaywallModal";
 import { createStripeCheckoutSession } from "../lib/stripeCheckout";
+import { type CheckoutPlan, parseCheckoutPlan } from "../lib/checkoutPlans";
+import { hasCheckoutSucceeded, hasSeenPaywallAbandon, markPaywallAbandonSeen } from "../lib/paywallAbandon";
+import useSubscription from "../hooks/useSubscription";
 import { supabase } from "../config/supabase";
 import { useAuth } from "./AuthContext";
 import { useAuthModal } from "./AuthModalContext";
@@ -22,8 +25,7 @@ import {
 import { Button } from "../components/ui/button";
 import { getFirstTouchParams, rememberAuthTrigger, track } from "../lib/analytics";
 
-// Annual-only. UI may say "Yearly"; value must remain "annual".
-type Plan = "annual";
+type Plan = CheckoutPlan;
 
 type PaywallTrigger = "trial_banner" | "locked_strategy" | "locked_content" | "pricing_page" | "upgrade";
 
@@ -43,9 +45,13 @@ const PaywallContext = createContext<PaywallContextValue | undefined>(undefined)
 
 export function PaywallProvider({ children }: { children: React.ReactNode }) {
   const { user, session, loading: authLoading } = useAuth();
+  const { isPro, ready: subscriptionReady } = useSubscription();
   const { openSignIn } = useAuthModal();
   const resumeCheckoutRef = useRef(false);
+  const checkoutStartedRef = useRef(false);
   const [showPaywall, setShowPaywall] = useState(false);
+  const [paywallSession, setPaywallSession] = useState(0);
+  const [showAbandon, setShowAbandon] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<Plan>("annual");
   const [isStartingCheckout, setIsStartingCheckout] = useState(false);
   const [alreadySubscribed, setAlreadySubscribed] = useState<AlreadySubscribedState>({
@@ -73,18 +79,47 @@ export function PaywallProvider({ children }: { children: React.ReactNode }) {
   };
 
   const openPaywall = useCallback((plan?: Plan, trigger?: PaywallTrigger) => {
-    if (plan) setSelectedPlan(plan);
+    checkoutStartedRef.current = false;
+    setShowAbandon(false);
+    setPaywallSession((n) => n + 1);
+    const requested = parseCheckoutPlan(plan);
+    setSelectedPlan(requested === "monthly" ? "annual" : requested ?? "annual");
     track("paywall_open", { trigger: trigger || inferPaywallTrigger() });
     setShowPaywall(true);
   }, []);
 
-  const closePaywall = useCallback(() => setShowPaywall(false), []);
+  const userId = user?.id ?? null;
+  const isProRef = useRef(isPro);
+  const subscriptionReadyRef = useRef(subscriptionReady);
+  const userIdRef = useRef(userId);
+  const isStartingCheckoutRef = useRef(isStartingCheckout);
+  isProRef.current = isPro;
+  subscriptionReadyRef.current = subscriptionReady;
+  userIdRef.current = userId;
+  isStartingCheckoutRef.current = isStartingCheckout;
 
-  // Defensive: legacy "monthly" / "yearly" callers all map to annual.
-  const normalisePlan = (_p?: unknown): Plan => "annual";
+  const maybeOfferAbandon = useCallback(() => {
+    if (checkoutStartedRef.current) return;
+    if (isStartingCheckoutRef.current) return;
+    const id = userIdRef.current;
+    if (isProRef.current) return;
+    if (id && !subscriptionReadyRef.current) return;
+    if (hasSeenPaywallAbandon(id) || hasCheckoutSucceeded(id)) return;
+    markPaywallAbandonSeen(id);
+    track("paywall_abandon_shown");
+    setShowAbandon(true);
+  }, []);
+
+  const closePaywall = useCallback(() => {
+    setShowPaywall(false);
+    maybeOfferAbandon();
+  }, [maybeOfferAbandon]);
+
+  const normalisePlan = (p?: unknown): Plan => parseCheckoutPlan(p, true) ?? "annual";
 
   const proceedToStripe = useCallback(
     async (plan: Plan, force?: boolean) => {
+      checkoutStartedRef.current = true;
       const nextPlan = normalisePlan(plan);
 
       try {
@@ -95,6 +130,7 @@ export function PaywallProvider({ children }: { children: React.ReactNode }) {
         const result = await createStripeCheckoutSession(nextPlan, { force });
 
         if (result.status === "already_subscribed") {
+          markPaywallAbandonSeen(userIdRef.current);
           setAlreadySubscribed({
             open: true,
             portalUrl: result.portalUrl ?? null,
@@ -105,6 +141,7 @@ export function PaywallProvider({ children }: { children: React.ReactNode }) {
         }
 
         if (result.status === "email_already_subscribed") {
+          markPaywallAbandonSeen(userIdRef.current);
           setEmailAlreadySubscribed({
             open: true,
             email: result.email ?? null,
@@ -137,6 +174,7 @@ export function PaywallProvider({ children }: { children: React.ReactNode }) {
 
   const startCheckout = useCallback(
     async (plan?: Plan, force?: boolean) => {
+      checkoutStartedRef.current = true;
       const nextPlan = normalisePlan(plan ?? selectedPlan);
 
       const { data: userData } = await supabase.auth.getUser();
@@ -222,14 +260,24 @@ export function PaywallProvider({ children }: { children: React.ReactNode }) {
       {children}
 
       <PaywallModal
+        key={paywallSession}
         isOpen={showPaywall}
         onClose={closePaywall}
-        // Normalise in case callers still pass "yearly"
         onUpgrade={(plan, force) =>
           startCheckout(normalisePlan(plan) as Plan, force)
         }
         onContinueFree={closePaywall}
         isStartingCheckout={isStartingCheckout}
+      />
+
+      <PaywallAbandonOffer
+        isOpen={showAbandon && !showPaywall}
+        isStartingCheckout={isStartingCheckout}
+        onStartMonthly={() => {
+          setShowAbandon(false);
+          void startCheckout("monthly");
+        }}
+        onDismiss={() => setShowAbandon(false)}
       />
 
       <AlertDialog

@@ -12,6 +12,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2?target=deno";
 import Stripe from "https://esm.sh/stripe@12.18.0?target=deno";
 import { sendGa4MeasurementProtocolEvent } from "../_shared/ga4MeasurementProtocol.ts";
+import { planFromStripeSignals } from "../_shared/checkoutPlans.ts";
 
 function json(resBody: unknown, status = 200) {
   return new Response(JSON.stringify(resBody), {
@@ -130,6 +131,16 @@ function resolvePriceIdFromSubscription(subscription: any): string | null {
   if (typeof fromItemPlan === "string" && fromItemPlan.length) return fromItemPlan;
 
   return null;
+}
+
+function intervalFromSubscription(subscription: any): string | null {
+  const item0 = subscription?.items?.data?.[0] ?? null;
+  const interval =
+    item0?.price?.recurring?.interval ??
+    item0?.plan?.interval ??
+    subscription?.plan?.interval ??
+    null;
+  return typeof interval === "string" && interval.length ? interval : null;
 }
 
 function computeCurrentPeriodEndIso(subscription: any): string | null {
@@ -643,7 +654,13 @@ Deno.serve(async (req) => {
             first_touch_campaign: (session.metadata as { first_touch_campaign?: string } | null)?.first_touch_campaign,
           };
           const gaParams: Record<string, string | number | boolean> = {
-            plan: "annual",
+            plan: planFromStripeSignals({
+              metadataPlan:
+                (session.metadata as { plan?: string } | null)?.plan ??
+                (subscription?.metadata as { plan?: string } | null)?.plan,
+              priceId,
+              interval: intervalFromSubscription(subscription),
+            }),
             transaction_id: String(session.id),
           };
           if (firstTouch.first_touch_source) gaParams.first_touch_source = firstTouch.first_touch_source;
@@ -687,6 +704,16 @@ Deno.serve(async (req) => {
           billing_reason?: string;
           subscription?: string | null;
           customer?: string | null;
+          metadata?: { plan?: string };
+          lines?: {
+            data?: Array<{
+              price?: { id?: string; recurring?: { interval?: string } };
+              plan?: { id?: string; interval?: string };
+              metadata?: { plan?: string };
+            }>;
+          };
+          subscription_details?: { metadata?: { plan?: string } };
+          parent?: { subscription_details?: { metadata?: { plan?: string } } };
         };
         if (!invoice.amount_paid || invoice.amount_paid <= 0) break;
         if (invoice.billing_reason === "subscription_create" && invoice.amount_paid === 0) break;
@@ -694,6 +721,9 @@ Deno.serve(async (req) => {
         const userId = stripeCustomerId
           ? await resolveUserIdFromCustomer(supabaseAdmin, stripeCustomerId)
           : null;
+        const line = invoice.lines?.data?.[0];
+        const linePriceId = line?.price?.id ?? line?.plan?.id ?? null;
+        const lineInterval = line?.price?.recurring?.interval ?? line?.plan?.interval ?? null;
         await sendGa4MeasurementProtocolEvent({
           name: "purchase",
           userId: userId ?? undefined,
@@ -701,7 +731,15 @@ Deno.serve(async (req) => {
             transaction_id: String(invoice.id || ""),
             value: invoice.amount_paid / 100,
             currency: String(invoice.currency || "gbp").toUpperCase(),
-            plan: "annual",
+            plan: planFromStripeSignals({
+              metadataPlan:
+                invoice.subscription_details?.metadata?.plan ??
+                invoice.parent?.subscription_details?.metadata?.plan ??
+                line?.metadata?.plan ??
+                invoice.metadata?.plan,
+              priceId: linePriceId,
+              interval: lineInterval,
+            }),
           },
         });
         break;

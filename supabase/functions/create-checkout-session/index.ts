@@ -2,6 +2,9 @@
 // Deploy with: supabase functions deploy create-checkout-session
 // Set secrets with:
 //   supabase secrets set STRIPE_SECRET_KEY=sk_live_...
+// Optional price overrides (same names as the Vite vars, without VITE_).
+// When unset, the priceId sent for that plan is used — same as annual today:
+//   supabase secrets set STRIPE_PRICE_ANNUAL=price_... STRIPE_PRICE_MONTHLY=price_...
 // Optional hardening (must match VITE_CHECKOUT_GUEST_SECRET if used):
 //   supabase secrets set CHECKOUT_GUEST_SECRET=...
 // (SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY are injected by Supabase by default.)
@@ -9,9 +12,11 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import Stripe from "https://esm.sh/stripe@12.18.0?target=deno";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { parseCheckoutPlan, resolveCheckoutPriceId } from "../_shared/checkoutPlans.ts";
 
 type CreateCheckoutInput = {
-  priceId: string;
+  plan?: string;
+  priceId?: string;
   successUrl: string;
   cancelUrl: string;
   customerEmail?: string;
@@ -88,8 +93,16 @@ Deno.serve(async (req) => {
     const customerEmail =
       body?.customerEmail?.trim() || body?.email?.trim() || null;
     console.log("[create-checkout-session] received email", customerEmail ?? "(none)");
+    const plan = parseCheckoutPlan(body?.plan, true);
+    if (!plan) {
+      return errorJson(
+        { error: "Unknown plan", message: "plan must be annual or monthly" },
+        400
+      );
+    }
+    const priceId = resolveCheckoutPriceId(plan, body?.priceId);
     const missingFields: string[] = [];
-    if (!body?.priceId) missingFields.push("priceId");
+    if (!priceId) missingFields.push("priceId");
     if (!body?.successUrl) missingFields.push("successUrl");
     if (!body?.cancelUrl) missingFields.push("cancelUrl");
     if (missingFields.length) {
@@ -352,14 +365,14 @@ Deno.serve(async (req) => {
       ...(!stripeCustomerId && customerEmail
         ? { customer_email: customerEmail }
         : {}),
-      line_items: [{ price: body.priceId, quantity: 1 }],
+      line_items: [{ price: priceId, quantity: 1 }],
       subscription_data: {
         trial_period_days: 14,
-        metadata: userMetadata,
+        metadata: { ...userMetadata, plan },
       },
       ...(user?.id ? { client_reference_id: user.id } : {}),
       metadata: {
-        price_id: body.priceId,
+        price_id: priceId,
         ...userMetadata,
         ...(typeof body.gaClientId === "string" && body.gaClientId.trim()
           ? { ga_client_id: body.gaClientId.trim().slice(0, 64) }
@@ -373,6 +386,7 @@ Deno.serve(async (req) => {
         ...(typeof body.firstTouchCampaign === "string" && body.firstTouchCampaign.trim()
           ? { first_touch_campaign: body.firstTouchCampaign.trim().slice(0, 100) }
           : {}),
+        plan,
       },
       // Promo field on Checkout; skip card when a 100%-off forever coupon zeroes the total.
       allow_promotion_codes: true,
@@ -390,6 +404,7 @@ Deno.serve(async (req) => {
 
     console.log("[create-checkout-session] branch: created checkout session", {
       userId: user?.id ?? null,
+      plan,
       hasUrl: Boolean(session.url),
     });
     return json({ checkoutUrl: session.url, url: session.url });

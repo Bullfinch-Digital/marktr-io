@@ -4,6 +4,9 @@ export const MARKTR_DEFAULT_CHECKOUT_PLAN = "annual" as const;
 
 export const MARKTR_PRO_MONTHLY_EQUIVALENT_GBP = 25;
 export const MARKTR_PRO_ANNUAL_TOTAL_GBP = 300;
+/** Standalone monthly plan. 12 × £35 − £300 = £120. */
+export const MARKTR_PRO_MONTHLY_PLAN_GBP = 35;
+export const MARKTR_PRO_ANNUAL_SAVINGS_GBP = 120;
 
 export const MARKTR_TRIAL_DAYS = 14;
 export const MARKTR_MONEY_BACK_DAYS = 30;
@@ -19,6 +22,19 @@ export const MARKTR_PRO_PRICE_HEADLINE = `£${MARKTR_PRO_MONTHLY_EQUIVALENT_GBP}
 export const MARKTR_PRO_BILLING_LINE = `billed annually (£${MARKTR_PRO_ANNUAL_TOTAL_GBP}/year)`;
 
 export const MARKTR_PRO_CARD_SUBTITLE = `£${MARKTR_PRO_MONTHLY_EQUIVALENT_GBP}/month, billed annually (£${MARKTR_PRO_ANNUAL_TOTAL_GBP}/year)`;
+
+/** Paywall plan chooser. Pricing-page copy stays on the constants above. */
+export const MARKTR_PAYWALL_ANNUAL_PRICE_LINE = `£${MARKTR_PRO_ANNUAL_TOTAL_GBP} a year (£${MARKTR_PRO_MONTHLY_EQUIVALENT_GBP}/month)`;
+export const MARKTR_PAYWALL_MONTHLY_PRICE_LINE = `£${MARKTR_PRO_MONTHLY_PLAN_GBP} a month`;
+export const MARKTR_PAYWALL_ANNUAL_SAVINGS_BADGE = `Save £${MARKTR_PRO_ANNUAL_SAVINGS_GBP} a year`;
+
+export function paywallPlanPriceLine(plan: "annual" | "monthly"): string {
+  return plan === "monthly" ? MARKTR_PAYWALL_MONTHLY_PRICE_LINE : MARKTR_PAYWALL_ANNUAL_PRICE_LINE;
+}
+
+export function paywallFirstChargeAmount(plan: "annual" | "monthly"): string {
+  return plan === "monthly" ? `£${MARKTR_PRO_MONTHLY_PLAN_GBP}` : `£${MARKTR_PRO_ANNUAL_TOTAL_GBP}`;
+}
 
 /** Trial + post-trial billing — distinct from the money-back guarantee. */
 export const MARKTR_TRIAL_LEGAL_STRIP = `£0 today • Cancel anytime before day ${MARKTR_TRIAL_DAYS} • Then £${MARKTR_PRO_ANNUAL_TOTAL_GBP}/year`;

@@ -1,9 +1,9 @@
 import { supabase } from "../config/supabase";
 import { clearPendingCheckoutPlan } from "../utils/pendingCheckout";
 import { getFirstTouchParams, getGaClientId } from "./analytics";
+import { type CheckoutPlan, parseCheckoutPlan, priceEnvName, priceIdForPlan } from "./checkoutPlans";
 
-/** Marktr Pro is annual-only. "yearly" is accepted as an alias. */
-export type CheckoutPlan = "annual";
+export type { CheckoutPlan };
 
 export type StripeCheckoutResult =
   | { status: "redirect"; url: string }
@@ -11,15 +11,16 @@ export type StripeCheckoutResult =
   | { status: "email_already_subscribed"; email?: string | null; portalUrl?: string | null; plan: CheckoutPlan }
   | { status: "error"; message: string };
 
-function normalisePlan(_plan?: CheckoutPlan | "yearly" | "monthly" | string): CheckoutPlan {
-  return "annual";
-}
+const LAST_CHECKOUT_PLAN_KEY = "marktr_checkout_plan";
 
 export async function createStripeCheckoutSession(
-  plan: CheckoutPlan | "yearly" | "monthly" = "annual",
+  plan: CheckoutPlan | "yearly" | "monthly" | string = "annual",
   options?: { force?: boolean }
 ): Promise<StripeCheckoutResult> {
-  const nextPlan = normalisePlan(plan);
+  const nextPlan = parseCheckoutPlan(plan, plan == null || plan === "");
+  if (!nextPlan) {
+    return { status: "error", message: "Unknown plan" };
+  }
 
   const { data: userData } = await supabase.auth.getUser();
   const authedUser = userData?.user ?? null;
@@ -29,13 +30,13 @@ export async function createStripeCheckoutSession(
     return { status: "error", message: "Please sign in before starting checkout." };
   }
 
-  const priceId = import.meta.env.VITE_STRIPE_PRICE_ANNUAL as string | undefined;
+  const priceId = priceIdForPlan(nextPlan);
   const origin = window.location.origin;
 
   if (!priceId) {
     return {
       status: "error",
-      message: "Stripe price ID missing. Check VITE_STRIPE_PRICE_ANNUAL.",
+      message: `Stripe price ID missing. Check ${priceEnvName(nextPlan)}.`,
     };
   }
 
@@ -45,9 +46,16 @@ export async function createStripeCheckoutSession(
 
   const gaClientId = await getGaClientId();
   const firstTouch = getFirstTouchParams();
+  try {
+    sessionStorage.setItem(LAST_CHECKOUT_PLAN_KEY, nextPlan);
+  } catch {
+    // ignore
+  }
+
   const payload = {
+    plan: nextPlan,
     priceId,
-    successUrl: `${origin}/dashboard?checkout=success`,
+    successUrl: `${origin}/dashboard?checkout=success&plan=${nextPlan}`,
     cancelUrl: `${origin}/dashboard?checkout=cancel`,
     force: Boolean(options?.force),
     customerEmail: authedUser.email ?? undefined,
@@ -122,7 +130,7 @@ export async function createStripeCheckoutSession(
 }
 
 export async function redirectToStripeCheckout(
-  plan: CheckoutPlan | "yearly" | "monthly" = "annual",
+  plan: CheckoutPlan | "yearly" | "monthly" | string = "annual",
   options?: { force?: boolean }
 ): Promise<StripeCheckoutResult> {
   const result = await createStripeCheckoutSession(plan, options);

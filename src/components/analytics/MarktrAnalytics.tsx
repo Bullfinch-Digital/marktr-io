@@ -14,6 +14,7 @@ import {
   setAnalyticsUserProperties,
 } from "../../lib/analytics";
 import { hasAnalyticsConsent } from "../../lib/cookieConsent";
+import { markCheckoutSucceeded } from "../../lib/paywallAbandon";
 
 function planLabel(isPro: boolean, trialActive: boolean): "free" | "trial" | "paid" {
   if (trialActive) return "trial";
@@ -78,7 +79,17 @@ export function MarktrAnalytics() {
     }
     const params = new URLSearchParams(location.search);
     if (params.get("checkout") === "success") {
-      maybeClientTrialStart("annual");
+      const queryPlan = params.get("plan");
+      let plan: "annual" | "monthly" = queryPlan === "monthly" ? "monthly" : "annual";
+      if (queryPlan !== "monthly" && queryPlan !== "annual") {
+        try {
+          if (sessionStorage.getItem("marktr_checkout_plan") === "monthly") plan = "monthly";
+        } catch {
+          // ignore
+        }
+      }
+      maybeClientTrialStart(plan);
+      markCheckoutSucceeded(user.id);
     }
   }, [location.pathname, location.search, user]);
 

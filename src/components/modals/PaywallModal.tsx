@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "../ui/button";
-import { X, Check, Shield, Unlock, Bell, CreditCard } from "lucide-react";
+import { X, Check, Shield, Unlock, Bell, CreditCard, Compass, Layers, Sparkles } from "lucide-react";
 import { track } from "../../lib/analytics";
 import type { CheckoutPlan } from "../../lib/checkoutPlans";
 import {
@@ -8,7 +8,6 @@ import {
   MARKTR_PAYWALL_ANNUAL_PRICE_LINE,
   MARKTR_PAYWALL_ANNUAL_SAVINGS_BADGE,
   MARKTR_PAYWALL_MONTHLY_PRICE_LINE,
-  MARKTR_PRO_BENEFITS,
   MARKTR_TRIAL_DAYS,
   PRICING_SALES,
   formatPaywallDay,
@@ -17,6 +16,32 @@ import {
   paywallOfferPriceLine,
   paywallReminderDate,
 } from "../../lib/marktrPricing";
+
+const PAYWALL_HEADLINE_BENEFITS = [
+  {
+    title: "Marketing strategies",
+    line: "Positioning, messaging and a channel plan.",
+    icon: Compass,
+  },
+  {
+    title: "Content strategies",
+    line: "Campaign ideas and ready-to-use briefs from your brand.",
+    icon: Layers,
+  },
+  {
+    title: "Social media posts & scripts",
+    line: "Written for your brand and your customers.",
+    icon: Sparkles,
+  },
+] as const;
+
+const PAYWALL_CHECKLIST = [
+  "Full brand story system, with improvements",
+  "Unlimited ICPs",
+  "Complete health report, with fixes",
+  "Multiple brands in one place",
+  "Export and share everything",
+] as const;
 
 function PaywallTrialJourney({ plan }: { plan: CheckoutPlan }) {
   const today = new Date();
@@ -124,12 +149,33 @@ export function PaywallModal({
 
         <div className="space-y-4 px-4 py-3 sm:px-5">
           <div>
-            <p className="mb-2 font-['Plus_Jakarta_Sans'] text-sm leading-snug">Here's what you'll get:</p>
-            <ul className="grid grid-cols-1 gap-y-1 sm:grid-cols-2 sm:gap-x-4">
-              {MARKTR_PRO_BENEFITS.map((feature) => (
-                <li key={feature.id} className="flex items-center gap-2 min-h-6">
-                  <Check className="h-4 w-4 shrink-0 text-brand-navy dark:text-foreground" aria-hidden="true" />
-                  <span className="font-['Plus_Jakarta_Sans'] text-sm leading-snug">{feature.paywallLabel}</span>
+            <p className="mb-2.5 font-['Plus_Jakarta_Sans'] text-sm leading-snug">Here's what you'll get:</p>
+            <ul className="grid grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-3">
+              {PAYWALL_HEADLINE_BENEFITS.map((benefit) => {
+                const Icon = benefit.icon;
+                return (
+                  <li
+                    key={benefit.title}
+                    className="flex items-center gap-3 rounded-2xl border-2 border-brand-navy bg-white px-3 py-2.5 dark:border-foreground dark:bg-background sm:flex-col sm:items-start sm:py-3"
+                  >
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-lime text-brand-navy">
+                      <Icon className="h-5 w-5" aria-hidden="true" />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="font-['Fraunces'] text-lg font-semibold leading-snug">{benefit.title}</p>
+                      <p className="font-['Plus_Jakarta_Sans'] text-sm leading-snug text-foreground/55">{benefit.line}</p>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+            <ul className="mt-3 grid grid-cols-1 gap-y-1.5 sm:grid-cols-2 sm:gap-x-4">
+              {PAYWALL_CHECKLIST.map((item) => (
+                <li key={item} className="flex items-start gap-2">
+                  <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-transparent bg-brand-navy dark:border-foreground">
+                    <Check className="h-2.5 w-2.5 text-brand-lime" aria-hidden="true" />
+                  </span>
+                  <span className="font-['Plus_Jakarta_Sans'] text-sm leading-snug">{item}</span>
                 </li>
               ))}
             </ul>

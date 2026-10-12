@@ -93,10 +93,6 @@ export default function GuestDashboardPreview() {
     : !hasICPs
       ? { to: "/onboarding-build", label: "Next: Know your customer →" }
       : null;
-  const nextAfterStory = !hasICPs
-    ? { to: "/onboarding-build", label: "Next: Know your customer →" }
-    : null;
-
   const nextStepLinkClassName = "app-text-link font-['Plus_Jakarta_Sans']";
 
   const headerTitle = (() => {
@@ -265,11 +261,6 @@ export default function GuestDashboardPreview() {
                 ))}
               </div>
             </div>
-            {nextAfterStory ? (
-              <Link to={nextAfterStory.to} className={nextStepLinkClassName}>
-                {nextAfterStory.label}
-              </Link>
-            ) : null}
           </div>
         ) : null}
 

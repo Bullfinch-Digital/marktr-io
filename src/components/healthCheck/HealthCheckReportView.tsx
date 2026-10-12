@@ -837,7 +837,7 @@ export function HealthCheckReportView({
           <button
             type="button"
             onClick={() => onGoToDashboard?.()}
-            className="rounded-full border-2 border-brand-stroke bg-brand-lime px-6 py-3 min-h-11 font-body text-sm font-semibold text-brand-navy hover:bg-brand-lime-hover"
+            className="rounded-full border-2 border-[#101A26] bg-[#EBFD84] px-6 py-3 min-h-11 font-body text-sm font-semibold text-[#101A26] hover:bg-[#E4F356]"
           >
             Go to your dashboard →
           </button>

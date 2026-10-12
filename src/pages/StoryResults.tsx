@@ -249,7 +249,7 @@ export default function StoryResults() {
             <button
               type="button"
               onClick={() => navigate("/dashboard")}
-              className="h-11 px-6 font-['Plus_Jakarta_Sans'] text-sm font-semibold text-white transition-colors hover:bg-primary/90"
+              className="inline-flex h-11 items-center justify-center rounded-full border-2 border-[#101A26] bg-[#EBFD84] px-6 font-['Plus_Jakarta_Sans'] text-sm font-semibold text-[#101A26] transition-colors hover:bg-[#E4F356]"
             >
               Go to your dashboard →
             </button>

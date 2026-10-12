@@ -28,9 +28,11 @@ export function GuestResultsNextStepsCta({ currentTool, className = "mt-8" }: Gu
 
       <Link
         to="/guest-dashboard"
-        data-track-id={`next_steps_${currentTool}`}
-        data-track-location={currentTool === "health" ? "hero" : currentTool === "story" ? "journey" : "card_3"}
-        className="mt-8 inline-flex items-center justify-center rounded-full bg-primary px-7 py-3 font-body text-sm font-medium text-primary-foreground hover:opacity-90"
+        data-track-id={currentTool === "story" ? "story_next_icp" : `next_steps_${currentTool}`}
+        data-track-location={
+          currentTool === "story" ? "story_result" : currentTool === "health" ? "hero" : "card_3"
+        }
+        className="mt-8 inline-flex items-center justify-center rounded-full border-2 border-[#101A26] bg-[#EBFD84] px-7 py-3 font-body text-sm font-semibold text-[#101A26] hover:bg-[#E4F356]"
       >
         {cta.buttonLabel}
       </Link>

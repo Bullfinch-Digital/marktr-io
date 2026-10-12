@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, CheckCircle2, Loader2 } from "lucide-react";
 import { Button } from "../components/ui/button";
+import { ProgressBar } from "../components/onboarding/ProgressBar";
 import { VoiceTextarea } from "../components/ui/VoiceTextarea";
 import { AlreadyCompletedPrompt } from "../components/AlreadyCompletedPrompt";
 import { useAuth } from "../contexts/AuthContext";
@@ -497,6 +498,9 @@ export default function StoryBuild() {
 
     return (
       <section className="relative mx-auto flex min-h-screen w-full max-w-3xl flex-col px-6 py-12">
+        <div className="mb-8 animate-fade-in-up">
+          <ProgressBar current={questionIndex + 1} total={7} />
+        </div>
         <div className="mb-8 flex items-start justify-between gap-4">
           {step !== "q1" ? (
             <button

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -14,6 +14,35 @@ import {
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { isRealUser } from "../../utils/isRealUser";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
+
+const SIDEBAR_COLLAPSED_KEY = "marktr.sidebar.collapsed";
+
+function readStoredCollapsed(): boolean | null {
+  try {
+    const stored = localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
+    if (stored === "true") return true;
+    if (stored === "false") return false;
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+function writeStoredCollapsed(collapsed: boolean) {
+  try {
+    localStorage.setItem(SIDEBAR_COLLAPSED_KEY, collapsed ? "true" : "false");
+  } catch {
+    // Private mode or blocked storage: keep the choice for this visit only.
+  }
+}
+
+function initialCollapsed() {
+  const stored = readStoredCollapsed();
+  if (stored !== null) return stored;
+  if (typeof window === "undefined") return false;
+  return window.innerWidth < 1100;
+}
 
 interface DashboardSidebarProps {
   userTier: "free" | "paid";
@@ -30,8 +59,26 @@ export function DashboardSidebar({
   onGuestAction,
   subscriptionLoading: _subscriptionLoading,
 }: DashboardSidebarProps) {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(initialCollapsed);
   const location = useLocation();
+
+  useEffect(() => {
+    const query = window.matchMedia("(max-width: 1099px)");
+    const onChange = () => {
+      if (readStoredCollapsed() !== null) return;
+      setIsCollapsed(query.matches);
+    };
+    query.addEventListener("change", onChange);
+    return () => query.removeEventListener("change", onChange);
+  }, []);
+
+  const toggleCollapsed = () => {
+    setIsCollapsed((current) => {
+      const next = !current;
+      writeStoredCollapsed(next);
+      return next;
+    });
+  };
   const { user } = useAuth();
   const dashboardPath = isRealUser(user) ? "/dashboard" : "/guest-dashboard";
 
@@ -73,54 +120,72 @@ export function DashboardSidebar({
       <aside
         className={`
           ${asideWidth}
-          bg-sidebar text-sidebar-foreground border-r border-sidebar-border
-          transition-[width] duration-300 ease-out
-          flex-shrink-0 flex-col hidden lg:flex
+          sticky top-0 z-30 hidden h-dvh max-h-dvh shrink-0 self-start flex-col overflow-hidden
+          border-r border-sidebar-border bg-sidebar text-sidebar-foreground
+          transition-[width] duration-200 ease-out motion-reduce:transition-none
+          md:flex
         `}
       >
-        {/* Wordmark + collapse */}
-        <div className="flex items-center gap-2 px-3 pt-5 pb-3 min-h-[4.5rem]">
-          <Link
-            to={dashboardPath}
-            className={`flex-1 min-w-0 flex items-center ${isCollapsed ? "justify-center" : ""}`}
-            onClick={(e) => {
-              if (guestMode && !isGuestAllowedPath(dashboardPath)) {
-                e.preventDefault();
-                onGuestAction?.();
-              }
-            }}
-          >
-            {isCollapsed ? (
-              <span
-                className="font-['Fraunces'] text-xl font-semibold text-sidebar-primary leading-none"
-                aria-label="Marktr home"
-              >
-                M
-              </span>
-            ) : (
+        <div
+          className={`flex shrink-0 ${
+            isCollapsed
+              ? "flex-col items-center gap-1 px-1.5 pt-3 pb-2"
+              : "min-h-[4.5rem] items-center gap-2 px-3 pt-5 pb-3"
+          }`}
+        >
+          {!isCollapsed && (
+            <Link
+              to={dashboardPath}
+              className="flex min-w-0 flex-1 items-center"
+              onClick={(e) => {
+                if (guestMode && !isGuestAllowedPath(dashboardPath)) {
+                  e.preventDefault();
+                  onGuestAction?.();
+                }
+              }}
+            >
               <img
                 src="/brand/Marktrio_Logo_02.png"
                 alt="marktr.io"
                 className="h-7 w-auto max-w-[168px] object-contain object-left"
               />
-            )}
-          </Link>
+            </Link>
+          )}
           <button
             type="button"
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className={`
-              flex h-11 w-11 items-center justify-center rounded-[14px] shrink-0
-              text-[color:var(--sidebar-muted)] hover:text-sidebar-foreground
-              hover:bg-sidebar-accent transition-colors
-              ${isCollapsed ? "mx-auto" : ""}
-            `}
+            onClick={toggleCollapsed}
+            aria-expanded={!isCollapsed}
+            aria-controls="app-sidebar-nav"
             aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            className="inline-flex h-11 w-11 min-h-11 min-w-11 shrink-0 items-center justify-center rounded-[14px] text-[color:var(--sidebar-muted)] transition-colors duration-200 hover:bg-sidebar-accent hover:text-sidebar-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sidebar-ring)] motion-reduce:transition-none"
           >
-            <ChevronLeft className={`w-5 h-5 transition-transform ${isCollapsed ? "rotate-180" : ""}`} />
+            <ChevronLeft
+              className={`h-5 w-5 transition-transform duration-200 motion-reduce:transition-none ${isCollapsed ? "rotate-180" : ""}`}
+              aria-hidden="true"
+            />
           </button>
+          {isCollapsed && (
+            <Link
+              to={dashboardPath}
+              className="flex h-11 w-11 items-center justify-center rounded-[14px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sidebar-ring)]"
+              onClick={(e) => {
+                if (guestMode && !isGuestAllowedPath(dashboardPath)) {
+                  e.preventDefault();
+                  onGuestAction?.();
+                }
+              }}
+            >
+              <span
+                className="font-['Fraunces'] text-xl font-semibold leading-none text-sidebar-primary"
+                aria-label="Marktr home"
+              >
+                M
+              </span>
+            </Link>
+          )}
         </div>
 
-        <nav className="flex-1 px-2 pb-4 space-y-1 overflow-y-auto">
+        <nav id="app-sidebar-nav" className="min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-y-contain px-2 pb-4">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = getIsActive(item);
@@ -144,8 +209,8 @@ export function DashboardSidebar({
               </>
             );
 
-            const buttonClasses = `w-full flex items-center gap-3 rounded-[14px] transition-all group relative min-h-11 ${
-              isCollapsed ? "justify-center px-0 py-3" : "px-3 py-2.5"
+            const buttonClasses = `w-full flex items-center rounded-[14px] transition-all group relative min-h-11 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sidebar-ring)] ${
+              isCollapsed ? "justify-center gap-0 px-0 py-3" : "gap-3 px-3 py-2.5"
             } ${
               isActive
                 ? "bg-sidebar-primary text-sidebar-primary-foreground"
@@ -154,11 +219,11 @@ export function DashboardSidebar({
                   : "hover:bg-sidebar-accent hover:text-sidebar-foreground"
             }`;
 
-            return (
+            const link = (
               <Link
-                key={item.id}
                 to={item.path || "#"}
                 className={buttonClasses}
+                aria-label={isCollapsed ? item.label : undefined}
                 onClick={(e) => {
                   if (guestMode && !isGuestAllowedPath(item.path)) {
                     e.preventDefault();
@@ -174,12 +239,33 @@ export function DashboardSidebar({
                 {buttonContent}
               </Link>
             );
+
+            if (!isCollapsed) {
+              return (
+                <div key={item.id} className="w-full">
+                  {link}
+                </div>
+              );
+            }
+
+            return (
+              <Tooltip key={item.id}>
+                <TooltipTrigger asChild>{link}</TooltipTrigger>
+                <TooltipContent
+                  side="right"
+                  sideOffset={10}
+                  className="border-2 border-brand-stroke font-['Plus_Jakarta_Sans'] text-sm"
+                >
+                  {item.label}
+                </TooltipContent>
+              </Tooltip>
+            );
           })}
         </nav>
       </aside>
 
       {/* Mobile workspace navigation */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 border-t border-sidebar-border bg-sidebar/95 text-sidebar-foreground backdrop-blur-md">
+      <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-sidebar-border bg-sidebar/95 text-sidebar-foreground backdrop-blur-md md:hidden">
         <div className="grid grid-cols-5 gap-0.5 px-1 py-1">
           {mobileNavItems.map((item) => {
             const Icon = item.icon;

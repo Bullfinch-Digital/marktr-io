@@ -33,6 +33,7 @@ import { CONTENT_TYPE_LABELS } from "../lib/contentTypeLabels";
 import type { ContentItemType } from "../types/contentItemPayload";
 import DashboardShell from "../layouts/DashboardShell";
 import { ViewEditButton } from "../components/ui/ViewEditButton";
+import { StrategyRosterCard } from "../components/strategy/StrategyRosterCard";
 import {
   isOnboardingIcpArrival,
   revealIcpSection,
@@ -447,8 +448,7 @@ export default function Dashboard() {
       ? healthCheck.overall_score
       : readDimensionScore(healthScores, "overall");
 
-  const latestStrategy = strategies[0] ?? null;
-  const campaignIdeaCount = latestStrategy?.strategy?.campaign_ideas?.length ?? 0;
+  const previewStrategies = strategies.slice(0, 3);
 
   const draftItems = useMemo(
     () => contentItems.filter((item) => item.status === "draft"),
@@ -682,10 +682,10 @@ export default function Dashboard() {
             )}
           </section>
 
-          {/* 4. Latest strategy */}
-          <section className="app-card p-8">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <h2 className="app-heading font-['Fraunces'] text-2xl text-foreground">Latest strategy</h2>
+          {/* 4. Campaigns — same compact cards as Strategy */}
+          <section className="scroll-mt-20">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <h2 className="app-heading font-['Fraunces'] text-2xl text-foreground">Campaigns</h2>
               <Link
                 to="/strategy"
                 className="app-text-link font-['Plus_Jakarta_Sans']"
@@ -694,47 +694,31 @@ export default function Dashboard() {
               </Link>
             </div>
             {strategiesLoading ? (
-              <p className="mt-4 font-['Plus_Jakarta_Sans'] text-base text-muted-foreground">Loading…</p>
-            ) : latestStrategy ? (
-              <div
-                role="link"
-                tabIndex={0}
-                onClick={() => navigate(`/strategy/${latestStrategy.id}`)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" || event.key === " ") {
-                    event.preventDefault();
-                    navigate(`/strategy/${latestStrategy.id}`);
-                  }
-                }}
-                className="app-card-nested app-focus-ring mt-4 flex w-full cursor-pointer flex-wrap items-start justify-between gap-3 p-4 text-left transition-colors"
-              >
-                <div className="min-w-0 flex-1">
-                  <p
-                    className="app-heading font-['Fraunces'] text-lg line-clamp-2 text-foreground"
-                    title={latestStrategy.title}
-                  >
-                    {latestStrategy.title}
-                  </p>
-                  <p className="mt-1 font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground">
-                    v{latestStrategy.version} · updated {formatDate(latestStrategy.updated_at)} ·{" "}
-                    {campaignIdeaCount} campaign idea{campaignIdeaCount === 1 ? "" : "s"}
-                  </p>
-                </div>
-                <span onClick={(event) => event.stopPropagation()}>
-                  <ViewEditButton href={`/strategy/${latestStrategy.id}`} />
-                </span>
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {[0, 1, 2].map((i) => (
+                  <div
+                    key={i}
+                    className="h-48 animate-pulse rounded-[24px] border-2 border-brand-stroke bg-muted/30"
+                  />
+                ))}
               </div>
-            ) : (
-              <div className="mt-4">
+            ) : previewStrategies.length === 0 ? (
+              <div className="app-card border-dashed p-8 text-center">
                 <p className="font-['Plus_Jakarta_Sans'] text-base text-muted-foreground">
-                  No strategy versions yet.
+                  No campaigns yet.
                 </p>
                 <Link
                   to="/strategy"
-                  className="app-text-link mt-2 font-['Plus_Jakarta_Sans']"
+                  className="app-text-link mt-3 font-['Plus_Jakarta_Sans']"
                 >
-                  Create a strategy →
+                  Create a campaign →
                 </Link>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {previewStrategies.map((strategy) => (
+                  <StrategyRosterCard key={strategy.id} strategy={strategy} />
+                ))}
               </div>
             )}
           </section>

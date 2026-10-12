@@ -27,7 +27,10 @@ import {
 } from "../lib/strategyLauncherState";
 import { StrategyAimsSection } from "../components/strategy/StrategyAimsSection";
 import { StrategyCreatePanel } from "../components/strategy/StrategyCreatePanel";
-import { StrategyRosterCard } from "../components/strategy/StrategyRosterCard";
+import {
+  StrategyNewCampaignCard,
+  StrategyRosterCard,
+} from "../components/strategy/StrategyRosterCard";
 import { StrategyContentView } from "../components/strategy/StrategyContentView";
 import { StrategyCompositionBanner } from "../components/strategy/StrategyCompositionBanner";
 import StrategyArchiveModal from "../components/strategy/StrategyArchiveModal";
@@ -344,14 +347,14 @@ function StrategyPageBody() {
                   ) : null}
                 </div>
               ) : (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
                   {strategies.map((strategy) => (
-                    <StrategyRosterCard
-                      key={strategy.id}
-                      strategy={strategy}
-                      onArchive={() => setArchiveTarget(strategy)}
-                    />
+                    <StrategyRosterCard key={strategy.id} strategy={strategy} />
                   ))}
+                  <StrategyNewCampaignCard
+                    onClick={() => openCreatePanel()}
+                    disabled={!canStartNewStrategy}
+                  />
                 </div>
               )}
 

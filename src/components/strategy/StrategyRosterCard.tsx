@@ -1,126 +1,138 @@
-import { useMemo, useState } from "react";
+import {
+  Facebook,
+  Globe,
+  Instagram,
+  Linkedin,
+  Mail,
+  Megaphone,
+  Music2,
+  Pin,
+  Plus,
+  Youtube,
+  type LucideIcon,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { ChevronDown, ChevronUp } from "lucide-react";
 import type { StrategyWithLinks } from "../../hooks/useBrandStrategies";
-import { StrategyCompositionBanner } from "./StrategyCompositionBanner";
-import { StrategyContentView } from "./StrategyContentView";
-import { Button } from "../ui/button";
-import { ViewEditButton } from "../ui/ViewEditButton";
-import { ArchiveActionTooltip } from "../ArchiveActionTooltip";
-import { exportStrategyAsPDF } from "../../utils/exportStrategy";
 
-function formatDate(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "";
-  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+function collectChannels(strategy: StrategyWithLinks): string[] {
+  const plan = strategy.strategy?.channel_plan;
+  const fromPlan = [plan?.primary_channel, ...(plan?.secondary_channels ?? [])];
+  const fromRow = strategy.channel ?? [];
+  const seen = new Set<string>();
+  const labels: string[] = [];
+
+  for (const raw of [...fromPlan, ...fromRow]) {
+    const label = typeof raw === "string" ? raw.trim() : "";
+    if (!label) continue;
+    const key = label.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    labels.push(label);
+  }
+
+  return labels;
 }
 
-function clickIsOnControl(target: EventTarget | null) {
-  return target instanceof Element && Boolean(target.closest("button, a, input, textarea, select"));
+function channelIcon(label: string): LucideIcon {
+  const key = label.toLowerCase();
+  if (key.includes("instagram") || key === "ig") return Instagram;
+  if (key.includes("facebook") || key.includes("meta")) return Facebook;
+  if (key.includes("linkedin")) return Linkedin;
+  if (key.includes("tiktok")) return Music2;
+  if (key.includes("youtube")) return Youtube;
+  if (key.includes("email") || key.includes("mail")) return Mail;
+  if (key.includes("pinterest")) return Pin;
+  if (key.includes("twitter") || key === "x" || key.startsWith("x ")) return Megaphone;
+  if (key.includes("website") || key.includes("landing") || key.includes("shop")) return Globe;
+  return Megaphone;
 }
 
-type Props = {
+function contentCountLabel(count: number): string {
+  return count === 1 ? "1 piece of content" : `${count} pieces of content`;
+}
+
+type CardProps = {
   strategy: StrategyWithLinks;
-  onArchive?: () => void;
-  readOnly?: boolean;
 };
 
-export function StrategyRosterCard({ strategy, onArchive, readOnly = false }: Props) {
+export function StrategyRosterCard({ strategy }: CardProps) {
   const navigate = useNavigate();
-  const [expanded, setExpanded] = useState(false);
-  const oneLiner = strategy.strategy?.positioning?.one_liner;
-  const openStrategy = () => navigate(`/strategy/${strategy.id}`);
-
-  const previewText = useMemo(() => {
-    if (oneLiner) return oneLiner;
-    return "Open to view the full strategy.";
-  }, [oneLiner]);
+  const goal = strategy.strategy?.positioning?.one_liner?.trim() || "Open to view the full strategy.";
+  const channels = collectChannels(strategy);
+  const visibleChannels = channels.slice(0, 4);
+  const extraChannels = Math.max(0, channels.length - visibleChannels.length);
+  const contentCount = Array.isArray(strategy.strategy?.suggested_content)
+    ? strategy.strategy.suggested_content.length
+    : 0;
 
   return (
-    <article
-      className="app-card app-card-hover cursor-pointer p-8 transition-transform duration-200 hover:-translate-y-0.5"
-      onClick={(event) => {
-        if (clickIsOnControl(event.target)) return;
-        openStrategy();
-      }}
+    <button
+      type="button"
+      onClick={() => navigate(`/strategy/${strategy.id}`)}
+      data-track-id="campaign_card_open"
+      data-track-location="campaigns_list"
+      aria-label={`Open campaign: ${strategy.title}`}
+      className="app-card app-card-hover app-focus-ring flex h-full w-full flex-col overflow-hidden p-0 text-left transition-transform duration-200 hover:-translate-y-0.5"
     >
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <button
-          type="button"
-          className="text-left min-w-0 flex-1 max-[480px]:basis-full"
-          onClick={openStrategy}
-        >
-          <h3
-            className="app-heading font-['Fraunces'] text-xl text-foreground line-clamp-2"
-            title={strategy.title}
-          >
-            {strategy.title}
-          </h3>
-          <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/55 mt-1">
-            v{strategy.version} · updated {formatDate(strategy.updated_at)}
-          </p>
-        </button>
-        {!readOnly ? (
-          <div className="roster-card-actions flex flex-wrap items-center gap-2">
-            <ViewEditButton onClick={openStrategy} />
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="border-black rounded-design"
-              onClick={() => exportStrategyAsPDF(strategy)}
-            >
-              Export
-            </Button>
-            {onArchive ? (
-              <ArchiveActionTooltip>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="border-black rounded-design"
-                  onClick={onArchive}
+      <span className="block h-1.5 w-full bg-brand-lime" aria-hidden />
+      <span className="flex flex-1 flex-col gap-3 p-5">
+        <span className="app-heading line-clamp-2 font-['Fraunces'] text-lg text-foreground" title={strategy.title}>
+          {strategy.title}
+        </span>
+        <span className="line-clamp-2 font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground">{goal}</span>
+        {visibleChannels.length > 0 ? (
+          <span className="flex flex-wrap items-center gap-1.5">
+            {visibleChannels.map((channel) => {
+              const Icon = channelIcon(channel);
+              return (
+                <span
+                  key={channel}
+                  className="inline-flex max-w-full items-center gap-1 rounded-full border-2 border-brand-stroke bg-background px-2 py-0.5 font-['Plus_Jakarta_Sans'] text-xs text-foreground"
+                  title={channel}
                 >
-                  Archive
-                </Button>
-              </ArchiveActionTooltip>
+                  <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                  <span className="truncate">{channel}</span>
+                </span>
+              );
+            })}
+            {extraChannels > 0 ? (
+              <span className="inline-flex items-center rounded-full border-2 border-brand-stroke bg-brand-lime/40 px-2 py-0.5 font-['Plus_Jakarta_Sans'] text-xs text-brand-navy">
+                +{extraChannels}
+              </span>
             ) : null}
-          </div>
-        ) : (
-          <div className="roster-card-actions flex flex-wrap items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="border-black rounded-design"
-              onClick={() => exportStrategyAsPDF(strategy)}
-            >
-              Export
-            </Button>
-          </div>
-        )}
-      </div>
+          </span>
+        ) : null}
+        <span className="mt-auto font-['Plus_Jakarta_Sans'] text-xs text-muted-foreground">
+          {contentCountLabel(contentCount)}
+        </span>
+      </span>
+    </button>
+  );
+}
 
-      <div className="mt-3">
-        <StrategyCompositionBanner aims={strategy.aims} icps={strategy.icps} compact />
-      </div>
+type NewCardProps = {
+  onClick: () => void;
+  disabled?: boolean;
+};
 
-      <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/75 mt-3 line-clamp-2">{previewText}</p>
-
-      <button
-        type="button"
-        onClick={() => setExpanded((v) => !v)}
-        className="mt-3 inline-flex items-center gap-1 font-['Plus_Jakarta_Sans'] text-xs text-foreground/55 hover:text-foreground/80"
-      >
-        {expanded ? "Hide preview" : "Expand preview"}
-        {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-      </button>
-
-      {expanded ? (
-        <div className="mt-3 border-t border-black/10 pt-3">
-          <StrategyContentView strategy={strategy.strategy} compact />
-        </div>
-      ) : null}
-    </article>
+export function StrategyNewCampaignCard({ onClick, disabled = false }: NewCardProps) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      data-track-id="campaign_new"
+      data-track-location="campaigns_list"
+      aria-label="New campaign"
+      className="app-card app-card-hover app-focus-ring flex h-full min-h-[11.5rem] w-full flex-col items-center justify-center gap-3 border-dashed p-5 text-center transition-transform duration-200 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-none"
+    >
+      <span className="flex h-11 w-11 items-center justify-center rounded-full border-2 border-brand-stroke bg-brand-lime text-brand-navy">
+        <Plus className="h-5 w-5" aria-hidden />
+      </span>
+      <span className="app-heading font-['Fraunces'] text-lg text-foreground">New campaign</span>
+      <span className="font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground">
+        Create a strategy from your aims and personas
+      </span>
+    </button>
   );
 }

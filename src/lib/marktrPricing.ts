@@ -134,10 +134,6 @@ export const MARKTR_PRO_BENEFITS: readonly MarktrProBenefit[] = [
   },
 ] as const;
 
-/** Paywall cost line. Same published figures as PRICING_SALES.costs. */
-export const PAYWALL_COST_ANCHOR =
-  "Brand strategy from £2,500. Social media management £500–£1,500 a month.";
-
 /** Convenience strings for checklists that only need the full benefit copy. */
 export const MARKTR_PRO_BENEFIT_LABELS = MARKTR_PRO_BENEFITS.map((b) => b.label);
 

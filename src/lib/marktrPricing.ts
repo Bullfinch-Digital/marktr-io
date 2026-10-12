@@ -28,19 +28,18 @@ export const MARKTR_PRO_BILLING_LINE = `billed annually (£${MARKTR_PRO_ANNUAL_T
 
 export const MARKTR_PRO_CARD_SUBTITLE = `£${MARKTR_PRO_MONTHLY_EQUIVALENT_GBP}/month, billed annually (£${MARKTR_PRO_ANNUAL_TOTAL_GBP}/year)`;
 
-/** Paywall plan chooser. Pricing-page copy stays on the constants above. */
-export const MARKTR_PAYWALL_ANNUAL_PRICE_LINE = `£${MARKTR_PRO_ANNUAL_TOTAL_GBP} a year (£${MARKTR_PRO_MONTHLY_EQUIVALENT_GBP}/month)`;
-export const MARKTR_PAYWALL_MONTHLY_PRICE_LINE = `£${MARKTR_PRO_MONTHLY_PLAN_GBP} a month`;
+/** Paywall plan price, monthly figure first. Pricing-page copy stays on the constants above. */
+export const MARKTR_PAYWALL_ANNUAL_PRICE_LINE = `£${MARKTR_PRO_MONTHLY_EQUIVALENT_GBP}/month, billed annually (£${MARKTR_PRO_ANNUAL_TOTAL_GBP} a year)`;
+export const MARKTR_PAYWALL_MONTHLY_PRICE_LINE = `£${MARKTR_PRO_MONTHLY_PLAN_GBP}/month, billed monthly`;
 export const MARKTR_PAYWALL_ANNUAL_SAVINGS_BADGE = `Save £${MARKTR_PRO_ANNUAL_SAVINGS_GBP} a year`;
 
 export function paywallPlanPriceLine(plan: "annual" | "monthly"): string {
   return plan === "monthly" ? MARKTR_PAYWALL_MONTHLY_PRICE_LINE : MARKTR_PAYWALL_ANNUAL_PRICE_LINE;
 }
 
-/** Price line shown above the paywall CTA. Chooser labels stay on the constants above. */
+/** Same price line as the chooser, the plan card, and the monthly offer. */
 export function paywallOfferPriceLine(plan: "annual" | "monthly"): string {
-  if (plan === "monthly") return MARKTR_PAYWALL_MONTHLY_PRICE_LINE;
-  return `£${MARKTR_PRO_MONTHLY_EQUIVALENT_GBP}/month, billed annually (£${MARKTR_PRO_ANNUAL_TOTAL_GBP} a year)`;
+  return paywallPlanPriceLine(plan);
 }
 
 export function paywallFirstChargeAmount(plan: "annual" | "monthly"): string {

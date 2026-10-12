@@ -179,8 +179,8 @@ export function PaywallModal({
           <div className="mb-5">
             <h3 className="font-['Fraunces'] text-lg sm:text-xl mb-3">Your plan after the trial</h3>
 
-            {showAllPlans && (
-              <div className="mb-4 space-y-3" role="radiogroup" aria-label="Plans">
+            {showAllPlans ? (
+              <div className="space-y-2" role="radiogroup" aria-label="Plans">
                 <button
                   type="button"
                   role="radio"
@@ -188,15 +188,20 @@ export function PaywallModal({
                   data-track-id="paywall_plan_annual"
                   data-track-location="paywall"
                   onClick={() => selectPlan("annual")}
-                  className={`w-full min-h-11 rounded-[20px] border-2 border-brand-stroke px-4 py-3 text-left transition-colors ${
-                    selectedPlan === "annual" ? "bg-brand-lime/25" : "bg-background hover:bg-muted/30"
+                  className={`w-full min-h-11 rounded-[20px] border-2 px-3 py-2.5 text-left text-brand-navy transition-colors ${
+                    selectedPlan === "annual" ? "border-brand-navy bg-brand-lime" : "border-brand-cream bg-brand-cream"
                   }`}
                 >
                   <span className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="font-['Plus_Jakarta_Sans'] text-sm text-foreground">
-                      {MARKTR_PAYWALL_ANNUAL_PRICE_LINE}
+                    <span className="flex min-w-0 items-start gap-2">
+                      {selectedPlan === "annual" && (
+                        <Check className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                      )}
+                      <span className="font-['Plus_Jakarta_Sans'] text-sm leading-snug">
+                        {MARKTR_PAYWALL_ANNUAL_PRICE_LINE}
+                      </span>
                     </span>
-                    <span className="shrink-0 rounded-full border-2 border-brand-stroke bg-brand-lime px-2.5 py-0.5 font-['Plus_Jakarta_Sans'] text-[11px] font-semibold text-brand-navy">
+                    <span className="shrink-0 rounded-full border-2 border-brand-navy bg-brand-lime px-2.5 py-0.5 font-['Plus_Jakarta_Sans'] text-[11px] font-semibold text-brand-navy">
                       {MARKTR_PAYWALL_ANNUAL_SAVINGS_BADGE}
                     </span>
                   </span>
@@ -208,19 +213,22 @@ export function PaywallModal({
                   data-track-id="paywall_plan_monthly"
                   data-track-location="paywall"
                   onClick={() => selectPlan("monthly")}
-                  className={`w-full min-h-11 rounded-[20px] border-2 border-brand-stroke px-4 py-3 text-left font-['Plus_Jakarta_Sans'] text-sm text-foreground transition-colors ${
-                    selectedPlan === "monthly" ? "bg-brand-lime/25" : "bg-background hover:bg-muted/30"
+                  className={`flex w-full min-h-11 items-start gap-2 rounded-[20px] border-2 px-3 py-2.5 text-left font-['Plus_Jakarta_Sans'] text-sm leading-snug text-brand-navy transition-colors ${
+                    selectedPlan === "monthly" ? "border-brand-navy bg-brand-lime" : "border-brand-cream bg-brand-cream"
                   }`}
                 >
+                  {selectedPlan === "monthly" && (
+                    <Check className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                  )}
                   {MARKTR_PAYWALL_MONTHLY_PRICE_LINE}
                 </button>
               </div>
+            ) : (
+              <div className="border-2 border-brand-stroke bg-brand-lime/20 shadow-md rounded-[24px] p-4 sm:p-5">
+                <h4 className="font-['Fraunces'] text-base mb-1">{MARKTR_PRO_PLAN_NAME}</h4>
+                <p className="font-['Fraunces'] text-lg sm:text-xl leading-snug">{paywallOfferPriceLine(selectedPlan)}</p>
+              </div>
             )}
-
-            <div className="border-2 border-brand-stroke bg-brand-lime/20 shadow-md rounded-[24px] p-4 sm:p-5">
-              <h4 className="font-['Fraunces'] text-base mb-1">{MARKTR_PRO_PLAN_NAME}</h4>
-              <p className="font-['Fraunces'] text-lg sm:text-xl leading-snug">{paywallOfferPriceLine(selectedPlan)}</p>
-            </div>
           </div>
 
           <div className="space-y-3">

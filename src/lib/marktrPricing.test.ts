@@ -36,7 +36,7 @@ describe("pricing sales copy", () => {
     expect(formatPaywallDay(new Date(2026, 9, 24))).toBe("24 Oct");
     expect(formatPaywallDay(paywallFirstChargeDate(new Date(2026, 9, 20)))).toBe("3 Nov");
     expect(paywallOfferPriceLine("annual")).toBe("£25/month, billed annually (£300 a year)");
-    expect(paywallOfferPriceLine("monthly")).toBe("£35 a month");
+    expect(paywallOfferPriceLine("monthly")).toBe("£35/month, billed monthly");
     expect(paywallFirstChargeAmount("annual")).toBe("£300/year");
     expect(paywallFirstChargeAmount("monthly")).toBe("£35/month");
   });

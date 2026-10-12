@@ -9,6 +9,11 @@ export const MARKTR_PRO_MONTHLY_PLAN_GBP = 35;
 export const MARKTR_PRO_ANNUAL_SAVINGS_GBP = 120;
 
 export const MARKTR_TRIAL_DAYS = 14;
+/**
+ * Stripe sends the trial-ending email this many days before the first charge.
+ * The paywall reminder date is the charge date minus this one constant.
+ */
+export const MARKTR_TRIAL_REMINDER_DAYS_BEFORE = 7;
 export const MARKTR_MONEY_BACK_DAYS = 30;
 
 export const MARKTR_PRO_PLAN_NAME = "Marktr Pro";
@@ -32,8 +37,39 @@ export function paywallPlanPriceLine(plan: "annual" | "monthly"): string {
   return plan === "monthly" ? MARKTR_PAYWALL_MONTHLY_PRICE_LINE : MARKTR_PAYWALL_ANNUAL_PRICE_LINE;
 }
 
+/** Price line shown above the paywall CTA. Chooser labels stay on the constants above. */
+export function paywallOfferPriceLine(plan: "annual" | "monthly"): string {
+  if (plan === "monthly") return MARKTR_PAYWALL_MONTHLY_PRICE_LINE;
+  return `£${MARKTR_PRO_MONTHLY_EQUIVALENT_GBP}/month, billed annually (£${MARKTR_PRO_ANNUAL_TOTAL_GBP} a year)`;
+}
+
 export function paywallFirstChargeAmount(plan: "annual" | "monthly"): string {
-  return plan === "monthly" ? `£${MARKTR_PRO_MONTHLY_PLAN_GBP}` : `£${MARKTR_PRO_ANNUAL_TOTAL_GBP}`;
+  return plan === "monthly"
+    ? `£${MARKTR_PRO_MONTHLY_PLAN_GBP}/month`
+    : `£${MARKTR_PRO_ANNUAL_TOTAL_GBP}/year`;
+}
+
+const PAYWALL_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"] as const;
+
+function addLocalDays(from: Date, days: number): Date {
+  const date = new Date(from.getFullYear(), from.getMonth(), from.getDate());
+  date.setDate(date.getDate() + days);
+  return date;
+}
+
+/** Local calendar day the first payment is taken: today + the trial length. */
+export function paywallFirstChargeDate(from: Date = new Date()): Date {
+  return addLocalDays(from, MARKTR_TRIAL_DAYS);
+}
+
+/** Local calendar day of the trial-ending reminder email. */
+export function paywallReminderDate(from: Date = new Date()): Date {
+  return addLocalDays(from, MARKTR_TRIAL_DAYS - MARKTR_TRIAL_REMINDER_DAYS_BEFORE);
+}
+
+/** "24 Oct" */
+export function formatPaywallDay(date: Date): string {
+  return `${date.getDate()} ${PAYWALL_MONTHS[date.getMonth()]}`;
 }
 
 /** Trial + post-trial billing — distinct from the money-back guarantee. */

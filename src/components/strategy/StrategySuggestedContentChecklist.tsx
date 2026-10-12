@@ -168,7 +168,7 @@ export function StrategySuggestedContentChecklist({
 
   if (suggestions.length === 0) {
     return (
-      <div className="rounded-design border border-black/10 bg-accent-grey/10 px-4 py-3">
+      <div className="rounded-design border border-brand-stroke bg-muted/30 px-4 py-3">
         <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/65">
           This strategy has no suggested content checklist.{" "}
           <Link to="/content" className="underline underline-offset-2">
@@ -181,9 +181,9 @@ export function StrategySuggestedContentChecklist({
   }
 
   return (
-    <div className="rounded-design border border-black/15 bg-white p-4 space-y-3">
+    <div className="app-card space-y-3 p-4">
       <div>
-        <h2 className="font-['Fraunces'] text-lg text-[#0D1833]">Suggested content</h2>
+        <h2 className="font-['Fraunces'] text-lg text-foreground">Suggested content</h2>
         <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/55 mt-1">
           Prioritised pieces from this strategy. Create them in Content — nothing generates here.
         </p>
@@ -204,7 +204,7 @@ export function StrategySuggestedContentChecklist({
           return (
             <li
               key={row.id}
-              className="flex flex-wrap items-start justify-between gap-3 rounded-design border border-black/10 px-3 py-2.5"
+              className="flex flex-wrap items-start justify-between gap-3 rounded-design border border-brand-stroke/70 px-3 py-2.5"
             >
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-1.5">
@@ -238,7 +238,7 @@ export function StrategySuggestedContentChecklist({
                 {done && contentId ? (
                   <Link
                     to={`/content/${contentId}`}
-                    className="inline-flex h-8 items-center whitespace-nowrap rounded-design border border-black px-3 font-['Plus_Jakarta_Sans'] text-xs hover:bg-accent-grey/30"
+                    className="inline-flex h-8 items-center whitespace-nowrap rounded-design border border-brand-stroke px-3 font-['Plus_Jakarta_Sans'] text-xs hover:bg-muted"
                   >
                     Open in Content
                   </Link>
@@ -259,7 +259,7 @@ export function StrategySuggestedContentChecklist({
       </ul>
 
       {allCreated ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-black/10 pt-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-brand-stroke/70 pt-3">
           <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/75">
             All suggested pieces are created.
           </p>

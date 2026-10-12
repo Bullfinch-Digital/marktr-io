@@ -20,6 +20,7 @@ type Props = {
   icps: CompositionIcp[];
   showGentleFlag?: boolean;
   compact?: boolean;
+  showSentence?: boolean;
 };
 
 function AimChip({ aim }: { aim: CompositionAim }) {
@@ -56,7 +57,7 @@ function PersonaChip({ icp }: { icp: CompositionIcp }) {
           ? "border-red-300 bg-red-50 text-red-900"
           : isArchived
             ? "border-brand-stroke bg-brand-coral/30 text-foreground"
-            : "border-black/20 bg-accent-grey/30 text-foreground/80"
+            : "border-brand-stroke bg-muted/40 text-foreground/80"
       }`}
     >
       <span className={isDeleted ? "line-through decoration-red-400" : undefined}>{icp.name}</span>
@@ -94,19 +95,22 @@ export function StrategyCompositionBanner({
   icps,
   showGentleFlag = true,
   compact = false,
+  showSentence = true,
 }: Props) {
   const hasArchived = showGentleFlag && compositionHasArchivedLinks(aims, icps);
   const hasDeleted = showGentleFlag && compositionHasDeletedLinks(aims, icps);
 
   return (
     <div className={compact ? "space-y-2" : "space-y-3"}>
-      <p
-        className={`font-['Plus_Jakarta_Sans'] text-foreground/75 ${
-          compact ? "text-xs" : "text-sm"
-        }`}
-      >
-        {formatCompositionSentence(aims, icps)}
-      </p>
+      {showSentence ? (
+        <p
+          className={`font-['Plus_Jakarta_Sans'] text-foreground/75 ${
+            compact ? "text-xs" : "text-sm"
+          }`}
+        >
+          {formatCompositionSentence(aims, icps)}
+        </p>
+      ) : null}
 
       <div className={compact ? "space-y-1.5" : "space-y-2"}>
         <ChipGroup label="Aims" compact={compact}>

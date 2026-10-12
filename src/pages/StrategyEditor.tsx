@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Trash2 } from "lucide-react";
+import { ArrowLeft, ChevronDown, Trash2 } from "lucide-react";
 import DashboardShell from "../layouts/DashboardShell";
 import { Button } from "../components/ui/button";
 import { useAuth } from "../contexts/AuthContext";
@@ -29,6 +29,11 @@ import {
 } from "../lib/strategyEditPayload";
 import { StrategyCompositionBanner } from "../components/strategy/StrategyCompositionBanner";
 import { StrategyEditableDocument } from "../components/strategy/StrategyEditableDocument";
+import {
+  StrategyPlanSubnav,
+  type StrategyPlanNavItem,
+} from "../components/strategy/StrategyPlanSubnav";
+import { strategyHasPostingSchedule } from "../lib/strategyPostingSchedule";
 import { StrategyVersionHistorySection } from "../components/strategy/StrategyVersionHistorySection";
 import StrategyArchiveModal from "../components/strategy/StrategyArchiveModal";
 import StrategyPermanentDeleteModal from "../components/strategy/StrategyPermanentDeleteModal";
@@ -36,6 +41,17 @@ import { StrategySuggestedContentChecklist } from "../components/strategy/Strate
 import { ArchiveActionTooltip } from "../components/ArchiveActionTooltip";
 import { exportStrategyAsPDF } from "../utils/exportStrategy";
 import "../styles/Modal.css";
+
+const THINKING_SECTIONS: StrategySectionId[] = [
+  "positioning",
+  "messaging",
+  "campaign_ideas",
+  "offer",
+  "success_metrics",
+  "ad_assets",
+];
+
+const PLAN_SCROLL_MT = "scroll-mt-[7.5rem]";
 
 type StrategyDetail = StrategyRow & {
   aims: CompositionAim[];
@@ -87,6 +103,7 @@ function StrategyEditorBody() {
   const [permanentDeleteOpen, setPermanentDeleteOpen] = useState(false);
   const [isPermanentDeleting, setIsPermanentDeleting] = useState(false);
   const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
+  const [thinkingOpen, setThinkingOpen] = useState(false);
   const pendingNavRef = useRef<string | null>(null);
   const editBaselineRef = useRef<string | null>(null);
   const sectionSnapshotRef = useRef<StrategySectionSnapshot | null>(null);
@@ -152,10 +169,19 @@ function StrategyEditorBody() {
   useEffect(() => {
     if (!strategy || loading) return;
     const hash = window.location.hash.replace(/^#/, "");
-    if (!hash) return;
-    const el = document.getElementById(hash);
-    el?.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (hash === "campaign-ideas") setThinkingOpen(true);
   }, [strategy?.id, loading]);
+
+  useEffect(() => {
+    if (!strategy || loading) return;
+    const hash = window.location.hash.replace(/^#/, "");
+    if (!hash) return;
+    if (hash === "campaign-ideas" && !thinkingOpen) return;
+    const frame = window.requestAnimationFrame(() => {
+      document.getElementById(hash)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [strategy?.id, loading, thinkingOpen]);
 
   useEffect(() => {
     if (!user?.id || !strategy?.lineage_id) return;
@@ -370,6 +396,29 @@ function StrategyEditorBody() {
     return strategy as StrategyWithLinks;
   }, [strategy]);
 
+  const hasPostingSchedule = strategyHasPostingSchedule(draftStrategy);
+  const planNavItems = useMemo(() => {
+    if (!draftStrategy) return [];
+    const items: StrategyPlanNavItem[] = [
+      { id: "where-to-post", label: "Where to post", trackSection: "where" },
+    ];
+    if (!readOnly) {
+      items.push({ id: "what-to-post", label: "What to post", trackSection: "what" });
+    }
+    if (hasPostingSchedule) {
+      items.push({ id: "when-to-post", label: "When to post", trackSection: "when" });
+    }
+    items.push({ id: "the-thinking", label: "The thinking", trackSection: "thinking" });
+    return items;
+  }, [draftStrategy, readOnly, hasPostingSchedule]);
+
+  const toggleThinking = () => {
+    setThinkingOpen((open) => {
+      if (open && activeSection && THINKING_SECTIONS.includes(activeSection)) return open;
+      return !open;
+    });
+  };
+
   return (
       <>
       {leaveDialogOpen ? (
@@ -421,8 +470,8 @@ function StrategyEditorBody() {
       ) : null}
 
       {isDirty ? (
-        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-black/15 bg-white/95 backdrop-blur-sm px-6 py-3 shadow-[0_-4px_16px_rgba(0,0,0,0.08)]">
-          <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-between gap-3">
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-brand-stroke bg-background/95 px-6 py-3 shadow-[var(--brand-shadow)] backdrop-blur-sm">
+          <div className="mx-auto flex w-full min-[1181px]:max-w-[1100px] flex-wrap items-center justify-between gap-3">
             <span className="font-['Plus_Jakarta_Sans'] text-sm text-foreground">Unsaved changes</span>
             <div className="flex flex-wrap items-center gap-2">
               <Button
@@ -447,7 +496,8 @@ function StrategyEditorBody() {
         </div>
       ) : null}
 
-      <div className={`mx-auto max-w-4xl space-y-6 ${isDirty ? "pb-24" : "pb-10"}`}>
+      <div className={isDirty ? "pb-24" : "pb-10"}>
+      <div className="mx-auto w-full min-[1181px]:max-w-[1100px] space-y-6">
         <div className="flex flex-wrap items-center gap-3">
           <Link
             to="/strategy"
@@ -515,21 +565,6 @@ function StrategyEditorBody() {
               </div>
             </div>
 
-            {rosterStrategy ? (
-              <StrategyCompositionBanner aims={rosterStrategy.aims} icps={rosterStrategy.icps} />
-            ) : null}
-
-            {!readOnly && strategy ? (
-              <StrategySuggestedContentChecklist
-                brandId={strategy.brand_id}
-                strategyId={strategy.id}
-                strategyLineageId={strategy.lineage_id}
-                strategyTitle={strategy.title}
-                strategy={draftStrategy ?? strategy.strategy}
-                icps={rosterStrategy?.icps ?? []}
-              />
-            ) : null}
-
             {draftStrategy ? (
               <StrategyEditableDocument
                 title={draftTitle}
@@ -537,6 +572,7 @@ function StrategyEditorBody() {
                 stagedSections={stagedSections}
                 activeSection={activeSection}
                 readOnly={readOnly}
+                sections={["title"]}
                 onStartEdit={startSectionEdit}
                 onDoneSection={doneSectionEdit}
                 onCancelSection={cancelSectionEdit}
@@ -544,6 +580,96 @@ function StrategyEditorBody() {
                 onStrategyChange={setDraftStrategy}
               />
             ) : null}
+
+            {rosterStrategy ? (
+              <StrategyCompositionBanner
+                aims={rosterStrategy.aims}
+                icps={rosterStrategy.icps}
+                compact
+                showSentence={false}
+              />
+            ) : null}
+
+            <p className="font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground">
+              Here&apos;s your plan: where to show up, what to post, and when.
+            </p>
+          </>
+        )}
+      </div>
+
+      {!loading && strategy && draftStrategy ? (
+        <>
+          <StrategyPlanSubnav items={planNavItems} />
+          <div className="mx-auto mt-8 w-full min-[1181px]:max-w-[1100px] space-y-8">
+            <StrategyEditableDocument
+              title={draftTitle}
+              strategy={draftStrategy}
+              stagedSections={stagedSections}
+              activeSection={activeSection}
+              readOnly={readOnly}
+              sections={["channel_plan"]}
+              channelLayout="cards"
+              onStartEdit={startSectionEdit}
+              onDoneSection={doneSectionEdit}
+              onCancelSection={cancelSectionEdit}
+              onTitleChange={setDraftTitle}
+              onStrategyChange={setDraftStrategy}
+            />
+
+            {!readOnly ? (
+              <section id="what-to-post" className={PLAN_SCROLL_MT}>
+                <h2 className="mb-3 font-['Fraunces'] text-2xl text-foreground">What to post</h2>
+                <StrategySuggestedContentChecklist
+                  brandId={strategy.brand_id}
+                  strategyId={strategy.id}
+                  strategyLineageId={strategy.lineage_id}
+                  strategyTitle={strategy.title}
+                  strategy={draftStrategy}
+                  icps={rosterStrategy?.icps ?? []}
+                />
+              </section>
+            ) : null}
+
+            {hasPostingSchedule ? (
+              <section id="when-to-post" className={PLAN_SCROLL_MT}>
+                <h2 className="font-['Fraunces'] text-2xl text-foreground">When to post</h2>
+              </section>
+            ) : null}
+
+            <section id="the-thinking" className={PLAN_SCROLL_MT}>
+              <button
+                type="button"
+                className="app-card flex w-full cursor-pointer items-center justify-between gap-3 px-5 py-4 text-left"
+                aria-expanded={thinkingOpen}
+                aria-controls="strategy-thinking-panel"
+                data-track-id="strategy_thinking_toggle"
+                data-track-location="strategy_page"
+                onClick={toggleThinking}
+              >
+                <span className="font-['Fraunces'] text-xl text-foreground">The thinking behind this plan</span>
+                <ChevronDown
+                  className={`h-5 w-5 shrink-0 transition-transform ${thinkingOpen ? "rotate-180" : ""}`}
+                  aria-hidden
+                />
+              </button>
+              {thinkingOpen ? (
+                <div id="strategy-thinking-panel" className="mt-4">
+                  <StrategyEditableDocument
+                    title={draftTitle}
+                    strategy={draftStrategy}
+                    stagedSections={stagedSections}
+                    activeSection={activeSection}
+                    readOnly={readOnly}
+                    sections={THINKING_SECTIONS}
+                    onStartEdit={startSectionEdit}
+                    onDoneSection={doneSectionEdit}
+                    onCancelSection={cancelSectionEdit}
+                    onTitleChange={setDraftTitle}
+                    onStrategyChange={setDraftStrategy}
+                  />
+                </div>
+              ) : null}
+            </section>
 
             {user?.id && !readOnly ? (
               <StrategyVersionHistorySection
@@ -553,8 +679,9 @@ function StrategyEditorBody() {
                 onVersionRestored={handleVersionRestored}
               />
             ) : null}
-          </>
-        )}
+          </div>
+        </>
+      ) : null}
       </div>
 
       <StrategyArchiveModal

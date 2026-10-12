@@ -2,6 +2,7 @@ import { Plus } from "lucide-react";
 import { Button } from "../ui/button";
 import type { ICPStrategyPayload } from "../../types/icpStrategyPayload";
 import type { StrategySectionId } from "../../lib/strategyEditPayload";
+import { StrategyChannelPlanCards } from "./StrategyChannelPlanCards";
 import { StrategyContentView } from "./StrategyContentView";
 import { StrategyEditForm } from "./StrategyEditForm";
 
@@ -32,6 +33,9 @@ type Props = {
   stagedSections: StrategySectionId[];
   activeSection: StrategySectionId | null;
   readOnly?: boolean;
+  sections?: StrategySectionId[];
+  /** Card layout for the channel plan. Other sections stay as they are. */
+  channelLayout?: "default" | "cards";
   onStartEdit: (section: StrategySectionId) => void;
   onDoneSection: () => void;
   onCancelSection: () => void;
@@ -41,6 +45,8 @@ type Props = {
 
 function SectionShell({
   sectionId,
+  anchorId,
+  prominent,
   isStaged,
   isEditing,
   readOnly,
@@ -51,6 +57,8 @@ function SectionShell({
   children,
 }: {
   sectionId: StrategySectionId;
+  anchorId?: string;
+  prominent?: boolean;
   isStaged: boolean;
   isEditing: boolean;
   readOnly?: boolean;
@@ -60,23 +68,33 @@ function SectionShell({
   onCancelSection: () => void;
   children: React.ReactNode;
 }) {
+  const label =
+    sectionId === "channel_plan" && prominent ? "Where to post" : SECTION_LABELS[sectionId];
+  const framed = !prominent || isEditing;
+
   return (
     <div
-      id={sectionId === "campaign_ideas" ? "campaign-ideas" : undefined}
-      className={`rounded-design border bg-white scroll-mt-24 ${
-        isEditing
-          ? "border-black/30 shadow-md"
-          : isStaged
-            ? "border-brand-stroke bg-brand-coral/20"
-            : "border-black/10"
+      id={anchorId ?? (sectionId === "campaign_ideas" ? "campaign-ideas" : undefined)}
+      className={`scroll-mt-[7.5rem] ${
+        framed
+          ? `app-card ${isEditing ? "shadow-md" : ""} ${isStaged && !isEditing ? "bg-brand-coral/20" : ""}`
+          : ""
       }`}
     >
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-black/5 px-4 py-2">
+      <div
+        className={`flex flex-wrap items-center justify-between gap-2 ${
+          framed ? "border-b border-brand-stroke/40 px-4 py-2" : "mb-3"
+        }`}
+      >
         <div className="flex items-center gap-2">
           {sectionId !== "title" ? (
-            <p className="font-['Plus_Jakarta_Sans'] text-xs uppercase tracking-wide text-foreground/55">
-              {SECTION_LABELS[sectionId]}
-            </p>
+            prominent ? (
+              <h2 className="font-['Fraunces'] text-2xl text-foreground">{label}</h2>
+            ) : (
+              <p className="font-['Plus_Jakarta_Sans'] text-xs uppercase tracking-wide text-foreground/55">
+                {label}
+              </p>
+            )
           ) : null}
           {isStaged && !isEditing ? (
             <span className="font-['Plus_Jakarta_Sans'] text-[11px] text-foreground bg-brand-coral/40 border border-brand-stroke rounded-full px-2 py-0.5">
@@ -119,7 +137,7 @@ function SectionShell({
           </div>
         ) : null}
       </div>
-      <div className="p-4">{children}</div>
+      <div className={framed ? "p-4" : ""}>{children}</div>
     </div>
   );
 }
@@ -130,6 +148,8 @@ export function StrategyEditableDocument({
   stagedSections,
   activeSection,
   readOnly = false,
+  sections,
+  channelLayout = "default",
   onStartEdit,
   onDoneSection,
   onCancelSection,
@@ -138,59 +158,45 @@ export function StrategyEditableDocument({
 }: Props) {
   const stagedSet = new Set(stagedSections);
   const canStartEdit = !activeSection;
+  const sectionIds = sections ?? (["title", ...CONTENT_SECTIONS] as StrategySectionId[]);
 
   return (
     <div className="space-y-4">
-      <SectionShell
-        sectionId="title"
-        isStaged={stagedSet.has("title")}
-        isEditing={activeSection === "title"}
-        readOnly={readOnly}
-        canEdit={canStartEdit}
-        onStartEdit={() => onStartEdit("title")}
-        onDoneSection={onDoneSection}
-        onCancelSection={onCancelSection}
-      >
-          {activeSection === "title" ? (
-            <StrategyEditForm
-              bare
-              title={title}
-              strategy={strategy}
-              section="title"
-              onTitleChange={onTitleChange}
-              onStrategyChange={onStrategyChange}
-            />
-        ) : (
-          <h1 className="font-['Fraunces'] text-3xl lg:text-4xl text-[#0D1833]">{title}</h1>
-        )}
-      </SectionShell>
-
-      {CONTENT_SECTIONS.map((sectionId) => (
-        <SectionShell
-          key={sectionId}
-          sectionId={sectionId}
-          isStaged={stagedSet.has(sectionId)}
-          isEditing={activeSection === sectionId}
-          readOnly={readOnly}
-          canEdit={canStartEdit}
-          onStartEdit={() => onStartEdit(sectionId)}
-          onDoneSection={onDoneSection}
-          onCancelSection={onCancelSection}
-        >
-          {activeSection === sectionId ? (
-            <StrategyEditForm
-              bare
-              title={title}
-              strategy={strategy}
-              section={sectionId}
-              onTitleChange={onTitleChange}
-              onStrategyChange={onStrategyChange}
-            />
-          ) : (
-            <StrategyContentView strategy={strategy} section={sectionId} bare />
-          )}
-        </SectionShell>
-      ))}
+      {sectionIds.map((sectionId) => {
+        const cards = sectionId === "channel_plan" && channelLayout === "cards";
+        return (
+          <SectionShell
+            key={sectionId}
+            sectionId={sectionId}
+            prominent={cards}
+            anchorId={cards ? "where-to-post" : undefined}
+            isStaged={stagedSet.has(sectionId)}
+            isEditing={activeSection === sectionId}
+            readOnly={readOnly}
+            canEdit={canStartEdit}
+            onStartEdit={() => onStartEdit(sectionId)}
+            onDoneSection={onDoneSection}
+            onCancelSection={onCancelSection}
+          >
+            {activeSection === sectionId ? (
+              <StrategyEditForm
+                bare
+                title={title}
+                strategy={strategy}
+                section={sectionId}
+                onTitleChange={onTitleChange}
+                onStrategyChange={onStrategyChange}
+              />
+            ) : sectionId === "title" ? (
+              <h1 className="font-['Fraunces'] text-3xl text-foreground lg:text-4xl">{title}</h1>
+            ) : cards ? (
+              <StrategyChannelPlanCards strategy={strategy} />
+            ) : (
+              <StrategyContentView strategy={strategy} section={sectionId} bare />
+            )}
+          </SectionShell>
+        );
+      })}
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { GenerationErrorNotice } from "../../GenerationErrorNotice";
 import { consumePendingIcpRegenerateNudge } from "../../../lib/icpPersonaCap";
 import { AnimatePresence, motion } from "../../../lib/motion";
 import { getAllProfileImages } from "../../../config/profileImages";
@@ -38,7 +39,8 @@ export function LoadingScreen({ onComplete, run, runJob }: LoadingScreenProps) {
   const [progress, setProgress] = useState(0);
   const [currentStageIndex, setCurrentStageIndex] = useState(0);
   const [currentAvatarIndex, setCurrentAvatarIndex] = useState(0);
-  const [error, setError] = useState<string | null>(null);
+  const [generationFailures, setGenerationFailures] = useState(0);
+  const [retrying, setRetrying] = useState(false);
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
   const startedRef = useRef(false);
   const [jobDone, setJobDone] = useState(false);
@@ -156,55 +158,63 @@ export function LoadingScreen({ onComplete, run, runJob }: LoadingScreenProps) {
     };
   }, [avatars.length, jobDone]);
 
+  const runRef = useRef(run);
+  const runJobRef = useRef(runJob);
+  const onCompleteRef = useRef(onComplete);
+  runRef.current = run;
+  runJobRef.current = runJob;
+  onCompleteRef.current = onComplete;
+
+  const runGeneration = async () => {
+    const job = runRef.current || runJobRef.current;
+    if (!job) return;
+    setRetrying(true);
+    try {
+      await job();
+      if (!mountedRef.current) return;
+      const nudge = consumePendingIcpRegenerateNudge();
+      if (nudge) {
+        setInfoMessage(nudge);
+        await new Promise((resolve) => window.setTimeout(resolve, 2200));
+      }
+      if (!mountedRef.current) return;
+      setGenerationFailures(0);
+      setJobDone(true);
+      setProgress(100);
+      if (avatarIntervalRef.current !== null) {
+        window.clearInterval(avatarIntervalRef.current);
+        avatarIntervalRef.current = null;
+      }
+      if (stageIntervalRef.current !== null) {
+        window.clearInterval(stageIntervalRef.current);
+        stageIntervalRef.current = null;
+      }
+      if (progressIntervalRef.current !== null) {
+        window.clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
+      const complete = onCompleteRef.current;
+      if (complete) {
+        if (completionTimeoutRef.current !== null) {
+          window.clearTimeout(completionTimeoutRef.current);
+        }
+        completionTimeoutRef.current = window.setTimeout(complete, 100);
+      }
+    } catch {
+      if (!mountedRef.current) return;
+      console.error("[LoadingScreen] run failed");
+      setGenerationFailures((count) => count + 1);
+    } finally {
+      if (mountedRef.current) setRetrying(false);
+    }
+  };
+
   useEffect(() => {
     const job = run || runJob;
     if (!job || startedRef.current) return;
     startedRef.current = true;
-    let cancelled = false;
-
-    const runOnce = async () => {
-      try {
-        await job();
-        if (cancelled || !mountedRef.current) return;
-        const nudge = consumePendingIcpRegenerateNudge();
-        if (nudge) {
-          setInfoMessage(nudge);
-          await new Promise((resolve) => window.setTimeout(resolve, 2200));
-        }
-        if (cancelled || !mountedRef.current) return;
-        setJobDone(true);
-        setProgress(100);
-        if (avatarIntervalRef.current !== null) {
-          window.clearInterval(avatarIntervalRef.current);
-          avatarIntervalRef.current = null;
-        }
-        if (stageIntervalRef.current !== null) {
-          window.clearInterval(stageIntervalRef.current);
-          stageIntervalRef.current = null;
-        }
-        if (progressIntervalRef.current !== null) {
-          window.clearInterval(progressIntervalRef.current);
-          progressIntervalRef.current = null;
-        }
-        if (onComplete) {
-          if (completionTimeoutRef.current !== null) {
-            window.clearTimeout(completionTimeoutRef.current);
-          }
-          // Exit immediately once generation is ready.
-          completionTimeoutRef.current = window.setTimeout(onComplete, 100);
-        }
-      } catch (e: any) {
-        if (cancelled || !mountedRef.current) return;
-        console.error("[LoadingScreen] run failed", e);
-        setError(e?.message || "Something went wrong while generating your ICP.");
-      }
-    };
-
-    runOnce();
-    return () => {
-      cancelled = true;
-    };
-  }, [run, runJob, onComplete]);
+    void runGeneration();
+  }, [run, runJob]);
 
   useEffect(() => {
     const job = run || runJob;
@@ -350,25 +360,18 @@ export function LoadingScreen({ onComplete, run, runJob }: LoadingScreenProps) {
           </AnimatePresence>
         </div>
 
-        {infoMessage && !error && (
+        {infoMessage && generationFailures < 1 && (
           <p className="max-w-xl text-center text-sm text-foreground/65 font-['Plus_Jakarta_Sans'] px-4">
             {infoMessage}
           </p>
         )}
 
-        {error && (
-          <div className="max-w-xl border border-black rounded-design bg-white p-4 text-left">
-            <p className="font-['Fraunces'] text-lg mb-2">
-              Hmm - something went wrong
-            </p>
-            <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70">
-              {error}
-            </p>
-            <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/60 mt-2">
-              Tip: check your .env.local values and restart <code>npm run dev</code>.
-            </p>
-          </div>
-        )}
+        <GenerationErrorNotice
+          failures={generationFailures}
+          onRetry={() => void runGeneration()}
+          retrying={retrying}
+          className="max-w-xl border border-black rounded-design bg-white p-4 text-left font-['Plus_Jakarta_Sans'] text-sm text-foreground/70"
+        />
 
         <div className="w-full max-w-md">
           <div className="relative h-2 bg-brand-navy rounded-full overflow-hidden">

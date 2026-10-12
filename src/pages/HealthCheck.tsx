@@ -39,6 +39,8 @@ import { fetchLatestHealthCheck, resolveBrandIdForHealthWrite } from "../lib/hea
 import { buildPriorRunPayload } from "../lib/healthCheckPriorRun";
 import { fetchBrandStoryPillarForHealth } from "../lib/healthCheckPillarContext";
 import { scanErrorCode, track } from "../lib/bullfinchAnalytics";
+import { GenerationErrorNotice } from "../components/GenerationErrorNotice";
+import { trackGenerationError } from "../lib/generationError";
 import {
   markHealthCompleted,
   markHealthStarted,
@@ -64,7 +66,7 @@ export interface HealthCheckFormData {
   email: string;
 }
 
-const SCAN_RETRY_MESSAGE = "We couldn't complete the scan. Please try again.";
+const SCAN_GENERATION_FAILURE = "generation";
 const SCAN_VERIFY_MESSAGE = "Verification failed. Complete the check and try again.";
 const SCAN_URL_MESSAGE = "Add a website URL so we can score your presence.";
 
@@ -76,7 +78,7 @@ function describeScoreWebsiteFailure(
   if (status === 403) return SCAN_VERIFY_MESSAGE;
   const fromData = typeof data?.error === "string" ? data.error.trim() : "";
   if (fromData.toLowerCase().includes("turnstile")) return SCAN_VERIFY_MESSAGE;
-  return SCAN_RETRY_MESSAGE;
+  return SCAN_GENERATION_FAILURE;
 }
 
 export default function HealthCheck() {
@@ -105,6 +107,8 @@ export default function HealthCheck() {
   const [businessNameTouched, setBusinessNameTouched] = useState(false);
   const [leadToken, setLeadToken] = useState<string | null>(null);
   const [scanError, setScanError] = useState<string | null>(null);
+  const [scanFailures, setScanFailures] = useState(0);
+  const scanFailuresRef = useRef(0);
   const [preparingScan, setPreparingScan] = useState(false);
   const [awaitingTurnstile, setAwaitingTurnstile] = useState(false);
   const [identityFieldsSnapshot] = useState(() => ({
@@ -394,6 +398,8 @@ export default function HealthCheck() {
 
       let scanFailureMessage: string | null = null;
       let failureCode: "turnstile" | "scan_failed" | "throttled" | null = null;
+      let generationError: unknown = null;
+      let generationStatus: number | undefined;
 
       const apiPromise = (async () => {
         if (!formData.websiteUrl?.trim()) {
@@ -453,10 +459,12 @@ export default function HealthCheck() {
           } | null;
           if (invokeError || payload?.error || payload?.facts === undefined) {
             scanFailureMessage = describeScoreWebsiteFailure(invokeError, payload);
-            failureCode = scanErrorCode(
-              (invokeError as { context?: { status?: number } } | null)?.context?.status,
-              payload,
-            );
+            generationStatus = (invokeError as { context?: { status?: number } } | null)?.context
+              ?.status;
+            failureCode = scanErrorCode(generationStatus, payload);
+            if (scanFailureMessage === SCAN_GENERATION_FAILURE) {
+              generationError = invokeError ?? payload;
+            }
             return;
           }
           publicToken =
@@ -504,8 +512,9 @@ export default function HealthCheck() {
             email: emailToUse,
             websiteScore,
           };
-        } catch {
-          scanFailureMessage = SCAN_RETRY_MESSAGE;
+        } catch (err) {
+          scanFailureMessage = SCAN_GENERATION_FAILURE;
+          generationError = err;
           failureCode = "scan_failed";
         } finally {
           if (scoreInFlightKeyRef.current === scoreInputKey) {
@@ -523,7 +532,13 @@ export default function HealthCheck() {
       if (cancelled) return;
 
       if (!websiteScore) {
-        setScanError(scanFailureMessage ?? SCAN_RETRY_MESSAGE);
+        const message = scanFailureMessage ?? SCAN_GENERATION_FAILURE;
+        if (message === SCAN_GENERATION_FAILURE) {
+          trackGenerationError("score-website", generationError, generationStatus);
+          scanFailuresRef.current += 1;
+          setScanFailures(scanFailuresRef.current);
+        }
+        setScanError(message);
         if (editionRef.current === "bullfinch") {
           track("bf_check_error", { code: failureCode ?? "scan_failed" });
         }
@@ -533,11 +548,16 @@ export default function HealthCheck() {
 
       if (editionRef.current === "bullfinch") {
         if (!publicToken) {
-          setScanError(SCAN_RETRY_MESSAGE);
+          trackGenerationError("score-website");
+          scanFailuresRef.current += 1;
+          setScanFailures(scanFailuresRef.current);
+          setScanError(SCAN_GENERATION_FAILURE);
           track("bf_check_error", { code: "scan_failed" });
           setStep("inputs");
           return;
         }
+        scanFailuresRef.current = 0;
+        setScanFailures(0);
         navigate(`/r/${encodeURIComponent(publicToken)}${window.location.search}`, {
           replace: true,
           state: { reportSource: "scan" },
@@ -557,6 +577,8 @@ export default function HealthCheck() {
           facebookUrl: facebookUrl || undefined,
         },
       });
+      scanFailuresRef.current = 0;
+      setScanFailures(0);
       markHealthCompleted();
       navigate("/health-check/results", {
         state: {
@@ -858,7 +880,14 @@ export default function HealthCheck() {
             </p>
           ) : null}
 
-          {scanError ? (
+          {scanError === SCAN_GENERATION_FAILURE ? (
+            <GenerationErrorNotice
+              failures={scanFailures}
+              onRetry={() => flushGuestIdentityAndProceed()}
+              retrying={preparingScan || awaitingTurnstile}
+              className="font-body text-sm text-red-600"
+            />
+          ) : scanError ? (
             <p className="font-body text-sm text-red-600" role="alert">
               {scanError}
             </p>

@@ -21,6 +21,8 @@ import { IdentityCapture, type IdentityCaptureHandle } from "../components/guest
 import { LegalAgreementRequiredModal } from "../components/legal/LegalAgreementRequiredModal";
 import { useLegalAgreementGate } from "../hooks/useLegalAgreementGate";
 import { track } from "../lib/analytics";
+import { trackGenerationError } from "../lib/generationError";
+import { GenerationErrorNotice } from "../components/GenerationErrorNotice";
 import {
   getGuestContext,
   getGuestBusinessName,
@@ -185,6 +187,9 @@ export default function StoryBuild() {
   };
 
   const storyInFlightKeyRef = useRef<string | null>(null);
+  const [storyRetry, setStoryRetry] = useState(0);
+  const [storyFailures, setStoryFailures] = useState(0);
+  const [storyFailed, setStoryFailed] = useState(false);
   const lastStoryResultRef = useRef<{
     story: BrandStoryOutput | null;
     storyError: string | null;
@@ -343,9 +348,8 @@ export default function StoryBuild() {
           completedStoryKeyRef.current = storyInputKey;
           lastStoryResultRef.current = { story, storyError: null };
         } catch (e) {
-          storyError = e instanceof Error ? e.message : "Something went wrong.";
-          completedStoryKeyRef.current = storyInputKey;
-          lastStoryResultRef.current = { story: null, storyError };
+          trackGenerationError("generate-brand-story", e);
+          storyError = "failed";
         } finally {
           if (storyInFlightKeyRef.current === storyInputKey) {
             storyInFlightKeyRef.current = null;
@@ -378,13 +382,21 @@ export default function StoryBuild() {
           return;
         }
 
-        if (isLoggedIn && user?.id && storyError) {
-          navigate("/story", { replace: true });
+        if (storyError && isLoggedIn && user?.id) {
+          setStoryFailures((count) => count + 1);
+          setStoryFailed(true);
+          return;
+        }
+
+        if (storyError) {
+          navigate("/story/results", {
+            state: { answers, email: emailToUse, story: null, generationFailures: 1 },
+          });
           return;
         }
 
         navigate("/story/results", {
-          state: { answers, email: emailToUse, story, error: storyError },
+          state: { answers, email: emailToUse, story, generationFailures: 0 },
         });
       }
     };
@@ -395,7 +407,7 @@ export default function StoryBuild() {
       cancelled = true;
       timers.forEach((t) => window.clearTimeout(t));
     };
-  }, [step, answers, email, identityName, leadToken, navigate, isLoggedIn, user?.id, user?.email, activeBrandId, brands]);
+  }, [step, answers, email, identityName, leadToken, navigate, isLoggedIn, user?.id, user?.email, activeBrandId, brands, storyRetry]);
 
   const canContinueQuestion = useMemo(() => draft.trim().length > 0, [draft]);
 
@@ -670,7 +682,21 @@ export default function StoryBuild() {
           })}
         </div>
 
-        {checklistDone && (
+        {storyFailed && (
+          <GenerationErrorNotice
+            failures={storyFailures}
+            retrying={false}
+            onRetry={() => {
+              setStoryFailed(false);
+              setCompletedCount(0);
+              setChecklistDone(false);
+              setStoryRetry((count) => count + 1);
+            }}
+            className="mt-8 font-['Plus_Jakarta_Sans'] text-sm text-destructive"
+          />
+        )}
+
+        {checklistDone && !storyFailed && (
           <div className="mt-8 flex flex-col items-center gap-4">
             <div className="flex items-center gap-2">
               {[0, 1, 2].map((i) => (

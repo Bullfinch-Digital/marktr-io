@@ -13,6 +13,8 @@ import { BrandStoryFindingsSection } from "../components/story/BrandStoryFinding
 import { GuestPreviewShell } from "../layouts/GuestPreviewShell";
 import { GuestResultsNextStepsCta } from "../components/guest/GuestResultsNextStepsCta";
 import { track } from "../lib/analytics";
+import { trackGenerationError } from "../lib/generationError";
+import { GenerationErrorNotice } from "../components/GenerationErrorNotice";
 
 export type { BrandStoryOutput } from "../lib/brandStory";
 
@@ -21,6 +23,7 @@ export type StoryResultsLocationState = {
   email: string;
   story?: BrandStoryOutput | null;
   error?: string | null;
+  generationFailures?: number;
 };
 
 export default function StoryResults() {
@@ -52,9 +55,12 @@ export default function StoryResults() {
   );
 
   const [story, setStory] = useState<BrandStoryOutput | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [failures, setFailures] = useState(0);
+  const [retrying, setRetrying] = useState(false);
   const [loading, setLoading] = useState(true);
   const completeTracked = useRef(false);
+  const appliedRouterFailure = useRef(false);
 
   useEffect(() => {
     if (!story || completeTracked.current) return;
@@ -70,9 +76,14 @@ export default function StoryResults() {
       return;
     }
 
-    if (state?.error) {
-      setError(state.error);
-      setLoading(false);
+    const routerFailures = state?.generationFailures ?? (state?.error ? 1 : 0);
+    if (routerFailures > 0) {
+      if (!appliedRouterFailure.current) {
+        appliedRouterFailure.current = true;
+        setFailures(routerFailures);
+        setFailed(true);
+        setLoading(false);
+      }
       return;
     }
 
@@ -99,7 +110,7 @@ export default function StoryResults() {
 
       async function run() {
         setLoading(true);
-        setError(null);
+        setFailed(false);
         try {
           const { data, error: invokeError } = await supabase.functions.invoke("generate-brand-story", {
             body: {
@@ -118,6 +129,7 @@ export default function StoryResults() {
           }
 
           if (!cancelled) {
+            setFailures(0);
             setStory(output);
             setGuestStory({
               answers: answersPayload,
@@ -128,7 +140,9 @@ export default function StoryResults() {
           }
         } catch (e) {
           if (!cancelled) {
-            setError(e instanceof Error ? e.message : "Something went wrong.");
+            trackGenerationError("generate-brand-story", e);
+            setFailures((count) => count + 1);
+            setFailed(true);
           }
         } finally {
           if (!cancelled) setLoading(false);
@@ -169,11 +183,57 @@ export default function StoryResults() {
     );
   }
 
-  if (error || !story) {
+  const retryStory = async () => {
+    const answersPayload = state?.answers ?? guestStored?.answers ?? [];
+    const emailPayload =
+      state?.email?.trim() || guestStored?.email?.trim() || getGuestIdentityEmail() || "";
+    if (answersPayload.length !== 7 || !emailPayload) return;
+    const businessName = getGuestBusinessName();
+    setRetrying(true);
+    setLoading(true);
+    setFailed(false);
+    try {
+      const { data, error: invokeError } = await supabase.functions.invoke("generate-brand-story", {
+        body: {
+          answers: answersPayload,
+          email: emailPayload,
+          ...(businessName ? { businessName } : {}),
+        },
+      });
+      if (invokeError) throw invokeError;
+      const output = parseBrandStoryFromApi(data as Record<string, unknown> | null);
+      if (!output) throw new Error("Invalid story response from server.");
+      setFailures(0);
+      setStory(output);
+      setGuestStory({
+        answers: answersPayload,
+        email: emailPayload,
+        output,
+        created_at: new Date().toISOString(),
+      });
+    } catch (e) {
+      trackGenerationError("generate-brand-story", e);
+      setFailures((count) => count + 1);
+      setFailed(true);
+    } finally {
+      setRetrying(false);
+      setLoading(false);
+    }
+  };
+
+  if (failed || !story) {
     return (
       <GuestPreviewShell>
         <div className="mx-auto max-w-2xl">
-          <p className="font-['Plus_Jakarta_Sans'] text-sm text-destructive">{error || "Could not load your story."}</p>
+          {failed ? (
+            <GenerationErrorNotice
+              failures={Math.max(failures, 1)}
+              onRetry={() => void retryStory()}
+              retrying={retrying}
+            />
+          ) : (
+            <p className="font-['Plus_Jakarta_Sans'] text-sm text-destructive">Could not load your story.</p>
+          )}
           <Link to="/story" className="mt-4 inline-block font-['Plus_Jakarta_Sans'] text-sm text-primary underline">
             Start over
           </Link>

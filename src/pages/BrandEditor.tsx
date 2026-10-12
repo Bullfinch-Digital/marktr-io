@@ -14,6 +14,7 @@ import useSubscription from "../hooks/useSubscription";
 import { usePaywall } from "../contexts/PaywallContext";
 import { useICPs } from "../hooks/useICPs";
 import { generateICPs } from "../lib/ai/pipeline";
+import { GenerationErrorNotice } from "../components/GenerationErrorNotice";
 import { newGenerationId } from "../lib/icpVersioning";
 import {
   countCurrentIcpsForBrand,
@@ -51,6 +52,7 @@ export default function BrandEditor() {
   const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generateStatus, setGenerateStatus] = useState<"idle" | "generating" | "success" | "error">("idle");
+  const [generationFailures, setGenerationFailures] = useState(0);
 
   // ------------------------------------------------------------
   // Generating UX (mirrors onboarding "what's happening" lines)
@@ -463,6 +465,7 @@ export default function BrandEditor() {
         if (createdRow) created.push(createdRow);
       }
 
+      setGenerationFailures(0);
       setGenerateStatus("success");
       try {
         window.dispatchEvent(new Event("icps:changed"));
@@ -480,10 +483,9 @@ export default function BrandEditor() {
       } else {
         navigate("/icps");
       }
-    } catch (err) {
-      console.error("BrandEditor: generate ICPS error", err);
-      setGenerateStatus("error");
-      alert("Generation failed. Please check your Brand fields and try again.");
+    } catch {
+      console.error("BrandEditor: generate ICPS error");
+      setGenerationFailures((count) => count + 1);
     } finally {
       setIsGenerating(false);
       setTimeout(() => setGenerateStatus("idle"), 3000);
@@ -627,7 +629,7 @@ export default function BrandEditor() {
                     Generated
                   </span>
                 )}
-                {generateStatus === "error" && (
+                {generateStatus === "error" && generationFailures < 1 && (
                   <span className="text-sm text-red-700 bg-red-100 border border-red-300 rounded-full px-3 py-1 font-['Plus_Jakarta_Sans']">
                     Generation failed
                   </span>
@@ -698,6 +700,13 @@ export default function BrandEditor() {
             </div>
           </div>
         </header>
+
+        <GenerationErrorNotice
+          failures={generationFailures}
+          onRetry={() => void handleGenerate()}
+          retrying={isGenerating}
+          className="container mx-auto px-6 pt-4 text-sm text-red-700 font-['Plus_Jakarta_Sans']"
+        />
 
         <div className="border-b border-border bg-background sticky top-[65px] z-30">
           <div className="container mx-auto px-6">

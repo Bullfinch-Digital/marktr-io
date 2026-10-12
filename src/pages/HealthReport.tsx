@@ -35,6 +35,8 @@ import { HealthCheckReportView } from "../components/healthCheck/HealthCheckRepo
 import { isComparableHealthCheckRow } from "../lib/healthCheckProgressGraph";
 import DashboardShell from "../layouts/DashboardShell";
 import { Button } from "../components/ui/button";
+import { GenerationErrorNotice } from "../components/GenerationErrorNotice";
+import { trackGenerationError } from "../lib/generationError";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -69,6 +71,7 @@ export default function HealthReport() {
   const [historyRows, setHistoryRows] = useState<HealthCheckRow[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [generationFailures, setGenerationFailures] = useState(0);
 
   const saveInFlightRef = useRef(false);
   const scopedBrandId = resolveScopedBrandId(activeBrandId, brands);
@@ -222,7 +225,8 @@ export default function HealthReport() {
       );
 
       if (!brandId) {
-        throw new Error("Could not resolve brand for this re-run.");
+        setActionError("Could not resolve brand for this re-run.");
+        return;
       }
 
       console.log("[HealthReport] re-analyse starting", {
@@ -246,7 +250,12 @@ export default function HealthReport() {
         },
       });
 
-      if (invokeError) throw invokeError;
+      if (invokeError) {
+        trackGenerationError("score-website", invokeError);
+        setActionError(null);
+        setGenerationFailures((count) => count + 1);
+        return;
+      }
 
       const parsed = parseScoreWebsiteResponse(data, {
         websiteUrl,
@@ -304,7 +313,8 @@ export default function HealthReport() {
       });
 
       if (!inserted) {
-        throw new Error("Could not save the new health check.");
+        setActionError("Could not save the new health check.");
+        return;
       }
 
       console.log("[HealthReport] re-analyse inserted", {
@@ -314,9 +324,12 @@ export default function HealthReport() {
       });
 
       setCurrentRow(inserted);
+      setGenerationFailures(0);
       void loadHistory();
     } catch (e) {
-      setActionError(e instanceof Error ? e.message : "Re-analysis failed.");
+      trackGenerationError("score-website", e);
+      setActionError(null);
+      setGenerationFailures((count) => count + 1);
     } finally {
       saveInFlightRef.current = false;
       setReanalysing(false);
@@ -459,6 +472,12 @@ export default function HealthReport() {
       {actionError && (
         <p className="mt-4 font-['Plus_Jakarta_Sans'] text-sm text-destructive">{actionError}</p>
       )}
+      <GenerationErrorNotice
+        failures={generationFailures}
+        onRetry={() => void handleReanalyse()}
+        retrying={reanalysing}
+        className="mt-4 font-['Plus_Jakarta_Sans'] text-sm text-destructive"
+      />
 
       <div className="mt-8">
         <HealthCheckReportView

@@ -132,7 +132,25 @@ const ABOUT_PATHS = [
   "/pages/about-us",
 ];
 
-function json(body: unknown, status = 200) {
+const LOG_BODY_LIMIT = 300;
+
+function trimForLog(body: unknown): string {
+  let text: string;
+  try {
+    text = typeof body === "string" ? body : JSON.stringify(body);
+  } catch {
+    text = String(body);
+  }
+  if (text.length <= LOG_BODY_LIMIT) return text;
+  return `${text.slice(0, LOG_BODY_LIMIT)}…`;
+}
+
+function logFailure(status: number, body: unknown) {
+  console.error("[score-website]", status, trimForLog(body));
+}
+
+function json(body: unknown, status = 200, options?: { log?: boolean }) {
+  if (status >= 400 && options?.log !== false) logFailure(status, body);
   return new Response(JSON.stringify(body), {
     status,
     headers: {
@@ -206,7 +224,7 @@ async function jsonWithOptionalReport(
         payload.report = { publicToken: report.publicToken };
       }
     } catch (err) {
-      console.error("Bullfinch report persist failed", err);
+      logFailure(500, err instanceof Error ? err.message : String(err));
     }
   }
   return json(payload);
@@ -441,7 +459,8 @@ async function fetchInstagramOnce(username: string, apiToken: string): Promise<I
     );
 
     if (!res.ok) {
-      console.error("Apify API error:", res.status, await res.text());
+      const errText = await res.text();
+      logFailure(res.status, errText);
       return emptyIncomplete;
     }
 
@@ -545,7 +564,7 @@ async function fetchInstagramOnce(username: string, apiToken: string): Promise<I
       hasFullName: Boolean(fullName),
     };
   } catch (err) {
-    console.error("Apify fetch error:", err);
+    logFailure(500, err instanceof Error ? err.message : String(err));
     return emptyIncomplete;
   }
 }
@@ -571,7 +590,7 @@ async function fetchInstagramPublic(handle: string): Promise<InstagramFetchResul
 
   const apiToken = Deno.env.get("APIFY_API_TOKEN");
   if (!apiToken) {
-    console.error("APIFY_API_TOKEN not set");
+    logFailure(500, "APIFY_API_TOKEN not set");
     return { ...notProvided, status: "incomplete" };
   }
 
@@ -1017,14 +1036,21 @@ async function generateFindingsProse(
     }),
   });
 
-  if (!aiResp.ok) return null;
+  if (!aiResp.ok) {
+    const errText = await aiResp.text();
+    logFailure(aiResp.status, errText);
+    return null;
+  }
 
   const data = await aiResp.json();
   const content =
     data?.choices?.[0]?.message?.content != null
       ? String(data.choices[0].message.content)
       : "";
-  if (!content) return null;
+  if (!content) {
+    logFailure(500, data);
+    return null;
+  }
 
   const parsed = parseFindingsJson(content);
   if (!parsed) return null;
@@ -1068,6 +1094,8 @@ async function generateFindingsProse(
     !apifyMetrics.facebookFound &&
     apifyMetrics.instagramFetchStatus !== "incomplete";
   if (!retry.ok) {
+    const errText = await retry.text();
+    logFailure(retry.status, errText);
     return applyUncheckedPillarCopy(
       mergePillarFindings(parsed, null, scoresByDimension, sourceText),
       noProfileEntered,
@@ -1260,7 +1288,8 @@ Deno.serve(async (req) => {
       ) {
         throw new Error("No readable content found");
       }
-    } catch {
+    } catch (err) {
+      logFailure(500, err instanceof Error ? err.message : String(err));
       const facts = absentFacts();
       const apify = toApifyMetrics(instagramFetch, facebookFetch);
       return await jsonWithOptionalReport(
@@ -1338,14 +1367,21 @@ Deno.serve(async (req) => {
           }),
         });
 
-        if (!aiResp.ok) throw new Error("OpenAI request failed");
+        if (!aiResp.ok) {
+          const errText = await aiResp.text();
+          logFailure(aiResp.status, errText);
+          throw new Error("OpenAI request failed");
+        }
 
         const data = await aiResp.json();
         const content =
           data?.choices?.[0]?.message?.content != null
             ? String(data.choices[0].message.content)
             : "";
-        if (!content) throw new Error("Empty model response");
+        if (!content) {
+          logFailure(500, data);
+          throw new Error("Empty model response");
+        }
 
         rawFacts = parseFactsJson(content);
         if (useFactCache && contentHash) {
@@ -1381,7 +1417,7 @@ Deno.serve(async (req) => {
           { homepage: homepageSignalsForCache, all: combinedText },
         );
       } catch (findingsErr) {
-        console.warn("Findings generation failed:", findingsErr);
+        logFailure(500, findingsErr instanceof Error ? findingsErr.message : String(findingsErr));
       }
 
       const observation = deterministicScores.socialIncomplete
@@ -1429,7 +1465,8 @@ Deno.serve(async (req) => {
           businessName: body.businessName,
         },
       );
-    } catch {
+    } catch (err) {
+      logFailure(500, err instanceof Error ? err.message : String(err));
       const facts = absentFacts();
       return await jsonWithOptionalReport(
         {

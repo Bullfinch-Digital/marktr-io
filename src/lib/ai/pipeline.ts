@@ -1,4 +1,5 @@
 import { supabase } from "../../config/supabase";
+import { GENERATION_ERROR_MESSAGE, trackGenerationError } from "../generationError";
 import { setLastGenerated } from "./generatedStore";
 import { type AvatarAgeRange, type AvatarGender } from "../../utils/avatarLibrary";
 
@@ -255,15 +256,15 @@ export async function generateICPs(input: GenerateICPsInput): Promise<GenerateIC
   console.log("🤖 AI pipeline: generate-icps invoke completed", { hasError: !!error, hasData: !!data });
 
   if (error) {
-    console.error("❌ generate-icps function error:", error);
-    throw new Error(
-      `generate-icps failed: ${error.message || "Unknown error"}`
-    );
+    console.error("generate-icps function error");
+    trackGenerationError("generate-icps", error);
+    throw new Error(GENERATION_ERROR_MESSAGE);
   }
 
   const icps = assignAvatars((data?.icps || []).map(normalise));
   if (!icps.length) {
-    throw new Error("generate-icps returned no icps.");
+    trackGenerationError("generate-icps");
+    throw new Error(GENERATION_ERROR_MESSAGE);
   }
 
   console.log("✅ AI pipeline: received icps =", icps.length);

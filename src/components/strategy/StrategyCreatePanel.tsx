@@ -7,6 +7,7 @@ import type { Brand } from "../../hooks/useBrands";
 import type { BrandAim } from "../../hooks/useBrandAims";
 import type { ICP } from "../../hooks/useICPs";
 import { isBrandContextThin } from "../../lib/brandContextQuality";
+import { GenerationErrorNotice } from "../GenerationErrorNotice";
 
 const GENERATION_LOADING_ITEMS = [
   "Reading your brand aims",
@@ -54,6 +55,7 @@ export function StrategyCreatePanel({
   const [generating, setGenerating] = useState(false);
   const [completedCount, setCompletedCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [generationFailures, setGenerationFailures] = useState(0);
 
   const showThinBrandNudge = isBrandContextThin(brand);
 
@@ -144,9 +146,10 @@ export function StrategyCreatePanel({
         }),
         checklistPromise,
       ]);
+      setGenerationFailures(0);
       onClose();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to generate strategy.");
+    } catch {
+      setGenerationFailures((count) => count + 1);
     } finally {
       timers.forEach((t) => window.clearTimeout(t));
       setGenerating(false);
@@ -373,6 +376,12 @@ export function StrategyCreatePanel({
       </div>
 
       {error ? <p className="font-['Plus_Jakarta_Sans'] text-sm text-red-700">{error}</p> : null}
+      <GenerationErrorNotice
+        failures={generationFailures}
+        onRetry={() => void handleGenerate()}
+        retrying={generating}
+        className="font-['Plus_Jakarta_Sans'] text-sm text-red-700"
+      />
     </div>
   );
 }

@@ -18,7 +18,25 @@ type GenerateInput = {
   currency?: string;
 };
 
-function json(resBody: unknown, status = 200) {
+const LOG_BODY_LIMIT = 300;
+
+function trimForLog(body: unknown): string {
+  let text: string;
+  try {
+    text = typeof body === "string" ? body : JSON.stringify(body);
+  } catch {
+    text = String(body);
+  }
+  if (text.length <= LOG_BODY_LIMIT) return text;
+  return `${text.slice(0, LOG_BODY_LIMIT)}…`;
+}
+
+function logFailure(status: number, body: unknown) {
+  console.error("[generate-icps]", status, trimForLog(body));
+}
+
+function json(resBody: unknown, status = 200, options?: { log?: boolean }) {
+  if (status >= 400 && options?.log !== false) logFailure(status, resBody);
   return new Response(JSON.stringify(resBody), {
     status,
     headers: {
@@ -163,9 +181,11 @@ Deno.serve(async (req) => {
 
     if (!resp.ok) {
       const errText = await resp.text();
+      logFailure(resp.status, errText);
       return json(
         { error: "OpenAI call failed", status: resp.status, details: errText },
-        500
+        500,
+        { log: false }
       );
     }
 

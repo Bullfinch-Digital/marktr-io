@@ -19,6 +19,7 @@ import {
   softDeleteContentItemLineage,
 } from "../lib/contentItemVersioning";
 import { track } from "../lib/analytics";
+import { trackGenerationError } from "../lib/generationError";
 
 export type ContentItemWithComposition = ContentItemRow & {
   composition: ContentComposition;
@@ -107,7 +108,10 @@ export function useContentItems(brandId: string) {
         },
       });
 
-      if (invokeError) throw invokeError;
+      if (invokeError) {
+        trackGenerationError("generate-content", invokeError);
+        throw invokeError;
+      }
       if (!data?.record) {
         await fetchItems();
         return null;

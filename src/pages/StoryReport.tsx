@@ -20,6 +20,8 @@ import { getGuestBusinessName } from "../lib/guestContext";
 import { BrandStoryFindingsSection } from "../components/story/BrandStoryFindingsSection";
 import DashboardShell from "../layouts/DashboardShell";
 import { Button } from "../components/ui/button";
+import { GenerationErrorNotice } from "../components/GenerationErrorNotice";
+import { trackGenerationError } from "../lib/generationError";
 import { Textarea } from "../components/ui/textarea";
 
 type StorySectionKey =
@@ -63,6 +65,7 @@ export default function StoryReport() {
   const [historyRows, setHistoryRows] = useState<BrandStoryRow[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [generationFailures, setGenerationFailures] = useState(0);
 
   const saveInFlightRef = useRef(false);
 
@@ -208,16 +211,27 @@ export default function StoryReport() {
         }
       );
 
-      if (invokeError) throw invokeError;
+      if (invokeError) {
+        trackGenerationError("generate-brand-story", invokeError);
+        setActionError(null);
+        setGenerationFailures((count) => count + 1);
+        return;
+      }
 
       const parsed = parseBrandStoryFromApi(data as Record<string, unknown> | null);
       if (!parsed) {
-        throw new Error("Invalid story response from server.");
+        trackGenerationError("generate-brand-story");
+        setActionError(null);
+        setGenerationFailures((count) => count + 1);
+        return;
       }
 
-      await persistStory(parsed, { answers, email });
+      const saved = await persistStory(parsed, { answers, email });
+      if (saved) setGenerationFailures(0);
     } catch (e) {
-      setActionError(e instanceof Error ? e.message : "Regeneration failed.");
+      trackGenerationError("generate-brand-story", e);
+      setActionError(null);
+      setGenerationFailures((count) => count + 1);
     } finally {
       setRegenerating(false);
     }
@@ -380,6 +394,12 @@ export default function StoryReport() {
       {actionError && (
         <p className="mt-4 font-['Plus_Jakarta_Sans'] text-sm text-destructive">{actionError}</p>
       )}
+      <GenerationErrorNotice
+        failures={generationFailures}
+        onRetry={() => void handleRegenerate()}
+        retrying={regenerating}
+        className="mt-4 font-['Plus_Jakarta_Sans'] text-sm text-destructive"
+      />
 
       <div className="mt-8 space-y-4">
         {STORY_SECTIONS.map(({ key, label }) => (

@@ -23,7 +23,7 @@ type BrandStoryOutput = {
   findings?: BrandStoryFinding[];
 };
 
-const LOG_BODY_LIMIT = 500;
+const LOG_BODY_LIMIT = 300;
 
 function trimForLog(body: unknown): string {
   const text = typeof body === "string" ? body : JSON.stringify(body);

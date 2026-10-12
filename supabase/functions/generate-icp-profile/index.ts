@@ -40,6 +40,22 @@ type GeneratedICP = {
 
 const OPENAI_URL = "https://api.openai.com/v1/chat/completions";
 const OPENAI_MODEL = "gpt-4.1-mini";
+const LOG_BODY_LIMIT = 300;
+
+function trimForLog(body: unknown): string {
+  let text: string;
+  try {
+    text = typeof body === "string" ? body : JSON.stringify(body);
+  } catch {
+    text = String(body);
+  }
+  if (text.length <= LOG_BODY_LIMIT) return text;
+  return `${text.slice(0, LOG_BODY_LIMIT)}…`;
+}
+
+function logFailure(status: number, body: unknown) {
+  console.error("[generate-icp-profile]", status, trimForLog(body));
+}
 
 async function resolveBrandIdForIcpOps(
   supabaseClient: ReturnType<typeof createClient>,
@@ -56,7 +72,7 @@ async function resolveBrandIdForIcpOps(
     .limit(1);
 
   if (error) {
-    console.error("brand lookup failed", error);
+    logFailure(500, error);
     return null;
   }
 
@@ -84,7 +100,7 @@ async function ensureDefaultBrandForUser(
   if (error) {
     const existing = await resolveBrandIdForIcpOps(supabaseClient, userId, null);
     if (existing) return existing;
-    console.error("failed to ensure default brand", error);
+    logFailure(500, error);
     throw new Error("ICP write blocked: could not resolve or create brand");
   }
 
@@ -103,6 +119,7 @@ async function resolveBrandIdForIcpWrite(
 
 serve(async (req: Request): Promise<Response> => {
   if (req.method !== "POST") {
+    logFailure(405, "Method not allowed");
     return new Response("Method not allowed", { status: 405 });
   }
 
@@ -112,12 +129,13 @@ serve(async (req: Request): Promise<Response> => {
     const openaiKey = Deno.env.get("OPENAI_API_KEY");
 
     if (!supabaseUrl || !supabaseAnonKey || !openaiKey) {
-      console.error("Missing env vars");
+      logFailure(500, "Server misconfigured");
       return new Response("Server misconfigured", { status: 500 });
     }
 
     const authHeader = req.headers.get("Authorization") ?? "";
     if (!authHeader.startsWith("Bearer ")) {
+      logFailure(401, "Missing or invalid Authorization header");
       return new Response("Missing or invalid Authorization header", {
         status: 401,
       });
@@ -134,17 +152,16 @@ serve(async (req: Request): Promise<Response> => {
     } = await supabase.auth.getUser();
 
     if (userError || !user) {
-      console.error("Auth error", userError);
+      logFailure(401, userError ?? "Unauthenticated");
       return new Response("Unauthenticated", { status: 401 });
     }
 
     const body = (await req.json()) as Partial<GenerateInput>;
 
     if (!body.projectName || !body.productDescription || !body.targetMarket) {
-      return new Response(
-        "projectName, productDescription and targetMarket are required",
-        { status: 400 },
-      );
+      const message = "projectName, productDescription and targetMarket are required";
+      logFailure(400, message);
+      return new Response(message, { status: 400 });
     }
 
     const generateInput: GenerateInput = {
@@ -221,7 +238,7 @@ serve(async (req: Request): Promise<Response> => {
 
     if (!openaiResponse.ok) {
       const errText = await openaiResponse.text();
-      console.error("OpenAI error", errText);
+      logFailure(openaiResponse.status, errText);
       return new Response("Failed to generate ICP", { status: 500 });
     }
 
@@ -232,7 +249,7 @@ serve(async (req: Request): Promise<Response> => {
       null;
 
     if (!content) {
-      console.error("No content in OpenAI response", completion);
+      logFailure(500, completion);
       return new Response("Invalid AI response", { status: 500 });
     }
 
@@ -265,7 +282,7 @@ serve(async (req: Request): Promise<Response> => {
       .single();
 
     if (error) {
-      console.error("Supabase insert error", error);
+      logFailure(500, error);
       return new Response("Failed to save ICP", { status: 500 });
     }
 
@@ -274,7 +291,7 @@ serve(async (req: Request): Promise<Response> => {
       headers: { "Content-Type": "application/json" },
     });
   } catch (err) {
-    console.error("Unhandled error in generate-icp-profile", err);
+    logFailure(500, err instanceof Error ? err.message : String(err));
     return new Response("Internal server error", { status: 500 });
   }
 });

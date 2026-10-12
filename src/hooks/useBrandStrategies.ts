@@ -15,6 +15,7 @@ import {
 } from "../lib/brandStrategyVersioning";
 import { subscribeStrategyCompositionStale } from "../lib/strategyEvents";
 import { track } from "../lib/analytics";
+import { trackGenerationError } from "../lib/generationError";
 
 export type StrategyRow = {
   id: string;
@@ -286,7 +287,10 @@ export function useBrandStrategies(brandId: string) {
         }
       );
 
-      if (invokeError) throw invokeError;
+      if (invokeError) {
+        trackGenerationError("generate-icp-strategy", invokeError);
+        throw invokeError;
+      }
       if (!data?.record) {
         await fetchStrategies();
         return null;

@@ -7,7 +7,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const MULTI_PROMPT_VERSION = "strategy_v3_suggested_content";
+const MULTI_PROMPT_VERSION = "strategy_v4_channel_reasoning";
 const MODEL = "gpt-5.5";
 const MAX_TITLE_LENGTH = 60;
 const MAX_SUGGESTED_CONTENT = 3;
@@ -285,7 +285,80 @@ type SuggestedContentInput = {
   campaign_idea_index?: number | null;
   type?: string;
   rationale?: string;
+  why_format?: string;
 };
+
+type ChannelRole = "primary" | "secondary";
+
+function sanitizeStringList(value: unknown, max: number): string[] {
+  if (!Array.isArray(value)) return [];
+  const next: string[] = [];
+  for (const item of value) {
+    if (typeof item !== "string") continue;
+    const trimmed = item.trim();
+    if (!trimmed) continue;
+    next.push(trimmed);
+    if (next.length >= max) break;
+  }
+  return next;
+}
+
+/**
+ * Optional structured channels. Missing or invalid items are dropped.
+ * A strategy without this array is still valid.
+ */
+function sanitizeChannels(value: unknown): Array<{
+  name: string;
+  role: ChannelRole;
+  why_platform?: string;
+  formats?: string[];
+  posts_per_week?: number;
+  best_times?: string[];
+}> | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const next = [];
+  for (const item of value) {
+    if (!item || typeof item !== "object") continue;
+    const record = item as Record<string, unknown>;
+    const name = typeof record.name === "string" ? record.name.trim() : "";
+    const role = record.role === "primary" || record.role === "secondary" ? record.role : null;
+    if (!name || !role) continue;
+
+    const channel: {
+      name: string;
+      role: ChannelRole;
+      why_platform?: string;
+      formats?: string[];
+      posts_per_week?: number;
+      best_times?: string[];
+    } = { name, role };
+
+    if (typeof record.why_platform === "string" && record.why_platform.trim()) {
+      channel.why_platform = record.why_platform.trim();
+    }
+    const formats = sanitizeStringList(record.formats, 3);
+    if (formats.length > 0) channel.formats = formats;
+    const posts = record.posts_per_week;
+    if (typeof posts === "number" && Number.isInteger(posts) && posts >= 1 && posts <= 5) {
+      channel.posts_per_week = posts;
+    }
+    const bestTimes = sanitizeStringList(record.best_times, 2);
+    if (bestTimes.length > 0) channel.best_times = bestTimes;
+
+    next.push(channel);
+  }
+  return next.length > 0 ? next : undefined;
+}
+
+function applyChannelReasoning(strategy: Record<string, unknown>): Record<string, unknown> {
+  const plan = strategy.channel_plan;
+  if (!plan || typeof plan !== "object" || Array.isArray(plan)) return strategy;
+  const nextPlan = { ...(plan as Record<string, unknown>) };
+  const channels = sanitizeChannels(nextPlan.channels);
+  if (channels) nextPlan.channels = channels;
+  else delete nextPlan.channels;
+  return { ...strategy, channel_plan: nextPlan };
+}
 
 function isSuggestedContentType(value: unknown): value is SuggestedContentType {
   return (
@@ -344,13 +417,24 @@ function applySuggestedContent(
       );
     }
 
-    next.push({
+    const suggestion: {
+      id: string;
+      campaign_idea_id: string | null;
+      campaign_idea_name_snapshot: string | null;
+      type: SuggestedContentType;
+      rationale: string;
+      why_format?: string;
+    } = {
       id: crypto.randomUUID(),
       campaign_idea_id,
       campaign_idea_name_snapshot,
       type: item.type,
       rationale: typeof item.rationale === "string" ? item.rationale.trim() : "",
-    });
+    };
+    if (typeof item.why_format === "string" && item.why_format.trim()) {
+      suggestion.why_format = item.why_format.trim();
+    }
+    next.push(suggestion);
   }
 
   return {
@@ -443,10 +527,25 @@ Strategy inputs:
 
 Rules:
 - Keep outputs short and actionable.
+- Write at an approachable reading level.
 - Avoid jargon and hype.
+- Never cite statistics, studies or percentages.
 - Provide 3–5 items per list where possible.
 - Prioritise recommendations that can realistically be executed within the stated budget and capacity.
+- Only recommend platforms a small business can run with no team.
+- Consistency matters more than exact timing. Recommend a posting rhythm the user can actually keep.
 - Where a recommendation depends on one or more aims or ICPs, embed the rationale into the text fields (e.g., positioning one-liner, differentiators, and campaign hooks/angles).
+
+channel_plan:
+- Keep primary_channel, secondary_channels and first_14_days exactly as they are: the same plain-text fields, with the same meaning.
+- Also include channels: one object for the primary channel and one for each secondary channel. Do not add a platform that is not already named in primary_channel or secondary_channels.
+- Each channels item:
+  - name: the platform
+  - role: "primary" or "secondary" (exactly one "primary")
+  - why_platform: 1-2 plain sentences on why this platform suits THIS persona and brand story
+  - formats: 1-3 short strings, for example "carousel", "reel", "email"
+  - posts_per_week: an integer from 1 to 5, realistic for a small business with no team
+  - best_times: 1-2 short strings of general best-practice posting windows, for example "Weekday mornings, 7-9am". These are general best practice. Never claim they come from the user's own audience data.
 
 Title field (required in JSON):
 - Campaign-flavoured and SPECIFIC — how a marketer would refer to this plan out loud (e.g. "Spiced Apple Autumn Hosting Push", not "Autumn Growth Strategy").
@@ -466,6 +565,7 @@ suggested_content field (required in JSON — 1 to ${MAX_SUGGESTED_CONTENT} item
   - type: one of ig_single | ig_carousel | ig_story | reel_brief | email | landing_page
   - campaign_idea_index: 1-based index into the campaign_ideas array you emit in THIS same response (1 = first idea). Use null when the piece serves the whole strategy (e.g. a landing page for the promotion), not a specific idea.
   - rationale: ONE line — why this piece serves the aim for this idea/channel. Do NOT restate the channel plan.
+  - why_format: 1-2 plain sentences on why this format fits the goal and the channel. Do NOT restate the rationale.
 - Do not invent more than ${MAX_SUGGESTED_CONTENT} items.
 `;
 }
@@ -518,8 +618,24 @@ const RESPONSE_SCHEMA = {
           primary_channel: { type: "string" },
           secondary_channels: { type: "array", items: { type: "string" } },
           first_14_days: { type: "array", items: { type: "string" } },
+          channels: {
+            type: "array",
+            items: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                name: { type: "string" },
+                role: { type: "string", enum: ["primary", "secondary"] },
+                why_platform: { type: "string" },
+                formats: { type: "array", items: { type: "string" } },
+                posts_per_week: { type: "integer" },
+                best_times: { type: "array", items: { type: "string" } },
+              },
+              required: ["name", "role", "why_platform", "formats", "posts_per_week", "best_times"],
+            },
+          },
         },
-        required: ["primary_channel", "secondary_channels", "first_14_days"],
+        required: ["primary_channel", "secondary_channels", "first_14_days", "channels"],
       },
       offer: {
         type: "object",
@@ -576,8 +692,9 @@ const RESPONSE_SCHEMA = {
               ],
             },
             rationale: { type: "string" },
+            why_format: { type: "string" },
           },
-          required: ["campaign_idea_index", "type", "rationale"],
+          required: ["campaign_idea_index", "type", "rationale", "why_format"],
         },
       },
     },
@@ -804,7 +921,7 @@ Deno.serve(async (req) => {
       }
 
       const strategyWithIdeaIds = applyCampaignIdeaIds(parsedStrategy, priorCampaignIdeas);
-      const strategyPayload = applySuggestedContent(strategyWithIdeaIds);
+      const strategyPayload = applyChannelReasoning(applySuggestedContent(strategyWithIdeaIds));
       const title = resolveStrategyTitle({
         userTitle: body.title,
         generatedTitle,

@@ -1,5 +1,7 @@
 import type {
   ICPStrategyPayload,
+  StrategyChannel,
+  StrategyChannelRole,
   SuggestedContentItem,
   SuggestedContentType,
 } from "../types/icpStrategyPayload";
@@ -82,10 +84,55 @@ export function ensureSuggestedContent(
           : null,
       type: item.type,
       rationale: typeof item.rationale === "string" ? item.rationale : "",
+      ...(typeof item.why_format === "string" && item.why_format.trim()
+        ? { why_format: item.why_format.trim() }
+        : {}),
     });
   }
 
   return next;
+}
+
+function sanitizeStringList(value: unknown, max: number): string[] {
+  if (!Array.isArray(value)) return [];
+  const next: string[] = [];
+  for (const item of value) {
+    if (typeof item !== "string") continue;
+    const trimmed = item.trim();
+    if (!trimmed) continue;
+    next.push(trimmed);
+    if (next.length >= max) break;
+  }
+  return next;
+}
+
+/** Keeps valid channel reasoning. Missing or invalid data stays absent. */
+export function sanitizeStrategyChannels(value: unknown): StrategyChannel[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const next: StrategyChannel[] = [];
+  for (const item of value) {
+    if (!item || typeof item !== "object") continue;
+    const record = item as Record<string, unknown>;
+    const name = typeof record.name === "string" ? record.name.trim() : "";
+    const role: StrategyChannelRole | null =
+      record.role === "primary" || record.role === "secondary" ? record.role : null;
+    if (!name || !role) continue;
+
+    const channel: StrategyChannel = { name, role };
+    if (typeof record.why_platform === "string" && record.why_platform.trim()) {
+      channel.why_platform = record.why_platform.trim();
+    }
+    const formats = sanitizeStringList(record.formats, 3);
+    if (formats.length > 0) channel.formats = formats;
+    const posts = record.posts_per_week;
+    if (typeof posts === "number" && Number.isInteger(posts) && posts >= 1 && posts <= 5) {
+      channel.posts_per_week = posts;
+    }
+    const bestTimes = sanitizeStringList(record.best_times, 2);
+    if (bestTimes.length > 0) channel.best_times = bestTimes;
+    next.push(channel);
+  }
+  return next.length > 0 ? next : undefined;
 }
 
 export function cloneStrategyPayload(strategy: ICPStrategyPayload): ICPStrategyPayload {
@@ -106,10 +153,12 @@ export function normalizeStrategyPayload(strategy: ICPStrategyPayload): ICPStrat
   };
   next.campaign_ideas = ensureCampaignIdeaIds(next.campaign_ideas);
   next.suggested_content = ensureSuggestedContent(next.suggested_content);
+  const channels = sanitizeStrategyChannels(next.channel_plan?.channels);
   next.channel_plan = {
     primary_channel: next.channel_plan?.primary_channel ?? "",
     secondary_channels: next.channel_plan?.secondary_channels ?? [],
     first_14_days: next.channel_plan?.first_14_days ?? [],
+    ...(channels ? { channels } : {}),
   };
   next.offer = {
     recommended_offer: next.offer?.recommended_offer ?? "",

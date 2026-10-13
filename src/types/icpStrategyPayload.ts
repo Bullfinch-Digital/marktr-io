@@ -20,6 +20,19 @@ export type SuggestedContentItem = {
   type: SuggestedContentType;
   /** One line: why this piece, for this idea, on this channel. */
   rationale: string;
+  /** Why this format fits the goal and channel. Absent on older strategies. */
+  why_format?: string;
+};
+
+export type StrategyChannelRole = "primary" | "secondary";
+
+export type StrategyChannel = {
+  name: string;
+  role: StrategyChannelRole;
+  why_platform?: string;
+  formats?: string[];
+  posts_per_week?: number;
+  best_times?: string[];
 };
 
 export type ICPStrategyPayload = {
@@ -50,6 +63,8 @@ export type ICPStrategyPayload = {
     primary_channel: string;
     secondary_channels: string[];
     first_14_days: string[];
+    /** Structured reasoning for the same platforms. Absent on older strategies. */
+    channels?: StrategyChannel[];
   };
   offer: {
     recommended_offer: string;

@@ -18,6 +18,7 @@ import {
   getGuestBusinessName,
   getGuestContext,
   getGuestIdentityEmail,
+  getGuestIdentityName,
   suggestBusinessNameFromUrl,
   updateGuestContext,
 } from "../lib/guestContext";
@@ -163,6 +164,9 @@ export default function StartFlow() {
 
   const userId = isLoggedIn ? user?.id : undefined;
   const email = isLoggedIn ? user?.email?.trim() ?? "" : getGuestIdentityEmail() || "";
+  const founderName =
+    getGuestIdentityName() ||
+    (typeof user?.user_metadata?.name === "string" ? user.user_metadata.name.trim() : "");
 
   const healthInput = useMemo(
     () => ({
@@ -292,6 +296,8 @@ export default function StartFlow() {
       businessName,
       story,
       userId,
+      founderName,
+      activeBrandId,
     });
     setIcpRetrying(false);
     if (icpResult.status === "error") {
@@ -380,6 +386,8 @@ export default function StartFlow() {
         businessName: draftRef.current.businessName,
         story: storyRef.current,
         userId,
+        founderName,
+        activeBrandId,
       });
       setIcpRetrying(false);
       if (result.status === "error") {
@@ -424,28 +432,34 @@ export default function StartFlow() {
       completeStep2(nextAnswers);
       return;
     }
-    persist({ ...draftRef.current, answers: nextAnswers, storyQuestionIndex: draft.storyQuestionIndex + 1 });
+    const nextIndex = draft.storyQuestionIndex + 1;
+    setStoryDraft(nextAnswers[nextIndex] ?? "");
+    persist({ ...draftRef.current, answers: nextAnswers, storyQuestionIndex: nextIndex });
   };
 
   const skipQuestion = () => {
     const nextAnswers = [...draft.answers] as [string, string, string, string];
     nextAnswers[draft.storyQuestionIndex] = "";
-    setStoryDraft("");
-    persist({ ...draft, answers: nextAnswers });
     if (draft.storyQuestionIndex >= 3) {
+      setStoryDraft("");
       completeStep2(nextAnswers);
       return;
     }
-    persist({ ...draftRef.current, answers: nextAnswers, storyQuestionIndex: draft.storyQuestionIndex + 1 });
+    const nextIndex = draft.storyQuestionIndex + 1;
+    setStoryDraft(nextAnswers[nextIndex] ?? "");
+    persist({ ...draftRef.current, answers: nextAnswers, storyQuestionIndex: nextIndex });
   };
 
   const goBack = () => {
     if (draft.step === 3) {
+      setStoryDraft(draft.answers[3] ?? "");
       patch({ step: 2, storyQuestionIndex: 3 });
       return;
     }
     if (draft.step === 2 && draft.storyQuestionIndex > 0) {
-      persist({ ...draft, storyQuestionIndex: draft.storyQuestionIndex - 1 });
+      const prevIndex = draft.storyQuestionIndex - 1;
+      setStoryDraft(draft.answers[prevIndex] ?? "");
+      persist({ ...draft, storyQuestionIndex: prevIndex });
       return;
     }
     if (draft.step === 2) {
@@ -463,12 +477,14 @@ export default function StartFlow() {
   return (
     <main className="min-h-screen bg-background">
       <section className="relative mx-auto flex min-h-screen w-full max-w-3xl flex-col px-4 py-8 sm:px-6 sm:py-12">
-        <div className="mb-6 animate-fade-in-up">
-          <ProgressBar current={draft.step} total={3} />
-          <p className="mt-3 font-['Plus_Jakarta_Sans'] text-xs text-muted-foreground">
-            Step {draft.step} of 3
-          </p>
-        </div>
+        {draft.step === 2 ? null : (
+          <div className="mb-6 animate-fade-in-up">
+            <ProgressBar current={draft.step} total={3} />
+            <p className="mt-3 font-['Plus_Jakarta_Sans'] text-xs text-muted-foreground">
+              Step {draft.step} of 3
+            </p>
+          </div>
+        )}
 
         {draft.step > 1 ? (
           <div className="mb-6">
@@ -596,8 +612,8 @@ export default function StartFlow() {
           <div className="flex flex-1 flex-col pb-12">
             <div className="mb-6 animate-fade-in-up">
               <ProgressBar current={draft.storyQuestionIndex + 1} total={4} />
-              <p className="mt-3 text-right font-['Plus_Jakarta_Sans'] text-xs text-muted-foreground">
-                Question {draft.storyQuestionIndex + 1} of 4
+              <p className="mt-3 font-['Plus_Jakarta_Sans'] text-xs text-muted-foreground">
+                Step 2 of 3 · Question {draft.storyQuestionIndex + 1} of 4
               </p>
             </div>
             <h1 className="font-['Fraunces'] text-3xl font-bold leading-tight text-foreground sm:text-4xl">

@@ -6,7 +6,8 @@ import {
   buildStoryStoredPayload,
   insertBrandStoryResult,
 } from "./brandStoryPersistence";
-import { resolveBrandIdForIcpOps } from "./icpBrandAttach";
+import { resolveBrandIdForIcpOps, resolveBrandIdForIcpWrite } from "./icpBrandAttach";
+import { newGenerationId } from "./icpVersioning";
 import { resolveScopedBrandId } from "./brandScopedReads";
 import { extractDomain } from "../components/healthCheck/HealthCheckReportView";
 import {
@@ -27,7 +28,7 @@ import { buildPriorRunPayload } from "./healthCheckPriorRun";
 import { fetchBrandStoryPillarForHealth } from "./healthCheckPillarContext";
 import { setGuestBrandSeed } from "./guestBrandSeed";
 import { setGuestHealthCheck, type GuestHealthCheck } from "./guestHealthCheck";
-import { flushGuestICPsToSupabase, setGuestICPs, type GuestICP } from "./guestICP";
+import { getGuestICPs, logSupabaseError, setGuestICPs, type GuestICP } from "./guestICP";
 import { setGuestStory } from "./guestStory";
 import {
   commitStoryAnswerToGuestContext,
@@ -311,12 +312,107 @@ export async function generateStartStory(opts: {
   }
 }
 
+function isIcpSchemaError(error: unknown): boolean {
+  const e = error as { code?: string; message?: string; details?: string };
+  const blob = `${e?.code ?? ""} ${e?.message ?? ""} ${e?.details ?? ""}`;
+  return (
+    String(e?.code ?? "").toUpperCase() === "PGRST204" ||
+    /avatar_(key|gender|age_range)|column|schema cache|could not find/i.test(blob)
+  );
+}
+
+function stripAvatarColumns(row: Record<string, unknown>) {
+  const { avatar_key, avatar_gender, avatar_age_range, ...base } = row;
+  return base;
+}
+
+function startIcpInsertRow(
+  icp: GuestICP,
+  userId: string,
+  brandId: string,
+  now: string,
+  generationId: string,
+): Record<string, unknown> {
+  const row: Record<string, unknown> = { ...icp };
+  delete row.id;
+  delete row._index;
+  delete row.brandName;
+  delete row.brands;
+  return {
+    ...row,
+    avatar_key: icp.avatar_key ?? null,
+    avatar_gender: icp.avatar_gender ?? null,
+    avatar_age_range: icp.avatar_age_range ?? null,
+    user_id: userId,
+    brand_id: brandId,
+    name: String(icp.name ?? ""),
+    description: String(icp.description ?? ""),
+    generation_id: generationId,
+    version: 1,
+    superseded_at: null,
+    created_at: now,
+    updated_at: now,
+  };
+}
+
+function notifyIcpsChanged() {
+  try {
+    window.dispatchEvent(new Event("icps:changed"));
+  } catch {
+    // ignore
+  }
+}
+
+/** Signed-in onboarding inserts ICPs on the brand and leaves the guest copy in place. */
+async function persistSignedInStartIcps(
+  userId: string,
+  icps: GuestICP[],
+  preferredBrandId?: string | null,
+): Promise<boolean> {
+  const ensuredBrandId = await ensureBrandForPostAuth(userId);
+  const brandId = await resolveBrandIdForIcpWrite(userId, preferredBrandId ?? ensuredBrandId);
+  const now = new Date().toISOString();
+  const generationId = newGenerationId();
+  let payload: Record<string, unknown>[] = icps.map((icp) =>
+    startIcpInsertRow(icp, userId, brandId, now, generationId),
+  );
+
+  let { data, error } = await supabase.from("icps").insert(payload).select("id");
+  if (error && isIcpSchemaError(error)) {
+    logSupabaseError("[start] ICP batch insert schema mismatch — retrying without avatar columns", error);
+    payload = payload.map(stripAvatarColumns);
+    ({ data, error } = await supabase.from("icps").insert(payload).select("id"));
+  }
+
+  if (error) {
+    logSupabaseError("[start] ICP batch insert failed — falling back to per-row insert", error);
+    let inserted = 0;
+    for (const row of payload) {
+      const { error: rowError } = await supabase.from("icps").insert([row]).select("id");
+      if (rowError) {
+        logSupabaseError("[start] ICP row insert failed", rowError);
+        return false;
+      }
+      inserted += 1;
+    }
+    if (inserted < 1) return false;
+    notifyIcpsChanged();
+    return true;
+  }
+
+  if ((data?.length ?? 0) < 1) return false;
+  notifyIcpsChanged();
+  return true;
+}
+
 export async function generateStartIcps(opts: {
   answers: string[];
   platforms: string[];
   businessName: string;
   story: BrandStoryOutput | null;
   userId?: string;
+  founderName?: string;
+  activeBrandId?: string | null;
 }): Promise<StartIcpResult> {
   const whatYouDo = opts.answers[0]?.trim() || "";
   const bestCustomer = opts.answers[3]?.trim() || "";
@@ -329,15 +425,15 @@ export async function generateStartIcps(opts: {
       ]
     : [];
   const businessDescription = [whatYouDo, ...storyBlocks].filter(Boolean).join("\n\n");
-  const name = getGuestIdentityName() || "";
   const brandName = opts.businessName.trim() || getGuestBusinessName() || "";
+  const name = opts.founderName?.trim() || getGuestIdentityName() || brandName;
 
   try {
     const result = await generateICPs({
       name,
       brandName,
       businessDescription,
-      productOrService: whatYouDo,
+      productOrService: whatYouDo || businessDescription,
       assumedAudience: bestCustomer ? [bestCustomer] : [],
       marketingChannels: opts.platforms,
       country: "",
@@ -367,8 +463,11 @@ export async function generateStartIcps(opts: {
     });
 
     if (opts.userId) {
-      const brandId = await ensureBrandForPostAuth(opts.userId);
-      await flushGuestICPsToSupabase(opts.userId, { brandId });
+      const saved = await persistSignedInStartIcps(opts.userId, icps, opts.activeBrandId);
+      setGuestICPs(icps);
+      if (!saved) return { status: "error" };
+    } else if (getGuestICPs().length === 0) {
+      return { status: "error" };
     }
 
     return { status: "success", icps };

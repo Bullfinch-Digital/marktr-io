@@ -153,6 +153,20 @@ export function startJobsFinished(draft: StartFlowDraft): boolean {
   return healthDone && storyDone && icpDone;
 }
 
+/** Null while auth or the signed-in database read is still in flight. */
+export function customerProfilesSaved(input: {
+  guestCount: number;
+  authReady: boolean;
+  signedIn: boolean;
+  dbCount: number | null;
+}): boolean | null {
+  if (input.guestCount > 0) return true;
+  if (!input.authReady) return null;
+  if (!input.signedIn) return false;
+  if (input.dbCount === null) return null;
+  return input.dbCount > 0;
+}
+
 export type StartResultsSnapshot = {
   health: GuestHealthCheck | null;
   healthSkipped: boolean;

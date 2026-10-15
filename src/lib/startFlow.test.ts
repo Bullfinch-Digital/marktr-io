@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   START_FLOW_STORAGE_KEY,
   answeredStoryCount,
+  customerProfilesSaved,
   emptyStartFlowDraft,
   getStartFlowDraft,
   saveStartFlowDraft,
@@ -31,5 +32,50 @@ describe("startFlow draft", () => {
     expect(startJobsFinished(draft)).toBe(true);
     draft.healthStatus = "error";
     expect(startJobsFinished(draft)).toBe(false);
+  });
+});
+
+describe("customerProfilesSaved", () => {
+  it("reads guest local storage and signed-in database rows", () => {
+    expect(
+      customerProfilesSaved({
+        guestCount: 3,
+        authReady: true,
+        signedIn: false,
+        dbCount: 0,
+      }),
+    ).toBe(true);
+    expect(
+      customerProfilesSaved({
+        guestCount: 0,
+        authReady: true,
+        signedIn: false,
+        dbCount: 3,
+      }),
+    ).toBe(false);
+    expect(
+      customerProfilesSaved({
+        guestCount: 0,
+        authReady: true,
+        signedIn: true,
+        dbCount: null,
+      }),
+    ).toBeNull();
+    expect(
+      customerProfilesSaved({
+        guestCount: 0,
+        authReady: true,
+        signedIn: true,
+        dbCount: 3,
+      }),
+    ).toBe(true);
+    expect(
+      customerProfilesSaved({
+        guestCount: 0,
+        authReady: true,
+        signedIn: true,
+        dbCount: 0,
+      }),
+    ).toBe(false);
   });
 });

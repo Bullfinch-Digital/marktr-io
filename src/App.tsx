@@ -50,6 +50,7 @@ import NewsletterLanding from "./pages/NewsletterLanding";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import CookiePolicy from "./pages/CookiePolicy";
+import { Toaster } from "sonner";
 import { CookieConsentBanner } from "./components/legal/CookieConsentBanner";
 import { SeoManager } from "./components/seo/SeoManager";
 import { MarktrAnalytics } from "./components/analytics/MarktrAnalytics";
@@ -364,6 +365,7 @@ export default function App() {
             <div className="min-h-screen bg-background">
               <AppRoutes />
             </div>
+            <Toaster position="bottom-center" />
             <CookieConsentBanner />
           </PaywallProvider>
         </AuthModalProvider>

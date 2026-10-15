@@ -7,6 +7,7 @@ import {
   parseBestTimeDays,
   spreadPostsAcrossWeek,
   strategyHasChannelRhythm,
+  strategyPostingChannels,
 } from "./strategyPostingRhythm";
 
 describe("spreadPostsAcrossWeek", () => {
@@ -149,6 +150,20 @@ describe("strategyHasChannelRhythm", () => {
         },
       } as never)
     ).toBe(false);
+  });
+});
+
+describe("strategyPostingChannels", () => {
+  it("keeps posting channels and drops websites and landing pages", () => {
+    expect(
+      strategyPostingChannels([
+        { name: "Website", role: "primary", posts_per_week: 2 },
+        { name: "Instagram", role: "primary", posts_per_week: 3 },
+        { name: "Landing page", role: "secondary", posts_per_week: 1 },
+        { name: "Email", role: "secondary", posts_per_week: 1 },
+        { name: "instagram", role: "secondary", posts_per_week: 2 },
+      ]).map((channel) => channel.name)
+    ).toEqual(["Instagram", "Email"]);
   });
 });
 

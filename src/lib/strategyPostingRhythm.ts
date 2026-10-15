@@ -35,6 +35,19 @@ export function orderedStrategyChannels(channels: StrategyChannel[]): StrategyCh
   return [...primary, ...secondary];
 }
 
+/** Posting channels only — excludes websites, landing pages, and zero-post rows. */
+export function strategyPostingChannels(channels: StrategyChannel[]): StrategyChannel[] {
+  const seen = new Set<string>();
+  const posting: StrategyChannel[] = [];
+  for (const channel of orderedStrategyChannels(channels)) {
+    const name = channel.name.trim();
+    if (!name || isNonPostingChannel(channel) || seen.has(name.toLowerCase())) continue;
+    seen.add(name.toLowerCase());
+    posting.push(channel);
+  }
+  return posting;
+}
+
 const WEEKDAY_INDEXES = [0, 1, 2, 3, 4] as const;
 
 const DAY_WORD_INDEX: Record<string, number> = {

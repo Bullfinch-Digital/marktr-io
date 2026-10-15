@@ -639,7 +639,11 @@ function StrategyEditorBody() {
                 data-track-location="strategy_page"
               >
                 <h2 className="mb-4 font-['Fraunces'] text-2xl text-foreground">When to post</h2>
-                <StrategyPostingRhythm channels={draftStrategy.channel_plan.channels ?? []} />
+                <StrategyPostingRhythm
+                  channels={draftStrategy.channel_plan.channels ?? []}
+                  strategyId={strategy.id}
+                  userId={user?.id ?? ""}
+                />
               </section>
             ) : null}
 

@@ -4,9 +4,14 @@
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
+type LabeledAnswer = {
+  question?: number;
+  text?: string;
+};
+
 type GenerateBrandStoryInput = {
-  answers: string[];
-  email: string;
+  answers: Array<string | LabeledAnswer>;
+  email?: string;
   businessName?: string;
 };
 
@@ -69,6 +74,7 @@ Hard rules:
 - Ground every sentence in what they actually told you. If a detail is missing, write around it honestly — never invent facts, awards, or claims.
 - Answer 3 is how they do things differently, or how they want to. It is not an opinion about their industry. If they are just starting out, treat it as intention.
 - Answer 5 is what they hope customers will say. It may be a hope, not real feedback. Use it as real customer feedback only when they clearly say they have already heard it. Never present hoped-for words as an actual customer quote, testimonial, or review. Never invent social proof.
+- Some questions may be missing (especially 5–7 on shorter intakes). If a question is not listed, it was not answered. Do not invent an answer, customer quote, testimonial, review, hoped-for feedback, impact statement, or five-year vision. Never invent social proof.
 
 Sections:
 - foundingStory: A real, human founding moment in the brand's own first-person voice ("we"), anchored in the specific place, decision or frustration that started it. 2-3 sentences. True, not corporate.
@@ -92,17 +98,57 @@ Return ONLY valid JSON with no markdown, no backticks, no preamble. Use this exa
 
 In addition to the brand story sections, analyse the information provided and identify 3–4 specific, honest opportunities to strengthen this brand's story and marketing. Each finding MUST be grounded in what the user actually told you — reference their specifics, never generic advice. For each finding return: a short punchy title (3–6 words) and a 1–2 sentence recommendation that names the gap and what closing it would do for them. Draw from opportunities such as: speaking to one precise ideal audience instead of a broad one; owning a sharper niche or differentiator that's currently buried; building proof and credibility (testimonials, named awards, founder/origin specifics); making the point of view braver and more distinctive; putting the human/founder visibly into the story. Do NOT invent facts. If proof is missing, frame it as something to build, never as something they already have. Tone: warm, specific, honest, peer-to-peer — an experienced founder giving a straight, encouraging read. No hype, no marketing clichés.`;
 
+const QUESTION_LABELS = [
+  "Q1 (What they do, and who they do it for)",
+  "Q2 (Why they started)",
+  "Q3 (What they do differently, or want to do differently)",
+  "Q4 (Who they think their best customer is — may be who they most want to help, not an existing customer)",
+  "Q5 (What they hope customers will say — a hope unless they clearly include feedback they have already received; never quote this as a testimonial)",
+  "Q6 (The difference they make for customers)",
+  "Q7 (Where they want the business to be in five years)",
+] as const;
+
+function normalizeAnswers(raw: unknown): string[] {
+  const out = ["", "", "", "", "", "", ""];
+  if (!Array.isArray(raw)) return out;
+
+  const labeled = raw.every(
+    (item) =>
+      item !== null &&
+      typeof item === "object" &&
+      !Array.isArray(item) &&
+      ("question" in item || "text" in item),
+  );
+
+  if (labeled) {
+    for (const item of raw) {
+      const row = item as LabeledAnswer;
+      const question = Number(row.question);
+      const text = String(row.text ?? "").trim();
+      if (Number.isInteger(question) && question >= 1 && question <= 7 && text) {
+        out[question - 1] = text;
+      }
+    }
+    return out;
+  }
+
+  raw.slice(0, 7).forEach((item, index) => {
+    out[index] = String(item ?? "").trim();
+  });
+  return out;
+}
+
 function buildUserMessage(answers: string[], businessName?: string) {
-  const a = answers.map((x) => String(x ?? "").trim());
   const name = businessName?.trim();
   const nameBlock = name ? `Business name: ${name}\n\n` : "";
-  return `${nameBlock}Q1 (What they do, and who they do it for): ${a[0] ?? ""}
-Q2 (Why they started): ${a[1] ?? ""}
-Q3 (What they do differently, or want to do differently): ${a[2] ?? ""}
-Q4 (Who they think their best customer is — may be who they most want to help, not an existing customer): ${a[3] ?? ""}
-Q5 (What they hope customers will say — a hope unless they clearly include feedback they have already received; never quote this as a testimonial): ${a[4] ?? ""}
-Q6 (The difference they make for customers): ${a[5] ?? ""}
-Q7 (Where they want the business to be in five years): ${a[6] ?? ""}`;
+  const answered = answers
+    .map((text, index) => (text ? `${QUESTION_LABELS[index]}: ${text}` : null))
+    .filter((line): line is string => Boolean(line));
+  const missingNote =
+    answers.some((text) => !text)
+      ? "\n\nUnanswered questions are omitted on purpose. Do not invent them, and never invent customer quotes or testimonials."
+      : "";
+  return `${nameBlock}${answered.join("\n")}${missingNote}`;
 }
 
 function parseFindings(raw: unknown): BrandStoryFinding[] {
@@ -172,13 +218,20 @@ Deno.serve(async (req) => {
 
     const body = (await req.json()) as GenerateBrandStoryInput;
 
-    if (!Array.isArray(body?.answers) || body.answers.length !== 7) {
-      const resBody = { error: "Invalid input: answers must be an array of 7 strings." };
+    if (!Array.isArray(body?.answers) || body.answers.length < 1) {
+      const resBody = { error: "Invalid input: answers must be a non-empty array." };
       logFailure(400, resBody);
       return json(resBody, 400);
     }
-    if (typeof body?.email !== "string" || !body.email.trim()) {
-      const resBody = { error: "Invalid input: email is required." };
+
+    const answers = normalizeAnswers(body.answers);
+    if (!answers.some((text) => text.length > 0)) {
+      const resBody = { error: "Invalid input: at least one answered question is required." };
+      logFailure(400, resBody);
+      return json(resBody, 400);
+    }
+    if (body.email !== undefined && typeof body.email !== "string") {
+      const resBody = { error: "Invalid input: email must be a string when provided." };
       logFailure(400, resBody);
       return json(resBody, 400);
     }
@@ -186,7 +239,7 @@ Deno.serve(async (req) => {
     const businessName =
       typeof body.businessName === "string" ? body.businessName.trim() : "";
     const userMessage = buildUserMessage(
-      body.answers,
+      answers,
       businessName || undefined
     );
 

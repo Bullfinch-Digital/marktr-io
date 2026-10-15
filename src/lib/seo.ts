@@ -104,6 +104,8 @@ export const NOINDEX_SHELLS: Array<{ path: string; title: string }> = [
   { path: "/health-check/results", title: "Health check results | marktr" },
   { path: "/story/results", title: "Story results | marktr" },
   { path: "/guest-dashboard", title: "Preview | marktr" },
+  { path: "/start", title: "Start | marktr" },
+  { path: "/start/results", title: "Results | marktr" },
 ];
 
 /**
@@ -141,6 +143,7 @@ export const NOINDEX_PATH_PREFIXES = [
   "/payment-success",
   "/paywall-demo",
   "/beta-signup",
+  "/start",
 ] as const;
 
 export function normalizePath(path: string): string {

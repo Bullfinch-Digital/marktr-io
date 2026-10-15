@@ -61,6 +61,8 @@ import { track as trackMarktr } from "./lib/analytics";
 import { useEdition } from "./contexts/EditionContext";
 import OnboardingLayout from "./layouts/OnboardingLayout";
 import HealthCheckPublicReport from "./pages/HealthCheckPublicReport";
+import StartFlow from "./pages/StartFlow";
+import StartResults from "./pages/StartResults";
 
 let lastTrackedPath: string | null = null;
 
@@ -236,6 +238,22 @@ function AppRoutes() {
               <Route path="/guest-dashboard" element={<GuestDashboardPreview />} />
               <Route path="/icp-preview/:index" element={<GuestIcpPreview />} />
               <Route path="/health-preview" element={<GuestHealthPreview />} />
+              <Route
+                path="/start"
+                element={
+                  <BrandProvider>
+                    <StartFlow />
+                  </BrandProvider>
+                }
+              />
+              <Route
+                path="/start/results"
+                element={
+                  <BrandProvider>
+                    <StartResults />
+                  </BrandProvider>
+                }
+              />
             </Route>
 
             {/* Other public routes without Header/Footer */}

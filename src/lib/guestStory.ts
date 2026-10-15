@@ -30,7 +30,7 @@ export function getGuestStory(): GuestStory | null {
     const raw = localStorage.getItem(STORY_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as GuestStory;
-    if (!parsed?.email || !Array.isArray(parsed.answers)) return null;
+    if (!Array.isArray(parsed.answers)) return null;
     return parsed;
   } catch {
     return null;

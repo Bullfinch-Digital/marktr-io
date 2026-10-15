@@ -32,6 +32,8 @@ describe("isNoIndexPath", () => {
     expect(isNoIndexPath("/onboarding-build")).toBe(true);
     expect(isNoIndexPath("/health-check/results")).toBe(true);
     expect(isNoIndexPath("/story/results")).toBe(true);
+    expect(isNoIndexPath("/start")).toBe(true);
+    expect(isNoIndexPath("/start/results")).toBe(true);
 
     expect(isNoIndexPath("/")).toBe(false);
     expect(isNoIndexPath("/story")).toBe(false);
@@ -82,6 +84,7 @@ describe("buildSitemapXml", () => {
     expect(xml).not.toContain("/dashboard");
     expect(xml).not.toContain("/admin");
     expect(xml).not.toContain("/onboarding-build");
+    expect(xml).not.toContain("/start");
     expect(xml).not.toMatch(/<loc>http:/);
     expect(xml).not.toContain("<loc>https://marktr.io/");
   });
@@ -125,6 +128,7 @@ describe("robots.txt", () => {
       "/account",
       "/team",
       "/onboarding",
+      "/start",
     ]) {
       expect(body).toContain(`Disallow: ${path}`);
     }

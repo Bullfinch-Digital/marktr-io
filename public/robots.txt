@@ -28,5 +28,6 @@ Disallow: /check-email
 Disallow: /payment-success
 Disallow: /paywall-demo
 Disallow: /beta-signup
+Disallow: /start
 
 Sitemap: https://www.marktr.io/sitemap.xml

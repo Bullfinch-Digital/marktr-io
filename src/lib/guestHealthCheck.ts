@@ -41,7 +41,7 @@ export function getGuestHealthCheck(): GuestHealthCheck | null {
     const raw = localStorage.getItem(HEALTH_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as GuestHealthCheck;
-    if (!parsed?.input?.email || !parsed?.scores) return null;
+    if (!parsed?.input || !parsed?.scores) return null;
     return parsed;
   } catch {
     return null;

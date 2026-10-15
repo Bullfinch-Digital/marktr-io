@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, CheckCircle2, Loader2 } from "lucide-react";
 import { Button } from "../components/ui/button";
@@ -43,6 +43,26 @@ import {
   startHealthCheckInBackground,
 } from "../lib/startFlowJobs";
 import type { BrandStoryOutput } from "../lib/brandStory";
+
+function isImeComposing(event: KeyboardEvent): boolean {
+  if ("isComposing" in event && Boolean((event as KeyboardEvent & { isComposing?: boolean }).isComposing)) {
+    return true;
+  }
+  const native = event.nativeEvent;
+  return native instanceof window.KeyboardEvent && native.isComposing;
+}
+
+function ignoreEnter(event: KeyboardEvent): boolean {
+  if (event.key !== "Enter" || event.shiftKey) return true;
+  if (isImeComposing(event)) return true;
+  return false;
+}
+
+function voiceRecordingActive(event: KeyboardEvent): boolean {
+  const el = event.currentTarget;
+  if (!(el instanceof HTMLElement)) return false;
+  return Boolean(el.parentElement?.querySelector('[aria-label="Stop recording"]'));
+}
 
 function TrackButton({
   trackId,
@@ -416,6 +436,22 @@ export default function StartFlow() {
 
   const canContinueStep1 = draft.platforms.length > 0;
 
+  const submitStep1FromField = (event: KeyboardEvent) => {
+    if (ignoreEnter(event) || voiceRecordingActive(event)) return;
+    if (!canContinueStep1) return;
+    event.preventDefault();
+    goToStep2();
+  };
+
+  const submitStoryFromField = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key !== "Enter" || event.shiftKey) return;
+    if (isImeComposing(event)) return;
+    if (voiceRecordingActive(event)) return;
+    if (!storyDraft.trim()) return;
+    event.preventDefault();
+    goNextQuestion();
+  };
+
   const commitStoryAnswer = (text: string) => {
     const nextAnswers = [...draft.answers] as [string, string, string, string];
     nextAnswers[draft.storyQuestionIndex] = text;
@@ -476,7 +512,7 @@ export default function StartFlow() {
 
   return (
     <main className="min-h-screen bg-background">
-      <section className="relative mx-auto flex min-h-screen w-full max-w-3xl flex-col px-4 py-8 sm:px-6 sm:py-12">
+      <section className="relative mx-auto flex w-full max-w-3xl flex-col px-4 pb-12 pt-6 sm:px-6 sm:pt-16">
         {draft.step === 2 ? null : (
           <div className="mb-6 animate-fade-in-up">
             <ProgressBar current={draft.step} total={3} />
@@ -500,7 +536,7 @@ export default function StartFlow() {
         ) : null}
 
         {draft.step === 1 ? (
-          <div className="flex flex-1 flex-col pb-12">
+          <div className="flex flex-col pb-12">
             <h1 className="font-['Fraunces'] text-3xl font-bold leading-tight text-foreground sm:text-4xl">
               Your business
             </h1>
@@ -524,6 +560,7 @@ export default function StartFlow() {
                     updateGuestContext({ business: { businessName: value.trim() || undefined } });
                   }}
                   placeholder="Your business name"
+                  onKeyDown={submitStep1FromField}
                   className="h-12 px-4 text-foreground placeholder:text-foreground/40"
                 />
               </div>
@@ -553,6 +590,7 @@ export default function StartFlow() {
                     updateGuestContext({ business: { websiteUrl: websiteUrl.trim() || undefined } });
                   }}
                   placeholder="https://yourbusiness.com"
+                  onKeyDown={submitStep1FromField}
                   className="h-12 px-4 text-foreground placeholder:text-foreground/40"
                 />
                 <label className="flex items-start gap-3 pt-1 font-['Plus_Jakarta_Sans'] text-sm text-foreground">
@@ -609,7 +647,7 @@ export default function StartFlow() {
         ) : null}
 
         {draft.step === 2 ? (
-          <div className="flex flex-1 flex-col pb-12">
+          <div className="flex flex-col pb-12">
             <div className="mb-6 animate-fade-in-up">
               <ProgressBar current={draft.storyQuestionIndex + 1} total={4} />
               <p className="mt-3 font-['Plus_Jakarta_Sans'] text-xs text-muted-foreground">
@@ -626,11 +664,15 @@ export default function StartFlow() {
               <VoiceTextarea
                 value={storyDraft}
                 onChange={(e) => setStoryDraft(e.target.value)}
+                onKeyDown={submitStoryFromField}
                 onBlur={() => {
                   commitStoryAnswerToGuestContext(draft.storyQuestionIndex, storyDraft);
                 }}
                 className="min-h-[140px] resize-none rounded-design border border-border bg-background px-4 py-4 font-['Plus_Jakarta_Sans'] text-foreground placeholder:text-foreground/40"
               />
+              <p className="mt-2 font-['Plus_Jakarta_Sans'] text-xs text-muted-foreground">
+                Press Enter to continue
+              </p>
             </div>
             <Button
               type="button"
@@ -653,7 +695,7 @@ export default function StartFlow() {
         ) : null}
 
         {draft.step === 3 ? (
-          <div className="flex flex-1 flex-col justify-center pb-12">
+          <div className="flex flex-col pb-12">
             <div className="rounded-3xl border border-border bg-card p-6 shadow-sm sm:p-12">
               <h1 className="font-['Fraunces'] text-3xl font-bold leading-tight text-foreground sm:text-4xl">
                 Building your plan

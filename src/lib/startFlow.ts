@@ -173,3 +173,69 @@ export type StartResultsSnapshot = {
   story: BrandStoryOutput | null;
   icps: GuestICP[];
 };
+
+const HEALTH_AREAS: { key: keyof GuestHealthCheck["scores"]; label: string }[] = [
+  { key: "websiteClarity", label: "Website Clarity" },
+  { key: "brandStory", label: "Brand Story" },
+  { key: "contentConsistency", label: "Content Consistency" },
+  { key: "socialPresence", label: "Social Presence" },
+];
+
+export function hasStoredStartResults(input: {
+  health: GuestHealthCheck | null;
+  story: BrandStoryOutput | null;
+  icpCount: number;
+}): boolean {
+  return Boolean(input.health?.scores) || Boolean(input.story) || input.icpCount > 0;
+}
+
+/** First 2–3 sentences. The remainder stays out of the rendered page. */
+export function firstSentences(text: string, count = 3): string {
+  const trimmed = text.replace(/\s+/g, " ").trim();
+  if (!trimmed) return "";
+  const parts = trimmed.match(/[^.!?]+[.!?]+(?:\s|$)|[^.!?]+$/g) ?? [trimmed];
+  return parts
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .slice(0, count)
+    .join(" ");
+}
+
+export function storyTagline(story: BrandStoryOutput | null): string | null {
+  if (!story) return null;
+  const tagline = (story as { tagline?: unknown }).tagline;
+  return typeof tagline === "string" && tagline.trim() ? tagline.trim() : null;
+}
+
+export type HealthQuickWin = {
+  area: string;
+  fix: string;
+  lockedCount: number;
+};
+
+/** Lowest-scoring area and its existing suggestion. Other areas are counts only. */
+export function pickHealthQuickWin(health: GuestHealthCheck | null): HealthQuickWin | null {
+  if (!health?.scores) return null;
+  const findings = health.findings ?? [];
+  const scored = HEALTH_AREAS.map((area) => {
+    const raw = health.scores[area.key];
+    const finding = findings.find((row) => row.dimension === area.label);
+    const score =
+      typeof raw === "number"
+        ? raw
+        : typeof finding?.score === "number"
+          ? finding.score
+          : null;
+    if (score === null || Number.isNaN(score)) return null;
+    const fix = finding?.nextStep?.trim() || finding?.finding?.trim() || "";
+    return { area: area.label, score, fix };
+  }).filter((row): row is { area: string; score: number; fix: string } => row !== null);
+
+  if (!scored.length) return null;
+  const winner = scored.reduce((best, row) => (row.score < best.score ? row : best));
+  return {
+    area: winner.area,
+    fix: winner.fix,
+    lockedCount: Math.max(0, scored.length - 1),
+  };
+}

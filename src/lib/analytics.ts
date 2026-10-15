@@ -443,6 +443,7 @@ function onDelegatedClick(event: Event): void {
   if (!el) return;
   const ctaId = el.getAttribute("data-track-id");
   if (!ctaId) return;
+  if (ctaId.endsWith("_view")) return;
   track("cta_click", {
     cta_id: ctaId.slice(0, 40),
     cta_text: ctaTextFromEl(el),
@@ -538,6 +539,11 @@ export function installMarktrAnalyticsListeners(): () => void {
     if (!client) return false;
     return trackOnceLoad(`case:${client}`, "case_study_view", { client });
   });
+  const stopRhythm = observeOnce('[data-track-id="strategy_rhythm_view"]', 0.4, (el) => {
+    return trackOnceLoad("strategy_rhythm_view", "strategy_rhythm_view", {
+      location: (el.getAttribute("data-track-location") || "strategy_page").slice(0, 40),
+    });
+  });
   const stopScroll = installScrollDepth();
   const stopAbandon = installHealthAbandon();
   const onConsent = () => captureFirstTouch();
@@ -546,6 +552,7 @@ export function installMarktrAnalyticsListeners(): () => void {
     document.removeEventListener("click", onDelegatedClick, true);
     stopSections();
     stopCases();
+    stopRhythm();
     stopScroll();
     stopAbandon();
     window.removeEventListener("marktr:analytics-consent-granted", onConsent);

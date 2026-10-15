@@ -228,6 +228,12 @@ export function StrategySuggestedContentChecklist({
                   </span>
                 </div>
                 <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/80 mt-1">{row.rationale}</p>
+                {row.why_format?.trim() ? (
+                  <p className="mt-2 font-['Plus_Jakarta_Sans'] text-xs text-foreground/65">
+                    <span className="font-medium text-foreground/75">Why this format</span>
+                    <span className="mt-0.5 block">{row.why_format.trim()}</span>
+                  </p>
+                ) : null}
                 {row.ideaRemoved ? (
                   <p className="font-['Plus_Jakarta_Sans'] text-[11px] text-foreground mt-1">
                     Campaign idea no longer on this strategy — create as strategy-level.

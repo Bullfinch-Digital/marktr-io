@@ -33,7 +33,8 @@ import {
   StrategyPlanSubnav,
   type StrategyPlanNavItem,
 } from "../components/strategy/StrategyPlanSubnav";
-import { strategyHasPostingSchedule } from "../lib/strategyPostingSchedule";
+import { strategyHasChannelRhythm } from "../lib/strategyPostingRhythm";
+import { StrategyPostingRhythm } from "../components/strategy/StrategyPostingRhythm";
 import { StrategyVersionHistorySection } from "../components/strategy/StrategyVersionHistorySection";
 import StrategyArchiveModal from "../components/strategy/StrategyArchiveModal";
 import StrategyPermanentDeleteModal from "../components/strategy/StrategyPermanentDeleteModal";
@@ -396,7 +397,7 @@ function StrategyEditorBody() {
     return strategy as StrategyWithLinks;
   }, [strategy]);
 
-  const hasPostingSchedule = strategyHasPostingSchedule(draftStrategy);
+  const hasChannelRhythm = strategyHasChannelRhythm(draftStrategy);
   const planNavItems = useMemo(() => {
     if (!draftStrategy) return [];
     const items: StrategyPlanNavItem[] = [
@@ -405,12 +406,12 @@ function StrategyEditorBody() {
     if (!readOnly) {
       items.push({ id: "what-to-post", label: "What to post", trackSection: "what" });
     }
-    if (hasPostingSchedule) {
+    if (hasChannelRhythm) {
       items.push({ id: "when-to-post", label: "When to post", trackSection: "when" });
     }
     items.push({ id: "the-thinking", label: "The thinking", trackSection: "thinking" });
     return items;
-  }, [draftStrategy, readOnly, hasPostingSchedule]);
+  }, [draftStrategy, readOnly, hasChannelRhythm]);
 
   const toggleThinking = () => {
     setThinkingOpen((open) => {
@@ -630,9 +631,15 @@ function StrategyEditorBody() {
               </section>
             ) : null}
 
-            {hasPostingSchedule ? (
-              <section id="when-to-post" className={PLAN_SCROLL_MT}>
-                <h2 className="font-['Fraunces'] text-2xl text-foreground">When to post</h2>
+            {hasChannelRhythm ? (
+              <section
+                id="when-to-post"
+                className={PLAN_SCROLL_MT}
+                data-track-id="strategy_rhythm_view"
+                data-track-location="strategy_page"
+              >
+                <h2 className="mb-4 font-['Fraunces'] text-2xl text-foreground">When to post</h2>
+                <StrategyPostingRhythm channels={draftStrategy.channel_plan.channels ?? []} />
               </section>
             ) : null}
 

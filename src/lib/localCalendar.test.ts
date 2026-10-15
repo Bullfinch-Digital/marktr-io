@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { addLocalDays, currentLocalWeekDates, localISODate, startOfLocalMondayWeek } from "./localCalendar";
+import {
+  addLocalDays,
+  currentLocalWeekDates,
+  lastNLocalWeekRanges,
+  localISODate,
+  startOfLocalMondayWeek,
+} from "./localCalendar";
 
 describe("localCalendar", () => {
   it("formats the local calendar date", () => {
@@ -22,5 +28,13 @@ describe("localCalendar", () => {
       "2026-10-18",
     ]);
     expect(localISODate(addLocalDays(new Date(2026, 9, 15), 1))).toBe("2026-10-16");
+  });
+
+  it("lists the last 12 local weeks oldest-first, ending on the current week", () => {
+    const weeks = lastNLocalWeekRanges(12, new Date(2026, 9, 15));
+    expect(weeks).toHaveLength(12);
+    expect(weeks[0]).toEqual({ start: "2026-07-27", end: "2026-08-02" });
+    expect(weeks[11]).toEqual({ start: "2026-10-12", end: "2026-10-18" });
+    expect(weeks[10]).toEqual({ start: "2026-10-05", end: "2026-10-11" });
   });
 });

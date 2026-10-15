@@ -34,6 +34,7 @@ import type { ContentItemType } from "../types/contentItemPayload";
 import DashboardShell from "../layouts/DashboardShell";
 import { ViewEditButton } from "../components/ui/ViewEditButton";
 import { StrategyRosterCard } from "../components/strategy/StrategyRosterCard";
+import { WeeklyProgressCard } from "../components/dashboard/WeeklyProgressCard";
 import {
   isOnboardingIcpArrival,
   revealIcpSection,
@@ -449,6 +450,7 @@ export default function Dashboard() {
       : readDimensionScore(healthScores, "overall");
 
   const previewStrategies = strategies.slice(0, 3);
+  const latestStrategy = strategies[0];
 
   const draftItems = useMemo(
     () => contentItems.filter((item) => item.status === "draft"),
@@ -524,6 +526,15 @@ export default function Dashboard() {
               Your brand cockpit — health, story, customers, strategy, and content.
             </p>
           </header>
+
+          {latestStrategy ? (
+            <WeeklyProgressCard
+              userId={user.id}
+              strategyId={latestStrategy.id}
+              channels={latestStrategy.strategy?.channel_plan?.channels}
+              location="dashboard"
+            />
+          ) : null}
 
           {/* 1. Health score hero — step chain + 4-pillar breakdown */}
           <section className="space-y-8">

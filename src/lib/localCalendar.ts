@@ -24,3 +24,30 @@ export function currentLocalWeekDates(date: Date = new Date()): string[] {
   const monday = startOfLocalMondayWeek(date);
   return Array.from({ length: 7 }, (_, index) => localISODate(addLocalDays(monday, index)));
 }
+
+export type LocalWeekRange = {
+  start: string;
+  end: string;
+};
+
+/** Monday–Sunday ISO range for the week that contains `date`. */
+export function localMondayWeekRange(date: Date = new Date()): LocalWeekRange {
+  const dates = currentLocalWeekDates(date);
+  return { start: dates[0], end: dates[6] };
+}
+
+/**
+ * The last `n` Monday–Sunday weeks in local time, oldest first.
+ * The final entry is the week that contains `date`.
+ */
+export function lastNLocalWeekRanges(n: number, date: Date = new Date()): LocalWeekRange[] {
+  const count = Math.max(0, Math.floor(n));
+  const currentMonday = startOfLocalMondayWeek(date);
+  return Array.from({ length: count }, (_, index) => {
+    const monday = addLocalDays(currentMonday, -7 * (count - 1 - index));
+    return {
+      start: localISODate(monday),
+      end: localISODate(addLocalDays(monday, 6)),
+    };
+  });
+}

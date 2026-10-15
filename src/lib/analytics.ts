@@ -544,6 +544,11 @@ export function installMarktrAnalyticsListeners(): () => void {
       location: (el.getAttribute("data-track-location") || "strategy_page").slice(0, 40),
     });
   });
+  const stopProgress = observeOnce('[data-track-id="progress_card_view"]', 0.4, (el) => {
+    return trackOnceLoad("progress_card_view", "progress_card_view", {
+      location: (el.getAttribute("data-track-location") || "dashboard").slice(0, 40),
+    });
+  });
   const stopScroll = installScrollDepth();
   const stopAbandon = installHealthAbandon();
   const onConsent = () => captureFirstTouch();
@@ -553,6 +558,7 @@ export function installMarktrAnalyticsListeners(): () => void {
     stopSections();
     stopCases();
     stopRhythm();
+    stopProgress();
     stopScroll();
     stopAbandon();
     window.removeEventListener("marktr:analytics-consent-granted", onConsent);

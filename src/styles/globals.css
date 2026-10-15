@@ -1169,7 +1169,15 @@ html {
   }
 }
 
+.progress-ring-fill {
+  stroke-dashoffset: var(--progress-ring-offset);
+}
+
 @media (prefers-reduced-motion: no-preference) {
+  .progress-ring-fill {
+    transition: stroke-dashoffset 700ms ease-out;
+  }
+
   @supports (animation-timeline: view()) {
     .testimonial-card,
     .compare-card {

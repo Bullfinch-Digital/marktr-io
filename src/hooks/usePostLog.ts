@@ -85,6 +85,11 @@ export function usePostLog(userId: string | undefined, strategyId: string | unde
         const saved = data as InsertedRow;
         setRows((prev) => prev.map((row) => (row.id === tempId ? { id: saved.id, channel: saved.channel, posted_on: saved.posted_on } : row)));
         track("mark_posted", { channel });
+        try {
+          window.dispatchEvent(new Event("post_log:changed"));
+        } catch {
+          // ignore
+        }
       } catch (err) {
         console.error("[usePostLog] insert failed", err);
         setRows((prev) => prev.filter((row) => row.id !== tempId));
@@ -107,6 +112,11 @@ export function usePostLog(userId: string | undefined, strategyId: string | unde
       try {
         const { error } = await supabase.from("post_log").delete().eq("id", removed.id).eq("user_id", userId);
         if (error) throw error;
+        try {
+          window.dispatchEvent(new Event("post_log:changed"));
+        } catch {
+          // ignore
+        }
       } catch (err) {
         console.error("[usePostLog] delete failed", err);
         setRows((prev) => [...prev, removed]);

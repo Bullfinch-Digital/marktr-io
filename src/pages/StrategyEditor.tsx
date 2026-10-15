@@ -39,6 +39,7 @@ import { StrategyVersionHistorySection } from "../components/strategy/StrategyVe
 import StrategyArchiveModal from "../components/strategy/StrategyArchiveModal";
 import StrategyPermanentDeleteModal from "../components/strategy/StrategyPermanentDeleteModal";
 import { StrategySuggestedContentChecklist } from "../components/strategy/StrategySuggestedContentChecklist";
+import { WeeklyProgressCard } from "../components/dashboard/WeeklyProgressCard";
 import { ArchiveActionTooltip } from "../components/ArchiveActionTooltip";
 import { exportStrategyAsPDF } from "../utils/exportStrategy";
 import "../styles/Modal.css";
@@ -509,6 +510,17 @@ function StrategyEditorBody() {
             Back to Strategy
           </Link>
         </div>
+
+        {!loading && strategy ? (
+          <WeeklyProgressCard
+            userId={user?.id}
+            strategyId={strategy.id}
+            channels={draftStrategy?.channel_plan?.channels ?? strategy.strategy?.channel_plan?.channels}
+            location="strategy_page"
+            variant="slim"
+            nextHref="#when-to-post"
+          />
+        ) : null}
 
         {loading ? (
           <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/60">Loading strategy…</p>

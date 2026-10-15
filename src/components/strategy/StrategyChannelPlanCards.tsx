@@ -1,5 +1,5 @@
 import type { ICPStrategyPayload, StrategyChannel } from "../../types/icpStrategyPayload";
-import { orderedStrategyChannels } from "../../lib/strategyPostingRhythm";
+import { isNonPostingChannel, orderedStrategyChannels } from "../../lib/strategyPostingRhythm";
 
 type Props = {
   strategy: ICPStrategyPayload;
@@ -40,19 +40,26 @@ function ChannelExtras({ channel }: { channel: StrategyChannel }) {
   const posts = channel.posts_per_week;
   const times = (channel.best_times ?? []).map((item) => item.trim()).filter(Boolean);
   const formats = (channel.formats ?? []).map((item) => item.trim()).filter(Boolean);
-  const showPosts = typeof posts === "number" && Number.isInteger(posts) && posts >= 1;
+  const nonPosting = isNonPostingChannel(channel);
+  const showPosts =
+    !nonPosting && typeof posts === "number" && Number.isInteger(posts) && posts >= 1;
 
   return (
     <>
       {why ? (
         <p className="mt-2 font-['Plus_Jakarta_Sans'] text-sm text-foreground/70">{why}</p>
       ) : null}
+      {nonPosting ? (
+        <p className="mt-3 font-['Plus_Jakarta_Sans'] text-sm font-medium text-foreground">
+          Set up once, then update as needed
+        </p>
+      ) : null}
       {showPosts ? (
         <p className="mt-3 font-['Plus_Jakarta_Sans'] text-sm font-medium text-foreground">
           Aim for {posts} {posts === 1 ? "post" : "posts"} a week
         </p>
       ) : null}
-      {times.length > 0 ? <TimePills times={times} /> : null}
+      {!nonPosting && times.length > 0 ? <TimePills times={times} /> : null}
       {formats.length > 0 ? <FormatTags formats={formats} /> : null}
     </>
   );

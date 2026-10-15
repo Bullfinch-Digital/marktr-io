@@ -125,11 +125,16 @@ export function sanitizeStrategyChannels(value: unknown): StrategyChannel[] | un
     const formats = sanitizeStringList(record.formats, 3);
     if (formats.length > 0) channel.formats = formats;
     const posts = record.posts_per_week;
-    if (typeof posts === "number" && Number.isInteger(posts) && posts >= 1 && posts <= 5) {
-      channel.posts_per_week = posts;
-    }
     const bestTimes = sanitizeStringList(record.best_times, 2);
-    if (bestTimes.length > 0) channel.best_times = bestTimes;
+    if (typeof posts === "number" && Number.isInteger(posts) && posts === 0) {
+      channel.posts_per_week = 0;
+      channel.best_times = [];
+    } else if (typeof posts === "number" && Number.isInteger(posts) && posts >= 1 && posts <= 5) {
+      channel.posts_per_week = posts;
+      if (bestTimes.length > 0) channel.best_times = bestTimes;
+    } else if (bestTimes.length > 0) {
+      channel.best_times = bestTimes;
+    }
     next.push(channel);
   }
   return next.length > 0 ? next : undefined;

@@ -339,11 +339,16 @@ function sanitizeChannels(value: unknown): Array<{
     const formats = sanitizeStringList(record.formats, 3);
     if (formats.length > 0) channel.formats = formats;
     const posts = record.posts_per_week;
-    if (typeof posts === "number" && Number.isInteger(posts) && posts >= 1 && posts <= 5) {
-      channel.posts_per_week = posts;
-    }
     const bestTimes = sanitizeStringList(record.best_times, 2);
-    if (bestTimes.length > 0) channel.best_times = bestTimes;
+    if (typeof posts === "number" && Number.isInteger(posts) && posts === 0) {
+      channel.posts_per_week = 0;
+      channel.best_times = [];
+    } else if (typeof posts === "number" && Number.isInteger(posts) && posts >= 1 && posts <= 5) {
+      channel.posts_per_week = posts;
+      if (bestTimes.length > 0) channel.best_times = bestTimes;
+    } else if (bestTimes.length > 0) {
+      channel.best_times = bestTimes;
+    }
 
     next.push(channel);
   }
@@ -544,8 +549,9 @@ channel_plan:
   - role: "primary" or "secondary" (exactly one "primary")
   - why_platform: 1-2 plain sentences on why this platform suits THIS persona and brand story
   - formats: 1-3 short strings, for example "carousel", "reel", "email"
-  - posts_per_week: an integer from 1 to 5, realistic for a small business with no team
+  - posts_per_week: an integer from 1 to 5 for a posting channel, realistic for a small business with no team
   - best_times: 1-2 short strings of general best-practice posting windows, for example "Weekday mornings, 7-9am". These are general best practice. Never claim they come from the user's own audience data.
+  - Owned assets such as a website or landing page are not posting channels. For those, set posts_per_week to 0 and best_times to an empty array. Use why_platform to explain their role (where the offer lives, or the page people arrive on). Do not give them a posting schedule.
 
 Title field (required in JSON):
 - Campaign-flavoured and SPECIFIC — how a marketer would refer to this plan out loud (e.g. "Spiced Apple Autumn Hosting Push", not "Autumn Growth Strategy").

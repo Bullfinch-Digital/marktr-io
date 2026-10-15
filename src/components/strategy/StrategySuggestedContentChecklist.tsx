@@ -32,6 +32,30 @@ type ChecklistRow = SuggestedContentItem & {
   ideaName: string;
 };
 
+function isInternalPieceLabel(value: string): boolean {
+  const normalized = value.trim().toLowerCase();
+  return (
+    normalized === "whole strategy" ||
+    normalized === "strategy-level" ||
+    normalized === "strategy level"
+  );
+}
+
+function pieceTitle(row: ChecklistRow, contentTitle?: string): string {
+  const own = contentTitle?.trim();
+  if (own && !isInternalPieceLabel(own)) return own;
+  const suggestionTitle =
+    "title" in row && typeof (row as { title?: unknown }).title === "string"
+      ? (row as { title: string }).title.trim()
+      : "";
+  if (suggestionTitle && !isInternalPieceLabel(suggestionTitle)) return suggestionTitle;
+  if (row.campaign_idea_id && !row.ideaRemoved) {
+    const idea = row.ideaName.trim();
+    if (idea && !isInternalPieceLabel(idea)) return idea;
+  }
+  return isContentItemType(row.type) ? CONTENT_TYPE_LABELS[row.type] : row.type;
+}
+
 export function StrategySuggestedContentChecklist({
   brandId,
   strategyId,
@@ -44,6 +68,7 @@ export function StrategySuggestedContentChecklist({
   const navigate = useNavigate();
   const [doneIds, setDoneIds] = useState<Set<string>>(new Set());
   const [doneItemIds, setDoneItemIds] = useState<Record<string, string>>({});
+  const [doneTitles, setDoneTitles] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
 
   const suggestions = Array.isArray(strategy.suggested_content)
@@ -58,7 +83,7 @@ export function StrategySuggestedContentChecklist({
         return {
           ...suggestion,
           ideaRemoved: false,
-          ideaName: "whole strategy",
+          ideaName: "",
         };
       }
       const match = campaignIdeas.find((idea) => idea.id === suggestion.campaign_idea_id);
@@ -82,6 +107,7 @@ export function StrategySuggestedContentChecklist({
     if (!user?.id || !brandId || !strategyLineageId) {
       setDoneIds(new Set());
       setDoneItemIds({});
+      setDoneTitles({});
       setLoading(false);
       return;
     }
@@ -90,13 +116,17 @@ export function StrategySuggestedContentChecklist({
       const ids = await fetchDoneSuggestedContentIds(user.id, brandId, strategyLineageId);
       setDoneIds(ids);
       const map: Record<string, string> = {};
+      const titles: Record<string, string> = {};
       await Promise.all(
         Array.from(ids).map(async (suggestedId) => {
           const item = await fetchCurrentContentItemBySuggestedId(user.id, suggestedId);
           if (item?.id) map[suggestedId] = item.id;
+          const title = item?.title?.trim();
+          if (title) titles[suggestedId] = title;
         })
       );
       setDoneItemIds(map);
+      setDoneTitles(titles);
     } catch (err) {
       console.error("[StrategySuggestedContentChecklist] refresh failed", err);
     } finally {
@@ -223,7 +253,7 @@ export function StrategySuggestedContentChecklist({
                         (removed: {row.ideaName})
                       </>
                     ) : (
-                      row.ideaName
+                      pieceTitle(row, doneTitles[row.id])
                     )}
                   </span>
                 </div>

@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { StrategyChannel } from "../types/icpStrategyPayload";
 import {
+  allowedPostingDayIndexes,
   buildPostingRhythm,
   orderedStrategyChannels,
+  parseBestTimeDays,
   spreadPostsAcrossWeek,
   strategyHasChannelRhythm,
 } from "./strategyPostingRhythm";
@@ -62,11 +64,59 @@ describe("buildPostingRhythm", () => {
     );
     expect(instagramDays).toHaveLength(3);
     instagramDays.forEach((day) => {
+      expect(day.dayIndex).toBeLessThanOrEqual(4);
       expect(day.slots.filter((slot) => slot.channelName === "Instagram")).toHaveLength(1);
       expect(day.slots.find((slot) => slot.channelName === "Instagram")?.time).toBe(
         "Weekday mornings, 7-9am"
       );
     });
+
+    const emailDays = week.filter((day) => day.slots.some((slot) => slot.channelName === "Email"));
+    expect(emailDays.map((day) => day.label)).toEqual(["Tuesday"]);
+  });
+
+  it("keeps posts on named days and leaves weekends empty unless named", () => {
+    expect(parseBestTimeDays("Weekday mornings, 7-9am")).toEqual([0, 1, 2, 3, 4]);
+    expect(parseBestTimeDays("Tuesday to Thursday")).toEqual([1, 2, 3]);
+    expect(parseBestTimeDays("Wednesday or Thursday")).toEqual([2, 3]);
+    expect(allowedPostingDayIndexes(["Mornings, 7-9am"])).toEqual([0, 1, 2, 3, 4]);
+    expect(allowedPostingDayIndexes(["Saturday mornings"])).toEqual([5]);
+
+    const week = buildPostingRhythm([
+      {
+        name: "Newsletter",
+        role: "primary",
+        posts_per_week: 3,
+        best_times: ["Tuesday to Thursday"],
+      },
+    ]);
+    const posted = week.filter((day) => day.slots.length > 0).map((day) => day.label);
+    expect(posted).toEqual(["Tuesday", "Wednesday", "Thursday"]);
+    expect(week[5].slots).toHaveLength(0);
+    expect(week[6].slots).toHaveLength(0);
+  });
+
+  it("excludes websites, landing pages, and zero-post channels", () => {
+    const week = buildPostingRhythm([
+      { name: "Website", role: "primary", posts_per_week: 2, best_times: ["Monday 9am"] },
+      { name: "Landing page", role: "secondary", posts_per_week: 1, best_times: ["Friday"] },
+      {
+        name: "Brochure site",
+        role: "secondary",
+        posts_per_week: 0,
+        best_times: [],
+      },
+      {
+        name: "Instagram",
+        role: "secondary",
+        posts_per_week: 1,
+        best_times: ["Wednesday or Thursday"],
+      },
+    ]);
+    const names = week.flatMap((day) => day.slots.map((slot) => slot.channelName));
+    expect(names).toEqual(["Instagram"]);
+    const instagramDay = week.find((day) => day.slots.length > 0);
+    expect(["Wednesday", "Thursday"]).toContain(instagramDay?.label);
   });
 
   it("skips channels without posts_per_week", () => {
@@ -78,7 +128,7 @@ describe("buildPostingRhythm", () => {
 });
 
 describe("strategyHasChannelRhythm", () => {
-  it("is false when channels are missing or empty", () => {
+  it("is false when channels are missing, empty, or only non-posting", () => {
     expect(strategyHasChannelRhythm(null)).toBe(false);
     expect(
       strategyHasChannelRhythm({
@@ -86,6 +136,16 @@ describe("strategyHasChannelRhythm", () => {
           primary_channel: "Instagram",
           secondary_channels: [],
           first_14_days: [],
+        },
+      } as never)
+    ).toBe(false);
+    expect(
+      strategyHasChannelRhythm({
+        channel_plan: {
+          primary_channel: "Website",
+          secondary_channels: [],
+          first_14_days: [],
+          channels: [{ name: "Website", role: "primary", posts_per_week: 0, best_times: [] }],
         },
       } as never)
     ).toBe(false);

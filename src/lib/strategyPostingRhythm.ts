@@ -41,7 +41,7 @@ export function strategyPostingChannels(channels: StrategyChannel[]): StrategyCh
   const posting: StrategyChannel[] = [];
   for (const channel of orderedStrategyChannels(channels)) {
     const name = channel.name.trim();
-    if (!name || isNonPostingChannel(channel) || seen.has(name.toLowerCase())) continue;
+    if (!name || !isPostingChannel(channel) || seen.has(name.toLowerCase())) continue;
     seen.add(name.toLowerCase());
     posting.push(channel);
   }
@@ -92,6 +92,15 @@ type DayToken = {
 export function isNonPostingChannel(channel: StrategyChannel): boolean {
   if (channel.posts_per_week === 0) return true;
   return NON_POSTING_PLATFORM_NAMES.has(channel.name.trim().toLowerCase());
+}
+
+/** True for channels that count toward posting rhythm and the weekly target. */
+export function isPostingChannel(
+  channel: StrategyChannel
+): channel is StrategyChannel & { posts_per_week: number } {
+  if (NON_POSTING_PLATFORM_NAMES.has(channel.name.trim().toLowerCase())) return false;
+  const posts = channel.posts_per_week;
+  return typeof posts === "number" && Number.isInteger(posts) && posts > 0;
 }
 
 function dayTokenFromWord(word: string): Pick<DayToken, "days" | "single"> | null {
@@ -223,9 +232,8 @@ export function buildPostingRhythm(channels: StrategyChannel[]): RhythmDay[] {
 
   let postingIndex = 0;
   for (const channel of orderedStrategyChannels(channels)) {
-    if (isNonPostingChannel(channel)) continue;
+    if (!isPostingChannel(channel)) continue;
     const raw = channel.posts_per_week;
-    if (typeof raw !== "number" || !Number.isInteger(raw) || raw < 1) continue;
     const allowed = allowedPostingDayIndexes(channel.best_times);
     const n = Math.min(raw, allowed.length);
     const assigned = spreadPostsAcrossWeek(n, postingIndex, allowed);

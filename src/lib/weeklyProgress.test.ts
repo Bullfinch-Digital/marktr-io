@@ -20,6 +20,17 @@ describe("weeklyPostTarget", () => {
     expect(weeklyPostTarget([])).toBe(0);
     expect(weeklyPostTarget([{ name: "Site", role: "primary", posts_per_week: 0 }])).toBe(0);
   });
+
+  it("excludes Website even when it stores posts_per_week (target 5)", () => {
+    expect(
+      weeklyPostTarget([
+        { name: "Instagram", role: "primary", posts_per_week: 3 },
+        { name: "Website", role: "primary", posts_per_week: 1 },
+        { name: "YouTube", role: "secondary", posts_per_week: 1 },
+        { name: "Email newsletter", role: "secondary", posts_per_week: 1 },
+      ])
+    ).toBe(5);
+  });
 });
 
 describe("streakFromWeekFlags", () => {

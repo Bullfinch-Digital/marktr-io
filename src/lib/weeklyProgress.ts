@@ -1,6 +1,6 @@
 import type { StrategyChannel } from "../types/icpStrategyPayload";
 import { lastNLocalWeekRanges, localISODate, startOfLocalMondayWeek } from "./localCalendar";
-import { WEEKDAY_LABELS, buildPostingRhythm } from "./strategyPostingRhythm";
+import { WEEKDAY_LABELS, buildPostingRhythm, isPostingChannel } from "./strategyPostingRhythm";
 
 export const WEEKLY_PROGRESS_LOOKBACK_WEEKS = 12;
 
@@ -30,13 +30,12 @@ export type WeeklyProgressSnapshot = {
   nextStep: NextRhythmStep | null;
 };
 
-/** Sum of posts_per_week on channels that actually post (ignore 0 / missing). */
+/** Sum of posts_per_week on posting channels only. */
 export function weeklyPostTarget(channels: StrategyChannel[] | undefined): number {
   if (!channels?.length) return 0;
   return channels.reduce((sum, channel) => {
-    const posts = channel.posts_per_week;
-    if (typeof posts !== "number" || !Number.isInteger(posts) || posts <= 0) return sum;
-    return sum + posts;
+    if (!isPostingChannel(channel)) return sum;
+    return sum + channel.posts_per_week;
   }, 0);
 }
 

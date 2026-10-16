@@ -2,11 +2,12 @@
 
 export const MARKTR_DEFAULT_CHECKOUT_PLAN = "annual" as const;
 
-export const MARKTR_PRO_MONTHLY_EQUIVALENT_GBP = 25;
-export const MARKTR_PRO_ANNUAL_TOTAL_GBP = 300;
-/** Standalone monthly plan. 12 × £35 − £300 = £120. */
-export const MARKTR_PRO_MONTHLY_PLAN_GBP = 35;
-export const MARKTR_PRO_ANNUAL_SAVINGS_GBP = 120;
+export const MARKTR_PRO_MONTHLY_EQUIVALENT_GBP = 15;
+export const MARKTR_PRO_ANNUAL_TOTAL_GBP = 180;
+/** Standalone monthly plan. Savings = monthly × 12 − annual total. */
+export const MARKTR_PRO_MONTHLY_PLAN_GBP = 25;
+export const MARKTR_PRO_ANNUAL_SAVINGS_GBP =
+  MARKTR_PRO_MONTHLY_PLAN_GBP * 12 - MARKTR_PRO_ANNUAL_TOTAL_GBP;
 
 export const MARKTR_TRIAL_DAYS = 14;
 /**
@@ -26,7 +27,7 @@ export const MARKTR_PRO_PRICE_HEADLINE = `£${MARKTR_PRO_MONTHLY_EQUIVALENT_GBP}
 
 export const MARKTR_PRO_BILLING_LINE = `billed annually (£${MARKTR_PRO_ANNUAL_TOTAL_GBP}/year)`;
 
-export const MARKTR_PRO_CARD_SUBTITLE = `£${MARKTR_PRO_MONTHLY_EQUIVALENT_GBP}/month, billed annually (£${MARKTR_PRO_ANNUAL_TOTAL_GBP}/year)`;
+export const MARKTR_PRO_CARD_SUBTITLE = `£${MARKTR_PRO_MONTHLY_EQUIVALENT_GBP}/month, billed annually (£${MARKTR_PRO_ANNUAL_TOTAL_GBP} a year)`;
 
 /** Paywall plan price, monthly figure first. Pricing-page copy stays on the constants above. */
 export const MARKTR_PAYWALL_ANNUAL_PRICE_LINE = `£${MARKTR_PRO_MONTHLY_EQUIVALENT_GBP}/month, billed annually (£${MARKTR_PRO_ANNUAL_TOTAL_GBP} a year)`;
@@ -144,7 +145,7 @@ export const PRICING_SALES = {
   pill: "One plan. Everything included.",
   h1: "Your own dedicated marketing team for less than one month of agency fees.",
   subhead:
-    "Agencies and freelancers charge hundreds, often thousands, to work out who your customers are, what to say and what to post. marktr does that thinking in minutes for £25 a month, billed annually (£300 a year).",
+    `Agencies and freelancers charge hundreds, often thousands, to work out who your customers are, what to say and what to post. marktr does that thinking in minutes for £${MARKTR_PRO_MONTHLY_EQUIVALENT_GBP} a month, billed annually (£${MARKTR_PRO_ANNUAL_TOTAL_GBP} a year).`,
   costsLabel: "What marketing usually costs",
   costs: [
     {

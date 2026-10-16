@@ -10,6 +10,10 @@ import {
   SelectValue,
 } from "../ui/select";
 import { X, Lock, Shield, CheckCircle2, ArrowLeft } from "lucide-react";
+import {
+  MARKTR_PRO_ANNUAL_TOTAL_GBP,
+  MARKTR_PRO_MONTHLY_EQUIVALENT_GBP,
+} from "../../lib/marktrPricing";
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -35,7 +39,11 @@ export function CheckoutModal({
 
   if (!isOpen) return null;
 
-  const planDetails = { price: "£25", billing: "year", total: "£300" };
+  const planDetails = {
+    price: `£${MARKTR_PRO_MONTHLY_EQUIVALENT_GBP}`,
+    billing: "year",
+    total: `£${MARKTR_PRO_ANNUAL_TOTAL_GBP}`,
+  };
   const selectedPlan = planDetails;
 
   const handleSubmit = (e: React.FormEvent) => {

@@ -1,4 +1,4 @@
-import { PRICING_SALES } from "./marktrPricing";
+import { MARKTR_PRO_MONTHLY_EQUIVALENT_GBP, PRICING_SALES } from "./marktrPricing";
 
 /** Canonical public origin — always www, always https, no trailing slash. */
 export const SITE_ORIGIN = "https://www.marktr.io";
@@ -23,7 +23,7 @@ export const MARKETING_PAGES: MarketingPageSeo[] = [
   },
   {
     path: "/pricing",
-    title: "Pricing | marktr — £25/month, billed annually",
+    title: `Pricing | marktr — £${MARKTR_PRO_MONTHLY_EQUIVALENT_GBP}/month, billed annually`,
     description:
       "One plan, everything included. A dedicated marketing team for less than one month of agency fees.",
     h1: PRICING_SALES.h1,

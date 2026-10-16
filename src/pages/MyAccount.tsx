@@ -11,10 +11,10 @@ import { usePaywall } from "../contexts/PaywallContext";
 import DashboardShell from "../layouts/DashboardShell";
 import { planFromPriceId } from "../lib/checkoutPlans";
 import {
-  MARKTR_PRO_MONTHLY_PLAN_GBP,
   MARKTR_SUPPORT_EMAIL,
   MARKTR_SUPPORT_MAILTO,
   MARKTR_TRIAL_DAYS,
+  paywallOfferPriceLine,
 } from "../lib/marktrPricing";
 import {
   User,
@@ -205,9 +205,9 @@ export default function MyAccount() {
   const subscription = useMemo(() => {
     const priceDisplay =
       plan === "annual"
-        ? "£300/year (equivalent £25/month)"
+        ? paywallOfferPriceLine("annual")
         : plan === "monthly"
-        ? `£${MARKTR_PRO_MONTHLY_PLAN_GBP}/month`
+        ? paywallOfferPriceLine("monthly")
         : plan === "pro"
         ? "Pro (price updating)"
         : "—";

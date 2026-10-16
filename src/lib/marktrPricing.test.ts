@@ -4,6 +4,7 @@ import {
   MARKTR_TRIAL_REMINDER_DAYS_BEFORE,
   PRICING_SALES,
   formatPaywallDay,
+  MARKTR_PAYWALL_ANNUAL_SAVINGS_BADGE,
   paywallFirstChargeAmount,
   paywallFirstChargeDate,
   paywallOfferPriceLine,
@@ -12,12 +13,12 @@ import {
 import { getMarketingPage } from "./seo";
 
 describe("pricing sales copy", () => {
-  it("keeps the exact sales section and pairs £25 with annual billing", () => {
+  it("keeps the exact sales section and pairs £15 with annual billing", () => {
     expect(PRICING_SALES.pill).toBe("One plan. Everything included.");
     expect(PRICING_SALES.h1).toBe(
       "Your own dedicated marketing team for less than one month of agency fees.",
     );
-    expect(PRICING_SALES.subhead).toContain("£25 a month, billed annually (£300 a year)");
+    expect(PRICING_SALES.subhead).toContain("£15 a month, billed annually (£180 a year)");
     expect(PRICING_SALES.costs[2].usualCost).toContain("For example");
     expect(PRICING_SALES.bridgeHighlight).toBe("less than one month");
     expect(PRICING_SALES.cta).toBe("Start your 14-day free trial");
@@ -35,9 +36,10 @@ describe("pricing sales copy", () => {
     );
     expect(formatPaywallDay(new Date(2026, 9, 24))).toBe("24 Oct");
     expect(formatPaywallDay(paywallFirstChargeDate(new Date(2026, 9, 20)))).toBe("3 Nov");
-    expect(paywallOfferPriceLine("annual")).toBe("£25/month, billed annually (£300 a year)");
-    expect(paywallOfferPriceLine("monthly")).toBe("£35/month, billed monthly");
-    expect(paywallFirstChargeAmount("annual")).toBe("£300/year");
-    expect(paywallFirstChargeAmount("monthly")).toBe("£35/month");
+    expect(paywallOfferPriceLine("annual")).toBe("£15/month, billed annually (£180 a year)");
+    expect(paywallOfferPriceLine("monthly")).toBe("£25/month, billed monthly");
+    expect(paywallFirstChargeAmount("annual")).toBe("£180/year");
+    expect(paywallFirstChargeAmount("monthly")).toBe("£25/month");
+    expect(MARKTR_PAYWALL_ANNUAL_SAVINGS_BADGE).toBe("Save £120 a year");
   });
 });

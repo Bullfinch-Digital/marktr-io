@@ -368,6 +368,11 @@ Deno.serve(async (req) => {
       line_items: [{ price: priceId, quantity: 1 }],
       subscription_data: {
         trial_period_days: 14,
+        trial_settings: {
+          end_behavior: {
+            missing_payment_method: "cancel",
+          },
+        },
         metadata: { ...userMetadata, plan },
       },
       ...(user?.id ? { client_reference_id: user.id } : {}),
@@ -388,9 +393,9 @@ Deno.serve(async (req) => {
           : {}),
         plan,
       },
-      // Promo field on Checkout; skip card when a 100%-off forever coupon zeroes the total.
+      // Promo field on Checkout. A code does not skip the card; Checkout always collects one.
       allow_promotion_codes: true,
-      payment_method_collection: "if_required",
+      payment_method_collection: "always",
       success_url: successUrl,
       cancel_url: body.cancelUrl,
     });

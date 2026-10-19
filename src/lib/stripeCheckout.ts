@@ -1,5 +1,5 @@
 import { supabase } from "../config/supabase";
-import { clearPendingCheckoutPlan } from "../utils/pendingCheckout";
+import { clearPendingCheckoutPlan, thisTabOwnsFreshClaim } from "../utils/pendingCheckout";
 import { getFirstTouchParams, getGaClientId } from "./analytics";
 import { type CheckoutPlan, parseCheckoutPlan, priceEnvName, priceIdForPlan } from "./checkoutPlans";
 
@@ -9,7 +9,8 @@ export type StripeCheckoutResult =
   | { status: "redirect"; url: string }
   | { status: "already_subscribed"; portalUrl?: string | null }
   | { status: "email_already_subscribed"; email?: string | null; portalUrl?: string | null; plan: CheckoutPlan }
-  | { status: "error"; message: string };
+  | { status: "error"; message: string }
+  | { status: "claimed_elsewhere" };
 
 const LAST_CHECKOUT_PLAN_KEY = "marktr_checkout_plan";
 
@@ -125,16 +126,21 @@ export async function createStripeCheckoutSession(
     return { status: "error", message: "Checkout URL missing" };
   }
 
-  clearPendingCheckoutPlan();
+  // Leave the stored intent in place until this tab actually navigates.
+  // The other tab can still take over the claim before that.
   return { status: "redirect", url: redirectUrl };
 }
 
 export async function redirectToStripeCheckout(
   plan: CheckoutPlan | "yearly" | "monthly" | string = "annual",
-  options?: { force?: boolean }
+  options?: { force?: boolean; honorClaim?: boolean }
 ): Promise<StripeCheckoutResult> {
   const result = await createStripeCheckoutSession(plan, options);
   if (result.status === "redirect") {
+    if (options?.honorClaim && !thisTabOwnsFreshClaim()) {
+      return { status: "claimed_elsewhere" };
+    }
+    clearPendingCheckoutPlan();
     window.location.assign(result.url);
   }
   return result;

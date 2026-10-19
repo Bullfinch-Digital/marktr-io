@@ -216,3 +216,151 @@ export function clearPendingCheckoutPlan() {
   clearIntentId();
   console.log("[pendingCheckout] cleared");
 }
+
+const CLAIM_KEY = "marktr_pending_checkout_claim";
+const TAB_ID_KEY = "marktr_checkout_tab_id";
+/** Another tab may take over a claim older than this. */
+export const CHECKOUT_CLAIM_TTL_MS = 30_000;
+const CLAIM_SETTLE_MS = 50;
+
+type CheckoutClaim = {
+  tabId: string;
+  intentId: string;
+  claimedAt: number;
+};
+
+export function getCheckoutTabId(): string {
+  try {
+    const existing = sessionStorage.getItem(TAB_ID_KEY);
+    if (existing) return existing;
+    const id = newIntentId();
+    sessionStorage.setItem(TAB_ID_KEY, id);
+    return id;
+  } catch {
+    return "tab_fallback";
+  }
+}
+
+function readClaim(): CheckoutClaim | null {
+  try {
+    const raw = localStorage.getItem(CLAIM_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<CheckoutClaim>;
+    if (
+      typeof parsed.tabId !== "string" ||
+      typeof parsed.intentId !== "string" ||
+      typeof parsed.claimedAt !== "number"
+    ) {
+      return null;
+    }
+    return {
+      tabId: parsed.tabId,
+      intentId: parsed.intentId,
+      claimedAt: parsed.claimedAt,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writeClaim(claim: CheckoutClaim) {
+  try {
+    localStorage.setItem(CLAIM_KEY, JSON.stringify(claim));
+  } catch {
+    // ignore
+  }
+}
+
+function claimIsFresh(claim: CheckoutClaim, now: number): boolean {
+  return now - claim.claimedAt < CHECKOUT_CLAIM_TTL_MS;
+}
+
+function resolveClaimTarget(nextOrSearch?: string | null): {
+  plan: PendingCheckoutPlan;
+  intentId: string;
+} | null {
+  const plan = getResumablePendingCheckoutPlan(nextOrSearch);
+  if (!plan) return null;
+  const stored = parseStored(readRaw());
+  if (stored?.intentId) return { plan, intentId: stored.intentId };
+  const fromUrl = nextOrSearch ? getCheckoutPlanFromPath(nextOrSearch) : null;
+  if (fromUrl) return { plan, intentId: `url:${fromUrl}` };
+  return { plan, intentId: `plan:${plan}` };
+}
+
+/** True when a different tab holds an unexpired claim on the current intent. */
+export function otherTabHoldsFreshCheckoutClaim(intentId?: string | null): boolean {
+  const claim = readClaim();
+  if (!claim || !claimIsFresh(claim, Date.now())) return false;
+  if (claim.tabId === getCheckoutTabId()) return false;
+  if (intentId && claim.intentId !== intentId) return false;
+  return true;
+}
+
+/**
+ * True when this tab may still send the browser to Stripe.
+ * A missing or expired claim does not block (direct, same-tab checkout).
+ */
+export function thisTabOwnsFreshClaim(): boolean {
+  const claim = readClaim();
+  if (!claim || !claimIsFresh(claim, Date.now())) return true;
+  return claim.tabId === getCheckoutTabId();
+}
+
+export function releaseCheckoutClaim() {
+  const claim = readClaim();
+  if (!claim || claim.tabId !== getCheckoutTabId()) return;
+  try {
+    localStorage.removeItem(CLAIM_KEY);
+  } catch {
+    // ignore
+  }
+}
+
+/**
+ * Claim the stored trial intent for this tab.
+ * A fresh claim owned by another tab returns null unless `takeover` is set.
+ * Claims older than 30 seconds can be taken over.
+ * The short settle lets the last writer win if two tabs claim together.
+ */
+export async function claimResumablePendingCheckout(
+  nextOrSearch?: string | null,
+  options?: { takeover?: boolean }
+): Promise<PendingCheckoutPlan | null> {
+  const target = resolveClaimTarget(nextOrSearch);
+  if (!target) return null;
+
+  const tabId = getCheckoutTabId();
+  const now = Date.now();
+  const existing = readClaim();
+  // Any fresh claim from another tab blocks, even if the stored intent was
+  // already cleared and this tab only still sees the plan on the return URL.
+  if (
+    !options?.takeover &&
+    existing &&
+    existing.tabId !== tabId &&
+    claimIsFresh(existing, now)
+  ) {
+    return null;
+  }
+
+  const claim: CheckoutClaim = {
+    tabId,
+    intentId: target.intentId,
+    claimedAt: now,
+  };
+  writeClaim(claim);
+
+  await new Promise((resolve) => setTimeout(resolve, CLAIM_SETTLE_MS));
+
+  const verified = readClaim();
+  if (
+    !verified ||
+    verified.tabId !== tabId ||
+    verified.claimedAt !== now ||
+    verified.intentId !== target.intentId
+  ) {
+    return null;
+  }
+  return target.plan;
+}

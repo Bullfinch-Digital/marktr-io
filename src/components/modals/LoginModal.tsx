@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 // AuthModalProvider must stay inside <Router>: LegalAgreementCheckbox uses
 // react-router <Link>, and a missing NavigationContext white-screens the app
 // ("Cannot destructure property 'basename'").
@@ -9,7 +9,10 @@ import { Label } from "../ui/label";
 import { useAuth } from "../../contexts/AuthContext";
 import { GoogleIcon } from "../icons/GoogleIcon";
 import { signUpWithEmail } from "../../lib/supabaseAuth";
+import { fetchUserHasProAccess } from "../../lib/proAccess";
+import { redirectToStripeCheckout } from "../../lib/stripeCheckout";
 import { getFirstTouchParams, track } from "../../lib/analytics";
+import { wasAuthConfirmedInOtherTab } from "../../utils/crossTabAuth";
 import {
   buildLinkBody,
   clearPendingGuestLink,
@@ -25,8 +28,11 @@ import { useLegalAgreementGate } from "../../hooks/useLegalAgreementGate";
 import { stashPendingLegalAcceptance } from "../../lib/legal";
 import {
   checkoutResumePath,
+  claimResumablePendingCheckout,
+  clearPendingCheckoutPlan,
   getCheckoutPlanFromPath,
   getPendingCheckoutPlan,
+  releaseCheckoutClaim,
 } from "../../utils/pendingCheckout";
 
 const RESEND_COOLDOWN_SECONDS = 60;
@@ -76,7 +82,7 @@ export function LoginModal({
   initialMode = "signup",
   redirectPath,
 }: LoginModalProps) {
-  const { signInWithGoogle } = useAuth();
+  const { signInWithGoogle, user } = useAuth();
   const handleClose = () => {
     onClose();
   };
@@ -93,6 +99,10 @@ export function LoginModal({
   const [appliedOpenKey, setAppliedOpenKey] = useState<AuthFormMode | null>(null);
   const [accountExists, setAccountExists] = useState(false);
   const [awaitingConfirm, setAwaitingConfirm] = useState(false);
+  const [confirmedElsewhere, setConfirmedElsewhere] = useState(false);
+  const [continuingHere, setContinuingHere] = useState(false);
+  const [continueError, setContinueError] = useState<string | null>(null);
+  const confirmedTrackedRef = useRef(false);
   const [confirmEmail, setConfirmEmail] = useState("");
   const [confirmRedirectTo, setConfirmRedirectTo] = useState("");
   const [resendUi, setResendUi] = useState<ResendUiState>({ status: "ready" });
@@ -119,10 +129,24 @@ export function LoginModal({
       setAccountExists(false);
       setError(null);
       setAwaitingConfirm(false);
+      setConfirmedElsewhere(false);
+      setContinuingHere(false);
+      setContinueError(null);
+      confirmedTrackedRef.current = false;
       setResendUi({ status: "ready" });
       setResendError(false);
     }
   }
+
+  useEffect(() => {
+    if (!isOpen || !awaitingConfirm || confirmedElsewhere) return;
+    if (!isRealUser(user) || !wasAuthConfirmedInOtherTab()) return;
+    setConfirmedElsewhere(true);
+    if (!confirmedTrackedRef.current) {
+      confirmedTrackedRef.current = true;
+      track("auth_confirmed_other_tab");
+    }
+  }, [isOpen, awaitingConfirm, confirmedElsewhere, user]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -276,6 +300,43 @@ export function LoginModal({
     }
   };
 
+  const handleContinueHere = async () => {
+    if (continuingHere) return;
+    setContinuingHere(true);
+    setContinueError(null);
+    try {
+      const next = resolvePostAuthPath(redirectPath);
+      const plan = await claimResumablePendingCheckout(next, { takeover: true });
+      if (!plan) {
+        setContinueError("Checkout already continued in the other tab.");
+        setContinuingHere(false);
+        return;
+      }
+      const { data } = await supabase.auth.getSession();
+      const sessionUser = data.session?.user ?? null;
+      if (sessionUser?.id && (await fetchUserHasProAccess(sessionUser.id))) {
+        clearPendingCheckoutPlan();
+        releaseCheckoutClaim();
+        window.location.assign(`${window.location.origin}/dashboard`);
+        return;
+      }
+      const checkout = await redirectToStripeCheckout(plan, { honorClaim: true });
+      if (checkout.status === "redirect") return;
+      if (checkout.status === "claimed_elsewhere") {
+        setContinueError("Checkout already continued in the other tab.");
+      } else if (checkout.status === "already_subscribed") {
+        window.location.assign(`${window.location.origin}/dashboard`);
+        return;
+      } else {
+        setContinueError("Couldn't start checkout. Please try again.");
+      }
+      setContinuingHere(false);
+    } catch {
+      setContinueError("Couldn't start checkout. Please try again.");
+      setContinuingHere(false);
+    }
+  };
+
   const switchMode = (next: AuthFormMode) => {
     setMode(next);
     setPassword("");
@@ -346,12 +407,18 @@ export function LoginModal({
       <div className="auth-modal-panel w-full max-w-md p-6 sm:p-8">
         <div className="mb-5 flex items-start justify-between gap-4">
           <div>
-            <h2 className="mb-2 font-['Fraunces'] text-2xl font-bold text-[#101A26]">
-              {mode === "signup" ? "Create your account" : "Welcome back"}
+            <h2 className="mb-2 break-words font-['Fraunces'] text-xl font-bold leading-snug text-[#101A26] sm:text-2xl">
+              {confirmedElsewhere
+                ? "You're confirmed. Continue in the tab we just opened."
+                : mode === "signup"
+                  ? "Create your account"
+                  : "Welcome back"}
             </h2>
-            <p className="font-['Plus_Jakarta_Sans'] text-sm leading-relaxed text-[#101A26]/70">
-              New here? Signing in with Google creates your account automatically.
-            </p>
+            {confirmedElsewhere ? null : (
+              <p className="font-['Plus_Jakarta_Sans'] text-sm leading-relaxed text-[#101A26]/70">
+                New here? Signing in with Google creates your account automatically.
+              </p>
+            )}
           </div>
           <button
             onClick={() => {
@@ -364,6 +431,22 @@ export function LoginModal({
           </button>
         </div>
 
+        {confirmedElsewhere ? (
+          <div className="space-y-3">
+            <button
+              type="button"
+              onClick={() => void handleContinueHere()}
+              disabled={continuingHere}
+              className="inline-flex min-h-11 items-center py-2 text-left font-['Plus_Jakarta_Sans'] text-sm text-[#101A26]/70 underline underline-offset-4 transition-colors hover:text-[#101A26] disabled:cursor-wait disabled:opacity-60"
+            >
+              {continuingHere ? "Continuing…" : "Continue here instead"}
+            </button>
+            {continueError ? (
+              <p className="auth-modal-error font-['Plus_Jakarta_Sans'] text-sm">{continueError}</p>
+            ) : null}
+          </div>
+        ) : (
+        <>
         <div className="mb-6">
           <LegalAgreementCheckbox
             id="login-modal-legal"
@@ -518,6 +601,8 @@ export function LoginModal({
               : "Already have an account? Sign in"}
           </button>
         </form>
+        )}
+        </>
         )}
       </div>
     </div>

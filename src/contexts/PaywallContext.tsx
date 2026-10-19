@@ -7,11 +7,14 @@ import useSubscription from "../hooks/useSubscription";
 import { supabase } from "../config/supabase";
 import { useAuth } from "./AuthContext";
 import { useAuthModal } from "./AuthModalContext";
+import { wasAuthConfirmedInOtherTab } from "../utils/crossTabAuth";
 import {
   checkoutResumePath,
+  claimResumablePendingCheckout,
   clearPendingCheckoutPlan,
   getResumablePendingCheckoutPlan,
   setPendingCheckoutPlan,
+  thisTabOwnsFreshClaim,
 } from "../utils/pendingCheckout";
 import {
   AlertDialog,
@@ -119,7 +122,7 @@ export function PaywallProvider({ children }: { children: React.ReactNode }) {
   const normalisePlan = (p?: unknown): Plan => parseCheckoutPlan(p, true) ?? "annual";
 
   const proceedToStripe = useCallback(
-    async (plan: Plan, force?: boolean) => {
+    async (plan: Plan, force?: boolean, options?: { honorClaim?: boolean }) => {
       checkoutStartedRef.current = true;
       const nextPlan = normalisePlan(plan);
 
@@ -158,7 +161,18 @@ export function PaywallProvider({ children }: { children: React.ReactNode }) {
           throw new Error(result.message);
         }
 
+        if (result.status !== "redirect") {
+          setIsStartingCheckout(false);
+          return;
+        }
+
+        if (options?.honorClaim && !thisTabOwnsFreshClaim()) {
+          console.log("[paywall] checkout claim lost to another tab");
+          setIsStartingCheckout(false);
+          return;
+        }
         console.log("[paywall] branch: redirecting to checkout", result.url);
+        clearPendingCheckoutPlan();
         window.location.assign(result.url);
       } catch (err) {
         console.error("[paywall] proceedToStripe failed", err);
@@ -203,9 +217,12 @@ export function PaywallProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // AuthCallback owns the post-OAuth checkout handoff — avoid a double Stripe session.
     if (window.location.pathname === "/auth/callback") return;
+    // Email confirmation opened in another tab. That tab claims the intent.
+    if (wasAuthConfirmedInOtherTab()) return;
     if (authLoading) return;
     if (!user || (user as { is_anonymous?: boolean }).is_anonymous) return;
     if (!subscriptionReady) return;
+    if (resumeCheckoutRef.current) return;
 
     // Require explicit trial intent — URL resumeCheckout or a matching stored intent.
     const pendingPlan = getResumablePendingCheckoutPlan(window.location.search);
@@ -214,7 +231,6 @@ export function PaywallProvider({ children }: { children: React.ReactNode }) {
       clearPendingCheckoutPlan();
       return;
     }
-    if (resumeCheckoutRef.current) return;
 
     // Prefer AuthContext session; fall back to getSession for the OAuth race where
     // `user` flips before the access token is readable.
@@ -224,7 +240,7 @@ export function PaywallProvider({ children }: { children: React.ReactNode }) {
         !(session.user as { is_anonymous?: boolean }).is_anonymous
     );
 
-    resumeCheckoutRef.current = true;
+    let cancelled = false;
     console.log("[paywall] resuming pending checkout after auth", { plan: pendingPlan });
 
     void (async () => {
@@ -238,17 +254,25 @@ export function PaywallProvider({ children }: { children: React.ReactNode }) {
             (sessionUser as { is_anonymous?: boolean }).is_anonymous
           ) {
             console.warn("[paywall] pending checkout resume deferred — session not ready");
-            resumeCheckoutRef.current = false;
             return;
           }
         }
+        if (cancelled || resumeCheckoutRef.current) return;
+        if (wasAuthConfirmedInOtherTab()) return;
 
-        await proceedToStripe(pendingPlan);
+        const claimed = await claimResumablePendingCheckout(window.location.search);
+        if (cancelled || !claimed || resumeCheckoutRef.current) return;
+        resumeCheckoutRef.current = true;
+        await proceedToStripe(claimed, false, { honorClaim: true });
       } catch (err) {
         console.error("[paywall] pending checkout resume failed", err);
         resumeCheckoutRef.current = false;
       }
     })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [user, session, authLoading, subscriptionReady, isPro, proceedToStripe]);
 
   const value = useMemo(

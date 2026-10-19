@@ -6,8 +6,10 @@ import { runPostAuthPipelineWithTimeout } from "../lib/postAuthPipeline";
 import { fetchUserHasProAccess } from "../lib/proAccess";
 import { redirectToStripeCheckout } from "../lib/stripeCheckout";
 import {
+  claimResumablePendingCheckout,
   clearPendingCheckoutPlan,
-  getResumablePendingCheckoutPlan,
+  otherTabHoldsFreshCheckoutClaim,
+  releaseCheckoutClaim,
 } from "../utils/pendingCheckout";
 import {
   clearOAuthNext,
@@ -30,30 +32,46 @@ function navigateAfterAuth(next: string) {
   window.location.replace(safeNext);
 }
 
-async function completeOAuthHandoff(userId: string, email: string | null, next: string) {
+async function completeOAuthHandoff(
+  userId: string,
+  email: string | null,
+  next: string,
+  setStatus: (message: string) => void
+): Promise<"redirect" | "yield" | "done"> {
   await runPostAuthPipelineWithTimeout(userId, email);
 
   // Resume Stripe when this auth was part of an explicit Start-trial click.
   // Intent lives in the next URL (new browser / email link) or stored intent
   // (new tab in the same browser). A user who already has access skips checkout.
-  const pendingPlan = getResumablePendingCheckoutPlan(next);
+  // Claim first so the tab that was waiting on the email cannot also start Stripe.
+  const pendingPlan = await claimResumablePendingCheckout(next);
+  if (!pendingPlan && otherTabHoldsFreshCheckoutClaim()) {
+    return "yield";
+  }
   if (pendingPlan) {
     const hasAccess = await fetchUserHasProAccess(userId);
     if (!hasAccess) {
-      const checkout = await redirectToStripeCheckout(pendingPlan);
+      setStatus("Starting your trial…");
+      const checkout = await redirectToStripeCheckout(pendingPlan, { honorClaim: true });
       if (checkout.status === "redirect") {
-        return;
+        return "redirect";
+      }
+      if (checkout.status === "claimed_elsewhere") {
+        return "yield";
       }
       if (checkout.status === "error") {
         console.warn("[AuthCallback] checkout resume failed", checkout.message);
       }
       clearPendingCheckoutPlan();
+      releaseCheckoutClaim();
     } else {
       clearPendingCheckoutPlan();
+      releaseCheckoutClaim();
     }
   }
 
   navigateAfterAuth(next);
+  return "done";
 }
 
 export default function AuthCallback() {
@@ -75,7 +93,15 @@ export default function AuthCallback() {
 
       if (!authLoading && user && !isAnonymous && !hasOAuth) {
         handledRef.current = true;
-        await completeOAuthHandoff(user.id, user.email ?? null, next);
+        const outcome = await completeOAuthHandoff(
+          user.id,
+          user.email ?? null,
+          next,
+          setStatusMessage
+        );
+        if (outcome === "yield") {
+          setStatusMessage("You're confirmed. Continue in the other tab.");
+        }
         return;
       }
 
@@ -93,11 +119,15 @@ export default function AuthCallback() {
           setStatusMessage("Saving your results…");
           const sessionUser = data.session?.user;
           if (sessionUser?.id) {
-            await completeOAuthHandoff(
+            const outcome = await completeOAuthHandoff(
               sessionUser.id,
               sessionUser.email ?? null,
-              next
+              next,
+              setStatusMessage
             );
+            if (outcome === "yield") {
+              setStatusMessage("You're confirmed. Continue in the other tab.");
+            }
           } else {
             navigateAfterAuth(next);
           }
@@ -115,11 +145,15 @@ export default function AuthCallback() {
           setStatusMessage("Saving your results…");
           const sessionUser = data.session?.user;
           if (sessionUser?.id) {
-            await completeOAuthHandoff(
+            const outcome = await completeOAuthHandoff(
               sessionUser.id,
               sessionUser.email ?? null,
-              next
+              next,
+              setStatusMessage
             );
+            if (outcome === "yield") {
+              setStatusMessage("You're confirmed. Continue in the other tab.");
+            }
           } else {
             navigateAfterAuth(next);
           }
@@ -132,7 +166,15 @@ export default function AuthCallback() {
           if (sessionUser && !(sessionUser as { is_anonymous?: boolean }).is_anonymous) {
             handledRef.current = true;
             setStatusMessage("Saving your results…");
-            await completeOAuthHandoff(sessionUser.id, sessionUser.email ?? null, next);
+            const outcome = await completeOAuthHandoff(
+              sessionUser.id,
+              sessionUser.email ?? null,
+              next,
+              setStatusMessage
+            );
+            if (outcome === "yield") {
+              setStatusMessage("You're confirmed. Continue in the other tab.");
+            }
           } else if (!hasOAuth) {
             handledRef.current = true;
             navigate("/login", { replace: true });
@@ -150,8 +192,9 @@ export default function AuthCallback() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md text-center">
-        <div className="text-4xl font-['Fraunces'] mb-3">{statusMessage}</div>
-        {statusMessage === "Saving your results…" && (
+        <div className="mb-3 font-['Fraunces'] text-3xl leading-tight sm:text-4xl">{statusMessage}</div>
+        {(statusMessage === "Saving your results…" ||
+          statusMessage === "Starting your trial…") && (
           <div
             className="w-10 h-10 mx-auto mb-4 border-4 border-button-green border-t-transparent rounded-full animate-spin"
             aria-hidden
@@ -160,7 +203,11 @@ export default function AuthCallback() {
         <p className="text-foreground/70 mb-8">
           {statusMessage === "Saving your results…"
             ? "Creating your brand and saving health, story, and customer profiles."
-            : "Just finishing up your account."}
+            : statusMessage === "You're confirmed. Continue in the other tab."
+              ? "Checkout is continuing in the tab that was waiting for your email."
+              : statusMessage === "Starting your trial…"
+                ? "Taking you to checkout."
+                : "Just finishing up your account."}
         </p>
 
         {error && (

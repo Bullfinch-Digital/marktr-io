@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
+import { wasAuthConfirmedInOtherTab } from "../../utils/crossTabAuth";
 import { getResumablePendingCheckoutPlan } from "../../utils/pendingCheckout";
 import {
   clearOAuthNext,
@@ -56,6 +57,9 @@ export function OAuthReturnHandler() {
     // Session token may lag briefly behind `user` after OAuth — wait for it so we
     // don't clear oauth_next and bounce before the handoff can complete.
     if (!session?.access_token) return;
+
+    // The confirming tab owns checkout. This tab keeps its current page.
+    if (wasAuthConfirmedInOtherTab()) return;
 
     const pendingNext = getOAuthNext();
     const pendingCheckout = getResumablePendingCheckoutPlan(

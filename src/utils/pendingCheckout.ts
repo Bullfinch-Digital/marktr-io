@@ -36,6 +36,14 @@ function writeRaw(value: string) {
   }
 }
 
+function readLocalRaw(): string | null {
+  try {
+    return localStorage.getItem(STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
 function readRaw(): string | null {
   try {
     const fromSession = sessionStorage.getItem(STORAGE_KEY);
@@ -43,11 +51,7 @@ function readRaw(): string | null {
   } catch {
     // ignore
   }
-  try {
-    return localStorage.getItem(STORAGE_KEY);
-  } catch {
-    return null;
-  }
+  return readLocalRaw();
 }
 
 function removeRaw() {
@@ -77,6 +81,14 @@ function setIntentId(intentId: string) {
   }
 }
 
+function getLocalIntentId(): string | null {
+  try {
+    return localStorage.getItem(INTENT_KEY);
+  } catch {
+    return null;
+  }
+}
+
 function getIntentId(): string | null {
   try {
     const fromSession = sessionStorage.getItem(INTENT_KEY);
@@ -84,11 +96,7 @@ function getIntentId(): string | null {
   } catch {
     // ignore
   }
-  try {
-    return localStorage.getItem(INTENT_KEY);
-  } catch {
-    return null;
-  }
+  return getLocalIntentId();
 }
 
 function clearIntentId() {
@@ -142,6 +150,31 @@ export function checkoutResumePath(
   return `${url.pathname}?${url.searchParams.toString()}`;
 }
 
+/** Email confirmation redirect. Top-level params so a new tab does not need storage. */
+export function trialConfirmRedirectUrl(
+  origin: string,
+  plan?: PendingCheckoutPlan | "monthly" | "yearly"
+): string {
+  const nextPlan = parseCheckoutPlan(plan, true) ?? "annual";
+  const url = new URL("/auth/callback", origin);
+  url.searchParams.set("intent", "trial");
+  url.searchParams.set("plan", nextPlan);
+  return url.toString();
+}
+
+/** `?intent=trial&plan=annual|monthly` on the auth callback (or any URL/search string). */
+export function getTrialPlanFromSearch(pathOrSearch: string): PendingCheckoutPlan | null {
+  try {
+    const url = pathOrSearch.startsWith("?")
+      ? new URL(pathOrSearch, "https://marktr.local")
+      : new URL(pathOrSearch, "https://marktr.local");
+    if (url.searchParams.get("intent") !== "trial") return null;
+    return parseCheckoutPlan(url.searchParams.get("plan"));
+  } catch {
+    return null;
+  }
+}
+
 export function getCheckoutPlanFromPath(pathOrSearch: string): PendingCheckoutPlan | null {
   try {
     const url = pathOrSearch.startsWith("?")
@@ -183,17 +216,22 @@ export function getPendingCheckoutPlan(): PendingCheckoutPlan | null {
  * Clears leftovers that have no matching intent.
  */
 export function getResumablePendingCheckoutPlan(
-  nextOrSearch?: string | null
+  nextOrSearch?: string | null,
+  options?: { storage?: "any" | "local" }
 ): PendingCheckoutPlan | null {
+  const fromTrial = nextOrSearch ? getTrialPlanFromSearch(nextOrSearch) : null;
+  if (fromTrial) return fromTrial;
+
   const fromUrl = nextOrSearch ? getCheckoutPlanFromPath(nextOrSearch) : null;
   if (fromUrl) {
     return fromUrl;
   }
 
-  const stored = parseStored(readRaw());
+  const localOnly = options?.storage === "local";
+  const stored = parseStored(localOnly ? readLocalRaw() : readRaw());
   if (!stored) return null;
 
-  const intentId = getIntentId();
+  const intentId = localOnly ? getLocalIntentId() : getIntentId();
   if (intentId && stored.intentId && intentId === stored.intentId) {
     return stored.plan;
   }
@@ -275,14 +313,19 @@ function claimIsFresh(claim: CheckoutClaim, now: number): boolean {
   return now - claim.claimedAt < CHECKOUT_CLAIM_TTL_MS;
 }
 
-function resolveClaimTarget(nextOrSearch?: string | null): {
+function resolveClaimTarget(
+  nextOrSearch?: string | null,
+  options?: { storage?: "any" | "local" }
+): {
   plan: PendingCheckoutPlan;
   intentId: string;
 } | null {
-  const plan = getResumablePendingCheckoutPlan(nextOrSearch);
+  const plan = getResumablePendingCheckoutPlan(nextOrSearch, options);
   if (!plan) return null;
-  const stored = parseStored(readRaw());
+  const stored = parseStored(options?.storage === "local" ? readLocalRaw() : readRaw());
   if (stored?.intentId) return { plan, intentId: stored.intentId };
+  const fromTrial = nextOrSearch ? getTrialPlanFromSearch(nextOrSearch) : null;
+  if (fromTrial) return { plan, intentId: `trial:${fromTrial}` };
   const fromUrl = nextOrSearch ? getCheckoutPlanFromPath(nextOrSearch) : null;
   if (fromUrl) return { plan, intentId: `url:${fromUrl}` };
   return { plan, intentId: `plan:${plan}` };
@@ -325,9 +368,9 @@ export function releaseCheckoutClaim() {
  */
 export async function claimResumablePendingCheckout(
   nextOrSearch?: string | null,
-  options?: { takeover?: boolean }
+  options?: { takeover?: boolean; storage?: "any" | "local" }
 ): Promise<PendingCheckoutPlan | null> {
-  const target = resolveClaimTarget(nextOrSearch);
+  const target = resolveClaimTarget(nextOrSearch, options);
   if (!target) return null;
 
   const tabId = getCheckoutTabId();

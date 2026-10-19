@@ -33,6 +33,7 @@ import {
   getCheckoutPlanFromPath,
   getPendingCheckoutPlan,
   releaseCheckoutClaim,
+  trialConfirmRedirectUrl,
 } from "../../utils/pendingCheckout";
 
 const RESEND_COOLDOWN_SECONDS = 60;
@@ -266,7 +267,10 @@ export function LoginModal({
     try {
       stashPendingLegalAcceptance();
       const postAuthPath = resolvePostAuthPath(redirectPath);
-      const emailRedirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(postAuthPath)}`;
+      const trialPlan = getCheckoutPlanFromPath(postAuthPath) ?? getPendingCheckoutPlan();
+      const emailRedirectTo = trialPlan
+        ? trialConfirmRedirectUrl(window.location.origin, trialPlan)
+        : `${window.location.origin}/auth/callback?next=${encodeURIComponent(postAuthPath)}`;
       const outcome = await signUpWithEmail({
         email: resolvedEmail,
         password: resolvedPassword,

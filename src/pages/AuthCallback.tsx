@@ -17,6 +17,29 @@ import {
   resolveOAuthNext,
 } from "../utils/oauthRedirect";
 
+function stripTrialIntentParams() {
+  const url = new URL(window.location.href);
+  if (!url.searchParams.has("intent") && !url.searchParams.has("plan")) return;
+  url.searchParams.delete("intent");
+  url.searchParams.delete("plan");
+  const cleaned = `${url.pathname}${url.search}${url.hash}`;
+  window.history.replaceState(window.history.state, "", cleaned);
+}
+
+/** URL intent plus resumeCheckout nested in `next`, for the claim lookup. */
+function handoffSearch(locationSearch: string, next: string): string {
+  const merged = new URLSearchParams(locationSearch);
+  try {
+    const nextUrl = new URL(next, "https://marktr.local");
+    const resume = nextUrl.searchParams.get("resumeCheckout");
+    if (resume && !merged.get("resumeCheckout")) merged.set("resumeCheckout", resume);
+  } catch {
+    // keep the callback search
+  }
+  const query = merged.toString();
+  return query ? `?${query}` : "";
+}
+
 function navigateAfterAuth(next: string) {
   // Strip resumeCheckout from the landing URL so bookmarks/share don't re-trigger paywall.
   let safeNext = next.startsWith("/") ? next : "/dashboard";
@@ -36,22 +59,24 @@ async function completeOAuthHandoff(
   userId: string,
   email: string | null,
   next: string,
+  search: string,
   setStatus: (message: string) => void
 ): Promise<"redirect" | "yield" | "done"> {
   await runPostAuthPipelineWithTimeout(userId, email);
 
-  // Resume Stripe when this auth was part of an explicit Start-trial click.
-  // Intent lives in the next URL (new browser / email link) or stored intent
-  // (new tab in the same browser). A user who already has access skips checkout.
-  // Claim first so the tab that was waiting on the email cannot also start Stripe.
-  const pendingPlan = await claimResumablePendingCheckout(next);
+  // URL intent first (email confirmation). Fall back to localStorage only —
+  // sessionStorage does not exist in the tab the email link opens.
+  // Claim so the tab that was waiting on the email cannot also start Stripe.
+  const pendingPlan = await claimResumablePendingCheckout(handoffSearch(search, next), {
+    storage: "local",
+  });
   if (!pendingPlan && otherTabHoldsFreshCheckoutClaim()) {
     return "yield";
   }
   if (pendingPlan) {
     const hasAccess = await fetchUserHasProAccess(userId);
     if (!hasAccess) {
-      setStatus("Starting your trial…");
+      setStatus("Setting up your free trial...");
       const checkout = await redirectToStripeCheckout(pendingPlan, { honorClaim: true });
       if (checkout.status === "redirect") {
         return "redirect";
@@ -64,10 +89,11 @@ async function completeOAuthHandoff(
       }
       clearPendingCheckoutPlan();
       releaseCheckoutClaim();
-    } else {
-      clearPendingCheckoutPlan();
-      releaseCheckoutClaim();
+      navigateAfterAuth("/dashboard");
+      return "done";
     }
+    clearPendingCheckoutPlan();
+    releaseCheckoutClaim();
   }
 
   navigateAfterAuth(next);
@@ -87,6 +113,8 @@ export default function AuthCallback() {
 
     const run = async () => {
       const next = resolveOAuthNext(location.search);
+      const search = location.search;
+      stripTrialIntentParams();
       const url = new URL(window.location.href);
       const hasOAuth = hasOAuthCallbackParams(url);
       const isAnonymous = Boolean((user as { is_anonymous?: boolean })?.is_anonymous);
@@ -97,6 +125,7 @@ export default function AuthCallback() {
           user.id,
           user.email ?? null,
           next,
+          search,
           setStatusMessage
         );
         if (outcome === "yield") {
@@ -123,6 +152,7 @@ export default function AuthCallback() {
               sessionUser.id,
               sessionUser.email ?? null,
               next,
+              search,
               setStatusMessage
             );
             if (outcome === "yield") {
@@ -149,6 +179,7 @@ export default function AuthCallback() {
               sessionUser.id,
               sessionUser.email ?? null,
               next,
+              search,
               setStatusMessage
             );
             if (outcome === "yield") {
@@ -170,6 +201,7 @@ export default function AuthCallback() {
               sessionUser.id,
               sessionUser.email ?? null,
               next,
+              search,
               setStatusMessage
             );
             if (outcome === "yield") {
@@ -194,7 +226,7 @@ export default function AuthCallback() {
       <div className="w-full max-w-md text-center">
         <div className="mb-3 font-['Fraunces'] text-3xl leading-tight sm:text-4xl">{statusMessage}</div>
         {(statusMessage === "Saving your results…" ||
-          statusMessage === "Starting your trial…") && (
+          statusMessage === "Setting up your free trial...") && (
           <div
             className="w-10 h-10 mx-auto mb-4 border-4 border-button-green border-t-transparent rounded-full animate-spin"
             aria-hidden
@@ -205,7 +237,7 @@ export default function AuthCallback() {
             ? "Creating your brand and saving health, story, and customer profiles."
             : statusMessage === "You're confirmed. Continue in the other tab."
               ? "Checkout is continuing in the tab that was waiting for your email."
-              : statusMessage === "Starting your trial…"
+              : statusMessage === "Setting up your free trial..."
                 ? "Taking you to checkout."
                 : "Just finishing up your account."}
         </p>

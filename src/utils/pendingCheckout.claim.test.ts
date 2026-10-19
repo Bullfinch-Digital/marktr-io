@@ -4,12 +4,15 @@ import {
   claimResumablePendingCheckout,
   clearPendingCheckoutPlan,
   getCheckoutTabId,
+  getResumablePendingCheckoutPlan,
   otherTabHoldsFreshCheckoutClaim,
   setPendingCheckoutPlan,
   thisTabOwnsFreshClaim,
+  trialConfirmRedirectUrl,
 } from "./pendingCheckout";
 
 const PLAN_KEY = "marktr_pending_checkout_plan";
+const INTENT_KEY = "marktr_checkout_resume_intent";
 const CLAIM_KEY = "marktr_pending_checkout_claim";
 
 function storedIntentId(): string {
@@ -72,5 +75,38 @@ describe("pending checkout claim", () => {
     );
     expect(await racing).toBeNull();
     expect(thisTabOwnsFreshClaim()).toBe(false);
+  });
+
+  it("reads intent=trial from the callback URL and ignores sessionStorage", async () => {
+    expect(trialConfirmRedirectUrl("https://www.marktr.io", "monthly")).toBe(
+      "https://www.marktr.io/auth/callback?intent=trial&plan=monthly"
+    );
+    sessionStorage.setItem(
+      PLAN_KEY,
+      JSON.stringify({ plan: "monthly", intentId: "session-only", createdAt: Date.now() })
+    );
+    sessionStorage.setItem(INTENT_KEY, "session-only");
+
+    expect(
+      getResumablePendingCheckoutPlan("?intent=trial&plan=annual", { storage: "local" })
+    ).toBe("annual");
+    expect(await claimResumablePendingCheckout("?intent=trial&plan=annual", { storage: "local" })).toBe(
+      "annual"
+    );
+  });
+
+  it("falls back to localStorage and not sessionStorage", () => {
+    sessionStorage.setItem(
+      PLAN_KEY,
+      JSON.stringify({ plan: "monthly", intentId: "session-only", createdAt: Date.now() })
+    );
+    sessionStorage.setItem(INTENT_KEY, "session-only");
+    localStorage.setItem(
+      PLAN_KEY,
+      JSON.stringify({ plan: "annual", intentId: "local-intent", createdAt: Date.now() })
+    );
+    localStorage.setItem(INTENT_KEY, "local-intent");
+
+    expect(getResumablePendingCheckoutPlan(null, { storage: "local" })).toBe("annual");
   });
 });

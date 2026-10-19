@@ -35,6 +35,47 @@ function escapeStripeSearchValue(v: string) {
   return v.replace(/["\\]/g, "\\$&").trim();
 }
 
+const OLD_ANNUAL_PRICE_ID = "price_1SpxhW1x4zWkmXI3kvHmx4b3";
+
+/** First 8 characters only when they are a known Stripe key mode prefix. */
+function stripeKeyPrefix(key: string): string {
+  if (key.startsWith("sk_live_")) return "sk_live_";
+  if (key.startsWith("sk_test_")) return "sk_test_";
+  if (key.startsWith("rk_live_")) return "rk_live_";
+  if (key.startsWith("rk_test_")) return "rk_test_";
+  return "unrecognized";
+}
+
+async function logMissingPriceDiagnostic(
+  stripe: Stripe,
+  stripeKey: string,
+  priceId: string
+) {
+  let accountId: string | null = null;
+  try {
+    const account = await stripe.accounts.retrieve();
+    accountId = typeof account?.id === "string" ? account.id : null;
+  } catch {
+    accountId = null;
+  }
+
+  let oldPriceFound = false;
+  try {
+    await stripe.prices.retrieve(OLD_ANNUAL_PRICE_ID);
+    oldPriceFound = true;
+  } catch {
+    oldPriceFound = false;
+  }
+
+  console.log("[create-checkout-session] price diagnostic", {
+    keyPrefix: stripeKeyPrefix(stripeKey),
+    accountId,
+    priceId,
+    oldPriceId: OLD_ANNUAL_PRICE_ID,
+    oldPriceFound,
+  });
+}
+
 /** Must include every header the browser may send on POST (see PaywallContext fetch). */
 const CORS_ALLOW_HEADERS =
   "authorization, x-client-info, apikey, content-type, x-guest-secret";
@@ -358,6 +399,12 @@ Deno.serve(async (req) => {
       ...(user?.id ? { user_id: user.id } : {}),
       ...gaMeta,
     };
+
+    try {
+      await stripe.prices.retrieve(priceId);
+    } catch {
+      await logMissingPriceDiagnostic(stripe, stripeKey, priceId);
+    }
 
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",

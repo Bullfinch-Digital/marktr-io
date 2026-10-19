@@ -69,11 +69,23 @@ function setIntentId(intentId: string) {
   } catch {
     // ignore
   }
+  try {
+    // localStorage so email confirmation opened in a new tab still matches.
+    localStorage.setItem(INTENT_KEY, intentId);
+  } catch {
+    // ignore
+  }
 }
 
 function getIntentId(): string | null {
   try {
-    return sessionStorage.getItem(INTENT_KEY);
+    const fromSession = sessionStorage.getItem(INTENT_KEY);
+    if (fromSession) return fromSession;
+  } catch {
+    // ignore
+  }
+  try {
+    return localStorage.getItem(INTENT_KEY);
   } catch {
     return null;
   }
@@ -82,6 +94,11 @@ function getIntentId(): string | null {
 function clearIntentId() {
   try {
     sessionStorage.removeItem(INTENT_KEY);
+  } catch {
+    // ignore
+  }
+  try {
+    localStorage.removeItem(INTENT_KEY);
   } catch {
     // ignore
   }
@@ -160,9 +177,10 @@ export function getPendingCheckoutPlan(): PendingCheckoutPlan | null {
 }
 
 /**
- * Only returns a plan when this browser tab explicitly started checkout
- * (session intent) or the auth `next` URL carries resumeCheckout=….
- * Clears stale localStorage leftovers otherwise.
+ * Returns a plan when this checkout was explicitly started:
+ * the auth `next` URL carries resumeCheckout=… (survives a new browser),
+ * or the stored intent id matches in this tab or another tab of this browser.
+ * Clears leftovers that have no matching intent.
  */
 export function getResumablePendingCheckoutPlan(
   nextOrSearch?: string | null

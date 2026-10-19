@@ -218,7 +218,7 @@ export default function StartResults() {
                   </div>
                 ))}
                 <p className="font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground">
-                  Create your free account to see all {icps.length} customer profiles.
+                  Start your 14-day free trial to see all {icps.length} customer profiles.
                 </p>
               </div>
             ) : null}

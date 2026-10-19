@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "../config/supabase";
 import { useAuth } from "../contexts/AuthContext";
 import { runPostAuthPipelineWithTimeout } from "../lib/postAuthPipeline";
+import { fetchUserHasProAccess } from "../lib/proAccess";
 import { redirectToStripeCheckout } from "../lib/stripeCheckout";
 import {
   clearPendingCheckoutPlan,
@@ -32,16 +33,22 @@ function navigateAfterAuth(next: string) {
 async function completeOAuthHandoff(userId: string, email: string | null, next: string) {
   await runPostAuthPipelineWithTimeout(userId, email);
 
-  // Only resume Stripe when this auth was part of an explicit Start-trial click
-  // (session intent and/or ?resumeCheckout= on next). Ignore bare localStorage leftovers.
+  // Resume Stripe when this auth was part of an explicit Start-trial click.
+  // Intent lives in the next URL (new browser / email link) or stored intent
+  // (new tab in the same browser). A user who already has access skips checkout.
   const pendingPlan = getResumablePendingCheckoutPlan(next);
   if (pendingPlan) {
-    const checkout = await redirectToStripeCheckout(pendingPlan);
-    if (checkout.status === "redirect") {
-      return;
-    }
-    if (checkout.status === "error") {
-      console.warn("[AuthCallback] checkout resume failed", checkout.message);
+    const hasAccess = await fetchUserHasProAccess(userId);
+    if (!hasAccess) {
+      const checkout = await redirectToStripeCheckout(pendingPlan);
+      if (checkout.status === "redirect") {
+        return;
+      }
+      if (checkout.status === "error") {
+        console.warn("[AuthCallback] checkout resume failed", checkout.message);
+      }
+      clearPendingCheckoutPlan();
+    } else {
       clearPendingCheckoutPlan();
     }
   }

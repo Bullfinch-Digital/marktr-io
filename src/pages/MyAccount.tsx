@@ -199,8 +199,8 @@ export default function MyAccount() {
       ? "Trial"
       : stripeSub?.status === "active"
       ? "Active"
-      : "Free";
-  const statusIsPro = statusLabel !== "Free";
+      : "Inactive";
+  const statusIsPro = stripeSub?.status === "trialing" || stripeSub?.status === "active";
 
   const subscription = useMemo(() => {
     const priceDisplay =
@@ -791,7 +791,7 @@ export default function MyAccount() {
               <span className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70">Current Plan</span>
               <span className="font-['Fraunces'] text-lg">
                 {subscription.plan === "free"
-                  ? "Free"
+                  ? "None"
                   : subscription.plan === "annual"
                   ? "Annual"
                   : subscription.plan === "monthly"

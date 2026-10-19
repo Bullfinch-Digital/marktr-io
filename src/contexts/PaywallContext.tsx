@@ -9,6 +9,7 @@ import { useAuth } from "./AuthContext";
 import { useAuthModal } from "./AuthModalContext";
 import {
   checkoutResumePath,
+  clearPendingCheckoutPlan,
   getResumablePendingCheckoutPlan,
   setPendingCheckoutPlan,
 } from "../utils/pendingCheckout";
@@ -204,10 +205,15 @@ export function PaywallProvider({ children }: { children: React.ReactNode }) {
     if (window.location.pathname === "/auth/callback") return;
     if (authLoading) return;
     if (!user || (user as { is_anonymous?: boolean }).is_anonymous) return;
+    if (!subscriptionReady) return;
 
-    // Require explicit trial intent — never resume from leftover localStorage alone.
+    // Require explicit trial intent — URL resumeCheckout or a matching stored intent.
     const pendingPlan = getResumablePendingCheckoutPlan(window.location.search);
     if (!pendingPlan) return;
+    if (isPro) {
+      clearPendingCheckoutPlan();
+      return;
+    }
     if (resumeCheckoutRef.current) return;
 
     // Prefer AuthContext session; fall back to getSession for the OAuth race where
@@ -243,7 +249,7 @@ export function PaywallProvider({ children }: { children: React.ReactNode }) {
         resumeCheckoutRef.current = false;
       }
     })();
-  }, [user, session, authLoading, proceedToStripe]);
+  }, [user, session, authLoading, subscriptionReady, isPro, proceedToStripe]);
 
   const value = useMemo(
     () => ({
@@ -266,7 +272,6 @@ export function PaywallProvider({ children }: { children: React.ReactNode }) {
         onUpgrade={(plan, force) =>
           startCheckout(normalisePlan(plan) as Plan, force)
         }
-        onContinueFree={closePaywall}
         isStartingCheckout={isStartingCheckout}
       />
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Button } from "../ui/button";
 import { X, Check, Shield, Unlock, Bell, CreditCard, Compass, Layers, Sparkles } from "lucide-react";
 import { track } from "../../lib/analytics";
@@ -89,38 +89,32 @@ function PaywallTrialJourney({ plan }: { plan: CheckoutPlan }) {
 
 interface PaywallModalProps {
   isOpen: boolean;
-  onClose: () => void;
+  onClose?: () => void;
   onUpgrade: (plan: CheckoutPlan, force?: boolean) => void;
-  onContinueFree: () => void;
   isStartingCheckout?: boolean;
+  /** Modal overlay, or the same offer as a full page (access gate). */
+  presentation?: "modal" | "page";
+  heading?: string;
+  trialTrackId?: string;
+  trackLocation?: string;
+  belowActions?: ReactNode;
 }
 
 export function PaywallModal({
   isOpen,
   onClose,
   onUpgrade,
-  onContinueFree,
   isStartingCheckout = false,
+  presentation = "modal",
+  heading = PRICING_SALES.h1,
+  trialTrackId = "paywall_start_trial",
+  trackLocation = "pricing",
+  belowActions,
 }: PaywallModalProps) {
-  const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [showAllPlans, setShowAllPlans] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<CheckoutPlan>("annual");
 
   if (!isOpen) return null;
-
-  const handleAttemptContinueFree = () => {
-    setShowExitConfirm(true);
-  };
-
-  const handleConfirmContinueFree = () => {
-    setShowExitConfirm(false);
-    onContinueFree();
-  };
-
-  const handleConfirmStartTrial = () => {
-    setShowExitConfirm(false);
-    onUpgrade(selectedPlan);
-  };
 
   const selectPlan = (plan: CheckoutPlan) => {
     setSelectedPlan(plan);
@@ -131,12 +125,11 @@ export function PaywallModal({
   const trialCta = `Start my ${MARKTR_TRIAL_DAYS}-day free trial`;
   const planPriceLine = `then ${paywallOfferPriceLine(selectedPlan)}`;
 
-  return (
-    <div className="fixed inset-0 z-50 overflow-y-auto overscroll-contain bg-[rgb(16_26_38_/_0.55)] backdrop-blur-sm">
-      <div className="flex min-h-full items-start justify-center p-3 sm:items-center sm:p-4">
+  const card = (
       <div className="bg-white text-brand-navy border-2 border-brand-navy dark:bg-background dark:text-foreground dark:border-foreground rounded-[28px] shadow-[var(--brand-shadow)] max-w-3xl w-full my-auto animate-fade-in-up">
         <div className="sticky top-0 z-10 bg-white dark:bg-background border-b border-brand-navy/15 dark:border-foreground/20 px-4 py-3 sm:px-5 flex items-start justify-between rounded-t-[26px]">
-          <h2 className="font-['Fraunces'] text-2xl sm:text-3xl leading-tight pr-3">{PRICING_SALES.h1}</h2>
+          <h2 className="font-['Fraunces'] text-2xl sm:text-3xl leading-tight pr-3">{heading}</h2>
+          {presentation === "modal" && onClose ? (
           <button
             type="button"
             onClick={onClose}
@@ -145,6 +138,7 @@ export function PaywallModal({
           >
             <X className="w-5 h-5" />
           </button>
+          ) : null}
         </div>
 
         <div className="space-y-4 px-4 py-3 sm:px-5">
@@ -190,7 +184,7 @@ export function PaywallModal({
                 role="radio"
                 aria-checked={selectedPlan === "annual"}
                 data-track-id="paywall_plan_annual"
-                data-track-location="paywall"
+                data-track-location={presentation === "page" ? trackLocation : "paywall"}
                 onClick={() => selectPlan("annual")}
                 className={`w-full min-h-11 rounded-[20px] border-2 border-brand-navy px-3 py-2.5 text-left text-brand-navy transition-colors dark:border-foreground dark:text-foreground ${
                   selectedPlan === "annual" ? "bg-brand-lime dark:text-brand-navy" : "bg-white dark:bg-background"
@@ -215,7 +209,7 @@ export function PaywallModal({
                 role="radio"
                 aria-checked={selectedPlan === "monthly"}
                 data-track-id="paywall_plan_monthly"
-                data-track-location="paywall"
+                data-track-location={presentation === "page" ? trackLocation : "paywall"}
                 onClick={() => selectPlan("monthly")}
                 className={`flex w-full min-h-11 items-start gap-2 rounded-[20px] border-2 border-brand-navy px-3 py-2.5 text-left font-['Plus_Jakarta_Sans'] text-sm leading-snug text-brand-navy transition-colors dark:border-foreground dark:text-foreground ${
                   selectedPlan === "monthly" ? "bg-brand-lime dark:text-brand-navy" : "bg-white dark:bg-background"
@@ -242,8 +236,8 @@ export function PaywallModal({
               </div>
             </div>
             <Button
-              data-track-id="paywall_start_trial"
-              data-track-location="pricing"
+              data-track-id={trialTrackId}
+              data-track-location={trackLocation}
               data-track-destination="checkout"
               onClick={() => onUpgrade(selectedPlan)}
               disabled={isStartingCheckout}
@@ -265,14 +259,7 @@ export function PaywallModal({
               No payment due today. Cancel any time before {firstChargeLabel}.
             </p>
 
-            <button
-              type="button"
-              onClick={handleAttemptContinueFree}
-              disabled={isStartingCheckout}
-              className="w-full min-h-11 font-['Plus_Jakarta_Sans'] text-sm text-foreground/70 underline underline-offset-2 hover:text-foreground transition-colors text-center"
-            >
-              Continue with limited free version
-            </button>
+            {belowActions}
           </div>
 
           <div className="border-t border-warm-grey">
@@ -303,7 +290,7 @@ export function PaywallModal({
                   <button
                     type="button"
                     data-track-id="paywall_see_all_plans"
-                    data-track-location="paywall"
+                    data-track-location={presentation === "page" ? trackLocation : "paywall"}
                     onClick={() => {
                       setShowAllPlans(true);
                       track("paywall_see_all_plans");
@@ -318,53 +305,17 @@ export function PaywallModal({
           </div>
         </div>
       </div>
+  );
+
+  if (presentation === "page") {
+    return <div className="mx-auto w-full max-w-3xl">{card}</div>;
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto overscroll-contain bg-[rgb(16_26_38_/_0.55)] backdrop-blur-sm">
+      <div className="flex min-h-full items-start justify-center p-3 sm:items-center sm:p-4">
+        {card}
       </div>
-
-      {showExitConfirm && (
-        <div
-          className="fixed inset-0 z-[60] flex items-center justify-center overflow-y-auto p-4"
-          role="dialog"
-          aria-modal="true"
-        >
-          <div className="absolute inset-0 bg-[rgb(16_26_38_/_0.55)]" onClick={() => setShowExitConfirm(false)} />
-
-          <div className="relative w-full max-w-md bg-background border-2 border-brand-stroke rounded-[28px] shadow-[var(--brand-shadow)] p-6">
-            <div className="flex items-start justify-between gap-4 mb-3">
-              <h3 className="font-['Fraunces'] text-2xl">Continue with limited free?</h3>
-              <button
-                type="button"
-                onClick={() => setShowExitConfirm(false)}
-                className="p-2 hover:bg-muted/40 rounded-full transition-colors min-h-11 min-w-11 flex items-center justify-center"
-                aria-label="Close"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70 mb-4">
-              You’ll keep your free health check results and brand story, but deeper analysis,
-              content strategy and social connections stay locked.
-            </p>
-
-            <div className="flex flex-col gap-3">
-              <Button
-                onClick={handleConfirmStartTrial}
-                disabled={isStartingCheckout}
-                className="w-full h-11"
-              >
-                Start free trial
-              </Button>
-              <button
-                type="button"
-                onClick={handleConfirmContinueFree}
-                className="w-full font-['Plus_Jakarta_Sans'] text-sm text-foreground/70 hover:text-foreground transition-colors py-2 min-h-11 text-center"
-              >
-                Continue with Free
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

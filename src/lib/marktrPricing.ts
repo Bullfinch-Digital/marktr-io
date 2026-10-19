@@ -102,13 +102,13 @@ export const MARKTR_PRO_BENEFITS: readonly MarktrProBenefit[] = [
   {
     id: "brand-story",
     label:
-      "Full Brand Story System — beyond your free story: the messaging, value props, and objection-handling to help you know exactly what to say about your business, on your website, in ads, anywhere.",
+      "Full Brand Story System — the messaging, value props, and objection-handling to help you know exactly what to say about your business, on your website, in ads, anywhere.",
     paywallLabel: "Full brand story system",
   },
   {
     id: "unlimited-icps",
     label:
-      "Unlimited ICPs — go past the free 3 personas, with full detail for every type of customer you sell to.",
+      "Unlimited ICPs — full detail for every type of customer you sell to.",
     paywallLabel: "Unlimited ICPs",
   },
   {

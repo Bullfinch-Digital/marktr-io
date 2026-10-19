@@ -649,7 +649,7 @@ export default function HealthCheck() {
           </h1>
           {edition === "marktr" ? (
             <p className="mt-4 max-w-2xl font-body text-base leading-relaxed text-foreground sm:text-lg">
-              Three short steps. At the end you'll have your health score, brand story and ideal customer profiles, then you can create a free account to save them.
+              Three short steps. At the end you'll have your health score, brand story and ideal customer profiles, then start a 14-day free trial to save them.
             </p>
           ) : null}
           <p className="mt-5 max-w-2xl font-body text-base leading-relaxed text-muted-foreground sm:text-lg">

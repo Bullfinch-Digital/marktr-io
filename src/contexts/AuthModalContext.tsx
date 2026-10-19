@@ -11,6 +11,7 @@ type LoginPayload = {
   guestRef?: string | null;
   sessionId?: string | null;
   mode?: AuthFormMode;
+  redirectPath?: string;
 };
 
 type FinishPayload = {
@@ -100,7 +101,8 @@ export function AuthModalProvider({
         onClose={closeAuthModal}
         onEmailClick={() => {
           const mode = state?.type === "signin" ? (state.payload.mode ?? "signup") : "signup";
-          openLogin({ mode }, { skipAnalytics: true });
+          const redirectPath = state?.type === "signin" ? state.payload.redirectPath : undefined;
+          openLogin({ mode, redirectPath }, { skipAnalytics: true });
         }}
       />
 
@@ -110,6 +112,7 @@ export function AuthModalProvider({
         guestRef={state?.type === "login" ? state.payload.guestRef ?? null : null}
         sessionId={state?.type === "login" ? state.payload.sessionId ?? null : null}
         initialMode={state?.type === "login" ? (state.payload.mode ?? "signup") : "signup"}
+        redirectPath={state?.type === "login" ? state.payload.redirectPath : undefined}
         onClose={closeAuthModal}
       />
 

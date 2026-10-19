@@ -83,7 +83,7 @@ export function GuestAccessModal({
         </div>
 
         <p className="mt-5 text-center text-[11px] leading-snug text-foreground/60 font-['Plus_Jakarta_Sans']">
-          Free to start. No spam. Your ICPs stay private.
+          No spam. Your ICPs stay private.
         </p>
       </div>
     </div>

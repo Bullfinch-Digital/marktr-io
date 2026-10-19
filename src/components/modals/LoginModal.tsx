@@ -23,6 +23,11 @@ import {
 import { LegalAgreementRequiredModal } from "../legal/LegalAgreementRequiredModal";
 import { useLegalAgreementGate } from "../../hooks/useLegalAgreementGate";
 import { stashPendingLegalAcceptance } from "../../lib/legal";
+import {
+  checkoutResumePath,
+  getCheckoutPlanFromPath,
+  getPendingCheckoutPlan,
+} from "../../utils/pendingCheckout";
 
 const RESEND_COOLDOWN_SECONDS = 60;
 const RESEND_SENT_NOTICE_MS = 3000;
@@ -42,7 +47,25 @@ type LoginModalProps = {
   onClose: () => void;
   /** Decided by the entry point that opened the modal. Defaults to signup. */
   initialMode?: AuthFormMode;
+  /** Post-auth path. Trial intent is embedded when a pending checkout plan exists. */
+  redirectPath?: string;
 };
+
+/** Keep an explicit trial click in the auth redirect so a new browser can resume Stripe. */
+function resolvePostAuthPath(explicit?: string | null): string {
+  const pending = getPendingCheckoutPlan();
+  if (explicit && explicit.startsWith("/")) {
+    if (pending && !getCheckoutPlanFromPath(explicit)) {
+      const base = explicit.split("?")[0] || "/dashboard";
+      return checkoutResumePath(pending, base);
+    }
+    return explicit;
+  }
+  if (pending) return checkoutResumePath(pending, "/dashboard");
+  const next = new URLSearchParams(window.location.search).get("next");
+  if (next && next.startsWith("/")) return next;
+  return "/dashboard";
+}
 
 export function LoginModal({
   isOpen,
@@ -51,6 +74,7 @@ export function LoginModal({
   sessionId,
   onClose,
   initialMode = "signup",
+  redirectPath,
 }: LoginModalProps) {
   const { signInWithGoogle } = useAuth();
   const handleClose = () => {
@@ -58,15 +82,9 @@ export function LoginModal({
   };
 
   const redirectAfterLogin = async () => {
-    const params = new URLSearchParams(window.location.search);
-    const next = params.get("next");
-    if (next && next.startsWith("/")) {
-      window.location.assign(`${window.location.origin}${next}`);
-      return;
-    }
     const { data } = await supabase.auth.getSession();
     const sessionUser = data?.session?.user ?? null;
-    const target = isRealUser(sessionUser) ? "/dashboard" : "/guest-dashboard";
+    const target = isRealUser(sessionUser) ? resolvePostAuthPath(redirectPath) : "/guest-dashboard";
     window.location.assign(`${window.location.origin}${target}`);
   };
   const [localEmail, setLocalEmail] = useState(email ?? "");
@@ -141,10 +159,8 @@ export function LoginModal({
       setError(null);
       stashPendingLegalAcceptance();
       setGoogleLoading(true);
-      const params = new URLSearchParams(window.location.search);
-      const next = params.get("next");
-      const redirectPath = next && next.startsWith("/") ? next : "/dashboard";
-      const { error: oauthError } = await signInWithGoogle(redirectPath);
+      const postAuthPath = resolvePostAuthPath(redirectPath);
+      const { error: oauthError } = await signInWithGoogle(postAuthPath);
       if (oauthError) {
         setError(oauthError.message);
         setGoogleLoading(false);
@@ -225,10 +241,8 @@ export function LoginModal({
     setAccountExists(false);
     try {
       stashPendingLegalAcceptance();
-      const params = new URLSearchParams(window.location.search);
-      const next = params.get("next");
-      const redirectPath = next && next.startsWith("/") ? next : "/dashboard";
-      const emailRedirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectPath)}`;
+      const postAuthPath = resolvePostAuthPath(redirectPath);
+      const emailRedirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(postAuthPath)}`;
       const outcome = await signUpWithEmail({
         email: resolvedEmail,
         password: resolvedPassword,

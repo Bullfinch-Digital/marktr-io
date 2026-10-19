@@ -46,6 +46,13 @@ export function OAuthReturnHandler() {
 
     if (loading || !user || (user as { is_anonymous?: boolean }).is_anonymous) return;
 
+    // Keep Stripe's /dashboard?checkout=success&plan=… return URL intact.
+    // Replacing it with a stored post-login path would drop checkout=success.
+    if (new URLSearchParams(location.search).get("checkout") === "success") {
+      clearOAuthNext();
+      return;
+    }
+
     // Session token may lag briefly behind `user` after OAuth — wait for it so we
     // don't clear oauth_next and bounce before the handoff can complete.
     if (!session?.access_token) return;

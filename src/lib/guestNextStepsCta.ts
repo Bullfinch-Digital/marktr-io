@@ -69,6 +69,6 @@ export function getGuestNextStepsCta(currentTool: GuestToolId): GuestNextStepsCt
     heading: TOOL_HEADINGS[currentTool],
     body: `Now complete ${formatRemainingPhrase(outstanding)} — marktr uses all three to build a content strategy specific to your business.`,
     buttonLabel: "Build the full picture →",
-    subline: `Free to start · Your ${savedNoun} is saved in your browser`,
+    subline: `Your ${savedNoun} is saved in your browser`,
   };
 }

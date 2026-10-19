@@ -93,7 +93,7 @@ export default function Home() {
             Get started - Free
           </Link>
           <p className="mt-3 font-['Plus_Jakarta_Sans'] text-sm text-[#0B0B0C]/70">
-            Free to start. No account needed to begin.
+            No account needed to begin.
           </p>
         </div>
       </section>

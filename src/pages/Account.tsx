@@ -403,11 +403,11 @@ export default function Account() {
               <div className="flex items-center justify-between p-4 bg-accent-grey/30 rounded-design">
                 <div>
                   <div className="font-semibold text-text-dark">
-                    {subscriptionTier === "pro" ? "Pro Plan" : "Free Plan"}
+                    {subscriptionTier === "pro" ? "Pro Plan" : "No active plan"}
                   </div>
                   <div className="text-sm text-text-dark/60">
                     {subscriptionTier === "free"
-                      ? "3 ICPs • Basic features"
+                      ? "Start a 14-day trial to unlock the app"
                       : "Unlimited ICPs • Strategy tools • Meta Lookalike Export"}
                   </div>
                 </div>

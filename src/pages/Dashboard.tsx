@@ -218,10 +218,9 @@ export default function Dashboard() {
       }
 
       const url = new URL(window.location.href);
-      url.searchParams.delete("checkout");
       url.searchParams.delete("guest_ref");
       url.searchParams.delete("session_id");
-      window.history.replaceState({}, "", `${url.pathname}${url.search}`);
+      window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
     }
   }, [location.search, openSignIn, user]);
 

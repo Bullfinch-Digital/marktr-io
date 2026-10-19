@@ -312,12 +312,12 @@ function AppRoutes() {
               </ProtectedRoute>
             } />
             <Route path="/account" element={
-              <ProtectedRoute>
+              <ProtectedRoute requireAccess={false}>
                 <MyAccount />
               </ProtectedRoute>
             } />
             <Route path="/admin" element={
-              <ProtectedRoute>
+              <ProtectedRoute requireAccess={false}>
                 <AdminRoute>
                   <Admin />
                 </AdminRoute>

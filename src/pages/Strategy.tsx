@@ -31,6 +31,11 @@ import {
 } from "../lib/dashboardStrategyIntent";
 import { StrategyAimsSection } from "../components/strategy/StrategyAimsSection";
 import { StrategyCreatePanel } from "../components/strategy/StrategyCreatePanel";
+import { StrategyGuidanceCard } from "../components/strategy/StrategyGuidanceCard";
+import {
+  StrategyProgressStrip,
+  type StrategyGuidanceStep,
+} from "../components/strategy/StrategyProgressStrip";
 import {
   StrategyNewCampaignCard,
   StrategyRosterCard,
@@ -110,12 +115,26 @@ function StrategyPageBody() {
   const [restoreNudge, setRestoreNudge] = useState<string | null>(null);
   const [launcherCreateOpened, setLauncherCreateOpened] = useState(false);
   const [strategyCountsByBrand, setStrategyCountsByBrand] = useState<Record<string, number>>({});
+  const [openAimFormNonce, setOpenAimFormNonce] = useState(0);
+  const [highlightedAimId, setHighlightedAimId] = useState<string | null>(null);
 
   const brandReady = isBrandScopeReady(brandLoading, brands || [], scopedBrandId);
   const isLoading = !brandReady || aimsLoading || strategiesLoading;
   const hasAims = aims.length > 0;
   const hasStrategies = strategies.length > 0;
   const strategiesDormant = !hasAims;
+  const currentStep: StrategyGuidanceStep = !hasAims ? 1 : !hasStrategies ? 2 : 3;
+  const mostRecentAim = aims[0] ?? null;
+  const mostRecentStrategy = strategies[0] ?? null;
+  const aimLineageIdsWithStrategy = useMemo(() => {
+    const ids = new Set<string>();
+    for (const strategy of strategies) {
+      for (const aim of strategy.aims) {
+        if (aim.lineage_id) ids.add(aim.lineage_id);
+      }
+    }
+    return Array.from(ids);
+  }, [strategies]);
 
   useEffect(() => {
     const intent = readStrategyLauncherIntent(location.state);
@@ -157,6 +176,7 @@ function StrategyPageBody() {
   };
 
   const handleAimCreated = (aim: BrandAim) => {
+    setHighlightedAimId(aim.id);
     const intent = launcherIntentRef.current;
     if (!intent) return;
     openCreatePanel({
@@ -164,6 +184,25 @@ function StrategyPageBody() {
       icpLineageIds: [intent.icpLineageId],
     });
     setLauncherCreateOpened(true);
+  };
+
+  const handleBuildStrategyFromAim = (aim: BrandAim) => {
+    openCreatePanel({ aimLineageIds: [aim.lineage_id] });
+  };
+
+  const handleGuidanceAction = () => {
+    if (currentStep === 1) {
+      setForceAimForm(true);
+      setOpenAimFormNonce((n) => n + 1);
+      return;
+    }
+    if (currentStep === 2 && mostRecentAim) {
+      openCreatePanel({ aimLineageIds: [mostRecentAim.lineage_id] });
+      return;
+    }
+    if (currentStep === 3 && mostRecentStrategy) {
+      navigate(`/strategy/${mostRecentStrategy.id}`);
+    }
   };
 
   useEffect(() => {
@@ -270,7 +309,7 @@ function StrategyPageBody() {
               then refine through edits and version history.
             </p>
           </div>
-          {scopedBrandId && !showCreate && canStartNewStrategy ? (
+          {scopedBrandId && !showCreate && canStartNewStrategy && hasStrategies ? (
             <Button
               type="button"
               onClick={() => openCreatePanel()}
@@ -295,12 +334,23 @@ function StrategyPageBody() {
           </div>
         ) : (
           <>
+            {!isLoading ? (
+              <div className="space-y-4">
+                <StrategyProgressStrip currentStep={currentStep} />
+                <StrategyGuidanceCard currentStep={currentStep} onAction={handleGuidanceAction} />
+              </div>
+            ) : null}
+
             <StrategyAimsSection
               brandId={scopedBrandId}
               launcherPersonaName={launcherIntent?.icpName ?? null}
               autoOpenCreate={(!!launcherIntent && !hasAims) || forceAimForm}
               emphasizeEmpty={!hasAims}
+              openCreateNonce={openAimFormNonce}
+              highlightedAimId={highlightedAimId}
+              aimLineageIdsWithStrategy={aimLineageIdsWithStrategy}
               onAimCreated={handleAimCreated}
+              onBuildStrategy={handleBuildStrategyFromAim}
             />
 
             <section
@@ -311,9 +361,7 @@ function StrategyPageBody() {
               <div>
                 <h2 className="app-heading font-['Fraunces'] text-2xl text-foreground">Strategies</h2>
                 <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70 mt-1">
-                  {strategiesDormant
-                    ? "Strategies connect your aims to your personas. Add at least one aim above to get started."
-                    : "Current strategies for this brand. Each shows which aims and personas it serves."}
+                  Each strategy is a plan built from your aims and customers.
                 </p>
               </div>
 
@@ -344,46 +392,23 @@ function StrategyPageBody() {
 
               {isLoading ? (
                 <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/60">Loading strategies…</p>
-              ) : strategiesDormant ? (
+              ) : !hasStrategies ? (
                 <div className="rounded-design border border-dashed border-black/15 bg-accent-grey/10 px-4 py-5">
                   <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/60">
-                    Your strategies will appear here once you have aims to build from.
+                    No strategy yet. Pick an aim above and build your first one.
                   </p>
-                </div>
-              ) : !hasStrategies ? (
-                <div className="rounded-design border border-black/15 bg-accent-grey/15 p-6 text-center">
-                  <p className="font-['Fraunces'] text-xl text-[#0D1833]">
-                    Build your first strategy
-                  </p>
-                  <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70 mt-2 max-w-md mx-auto">
-                    Pick the aims and personas this strategy should serve. marktr generates a
-                    structured plan you can refine — not endless regeneration.
-                  </p>
-                  {!showCreate ? (
-                    <Button
-                      type="button"
-                      className="mt-4 bg-button-green hover:bg-button-green/90 text-foreground border border-black rounded-design"
-                      onClick={() => openCreatePanel()}
-                      disabled={!canStartNewStrategy}
-                    >
-                      Build your first strategy
-                    </Button>
-                  ) : null}
-                  {brandIcps.length === 0 ? (
-                    <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/55 mt-3">
-                      You&apos;ll also need at least one persona — create one in the ICP pillar first.
-                    </p>
-                  ) : null}
                 </div>
               ) : (
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
                   {strategies.map((strategy) => (
                     <StrategyRosterCard key={strategy.id} strategy={strategy} />
                   ))}
-                  <StrategyNewCampaignCard
-                    onClick={() => openCreatePanel()}
-                    disabled={!canStartNewStrategy}
-                  />
+                  {hasAims ? (
+                    <StrategyNewCampaignCard
+                      onClick={() => openCreatePanel()}
+                      disabled={!canStartNewStrategy}
+                    />
+                  ) : null}
                 </div>
               )}
 

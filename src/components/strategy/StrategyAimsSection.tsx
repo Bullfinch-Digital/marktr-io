@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Archive, ChevronDown, ChevronUp, Eye, Plus, RotateCcw, Trash2 } from "lucide-react";
+import { Archive, CheckCircle2, ChevronDown, ChevronUp, Eye, Plus, RotateCcw, Trash2 } from "lucide-react";
 import { Button } from "../ui/button";
 import { ViewEditButton } from "../ui/ViewEditButton";
 import { Input } from "../ui/input";
@@ -43,7 +43,11 @@ type Props = {
   launcherPersonaName?: string | null;
   autoOpenCreate?: boolean;
   emphasizeEmpty?: boolean;
+  openCreateNonce?: number;
+  highlightedAimId?: string | null;
+  aimLineageIdsWithStrategy?: string[];
   onAimCreated?: (aim: BrandAim) => void;
+  onBuildStrategy?: (aim: BrandAim) => void;
 };
 
 export function StrategyAimsSection({
@@ -51,7 +55,11 @@ export function StrategyAimsSection({
   launcherPersonaName = null,
   autoOpenCreate = false,
   emphasizeEmpty = false,
+  openCreateNonce = 0,
+  highlightedAimId = null,
+  aimLineageIdsWithStrategy = [],
   onAimCreated,
+  onBuildStrategy,
 }: Props) {
   const { user } = useAuth();
   const {
@@ -80,11 +88,22 @@ export function StrategyAimsSection({
   const [isPermanentDeleting, setIsPermanentDeleting] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
 
+  const coveredLineages = useMemo(
+    () => new Set(aimLineageIdsWithStrategy),
+    [aimLineageIdsWithStrategy]
+  );
+
   useEffect(() => {
     if (autoOpenCreate && !isLoading && aims.length === 0 && !editingAimId) {
       setShowCreateForm(true);
     }
   }, [autoOpenCreate, isLoading, aims.length, editingAimId]);
+
+  useEffect(() => {
+    if (openCreateNonce > 0) {
+      setShowCreateForm(true);
+    }
+  }, [openCreateNonce]);
 
   useEffect(() => {
     if (!showCreateForm || editingAimId) return;
@@ -170,9 +189,9 @@ export function StrategyAimsSection({
     <section className="rounded-design border border-black bg-background p-6 lg:p-8 shadow-md space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h2 className="font-['Fraunces'] text-2xl text-[#0D1833]">Aims</h2>
+          <h2 className="font-['Fraunces'] text-2xl text-foreground">Aims</h2>
           <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70 mt-1">
-            Brand growth goals that strategies are built to serve. Edits create a new version.
+            What do you want your marketing to achieve?
           </p>
         </div>
         {!showCreateForm && !editingAim ? (
@@ -269,7 +288,7 @@ export function StrategyAimsSection({
               you want to achieve.
             </p>
           ) : null}
-          <p className="font-['Fraunces'] text-lg text-[#0D1833]">
+          <p className="font-['Fraunces'] text-lg text-foreground">
             Strategy starts with a goal — what are you trying to achieve?
           </p>
           <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70">
@@ -290,10 +309,16 @@ export function StrategyAimsSection({
         <ul className="space-y-3">
           {aims.map((aim) => {
             const isExpanded = expandedAimId === aim.id;
+            const justCreated = highlightedAimId === aim.id;
+            const hasStrategy = coveredLineages.has(aim.lineage_id);
             return (
               <li
                 key={aim.id}
-                className="rounded-design border border-black/15 bg-accent-grey/20 px-4 py-3"
+                className={`rounded-design border px-4 py-3 ${
+                  justCreated
+                    ? "border-brand-stroke bg-[color-mix(in_srgb,var(--brand-lime)_28%,var(--card))]"
+                    : "border-black/15 bg-accent-grey/20"
+                }`}
               >
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div className="min-w-0 flex-1 max-[480px]:basis-full">
@@ -316,8 +341,38 @@ export function StrategyAimsSection({
                         {aim.description}
                       </p>
                     ) : null}
+                    {justCreated ? (
+                      <p className="mt-2 inline-flex items-center gap-1.5 font-['Plus_Jakarta_Sans'] text-xs font-medium text-brand-navy dark:text-foreground">
+                        <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-brand-navy dark:text-brand-lime" />
+                        Aim added. Next, turn it into a plan.
+                      </p>
+                    ) : null}
                   </div>
                   <div className="roster-card-actions flex flex-wrap items-center gap-2">
+                    {justCreated && onBuildStrategy ? (
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => onBuildStrategy(aim)}
+                        data-track-id="aim_build_strategy"
+                        data-track-location="strategy_page"
+                        className="min-h-9"
+                      >
+                        Build a strategy from this aim
+                      </Button>
+                    ) : !hasStrategy && onBuildStrategy ? (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => onBuildStrategy(aim)}
+                        data-track-id="aim_build_strategy"
+                        data-track-location="strategy_page"
+                        className="min-h-9"
+                      >
+                        Build strategy
+                      </Button>
+                    ) : null}
                     <Button
                       type="button"
                       variant="outline"

@@ -8,9 +8,13 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const PROMPT_VERSION = "plan_v1";
+const FIRST_HALF_PROMPT_VERSION = "plan_v1_days_1_15";
 const MODEL = "gpt-5.5";
-const MAX_OUTPUT_TOKENS = 4000;
 const LOG_BODY_LIMIT = 300;
+
+function maxOutputTokensForDays(dayCount: number): number {
+  return 1500 + 220 * dayCount;
+}
 
 const PLAN_LENGTHS = [7, 14, 30] as const;
 type PlanLengthDays = (typeof PLAN_LENGTHS)[number];
@@ -197,12 +201,30 @@ function parseBrandStorySummary(raw: unknown): {
   return { foundingStory, pointOfView, positioningStatement, brandPurpose };
 }
 
-function validatePlanOutput(parsed: unknown, lengthDays: PlanLengthDays): GeneratedPlan | null {
+function extractWeekThemes(parsed: unknown): string[] {
+  if (!parsed || typeof parsed !== "object") return [];
+  const themes = (parsed as Record<string, unknown>).week_themes;
+  if (!Array.isArray(themes)) return [];
+  return themes
+    .filter((theme): theme is string => typeof theme === "string" && Boolean(theme.trim()))
+    .map((theme) => theme.trim().slice(0, 120));
+}
+
+function oneLineDaySummary(day: GeneratedDay): string {
+  const task = day.task.replace(/\s+/g, " ").trim().slice(0, 140);
+  return `Day ${day.day_number} [${day.kind}] ${day.title}: ${task}`;
+}
+
+function validatePlanOutput(
+  parsed: unknown,
+  expectedCount: number,
+  startDay = 1
+): GeneratedPlan | null {
   if (!parsed || typeof parsed !== "object") return null;
   const record = parsed as Record<string, unknown>;
   const title = clampText(record.title, MAX_PLAN_TITLE);
   if (!title) return null;
-  if (!Array.isArray(record.days) || record.days.length !== lengthDays) return null;
+  if (!Array.isArray(record.days) || record.days.length !== expectedCount) return null;
 
   const days: GeneratedDay[] = [];
   for (let i = 0; i < record.days.length; i++) {
@@ -210,7 +232,11 @@ function validatePlanOutput(parsed: unknown, lengthDays: PlanLengthDays): Genera
     if (!item || typeof item !== "object") return null;
     const day = item as Record<string, unknown>;
     const dayNumber = day.day_number;
-    if (typeof dayNumber !== "number" || !Number.isInteger(dayNumber) || dayNumber !== i + 1) {
+    if (
+      typeof dayNumber !== "number" ||
+      !Number.isInteger(dayNumber) ||
+      dayNumber !== startDay + i
+    ) {
       return null;
     }
     if (!isDayKind(day.kind)) return null;
@@ -286,8 +312,81 @@ const RESPONSE_SCHEMA = {
   required: ["title", "days"],
 };
 
+const FIRST_HALF_RESPONSE_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    title: { type: "string" },
+    week_themes: {
+      type: "array",
+      items: { type: "string" },
+    },
+    days: RESPONSE_SCHEMA.properties.days,
+  },
+  required: ["title", "week_themes", "days"],
+};
+
+function usageForLog(data: any) {
+  const usage = data?.usage;
+  if (!usage || typeof usage !== "object") return null;
+  return {
+    input_tokens: usage.input_tokens ?? null,
+    output_tokens: usage.output_tokens ?? null,
+    total_tokens: usage.total_tokens ?? null,
+  };
+}
+
+function isIncompleteResponse(data: any): boolean {
+  return data?.status === "incomplete";
+}
+
+function logTruncation(options: {
+  label: string;
+  lengthDays: number;
+  dayStart: number;
+  dayEnd: number;
+  attempt: number;
+  data: any;
+  parseFailed: boolean;
+}) {
+  console.warn("[generate-plan] truncated or unparseable output", {
+    label: options.label,
+    length_days: options.lengthDays,
+    day_start: options.dayStart,
+    day_end: options.dayEnd,
+    attempt: options.attempt,
+    response_status: options.data?.status ?? null,
+    incomplete_details: options.data?.incomplete_details ?? null,
+    parse_failed: options.parseFailed,
+    usage: usageForLog(options.data),
+  });
+}
+
+function parseModelJson(outputText: string): { parsed: unknown; parseFailed: boolean } {
+  try {
+    return { parsed: JSON.parse(outputText), parseFailed: false };
+  } catch {
+    const match = String(outputText).match(/\{[\s\S]*\}/);
+    if (match) {
+      try {
+        return { parsed: JSON.parse(match[0]), parseFailed: false };
+      } catch {
+        return { parsed: null, parseFailed: true };
+      }
+    }
+    return { parsed: null, parseFailed: true };
+  }
+}
+
 function buildPrompt(options: {
   lengthDays: PlanLengthDays;
+  dayStart?: number;
+  dayEnd?: number;
+  maxOutputTokens: number;
+  includeWeekThemesInOutput?: boolean;
+  lockedTitle?: string | null;
+  weekThemes?: string[] | null;
+  priorDaySummaries?: string[] | null;
   strategyTitle: string;
   positioning: Record<string, any>;
   messaging: Record<string, any>;
@@ -319,6 +418,10 @@ function buildPrompt(options: {
     brandStory,
     previousDays,
   } = options;
+  const dayStart = options.dayStart ?? 1;
+  const dayEnd = options.dayEnd ?? lengthDays;
+  const dayCount = dayEnd - dayStart + 1;
+  const maxOutputTokens = options.maxOutputTokens;
 
   const channelsBlock = channels.length
     ? channels
@@ -404,10 +507,32 @@ ${results ? `- Results: ${results}` : ""}`;
         .join("\n")
     : "";
 
-  const weekThemes =
+  const weekThemesInstruction =
     lengthDays === 7
       ? "- 7 days: no weekly themes needed."
       : `- ${lengthDays} days: give each week a simple theme and keep day titles consistent with that week.`;
+  const continuationBlock =
+    options.lockedTitle || options.weekThemes?.length || options.priorDaySummaries?.length
+      ? `Continue this ${lengthDays}-day plan. Do not start over or repeat earlier days.
+- Plan title (reuse exactly): ${options.lockedTitle || "Not provided"}
+- Week themes:
+${
+  options.weekThemes?.length
+    ? options.weekThemes.map((theme, idx) => `- Week ${idx + 1}: ${theme}`).join("\n")
+    : "- Not provided"
+}
+- Days already written (one line each; do not repeat these tasks or briefs):
+${
+  options.priorDaySummaries?.length
+    ? options.priorDaySummaries.map((line) => `- ${line}`).join("\n")
+    : "- Not provided"
+}
+`
+      : "";
+  const weekThemesOutput = options.includeWeekThemesInOutput
+    ? `Also return week_themes: exactly 5 short labels for weeks 1 to 5 of the full ${lengthDays}-day plan. Days ${dayStart} to ${dayEnd} must follow those themes.
+`
+    : "";
 
   return `
 You write a day-by-day marketing plan for a small business owner with no team.
@@ -460,8 +585,9 @@ Extension rules:
 `
     : ""
 }
-
-Output: exactly ${lengthDays} days, numbered 1 to ${lengthDays}.
+${continuationBlock}
+${weekThemesOutput}
+Output: exactly ${dayCount} days, numbered ${dayStart} to ${dayEnd}.
 Each day has one clear task this owner can finish in the stated minutes (typically 5 to 45).
 - kind: post | prep | review | rest
 - title: short label
@@ -474,23 +600,156 @@ Rhythm:
 - Respect each channel's posts_per_week. Spread post days across each week in a consistent rhythm.
 - Fill other days with small prep tasks (ideas, batch-writing, replying and engaging, a short review) or a light or rest day.
 - Include a light or rest day each week.
-- Day 1 is an easy win.
-- The last day is a review day: look at what worked, note results, decide what to repeat.
-${weekThemes}
+${dayStart === 1 ? "- Day 1 is an easy win." : "- Continue the existing rhythm. Do not restart the plan."}
+${
+  dayEnd === lengthDays
+    ? "- The last day is a review day: look at what worked, note results, decide what to repeat."
+    : `- Do not write the final review yet; that belongs on day ${lengthDays}.`
+}
+${weekThemesInstruction}
 
 Hard rules:
 - Never cite statistics, studies or percentages.
 - Never invent testimonials or figures.
 - Never claim knowledge of the user's audience data.
 - Only suggest platforms already listed in the strategy channels.
-- Keep the JSON compact. Short titles. No filler. A ${lengthDays}-day plan must fit in ${MAX_OUTPUT_TOKENS} output tokens.
+- Keep the JSON compact. Short titles. No filler. This ${dayCount}-day slice must fit in ${maxOutputTokens} output tokens.
 `;
+}
+
+type GeneratedChunk = GeneratedPlan & { weekThemes: string[] };
+
+type ModelCallFailure =
+  | { kind: "openai_error"; status: number; details: string }
+  | {
+      kind: "invalid";
+      extracted: ReturnType<typeof extractStructuredOutput>;
+      data: any;
+    };
+
+async function generatePlanChunk(options: {
+  apiKey: string;
+  prompt: string;
+  maxOutputTokens: number;
+  schema: Record<string, unknown>;
+  schemaName: string;
+  label: string;
+  lengthDays: number;
+  dayStart: number;
+  dayEnd: number;
+  validate: (parsed: unknown) => GeneratedChunk | null;
+}): Promise<{ ok: true; value: GeneratedChunk } | { ok: false; failure: ModelCallFailure }> {
+  const emptyExtracted = {
+    outputText: "",
+    messageTexts: [],
+    messageItemCount: 0,
+    outputItemTypes: [],
+  };
+  let lastExtracted: ReturnType<typeof extractStructuredOutput> = emptyExtracted;
+  let lastData: any = null;
+
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const resp = await fetch("https://api.openai.com/v1/responses", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${options.apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: MODEL,
+        input: options.prompt,
+        reasoning: {
+          effort: "low",
+        },
+        max_output_tokens: options.maxOutputTokens,
+        text: {
+          format: {
+            type: "json_schema",
+            name: options.schemaName,
+            schema: options.schema,
+            strict: true,
+          },
+        },
+      }),
+    });
+
+    if (!resp.ok) {
+      const errText = await resp.text();
+      logFailure(resp.status, errText);
+      return {
+        ok: false,
+        failure: { kind: "openai_error", status: resp.status, details: errText },
+      };
+    }
+
+    const data = await resp.json();
+    const callLabel = attempt === 0 ? options.label : `${options.label}-retry`;
+    logOpenAiResponse(callLabel, data);
+    const extracted = extractStructuredOutput(data);
+    lastExtracted = extracted;
+    lastData = data;
+    const { parsed, parseFailed } = parseModelJson(extracted.outputText);
+
+    if (isIncompleteResponse(data) || parseFailed) {
+      logTruncation({
+        label: callLabel,
+        lengthDays: options.lengthDays,
+        dayStart: options.dayStart,
+        dayEnd: options.dayEnd,
+        attempt,
+        data,
+        parseFailed,
+      });
+    }
+
+    const validated = options.validate(parsed);
+    if (validated) {
+      return { ok: true, value: validated };
+    }
+
+    if (attempt === 0) {
+      console.warn("[generate-plan] malformed output; retrying once", {
+        label: options.label,
+        length_days: options.lengthDays,
+        day_start: options.dayStart,
+        day_end: options.dayEnd,
+      });
+    }
+  }
+
+  return {
+    ok: false,
+    failure: { kind: "invalid", extracted: lastExtracted, data: lastData },
+  };
+}
+
+function chunkFromParsed(
+  parsed: unknown,
+  expectedCount: number,
+  startDay: number
+): GeneratedChunk | null {
+  const plan = validatePlanOutput(parsed, expectedCount, startDay);
+  if (!plan) return null;
+  return { ...plan, weekThemes: extractWeekThemes(parsed) };
+}
+
+function failFromModel(failure: ModelCallFailure) {
+  if (failure.kind === "openai_error") {
+    return json(
+      { error: "OpenAI call failed", status: failure.status, details: failure.details },
+      500,
+      { log: false }
+    );
+  }
+  return invalidModelJson(failure.extracted, failure.data);
 }
 
 Deno.serve(async (req) => {
   const preflight = corsPreflight(req);
   if (preflight) return preflight;
 
+  const startedAt = Date.now();
+  let requestLengthDays: number | null = null;
   try {
     if (req.method !== "POST") {
       return json({ error: "Method not allowed" }, 405);
@@ -546,16 +805,11 @@ Deno.serve(async (req) => {
       return json({ error: "length_days must be 7, 14 or 30" }, 400);
     }
     const lengthDays = body.length_days;
+    requestLengthDays = lengthDays;
     const extendFromPlanId =
       typeof body.extend_from_plan_id === "string" && body.extend_from_plan_id.trim()
         ? body.extend_from_plan_id.trim()
         : "";
-
-    if (lengthDays === 30) {
-      console.warn(
-        "[generate-plan] 30-day plan is at risk of hitting max_output_tokens or the function time limit"
-      );
-    }
 
     const { data: strategyRow, error: strategyError } = await supabase
       .from("strategies")
@@ -729,7 +983,7 @@ Deno.serve(async (req) => {
       previousDays = (previousPlanDays ?? []) as Array<Record<string, any>>;
     }
 
-    const prompt = buildPrompt({
+    const promptContext = {
       lengthDays,
       strategyTitle: strategyRow.title,
       positioning,
@@ -742,87 +996,97 @@ Deno.serve(async (req) => {
       personas,
       brandStory,
       previousDays,
-    });
+    };
 
-    let lastExtracted: ReturnType<typeof extractStructuredOutput> | null = null;
-    let lastData: any = null;
-
-    for (let attempt = 0; attempt < 2; attempt++) {
-      const resp = await fetch("https://api.openai.com/v1/responses", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: MODEL,
-          input: prompt,
-          reasoning: {
-            effort: "low",
-          },
-          max_output_tokens: MAX_OUTPUT_TOKENS,
-          text: {
-            format: {
-              type: "json_schema",
-              name: PROMPT_VERSION,
-              schema: RESPONSE_SCHEMA,
-              strict: true,
-            },
-          },
+    if (lengthDays === 30) {
+      const halfTokens = maxOutputTokensForDays(lengthDays);
+      const first = await generatePlanChunk({
+        apiKey,
+        prompt: buildPrompt({
+          ...promptContext,
+          dayStart: 1,
+          dayEnd: 15,
+          maxOutputTokens: halfTokens,
+          includeWeekThemesInOutput: true,
         }),
+        maxOutputTokens: halfTokens,
+        schema: FIRST_HALF_RESPONSE_SCHEMA,
+        schemaName: FIRST_HALF_PROMPT_VERSION,
+        label: "plan-days-1-15",
+        lengthDays,
+        dayStart: 1,
+        dayEnd: 15,
+        validate: (parsed) => chunkFromParsed(parsed, 15, 1),
       });
+      if (!first.ok) return failFromModel(first.failure);
 
-      if (!resp.ok) {
-        const errText = await resp.text();
-        logFailure(resp.status, errText);
-        return json(
-          { error: "OpenAI call failed", status: resp.status, details: errText },
-          500,
-          { log: false }
+      const second = await generatePlanChunk({
+        apiKey,
+        prompt: buildPrompt({
+          ...promptContext,
+          dayStart: 16,
+          dayEnd: 30,
+          maxOutputTokens: halfTokens,
+          lockedTitle: first.value.title,
+          weekThemes: first.value.weekThemes,
+          priorDaySummaries: first.value.days.map(oneLineDaySummary),
+        }),
+        maxOutputTokens: halfTokens,
+        schema: RESPONSE_SCHEMA,
+        schemaName: PROMPT_VERSION,
+        label: "plan-days-16-30",
+        lengthDays,
+        dayStart: 16,
+        dayEnd: 30,
+        validate: (parsed) => chunkFromParsed(parsed, 15, 16),
+      });
+      if (!second.ok) return failFromModel(second.failure);
+
+      const merged = validatePlanOutput(
+        {
+          title: first.value.title,
+          days: [...first.value.days, ...second.value.days],
+        },
+        30,
+        1
+      );
+      if (!merged) {
+        return invalidModelJson(
+          {
+            outputText: "",
+            messageTexts: [],
+            messageItemCount: 0,
+            outputItemTypes: [],
+          },
+          null
         );
       }
-
-      const data = await resp.json();
-      logOpenAiResponse(attempt === 0 ? "plan" : "plan-retry", data);
-      const extracted = extractStructuredOutput(data);
-      lastExtracted = extracted;
-      lastData = data;
-      const outputText = extracted.outputText;
-
-      let parsed: unknown = null;
-      try {
-        parsed = JSON.parse(outputText);
-      } catch {
-        const match = String(outputText).match(/\{[\s\S]*\}/);
-        if (match) {
-          try {
-            parsed = JSON.parse(match[0]);
-          } catch {
-            parsed = null;
-          }
-        }
-      }
-
-      const validated = validatePlanOutput(parsed, lengthDays);
-      if (validated) {
-        return json(validated);
-      }
-
-      if (attempt === 0) {
-        console.warn("[generate-plan] malformed output; retrying once");
-      }
+      return json(merged);
     }
 
-    return invalidModelJson(
-      lastExtracted ?? {
-        outputText: "",
-        messageTexts: [],
-        messageItemCount: 0,
-        outputItemTypes: [],
-      },
-      lastData
-    );
+    const maxOutputTokens = maxOutputTokensForDays(lengthDays);
+    const single = await generatePlanChunk({
+      apiKey,
+      prompt: buildPrompt({
+        ...promptContext,
+        maxOutputTokens,
+      }),
+      maxOutputTokens,
+      schema: RESPONSE_SCHEMA,
+      schemaName: PROMPT_VERSION,
+      label: "plan",
+      lengthDays,
+      dayStart: 1,
+      dayEnd: lengthDays,
+      validate: (parsed) => chunkFromParsed(parsed, lengthDays, 1),
+    });
+    if (!single.ok) return failFromModel(single.failure);
+    return json({ title: single.value.title, days: single.value.days });
   } catch (err) {
     return json({ error: "Unhandled error", message: String(err) }, 500);
+  } finally {
+    console.log("[generate-plan] elapsed_ms", Date.now() - startedAt, {
+      length_days: requestLengthDays,
+    });
   }
 });

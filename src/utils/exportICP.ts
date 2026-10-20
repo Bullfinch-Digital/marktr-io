@@ -5,6 +5,7 @@ import jsPDF from "jspdf";
 import { ICPExportLayout } from "../components/icp/ICPExportLayout";
 import { canViewICP } from "../config/accessRules";
 import { avatarUrlFromKey } from "./avatarLibrary";
+import { PDF_FOOTER_RESERVE, stampMarktrFooter } from "./pdfTextExport";
 
 const VISIBLE_PAIN_POINTS_WITHOUT_ACCESS = 2;
 
@@ -163,7 +164,7 @@ export function exportICPAsCSV(icp: ICPRecord, options?: IcpExportOptions) {
 export function exportICPAsPDF(icp: ICPRecord, options?: IcpExportOptions) {
   const visible = icpForExport(icp, options?.hasAccess !== false);
   if (!visible) return;
-  void exportICPAsPDFInternal(visible);
+  return exportICPAsPDFInternal(visible);
 }
 
 async function exportICPAsPDFInternal(icp: ICPRecord) {
@@ -269,7 +270,8 @@ async function exportICPAsPDFInternal(icp: ICPRecord) {
     const doc = new jsPDF({ unit: "pt", format: "a4" });
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
-    const pageHeightPx = Math.floor((canvas.width * pageHeight) / pageWidth);
+    const contentHeightPt = pageHeight - PDF_FOOTER_RESERVE;
+    const pageHeightPx = Math.max(1, Math.floor((canvas.width * contentHeightPt) / pageWidth));
     const scaleToPdf = pageWidth / canvas.width;
 
     const slices = buildSlices(container, canvas, pageHeightPx);
@@ -311,7 +313,8 @@ async function exportICPAsPDFInternal(icp: ICPRecord) {
       if (index > 0) {
         doc.addPage();
       }
-      doc.addImage(imgData, "JPEG", 0, 0, pageWidth, imgHeight);
+      const fittedHeight = Math.min(imgHeight, contentHeightPt);
+      doc.addImage(imgData, "JPEG", 0, 0, pageWidth, fittedHeight);
 
       if (
         linkUrl &&
@@ -327,6 +330,7 @@ async function exportICPAsPDFInternal(icp: ICPRecord) {
       }
     });
 
+    await stampMarktrFooter(doc);
     doc.save(filename);
   } finally {
     root.unmount();

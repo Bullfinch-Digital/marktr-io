@@ -1,4 +1,5 @@
 import jsPDF from "jspdf";
+import { pdfContentLimitY, stampMarktrFooter } from "./pdfTextExport";
 
 type BrandRecord = Record<string, any>;
 
@@ -43,70 +44,81 @@ export function exportBrandAsCSV(brand: BrandRecord) {
 }
 
 export function exportBrandAsPDF(brand: BrandRecord) {
-  const doc = new jsPDF({ unit: "pt" });
+  return exportBrandPdf(brand);
+}
+
+async function exportBrandPdf(brand: BrandRecord) {
+  const doc = new jsPDF({ unit: "pt", format: "a4" });
 
   const titleFont = "Helvetica";
   const bodyFont = "Helvetica";
+  const margin = 40;
+  const maxWidth = doc.internal.pageSize.getWidth() - margin * 2;
 
   const date = new Date().toISOString().split("T")[0];
   const filename = `brand_${(brand.name || "brand").toString().replace(/\s+/g, "_")}_${brand.id}_${date}.pdf`;
 
   doc.setFont(titleFont, "bold");
   doc.setFontSize(22);
-  doc.text(brand.name || "Brand Profile", 40, 50);
+  doc.setTextColor("#000000");
+  doc.text(brand.name || "Brand Profile", margin, 50);
 
   doc.setFont(bodyFont, "normal");
   doc.setFontSize(12);
-  doc.setTextColor("#555");
-  doc.text(`Brand Profile Report — ${date}`, 40, 70);
+  doc.setTextColor("#555555");
+  doc.text(`Brand Profile Report — ${date}`, margin, 70);
 
-  doc.setDrawColor("#000");
+  doc.setDrawColor("#000000");
   doc.setLineWidth(1);
-  doc.line(40, 85, 550, 85);
-
-  const addSection = (title: string, text: unknown, yStart: number) => {
-    doc.setFont(titleFont, "bold");
-    doc.setFontSize(16);
-    doc.setTextColor("#000");
-    doc.text(title, 40, yStart);
-
-    doc.setFont(bodyFont);
-    doc.setFontSize(12);
-    doc.setTextColor("#444");
-
-    if (Array.isArray(text)) {
-      const bullets = text.map((i) => `• ${i}`);
-      doc.text(bullets, 60, yStart + 20);
-      return yStart + 20 + bullets.length * 18;
-    } else {
-      const lines = doc.splitTextToSize((text as string) || "—", 480);
-      doc.text(lines, 40, yStart + 20);
-      return yStart + 20 + lines.length * 16;
-    }
-  };
+  doc.line(margin, 85, doc.internal.pageSize.getWidth() - margin, 85);
 
   let y = 120;
 
-  y = addSection("Website", brand.website, y);
-  y += 15;
-  y = addSection("Business Type", brand.business_type, y);
-  y += 15;
-  y = addSection("Product or Service", brand.product_or_service, y);
-  y += 15;
-  y = addSection("Business Description", brand.business_description, y);
-  y += 15;
-  y = addSection("Assumed Audience", brand.assumed_audience, y);
-  y += 15;
-  y = addSection("Marketing Channels", brand.marketing_channels, y);
-  y += 15;
-  y = addSection("Country", brand.country, y);
-  y += 15;
-  y = addSection("Region / City", brand.region_or_city, y);
-  y += 15;
-  y = addSection("Currency", brand.currency, y);
-  y += 15;
-  y = addSection("Colour", brand.color, y);
+  const ensure = (needed: number) => {
+    if (y + needed > pdfContentLimitY(doc.internal.pageSize.getHeight())) {
+      doc.addPage();
+      y = margin;
+    }
+  };
 
+  const addSection = (title: string, text: unknown) => {
+    ensure(36);
+    doc.setFont(titleFont, "bold");
+    doc.setFontSize(16);
+    doc.setTextColor("#000000");
+    doc.text(title, margin, y);
+    y += 20;
+
+    doc.setFont(bodyFont, "normal");
+    doc.setFontSize(12);
+    doc.setTextColor("#444444");
+
+    const lines = Array.isArray(text)
+      ? (text.length ? text : ["—"]).flatMap((item) =>
+          doc.splitTextToSize(`• ${item}`, maxWidth - 20) as string[]
+        )
+      : (doc.splitTextToSize(String(text || "—"), maxWidth) as string[]);
+
+    for (const line of lines) {
+      ensure(16);
+      doc.text(line, Array.isArray(text) ? margin + 20 : margin, y);
+      y += 16;
+    }
+    y += 15;
+  };
+
+  addSection("Website", brand.website);
+  addSection("Business Type", brand.business_type);
+  addSection("Product or Service", brand.product_or_service);
+  addSection("Business Description", brand.business_description);
+  addSection("Assumed Audience", brand.assumed_audience);
+  addSection("Marketing Channels", brand.marketing_channels);
+  addSection("Country", brand.country);
+  addSection("Region / City", brand.region_or_city);
+  addSection("Currency", brand.currency);
+  addSection("Colour", brand.color);
+
+  await stampMarktrFooter(doc);
   doc.save(filename);
 }
 

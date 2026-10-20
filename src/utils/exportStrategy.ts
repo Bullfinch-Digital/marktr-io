@@ -1,7 +1,7 @@
 import type { StrategyWithLinks } from "../hooks/useBrandStrategies";
 import { createTextPdf, sanitizeExportFilename } from "./pdfTextExport";
 
-export function exportStrategyAsPDF(strategy: StrategyWithLinks) {
+export async function exportStrategyAsPDF(strategy: StrategyWithLinks) {
   const date = new Date().toISOString().split("T")[0];
   const filename = `strategy_${sanitizeExportFilename(strategy.title)}_${date}.pdf`;
   const pdf = createTextPdf();
@@ -60,7 +60,7 @@ export function exportStrategyAsPDF(strategy: StrategyWithLinks) {
     });
   }
 
-  pdf.save(filename);
+  await pdf.save(filename);
 }
 
 export default { exportStrategyAsPDF };

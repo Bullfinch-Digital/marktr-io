@@ -116,7 +116,7 @@ function briefSectionsForType(type: ContentItemType, content: ContentPayload): B
   }
 }
 
-export function exportContentAsPDF(item: ContentItemWithComposition) {
+export async function exportContentAsPDF(item: ContentItemWithComposition) {
   const date = new Date().toISOString().split("T")[0];
   const filename = `content_${sanitizeExportFilename(item.title)}_${date}.pdf`;
   const pdf = createTextPdf();
@@ -149,7 +149,7 @@ export function exportContentAsPDF(item: ContentItemWithComposition) {
     else pdf.body(section.body);
   }
 
-  pdf.save(filename);
+  await pdf.save(filename);
   track("content_export", { content_type: item.type });
 }
 

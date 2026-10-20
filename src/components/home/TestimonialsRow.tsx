@@ -70,7 +70,7 @@ export function TestimonialsRow() {
             What our clients say
           </h2>
           <p className="max-w-2xl text-lg text-foreground/70 opacity-0 animate-fade-in-up delay-100 font-bold">
-            From founders and start-ups to marketing teams and agencies.
+            From founders and start-ups to marketing teams.
           </p>
         </div>
 

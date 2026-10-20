@@ -18,14 +18,14 @@ export const MARKETING_PAGES: MarketingPageSeo[] = [
     path: "/",
     title: "marktr — your marketing team, built in",
     description:
-      "Marktr is your marketing team, built in. Define your ideal customer, shape your story, and generate content without agency overhead.",
+      "Marktr turns what you know about your business into a plan you can follow. Brand story, customers, strategy and content briefs in one organised place.",
     h1: "Your entire marketing team in one platform.",
   },
   {
     path: "/pricing",
     title: `Pricing | marktr — £${MARKTR_PRO_MONTHLY_EQUIVALENT_GBP}/month, billed annually`,
     description:
-      "One plan, everything included. A dedicated marketing team for less than one month of agency fees.",
+      "One plan, everything included. One place for your marketing, with a clear plan for every week.",
     h1: PRICING_SALES.h1,
   },
   {

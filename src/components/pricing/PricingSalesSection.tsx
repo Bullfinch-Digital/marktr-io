@@ -1,5 +1,12 @@
 import { useEffect } from "react";
-import { MARKTR_PRO_CARD_SUBTITLE, PRICING_PRO_CARD_ID, PRICING_SALES } from "@/lib/marktrPricing";
+import { Check, Lock } from "lucide-react";
+import { Link } from "react-router-dom";
+import {
+  MARKTR_PRO_BILLING_LINE,
+  MARKTR_PRO_PRICE_HEADLINE,
+  PRICING_PRO_CARD_ID,
+  PRICING_SALES,
+} from "@/lib/marktrPricing";
 import { usePaywall } from "@/contexts/PaywallContext";
 import { useAuth } from "@/contexts/AuthContext";
 import useSubscription from "@/hooks/useSubscription";
@@ -36,7 +43,7 @@ export function PricingSalesSection() {
 
       <div className="pricing-sales-reveal mx-auto mt-16 w-full max-w-[1040px] delay-100 lg:mt-20">
         <p className="text-center text-[11px] font-medium uppercase tracking-[0.16em] text-foreground/55">
-          {copy.costsLabel}
+          {copy.problemsLabel}
         </p>
         <div className="relative mt-8">
           <div
@@ -44,7 +51,7 @@ export function PricingSalesSection() {
             className="pointer-events-none absolute left-10 right-10 top-6 hidden border-t border-dashed border-foreground/30 lg:block"
           />
           <div className="grid grid-cols-1 items-stretch gap-5 lg:grid-cols-3 lg:gap-6">
-            {copy.costs.map((card) => (
+            {copy.problems.map((card) => (
               <article
                 key={card.title}
                 className="relative z-10 flex h-full flex-col overflow-hidden rounded-[24px] border-2 border-brand-stroke bg-card"
@@ -53,14 +60,10 @@ export function PricingSalesSection() {
                   <h2 className="font-['Fraunces'] text-xl font-medium leading-snug text-foreground">
                     {card.title}
                   </h2>
-                  <p className="mt-4 text-[11px] font-medium uppercase tracking-[0.14em] text-foreground/50">
-                    {copy.usualCostLabel}
-                  </p>
-                  <p className="mt-2 text-sm leading-relaxed text-foreground/80">{card.usualCost}</p>
+                  <p className="mt-4 text-sm leading-relaxed text-foreground/80">{card.problem}</p>
                 </div>
                 <div className="border-t-2 border-brand-stroke bg-brand-lime p-6 text-left text-brand-navy sm:p-7">
-                  <p className="text-[11px] font-medium uppercase tracking-[0.14em]">{copy.withMarktrLabel}</p>
-                  <p className="mt-2 text-sm font-medium leading-relaxed">{card.withMarktr}</p>
+                  <p className="text-sm font-medium leading-relaxed">{card.withMarktr}</p>
                 </div>
               </article>
             ))}
@@ -68,55 +71,60 @@ export function PricingSalesSection() {
         </div>
       </div>
 
-      <div className="pricing-sales-reveal mx-auto mt-16 max-w-[1040px] text-center delay-200 lg:mt-20">
-        <p className="mx-auto max-w-3xl font-['Fraunces'] text-2xl font-medium leading-snug text-foreground sm:text-3xl lg:text-[2.15rem]">
-          {copy.bridgeBefore}
-          <span className="whitespace-nowrap underline decoration-2 underline-offset-[0.18em]">
-            {copy.bridgeHighlight}
-          </span>
-          {copy.bridgeAfter}
+      <div
+        id={PRICING_PRO_CARD_ID}
+        className="pricing-sales-reveal mx-auto mt-16 max-w-[560px] scroll-mt-32 text-center delay-200 lg:mt-20"
+      >
+        <p className="font-['Fraunces'] text-5xl font-medium leading-none tracking-[-0.03em] text-foreground sm:text-6xl">
+          {MARKTR_PRO_PRICE_HEADLINE}
         </p>
-        <p className="mx-auto mt-5 max-w-xl text-sm text-foreground/55">{copy.honest}</p>
-        <div id={PRICING_PRO_CARD_ID} className="scroll-mt-32">
-          <p className="mx-auto mt-8 max-w-xl font-['Fraunces'] text-lg font-medium leading-snug text-foreground sm:text-2xl">
-            {MARKTR_PRO_CARD_SUBTITLE}
+        <p className="mt-3 text-base text-foreground/70 sm:text-lg">{MARKTR_PRO_BILLING_LINE}</p>
+        <p className="mt-4 text-sm font-medium text-foreground/80">{copy.everythingLine}</p>
+        <button
+          type="button"
+          data-track-id="pricing_hero_cta"
+          data-track-location="pricing_hero"
+          data-track-destination="paywall"
+          disabled={isStartingCheckout}
+          onClick={() => {
+            if (hasAccess) {
+              void startCheckout("annual");
+              return;
+            }
+            openPaywall("annual", "pricing_page");
+          }}
+          className="mt-6 inline-flex min-h-11 w-full items-center justify-center rounded-full border-2 border-brand-stroke bg-brand-lime px-8 py-3.5 text-base font-medium text-brand-navy transition-opacity hover:bg-brand-lime/90 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:min-w-[280px]"
+        >
+          {isStartingCheckout ? "Redirecting…" : hasAccess ? "Manage billing" : copy.cta}
+        </button>
+        <div className="mx-auto mt-8 max-w-md text-left">
+          <p className="text-center text-[11px] font-medium uppercase tracking-[0.16em] text-foreground/55">
+            {copy.includedLabel}
           </p>
-          <button
-            type="button"
-            data-track-id="pricing_hero_cta"
-            data-track-location="pricing_hero"
-            data-track-destination="paywall"
-            disabled={isStartingCheckout}
-            onClick={() => {
-              if (hasAccess) {
-                void startCheckout("annual");
-                return;
-              }
-              openPaywall("annual", "pricing_page");
-            }}
-            className="mt-6 inline-flex min-h-11 w-full items-center justify-center rounded-full border-2 border-brand-stroke bg-brand-lime px-8 py-3.5 text-base font-medium text-brand-navy transition-opacity hover:bg-brand-lime/90 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:min-w-[280px]"
-          >
-            {isStartingCheckout ? "Redirecting…" : hasAccess ? "Manage billing" : copy.cta}
-          </button>
-          <p className="mt-3 text-sm text-foreground/55">{copy.ctaFinePrint}</p>
+          <ul className="mt-4 space-y-3">
+            {copy.included.map((item) => (
+              <li key={item} className="flex items-start gap-3 text-sm leading-relaxed text-foreground/80">
+                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-brand-stroke bg-brand-lime text-brand-navy">
+                  <Check className="h-3 w-3" aria-hidden />
+                </span>
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
         </div>
-        <p className="mx-auto mt-16 max-w-2xl text-xs leading-relaxed text-foreground/50 lg:mt-20">
-          {copy.footnoteBefore}
-          {copy.sources.map((source, index) => (
-            <span key={source.id}>
-              {index > 0 ? " · " : null}
-              <a
-                href={source.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                data-track-id={source.id}
-                data-track-location="pricing_hero"
-                className="underline underline-offset-2 hover:text-foreground"
-              >
-                {source.label}
-              </a>
-            </span>
-          ))}
+        <p className="mx-auto mt-6 max-w-[34rem] text-xs leading-relaxed text-foreground/55">
+          {copy.legalLine}{" "}
+          <Link to="/terms-of-service" className="underline underline-offset-2 hover:text-foreground">
+            Terms
+          </Link>
+          {" · "}
+          <Link to="/privacy-policy" className="underline underline-offset-2 hover:text-foreground">
+            Privacy
+          </Link>
+        </p>
+        <p className="mt-4 inline-flex items-center justify-center gap-2 text-xs text-foreground/55">
+          <Lock className="h-3.5 w-3.5" aria-hidden />
+          Secure checkout via Stripe
         </p>
       </div>
     </section>

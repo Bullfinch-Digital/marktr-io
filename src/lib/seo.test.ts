@@ -62,7 +62,7 @@ describe("marketing pages", () => {
     expect(paths).not.toContain("/onboarding-build");
     expect(getMarketingPage("/pricing")).toMatchObject({
       title: "Pricing | marktr — £15/month, billed annually",
-      h1: "Your own dedicated marketing team for less than one month of agency fees.",
+      h1: "One place for your marketing. A clear plan for every week.",
     });
     expect(isResourcePostPath("/resources/hormozi-marketing-strategy-tested")).toBe(true);
     expect(isResourcePostPath("/resources")).toBe(false);

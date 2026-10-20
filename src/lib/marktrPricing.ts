@@ -141,50 +141,38 @@ export const MARKTR_PRO_BENEFIT_LABELS = MARKTR_PRO_BENEFITS.map((b) => b.label)
 /** Anchor for /pricing#pricing-pro. The page CTA lives here; the hash does not open the paywall. */
 export const PRICING_PRO_CARD_ID = "pricing-pro";
 
+export const MARKTR_PRICING_LEGAL_LINE = `£0 today, then £${MARKTR_PRO_ANNUAL_TOTAL_GBP} a year after your ${MARKTR_TRIAL_DAYS}-day free trial. Cancel any time before day ${MARKTR_TRIAL_DAYS}. ${MARKTR_MONEY_BACK_DAYS}-day money-back guarantee. Prices in GBP, VAT may apply, renews automatically.`;
+
 export const PRICING_SALES = {
   pill: "One plan. Everything included.",
-  h1: "Your own dedicated marketing team for less than one month of agency fees.",
-  subhead:
-    `Agencies and freelancers charge hundreds, often thousands, to work out who your customers are, what to say and what to post. marktr does that thinking in minutes for £${MARKTR_PRO_MONTHLY_EQUIVALENT_GBP} a month, billed annually (£${MARKTR_PRO_ANNUAL_TOTAL_GBP} a year).`,
-  costsLabel: "What marketing usually costs",
-  costs: [
+  h1: "One place for your marketing. A clear plan for every week.",
+  subhead: `marktr turns what you know about your business into a plan you can follow: what to post, where, and when. Everything in one place, for £${MARKTR_PRO_MONTHLY_EQUIVALENT_GBP} a month, billed annually (£${MARKTR_PRO_ANNUAL_TOTAL_GBP} a year).`,
+  problemsLabel: "WHAT GETS IN THE WAY",
+  problems: [
     {
-      title: "Brand strategy and messaging",
-      usualCost: "From £2,500, and often £5,000–£20,000 for strategy plus identity.",
-      withMarktr: "Your brand story, messaging and value props, included.",
+      title: "Your time",
+      problem: "Hours every week deciding what to post and who it's for.",
+      withMarktr: "A plan and ready-to-use content briefs, so you never start from a blank page.",
     },
     {
-      title: "Social media management",
-      usualCost: "Typically £500–£1,500 a month for UK small businesses.",
-      withMarktr: "A content strategy with ready-to-use briefs and scripts, included.",
+      title: "Everything scattered",
+      problem: "Ideas in notes, drafts in one app, plans in another, and no single place to look.",
+      withMarktr: "Your brand story, customers, strategy and content in one organised space.",
     },
     {
-      title: "Your own time",
-      usualCost:
-        "Hours each week deciding what to post and who it's for. For example, at £30 an hour, 10 hours a month is £300.",
-      withMarktr: "You never start from a blank page.",
+      title: "No clear plan",
+      problem: "Posting when you remember, and never sure what to do next.",
+      withMarktr: "A week-by-week plan with what to post, where and when, and progress you can tick off.",
     },
   ],
-  usualCostLabel: "Usual cost",
-  withMarktrLabel: "With marktr",
-  bridgeBefore: "A whole year of marktr costs ",
-  bridgeHighlight: "less than one month",
-  bridgeAfter: " of a typical agency retainer.",
-  honest:
-    "marktr isn't an agency. It gives you the strategy and the content, and you stay in control of your brand.",
-  cta: "Start your 14-day free trial",
-  ctaFinePrint: "£0 today · Cancel anytime before day 14 · 30-day money-back guarantee",
-  footnoteBefore: "Based on published UK pricing guides, 2026. Your quotes will vary. Sources: ",
-  sources: [
-    {
-      id: "pricing_source_whito_social",
-      label: "UK social media management costs",
-      href: "https://whito.co.uk/research/uk-social-media-management-costs/",
-    },
-    {
-      id: "pricing_source_whito_branding",
-      label: "UK branding design costs",
-      href: "https://whito.co.uk/research/branding-design-costs-uk/",
-    },
+  everythingLine: "Everything included, nothing to unlock later.",
+  includedLabel: "What's included",
+  included: [
+    "A clear marketing plan: where to post, what to post and when.",
+    "Content briefs and scripts for every post, ready to use.",
+    "Your brand story and customer profiles, always to hand.",
+    "A weekly progress tracker so you can see what you've done.",
   ],
+  cta: `Start your ${MARKTR_TRIAL_DAYS}-day free trial`,
+  legalLine: MARKTR_PRICING_LEGAL_LINE,
 } as const;

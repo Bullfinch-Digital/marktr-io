@@ -7,7 +7,7 @@ import { QuoteStrip } from "@/components/home/Testimonials";
 
 const FAMILIAR = [
   "Where do I even start?",
-  "I can't afford an agency.",
+  "I never have time to plan what to post.",
   "I keep posting, and nothing seems to land.",
 ] as const;
 
@@ -82,7 +82,7 @@ export default function Home() {
             </span>
           </h1>
           <p className="mt-8 max-w-3xl font-['Plus_Jakarta_Sans'] text-base leading-relaxed text-[#0B0B0C] sm:text-lg">
-            You know your business inside out. Marketing it is another story, and an agency or a team is out of budget. marktr works out who your customers are, what to say to them and what to post, so you can get back to running your business.
+            You know your business inside out. Marketing it is another story — hours deciding what to post, and everything scattered. marktr turns what you know into a plan you can follow, so you can get back to running your business.
           </p>
           <Link
             to="/health-check"
@@ -190,7 +190,7 @@ export default function Home() {
       <section className="bg-[#FBFAF0] px-6 pb-16 text-center lg:pb-24">
         <div className="mx-auto max-w-3xl">
           <p className="font-['Plus_Jakarta_Sans'] text-base leading-relaxed text-[#101A26]/60 sm:text-lg">
-            marktr isn't an agency. It gives you the strategy and the content, and you stay in control of your brand.
+            marktr organises the plan, strategy, content briefs and progress in one place. You stay in control of your brand.
           </p>
           <Link
             to="/health-check"
@@ -218,7 +218,7 @@ export default function Home() {
             </h2>
             <ul className="mt-8 divide-y divide-[#101A26]/10">
               {[
-                "Agency fees of £3,000+ per month",
+                "Hours every week deciding what to post",
                 "Generic content that sounds like everyone else",
                 "No idea who your ideal customer is",
                 "Tactics without a strategy or system",
@@ -276,7 +276,7 @@ export default function Home() {
             Your marketing team is ready.
           </h2>
           <p className="mt-4 font-['Plus_Jakarta_Sans'] text-lg text-[#101A26]/70">
-            Know your customer. Shape your story. Check your digital health. All free. No agency required.
+            Know your customer. Shape your story. Check your digital health. All free. One organised place.
           </p>
           <Link
             to="/health-check"

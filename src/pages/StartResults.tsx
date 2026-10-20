@@ -236,7 +236,7 @@ export default function StartResults() {
             className="h-auto min-h-12 w-full whitespace-normal px-6 py-3 text-center text-base leading-snug"
           >
             {isStartingCheckout
-              ? "Redirecting…"
+              ? "Setting up your free trial…"
               : "Unlock your strategy dashboard: start your 14-day free trial"}
           </Button>
           <p className="mt-3 text-center font-['Plus_Jakarta_Sans'] text-xs text-foreground/70">

@@ -201,6 +201,8 @@ async function jsonWithOptionalReport(
     findings?: FindingsResponse["findings"] | null;
     utm?: Record<string, unknown> | null;
     businessName?: string;
+    /** False when the site itself could not be read. */
+    websiteAssessed?: boolean;
   },
 ) {
   if (persistBullfinch) {
@@ -219,6 +221,7 @@ async function jsonWithOptionalReport(
         gaps: snapshot.gaps,
         findings: snapshot.findings,
         utm: snapshot.utm,
+        websiteAssessed: snapshot.websiteAssessed,
       });
       if (report) {
         payload.report = { publicToken: report.publicToken };
@@ -1310,6 +1313,7 @@ Deno.serve(async (req) => {
           observation: "Could not access your website — check the URL",
           utm: body.utm ?? null,
           businessName: body.businessName,
+          websiteAssessed: false,
         },
       );
     }
@@ -1402,7 +1406,9 @@ Deno.serve(async (req) => {
       }
 
       const facts = sanitizeFactsForScoring(rawFacts, apifyMetrics);
-      const deterministicScores = computeDeterministicScores(rawFacts, apifyMetrics);
+      const deterministicScores = computeDeterministicScores(rawFacts, apifyMetrics, {
+        websiteAssessed: Boolean(websiteUrl.trim()),
+      });
 
       let findingsPayload: FindingsResponse | null = null;
       try {
@@ -1463,6 +1469,7 @@ Deno.serve(async (req) => {
           findings: findingsPayload?.findings,
           utm: body.utm ?? null,
           businessName: body.businessName,
+          websiteAssessed: Boolean(websiteUrl.trim()),
         },
       );
     } catch (err) {
@@ -1486,6 +1493,7 @@ Deno.serve(async (req) => {
           observation: "Website found but qualitative extraction was incomplete",
           utm: body.utm ?? null,
           businessName: body.businessName,
+          websiteAssessed: Boolean(websiteUrl.trim()),
         },
       );
     }

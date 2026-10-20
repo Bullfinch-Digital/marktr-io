@@ -5,7 +5,15 @@ import { SendScoreCard } from "./SendScoreCard";
 import { getLlmFindingForDimension } from "../../lib/healthCheckFindings";
 import { missingSocialPictureNote } from "../../lib/missingSocialChannels";
 import { polishWebsiteBullets } from "../../../supabase/functions/_shared/pillarFindings";
-import { DIMENSION_CAP_FRAMING_COPY } from "../../lib/healthCheck";
+import {
+  CONTENT_NOT_ASSESSED_COPY,
+  CONTENT_NOT_ASSESSED_LABEL,
+  DIMENSION_CAP_FRAMING_COPY,
+  hasNoPostMetrics,
+  NO_RECENT_POSTS_COPY,
+  NO_RECENT_POSTS_NEXT_STEP,
+  SOCIAL_INCOMPLETE_COPY,
+} from "../../lib/healthCheck";
 import { ctaTarget, track } from "../../lib/bullfinchAnalytics";
 import { useEdition } from "../../contexts/EditionContext";
 import { editionConfig, fillNextStepHref } from "../../lib/editionConfig";
@@ -25,6 +33,7 @@ function activeEdition(): Edition {
 }
 
 function scoreBand(score: number): "high" | "mid" | "low" {
+  if (typeof score !== "number" || !Number.isFinite(score)) return "low";
   const { high, mid } = editionConfig[activeEdition()].scoreBands;
   if (score >= high) return "high";
   if (score >= mid) return "mid";
@@ -138,6 +147,31 @@ const DIMENSION_DETAIL: Record<
     },
   },
 };
+
+function isScoreBandCopy(text: string): boolean {
+  const trimmed = text.trim();
+  if (!trimmed || trimmed === DIMENSION_CAP_FRAMING_COPY) return true;
+  for (const detail of Object.values(DIMENSION_DETAIL)) {
+    for (const tier of ["high", "mid", "low"] as const) {
+      if (trimmed === detail[tier].meaning || trimmed === detail[tier].action) return true;
+    }
+  }
+  return (
+    trimmed.startsWith("Your homepage communicates") ||
+    trimmed.startsWith("Your value proposition could") ||
+    trimmed.startsWith("Visitors may struggle") ||
+    trimmed.startsWith("Strong brand story") ||
+    trimmed.startsWith("Basic story present") ||
+    trimmed.startsWith("Brand story needs") ||
+    trimmed.startsWith("You're maintaining a consistent") ||
+    trimmed.startsWith("Some gaps in your content") ||
+    trimmed.startsWith("Irregular posting") ||
+    trimmed.startsWith("Strong social presence") ||
+    trimmed.startsWith("Social presence is building") ||
+    trimmed.startsWith("Limited social presence") ||
+    trimmed.startsWith("Your score here is excellent")
+  );
+}
 
 export function extractDomain(url: string) {
   try {
@@ -307,6 +341,7 @@ function ScoreCard({
   facebookUrl,
   llmFinding,
   unassessed = false,
+  contentMode = "scored",
 }: {
   dimension: DimensionScore;
   dataSourceLabel: string;
@@ -316,12 +351,13 @@ function ScoreCard({
   /** Prior-aware LLM finding — when set, replaces static tier copy. */
   llmFinding?: string;
   unassessed?: boolean;
+  contentMode?: "unassessed" | "no-posts" | "scored";
 }) {
   const { config } = useEdition();
   const notChecked = !unassessed
     ? undefined
-    : dimension.name === "Content Consistency" && instagramHandle?.trim() && config.unassessedContent
-      ? config.unassessedContent
+    : dimension.name === "Content Consistency"
+      ? { label: CONTENT_NOT_ASSESSED_LABEL, cardLine: CONTENT_NOT_ASSESSED_COPY }
       : config.unassessedSocial;
   if (notChecked) {
     return (
@@ -338,14 +374,14 @@ function ScoreCard({
   }
   const detail = DIMENSION_DETAIL[dimension.name];
   const displayScore = dimension.score;
-  const tier =
-    displayScore === null
-      ? null
-      : displayScore >= 70
-        ? "high"
-        : displayScore >= 40
-          ? "mid"
-          : "low";
+  const hasNumericScore = typeof displayScore === "number" && Number.isFinite(displayScore);
+  const tier = !hasNumericScore
+    ? null
+    : displayScore >= 70
+      ? "high"
+      : displayScore >= 40
+        ? "mid"
+        : "low";
   const detailTier = tier ? detail?.[tier] : undefined;
   const sa =
     dimension.name === "Brand Story" ? dimension.storyAssessment : null;
@@ -355,6 +391,7 @@ function ScoreCard({
     (typeof dimension.scoreRaw === "number" && dimension.scoreRaw >= 100) ||
     !dimension.gaps?.length;
   const showCapFraming =
+    hasNumericScore &&
     !dimension.unmeasured &&
     (dimension.dimensionCapped ||
       (typeof dimension.scoreRaw === "number" && dimension.scoreRaw >= 100));
@@ -373,12 +410,25 @@ function ScoreCard({
     dimension.observation.startsWith("Strong social presence") ||
     dimension.observation.startsWith("Social presence is building") ||
     dimension.observation.startsWith("Limited social presence");
-  const observation = showCapFraming
-    ? DIMENSION_CAP_FRAMING_COPY
-    : !genericObservation
-      ? llmFinding?.trim() || dimension.observation
-      : detailTier?.meaning || llmFinding?.trim() || dimension.observation;
-  const nextStep = showCapFraming ? undefined : dimension.nextStep?.trim() || detailTier?.action;
+  const storedObservation = dimension.observation?.trim() ?? "";
+  const observation = contentMode === "no-posts"
+    ? NO_RECENT_POSTS_COPY
+    : !hasNumericScore
+      ? !storedObservation || isScoreBandCopy(storedObservation)
+        ? dimension.name === "Social Presence"
+          ? SOCIAL_INCOMPLETE_COPY
+          : "This part wasn't scored."
+        : storedObservation
+      : showCapFraming
+        ? DIMENSION_CAP_FRAMING_COPY
+        : !genericObservation
+          ? llmFinding?.trim() || dimension.observation
+          : detailTier?.meaning || llmFinding?.trim() || dimension.observation;
+  const nextStep = contentMode === "no-posts"
+    ? NO_RECENT_POSTS_NEXT_STEP
+    : !hasNumericScore || showCapFraming
+      ? undefined
+      : dimension.nextStep?.trim() || detailTier?.action;
 
   const missingNote =
     dimension.name === "Social Presence" && !dimension.unmeasured && !unassessed
@@ -404,12 +454,12 @@ function ScoreCard({
       <p
         className={`font-display text-4xl font-bold leading-none ${getScoreColor(displayScore)}`}
       >
-        {displayScore === null ? "—" : displayScore}
+        {hasNumericScore ? displayScore : "—"}
       </p>
       <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-muted">
         <div
           className={`h-full rounded-full ${getBarColor(displayScore)}`}
-          style={{ width: `${displayScore ?? 0}%` }}
+          style={{ width: `${hasNumericScore ? displayScore : 0}%` }}
         />
       </div>
       <p className="mt-3 font-body text-sm font-medium leading-relaxed text-foreground">
@@ -497,7 +547,7 @@ function ScoreOverviewChip({
         <div className="mt-1 h-1 w-full rounded-full bg-muted">
           <div
             className={`h-full rounded-full ${getBarColor(score)}`}
-            style={{ width: `${score}%` }}
+            style={{ width: `${typeof score === "number" ? score : 0}%` }}
           />
         </div>
       )}
@@ -678,14 +728,23 @@ export function HealthCheckReportView({
     !input.facebookUrl?.trim() &&
     Boolean(config.unassessedSocial);
   const unassessedCopy = socialNotEntered ? config.unassessedSocial : undefined;
-  const contentPostingUnread =
-    config.showUnassessedAsNotChecked &&
-    scores.contentConsistency.unmeasured === true &&
-    !socialNotEntered;
+  const contentMetrics =
+    scores.deterministic?.apifyMetrics ??
+    input.websiteScore?.deterministic?.apifyMetrics ??
+    null;
+  const contentUnassessed =
+    scores.contentConsistency.score === null ||
+    scores.contentConsistency.unmeasured === true ||
+    scores.socialIncomplete === true ||
+    contentMetrics?.instagramFetchStatus === "incomplete";
+  const contentNoPosts =
+    !contentUnassessed &&
+    scores.contentConsistency.score === 0 &&
+    (contentMetrics == null || hasNoPostMetrics(contentMetrics));
+  const contentMode = contentUnassessed ? "unassessed" : contentNoPosts ? "no-posts" : "scored";
   const isUnassessedDimension = (name: string) =>
-    (Boolean(unassessedCopy) &&
-      (name === "Social Presence" || name === "Content Consistency")) ||
-    (contentPostingUnread && name === "Content Consistency");
+    (Boolean(unassessedCopy) && name === "Social Presence") ||
+    (contentUnassessed && name === "Content Consistency");
 
   const reportContent = (
     <>
@@ -713,7 +772,7 @@ export function HealthCheckReportView({
           shortName="Overall"
           score={scores.overall}
           featured
-          note={unassessedCopy?.overallNote}
+          note={contentUnassessed ? unassessedCopy?.overallNote : undefined}
         />
         {scoreCards.map(({ key, shortName, dimension }) => (
           <ScoreOverviewChip
@@ -722,9 +781,11 @@ export function HealthCheckReportView({
             score={dimension.score}
             href={`#section-${key}`}
             unassessedLabel={
-              isUnassessedDimension(dimension.name)
-                ? unassessedCopy?.label ?? config.unassessedContent?.label
-                : undefined
+              dimension.name === "Content Consistency" && contentUnassessed
+                ? CONTENT_NOT_ASSESSED_LABEL
+                : isUnassessedDimension(dimension.name)
+                  ? unassessedCopy?.label
+                  : undefined
             }
           />
         ))}
@@ -795,6 +856,7 @@ export function HealthCheckReportView({
                 facebookUrl={input.facebookUrl}
                 llmFinding={getLlmFindingForDimension(dimension.name, input.websiteScore)}
                 unassessed={isUnassessedDimension(dimension.name)}
+                contentMode={dimension.name === "Content Consistency" ? contentMode : "scored"}
               />
             </div>
           ))}
@@ -812,6 +874,7 @@ export function HealthCheckReportView({
                 facebookUrl={input.facebookUrl}
                 llmFinding={getLlmFindingForDimension(dimension.name, input.websiteScore)}
                 unassessed={isUnassessedDimension(dimension.name)}
+                contentMode={dimension.name === "Content Consistency" ? contentMode : "scored"}
               />
             </div>
           ))}

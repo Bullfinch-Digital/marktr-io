@@ -53,6 +53,7 @@ export function parseScoreWebsiteResponse(
     facts,
     apifyMetrics,
     modelVersion: data?.modelVersion ?? HEALTH_CHECK_MODEL_VERSION,
+    websiteAssessed: scrapeOk && Boolean(inputs.websiteUrl?.trim()),
     inputs,
   });
 

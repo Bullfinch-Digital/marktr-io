@@ -50,6 +50,24 @@ describe("mapPublicHealthCheckReport", () => {
     expect(mapped?.bfRoute).toBeNull();
   });
 
+  it("renders a stored null content score instead of dropping the report", () => {
+    const mapped = mapPublicHealthCheckReport({
+      public_token: "tok",
+      url: "https://confires.co.uk",
+      overall: 45,
+      scores: {
+        ...healthCheckReportFixtureScores,
+        contentConsistency: {
+          name: "Content Consistency",
+          score: null,
+          observation: "Your score here is excellent — we hold the top back because there's always an edge to sharpen.",
+        },
+      },
+    });
+    expect(mapped?.scores.contentConsistency.score).toBeNull();
+    expect(mapped?.scores.websiteClarity.score).toBe(62);
+  });
+
   it("returns null when scores are missing", () => {
     expect(mapPublicHealthCheckReport({ public_token: "tok", url: "https://x.com" })).toBeNull();
     expect(mapPublicHealthCheckReport(null)).toBeNull();

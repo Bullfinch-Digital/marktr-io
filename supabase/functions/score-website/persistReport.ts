@@ -2,7 +2,13 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.2";
 import { bullfinchRoute, routePillarsChecked } from "../_shared/bullfinchRouting.ts";
 import { storedBusinessName } from "../_shared/reportLeadCapture.ts";
 import { generatePublicToken } from "../_shared/publicToken.ts";
-import { computeDeterministicScores, HEALTH_CHECK_SCORER_VERSION } from "./deterministicScores.ts";
+import {
+  computeDeterministicScores,
+  CONTENT_NOT_ASSESSED_COPY,
+  HEALTH_CHECK_SCORER_VERSION,
+  NO_RECENT_POSTS_COPY,
+  NO_RECENT_POSTS_NEXT_STEP,
+} from "./deterministicScores.ts";
 
 export type { Edition } from "../_shared/bullfinchHosts.ts";
 export {
@@ -84,15 +90,19 @@ export function buildScoresSnapshot(opts: {
   domain: string;
   facts: HealthCheckFacts;
   apifyMetrics: ApifySocialMetrics;
+  /** False when the site fetch failed. Omitted means a non-empty website URL counts as assessed. */
+  websiteAssessed?: boolean;
   modelVersion: string;
   observation: string;
   strengths?: string[];
   gaps?: string[];
   findings?: Finding[] | null;
 }) {
+  const websiteAssessed = opts.websiteAssessed ?? Boolean(opts.websiteUrl?.trim());
   const deterministicScores = computeDeterministicScores(
     opts.facts as Parameters<typeof computeDeterministicScores>[0],
     opts.apifyMetrics,
+    { websiteAssessed },
   );
 
   const websiteClarity = capDimension("Website Clarity", deterministicScores.website);
@@ -117,6 +127,16 @@ export function buildScoresSnapshot(opts: {
   applyCopy(brandStory, findingFor("Brand Story", opts.findings));
   applyCopy(contentConsistency, findingFor("Content Consistency", opts.findings));
   applyCopy(socialPresence, findingFor("Social Presence", opts.findings));
+
+  const noRecentPosts =
+    opts.apifyMetrics.latestPostDaysAgo == null && opts.apifyMetrics.postsPerWeek == null;
+  if (contentConsistency.unmeasured) {
+    contentConsistency.observation = CONTENT_NOT_ASSESSED_COPY;
+    delete contentConsistency.nextStep;
+  } else if (noRecentPosts && !deterministicScores.socialIncomplete) {
+    contentConsistency.observation = NO_RECENT_POSTS_COPY;
+    contentConsistency.nextStep = NO_RECENT_POSTS_NEXT_STEP;
+  }
 
   if (opts.strengths?.length && !websiteClarity.dimensionCapped) {
     (websiteClarity as { strengths?: string[] }).strengths = opts.strengths;
@@ -206,6 +226,8 @@ export async function persistHealthCheckReport(opts: {
   domain: string;
   facts: HealthCheckFacts;
   apifyMetrics: ApifySocialMetrics;
+  /** False when the site fetch failed. Omitted means a non-empty url counts as assessed. */
+  websiteAssessed?: boolean;
   modelVersion: string;
   observation: string;
   strengths?: string[];
@@ -220,10 +242,27 @@ export async function persistHealthCheckReport(opts: {
     return null;
   }
 
-  const snapshot = buildScoresSnapshot(opts);
+  const websiteAssessed = opts.websiteAssessed ?? Boolean(opts.url?.trim());
+  const snapshot = buildScoresSnapshot({
+    websiteUrl: opts.url,
+    instagramHandle: opts.instagramHandle,
+    facebookUrl: opts.facebookUrl,
+    domain: opts.domain,
+    facts: opts.facts,
+    apifyMetrics: opts.apifyMetrics,
+    websiteAssessed,
+    modelVersion: opts.modelVersion,
+    observation: opts.observation,
+    strengths: opts.strengths,
+    gaps: opts.gaps,
+    findings: opts.findings,
+  });
   const publicToken = generatePublicToken();
   const supabase = createClient(supabaseUrl, serviceRoleKey);
-  const checked = routePillarsChecked(opts.apifyMetrics);
+  const checked = routePillarsChecked({
+    ...opts.apifyMetrics,
+    websiteAssessed,
+  });
   const bfRoute = bullfinchRoute({
     websiteClarity: snapshot.website,
     brandStory: snapshot.brandStory,

@@ -84,7 +84,7 @@ export type DeterministicHealthCheckRun = {
   scores: {
     websiteClarity: number;
     brandStory: number;
-    /** Null when socialIncomplete (unmeasured). */
+    /** Null when content was not assessed (no site or profile, or the fetch failed). */
     contentConsistency: number | null;
     /** Null when socialIncomplete (unmeasured). */
     socialPresence: number | null;
@@ -165,9 +165,16 @@ export function contentPostingUnknown(metrics: ApifySocialMetrics): boolean {
   return (
     metrics.instagramFetchStatus === "found" &&
     metrics.instagramFound &&
-    metrics.latestPostDaysAgo == null &&
-    metrics.postsPerWeek == null
+    hasNoPostMetrics(metrics)
   );
+}
+
+/** No post date and no posting rate. Distinct from a fetch that failed. */
+export function hasNoPostMetrics(metrics: {
+  latestPostDaysAgo: number | null;
+  postsPerWeek: number | null;
+}): boolean {
+  return metrics.latestPostDaysAgo == null && metrics.postsPerWeek == null;
 }
 
 export function applyDimensionDisplayCap(raw: number): DimensionScoreFields {
@@ -184,9 +191,18 @@ export function unmeasuredDimension(): DimensionScoreFields {
   return { raw: null, score: null, capped: false, unmeasured: true };
 }
 
-/** True when Key gaps must be suppressed (display-capped or raw max). */
+/** True when Key gaps must be suppressed (unmeasured, display-capped, or raw max). */
 export function shouldSuppressDimensionGaps(dim: DimensionScoreFields): boolean {
-  if (dim.unmeasured || dim.raw === null) return true;
+  if (dim.unmeasured || typeof dim.raw !== "number") return true;
+  return dim.capped || dim.raw >= DIMENSION_RAW_MAX;
+}
+
+/**
+ * Top-band framing ("excellent") only when there is a numeric score at the cap.
+ * A missing score must not fall through to this copy.
+ */
+export function showsDimensionCapFraming(dim: DimensionScoreFields): boolean {
+  if (dim.unmeasured || typeof dim.raw !== "number" || typeof dim.score !== "number") return false;
   return dim.capped || dim.raw >= DIMENSION_RAW_MAX;
 }
 
@@ -313,18 +329,21 @@ const DIMENSION_LABELS: Record<keyof typeof DIMENSION_WEIGHTS, string> = {
 
 export function scoreFromFacts(
   facts: HealthCheckFacts,
-  apifyMetrics: ApifySocialMetrics
+  apifyMetrics: ApifySocialMetrics,
+  opts?: { websiteAssessed?: boolean }
 ): DeterministicHealthCheckRun {
   const socialIncomplete = isSocialIncomplete(apifyMetrics);
-  const postingUnknown = contentPostingUnknown(apifyMetrics);
+  const websiteAssessed = opts?.websiteAssessed === true;
   const noSocialProfile = !hasAnySocialProfile(apifyMetrics);
+  const contentUnmeasured = socialIncomplete || (noSocialProfile && !websiteAssessed);
+  const noRecentPosts = !contentUnmeasured && hasNoPostMetrics(apifyMetrics);
   const socialBands = bandSocialSignals(apifyMetrics);
   const scoredFacts = sanitizeFactsForScoring(facts, apifyMetrics);
   const points = scorePointsFromFacts(scoredFacts, socialBands, apifyMetrics);
 
   const websiteRaw = points.website.total;
   const storyRaw = points.story.total;
-  const contentRaw = socialIncomplete || postingUnknown ? null : points.content.total;
+  const contentRaw = contentUnmeasured ? null : noRecentPosts ? 0 : points.content.total;
   const socialRaw = socialIncomplete ? null : points.social.total;
 
   const overallResult = weightedOverallScore(
@@ -336,7 +355,7 @@ export function scoreFromFacts(
     },
     {
       socialIncomplete,
-      contentUnmeasured: postingUnknown || noSocialProfile,
+      contentUnmeasured,
       socialUnmeasured: noSocialProfile,
     },
   );
@@ -393,6 +412,8 @@ export function buildHealthCheckRun(params: {
   facts: HealthCheckFacts;
   apifyMetrics: ApifySocialMetrics;
   modelVersion: string;
+  /** When set, overrides “a website URL was supplied”. Failed fetches pass false. */
+  websiteAssessed?: boolean;
   inputs: {
     websiteUrl: string;
     instagramHandle: string;
@@ -400,7 +421,10 @@ export function buildHealthCheckRun(params: {
     domain: string;
   };
 }): DeterministicHealthCheckRun {
-  const base = scoreFromFacts(params.facts, params.apifyMetrics);
+  const base = scoreFromFacts(params.facts, params.apifyMetrics, {
+    websiteAssessed:
+      params.websiteAssessed ?? Boolean(params.inputs.websiteUrl?.trim()),
+  });
   return {
     ...base,
     modelVersion: params.modelVersion,

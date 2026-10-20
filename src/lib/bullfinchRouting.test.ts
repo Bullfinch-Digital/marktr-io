@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { absentApifyMetrics, absentHealthCheckFacts, scoreFromFacts } from "./healthCheck";
+import { absentApifyMetrics, absentHealthCheckFacts, buildHealthCheckRun } from "./healthCheck";
 import {
   BF_THRESHOLDS,
   bullfinchRoute,
@@ -88,10 +88,10 @@ describe("bullfinchRoute", () => {
     ).toBe("polish");
   });
 
-  it("shows 92 and routes talk for greencaravanpark.co.uk with no handles", () => {
+  it("counts a content 0 and routes talk for greencaravanpark.co.uk with no handles", () => {
     const metrics = absentApifyMetrics();
-    const run = scoreFromFacts(
-      {
+    const run = buildHealthCheckRun({
+      facts: {
         ...absentHealthCheckFacts(),
         valueProp: "clear",
         namesCustomer: "clear",
@@ -105,14 +105,23 @@ describe("bullfinchRoute", () => {
         pointOfView: "distinct",
         valuesMission: "concrete",
       },
-      metrics,
-    );
+      apifyMetrics: metrics,
+      modelVersion: "test",
+      inputs: {
+        websiteUrl: "https://greencaravanpark.co.uk",
+        instagramHandle: "",
+        facebookUrl: "",
+        domain: "greencaravanpark.co.uk",
+      },
+    });
     expect(run.scores.websiteClarity).toBe(90);
     expect(run.scores.brandStory).toBe(100);
-    expect(run.scores.overallRaw).toBe(95);
-    expect(run.scores.overall).toBe(92);
-    const checked = routePillarsChecked(metrics);
-    expect(checked).toEqual({ contentChecked: false, socialChecked: false });
+    expect(run.scores.contentConsistency).toBe(0);
+    // Website 0.30, story 0.30, content 0.25; social excluded. 57 / 0.85 = 67.
+    expect(run.scores.overallRaw).toBe(67);
+    expect(run.scores.overall).toBe(67);
+    const checked = routePillarsChecked({ ...metrics, websiteAssessed: true });
+    expect(checked).toEqual({ contentChecked: true, socialChecked: false });
     expect(
       bullfinchRoute({
         websiteClarity: run.scores.websiteClarity,

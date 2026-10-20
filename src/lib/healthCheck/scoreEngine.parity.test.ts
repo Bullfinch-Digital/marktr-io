@@ -92,7 +92,7 @@ describe("score engine parity (client vs edge copy)", () => {
         domain: "example.com",
       },
     });
-    const server = computeDeterministicScores(facts, apify);
+    const server = computeDeterministicScores(facts, apify, { websiteAssessed: true });
 
     expect(client.scores.websiteClarity).toBe(server.website);
     expect(client.scores.brandStory).toBe(server.brandStory);

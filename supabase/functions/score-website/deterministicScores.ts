@@ -205,13 +205,8 @@ function namesCustomerPoints(facts: HealthCheckFacts): number {
   return 0;
 }
 
-function contentPostingUnknown(metrics: ApifySocialMetrics): boolean {
-  return (
-    metrics.instagramFetchStatus === "found" &&
-    metrics.instagramFound &&
-    metrics.latestPostDaysAgo == null &&
-    metrics.postsPerWeek == null
-  );
+function hasNoPostMetrics(metrics: ApifySocialMetrics): boolean {
+  return metrics.latestPostDaysAgo == null && metrics.postsPerWeek == null;
 }
 
 function weightedOverallScore(
@@ -251,13 +246,21 @@ function weightedOverallScore(
   };
 }
 
-const HEALTH_CHECK_SCORER_VERSION = "1.0.5";
+const HEALTH_CHECK_SCORER_VERSION = "1.0.6";
+
+export const NO_RECENT_POSTS_COPY =
+  "We couldn't find any recent posts, so there's nothing to score yet.";
+export const NO_RECENT_POSTS_NEXT_STEP =
+  "Plan three posts for this week and publish them to start building a rhythm.";
+export const CONTENT_NOT_ASSESSED_COPY =
+  "Add a social profile to score your content consistency.";
 
 export { OVERALL_CAP, OVERALL_CAP_FRAMING_COPY, HEALTH_CHECK_SCORER_VERSION };
 
 export function computeDeterministicScores(
   facts: HealthCheckFacts,
-  apifyMetrics: ApifySocialMetrics
+  apifyMetrics: ApifySocialMetrics,
+  opts?: { websiteAssessed?: boolean }
 ): {
   website: number;
   brandStory: number;
@@ -269,10 +272,12 @@ export function computeDeterministicScores(
   socialIncomplete: boolean;
 } {
   const socialIncomplete = apifyMetrics.instagramFetchStatus === "incomplete";
-  const postingUnknown = contentPostingUnknown(apifyMetrics);
+  const websiteAssessed = opts?.websiteAssessed === true;
   const scoredFacts = sanitizeFactsForScoring(facts, apifyMetrics);
   const socialBands = bandSocialSignals(apifyMetrics);
   const hasSocialProfile = hasAnySocialProfile(apifyMetrics);
+  const contentUnmeasured = socialIncomplete || (!hasSocialProfile && !websiteAssessed);
+  const noRecentPosts = !contentUnmeasured && hasNoPostMetrics(apifyMetrics);
 
   const website =
     VALUE_PROP_PTS[scoredFacts.valueProp] +
@@ -300,7 +305,7 @@ export function computeDeterministicScores(
       CROSS_PLATFORM_PTS[socialBands.crossPlatform]
     : 0;
 
-  const content = socialIncomplete || postingUnknown ? null : contentMeasured;
+  const content = contentUnmeasured ? null : noRecentPosts ? 0 : contentMeasured;
   const social = socialIncomplete ? null : socialMeasured;
   const noSocialProfile = !hasSocialProfile;
 
@@ -319,7 +324,7 @@ export function computeDeterministicScores(
       },
       {
         socialIncomplete,
-        contentUnmeasured: postingUnknown || noSocialProfile,
+        contentUnmeasured,
         socialUnmeasured: noSocialProfile,
       },
     ),

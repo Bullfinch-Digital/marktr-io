@@ -12,6 +12,11 @@ import {
   getBarColor,
   getScoreColor,
 } from "../components/healthCheck/HealthCheckReportView";
+import {
+  CONTENT_NOT_ASSESSED_COPY,
+  CONTENT_NOT_ASSESSED_LABEL,
+  DIMENSION_CAP_FRAMING_COPY,
+} from "../lib/healthCheck";
 
 export default function GuestHealthPreview() {
   const { user } = useAuth();
@@ -49,7 +54,10 @@ export default function GuestHealthPreview() {
             {
               dimension: "Content Consistency",
               score: guestHealth.scores.contentConsistency,
-              finding: `Scored ${guestHealth.scores.contentConsistency}/100 on your last check.`,
+              finding:
+                guestHealth.scores.contentConsistency == null
+                  ? CONTENT_NOT_ASSESSED_COPY
+                  : `Scored ${guestHealth.scores.contentConsistency}/100 on your last check.`,
             },
             {
               dimension: "Social Presence",
@@ -99,7 +107,9 @@ export default function GuestHealthPreview() {
               {report.overall}
             </p>
           </div>
-          {report.findings.map(({ dimension, score }) => (
+          {report.findings.map(({ dimension, score }) => {
+            const contentMissing = dimension === "Content Consistency" && score == null;
+            return (
             <div
               key={dimension}
               className="min-w-[100px] flex-1 rounded-[24px] border-2 border-brand-stroke bg-card px-4 py-3 text-center"
@@ -108,30 +118,44 @@ export default function GuestHealthPreview() {
                 {dimension.replace("Website Clarity", "Clarity").replace("Content Consistency", "Content")}
               </p>
               <p className={`font-['Fraunces'] text-2xl font-bold leading-none ${getScoreColor(score)}`}>
-                {score}
+                {contentMissing ? CONTENT_NOT_ASSESSED_LABEL : score ?? "—"}
               </p>
             </div>
-          ))}
+            );
+          })}
         </div>
 
         <div className="mt-10 space-y-4">
-          {report.findings.map(({ dimension, score, finding }) => (
+          {report.findings.map(({ dimension, score, finding }) => {
+            const contentMissing = dimension === "Content Consistency" && score == null;
+            const text = finding ?? "";
+            const bandPraise =
+              text === DIMENSION_CAP_FRAMING_COPY ||
+              text.startsWith("Your score here is excellent");
+            const shownFinding = contentMissing
+              ? CONTENT_NOT_ASSESSED_COPY
+              : score == null && bandPraise
+                ? "This part wasn't scored."
+                : text;
+            const barWidth = typeof score === "number" ? score : 0;
+            return (
             <article key={dimension} className="rounded-[24px] border-2 border-brand-stroke bg-card p-6">
               <div className="flex items-start justify-between gap-4">
                 <h2 className="font-['Fraunces'] text-xl font-semibold text-foreground">{dimension}</h2>
                 <p className={`font-['Fraunces'] text-3xl font-bold leading-none ${getScoreColor(score)}`}>
-                  {score}
+                  {contentMissing ? CONTENT_NOT_ASSESSED_LABEL : score ?? "—"}
                 </p>
               </div>
               <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-muted">
                 <div
                   className={`h-full rounded-full ${getBarColor(score)}`}
-                  style={{ width: `${score}%` }}
+                  style={{ width: `${barWidth}%` }}
                 />
               </div>
-              <p className="mt-4 font-['Plus_Jakarta_Sans'] text-sm leading-relaxed text-foreground/80">{finding}</p>
+              <p className="mt-4 font-['Plus_Jakarta_Sans'] text-sm leading-relaxed text-foreground/80">{shownFinding}</p>
             </article>
-          ))}
+            );
+          })}
         </div>
 
         <div className="mt-10 rounded-2xl bg-brand-navy p-8">

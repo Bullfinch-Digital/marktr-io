@@ -65,15 +65,16 @@ type BrandStoryRow = {
 function readDimensionScore(
   scores: Record<string, unknown> | null | undefined,
   key: string
-): number | "—" {
+): number | "—" | "Not assessed" {
   if (!scores) return "—";
   const entry = scores[key];
   if (typeof entry === "number") return entry;
   if (entry && typeof entry === "object" && "score" in entry) {
     const score = (entry as { score?: unknown }).score;
     if (typeof score === "number") return score;
-    if (score === null) return "—";
+    if (score === null) return key === "contentConsistency" ? "Not assessed" : "—";
   }
+  if (entry === null && key === "contentConsistency") return "Not assessed";
   return "—";
 }
 
@@ -372,10 +373,13 @@ export default function Dashboard() {
   const brandStoryScore = readDimensionScore(healthScores, "brandStory");
   const contentScore = readDimensionScore(healthScores, "contentConsistency");
   const socialScore = readDimensionScore(healthScores, "socialPresence");
-  const overallScore =
+  const overallFromScores = readDimensionScore(healthScores, "overall");
+  const overallScore: number | "—" =
     typeof healthCheck?.overall_score === "number"
       ? healthCheck.overall_score
-      : readDimensionScore(healthScores, "overall");
+      : overallFromScores === "Not assessed"
+        ? "—"
+        : overallFromScores;
 
   const previewStrategies = strategies.slice(0, 3);
   const latestStrategy = strategies[0];

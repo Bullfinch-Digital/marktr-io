@@ -8,6 +8,10 @@ export {
   DIMENSION_RAW_MAX,
   OVERALL_CAP_FRAMING_COPY,
   DIMENSION_CAP_FRAMING_COPY,
+  NO_RECENT_POSTS_COPY,
+  NO_RECENT_POSTS_NEXT_STEP,
+  CONTENT_NOT_ASSESSED_LABEL,
+  CONTENT_NOT_ASSESSED_COPY,
   SOCIAL_INCOMPLETE_COPY,
 } from "./constants";
 
@@ -47,7 +51,9 @@ export {
   applyDimensionDisplayCap,
   unmeasuredDimension,
   shouldSuppressDimensionGaps,
+  showsDimensionCapFraming,
   isSocialIncomplete,
+  hasNoPostMetrics,
 } from "./scoreEngine";
 
 export {

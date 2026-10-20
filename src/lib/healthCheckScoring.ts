@@ -2,10 +2,16 @@ import type { DeterministicHealthCheckRun } from "./healthCheck";
 import {
   applyDimensionDisplayCap,
   buildAbsentHealthCheckRun,
+  CONTENT_NOT_ASSESSED_COPY,
   DIMENSION_CAP_FRAMING_COPY,
   DIMENSION_DISPLAY_CAP,
+  hasNoPostMetrics,
+  NO_RECENT_POSTS_COPY,
+  NO_RECENT_POSTS_NEXT_STEP,
   shouldSuppressDimensionGaps,
+  showsDimensionCapFraming,
   SOCIAL_INCOMPLETE_COPY,
+  unmeasuredDimension,
 } from "./healthCheck";
 
 export interface StoryAssessment {
@@ -191,6 +197,36 @@ function storyAssessmentFromFacts(
   };
 }
 
+function contentNoRecentPosts(run: DeterministicHealthCheckRun): boolean {
+  const dim = run.dimensions.contentConsistency;
+  if (dim.unmeasured || typeof dim.score !== "number" || run.socialIncomplete) return false;
+  return hasNoPostMetrics(run.apifyMetrics);
+}
+
+function contentObservation(
+  run: DeterministicHealthCheckRun,
+  input: HealthCheckInput,
+  fallback: string,
+): string {
+  if (run.dimensions.contentConsistency.unmeasured || run.socialIncomplete) {
+    return CONTENT_NOT_ASSESSED_COPY;
+  }
+  if (contentNoRecentPosts(run)) return NO_RECENT_POSTS_COPY;
+  if (showsDimensionCapFraming(run.dimensions.contentConsistency)) return DIMENSION_CAP_FRAMING_COPY;
+  return pillarAdvice("Content Consistency", fallback, input.websiteScore).observation;
+}
+
+function contentNextStep(
+  run: DeterministicHealthCheckRun,
+  input: HealthCheckInput,
+  fallback: string,
+): string | undefined {
+  if (run.dimensions.contentConsistency.unmeasured || run.socialIncomplete) return undefined;
+  if (contentNoRecentPosts(run)) return NO_RECENT_POSTS_NEXT_STEP;
+  if (showsDimensionCapFraming(run.dimensions.contentConsistency)) return undefined;
+  return pillarAdvice("Content Consistency", fallback, input.websiteScore).nextStep;
+}
+
 function scoresFromDeterministicRun(
   run: DeterministicHealthCheckRun,
   input: HealthCheckInput
@@ -233,7 +269,8 @@ function scoresFromDeterministicRun(
   const storyAssessment = storyAssessmentFromFacts(run);
 
   const suppressWebsiteGaps = shouldSuppressDimensionGaps(dims.websiteClarity);
-  const websiteAdvice = suppressWebsiteGaps
+  const websiteCap = showsDimensionCapFraming(dims.websiteClarity);
+  const websiteAdvice = websiteCap
     ? { observation: DIMENSION_CAP_FRAMING_COPY }
     : pillarAdvice(
         "Website Clarity",
@@ -241,7 +278,8 @@ function scoresFromDeterministicRun(
         input.websiteScore,
       );
 
-  const brandAdvice = shouldSuppressDimensionGaps(dims.brandStory)
+  const brandCap = showsDimensionCapFraming(dims.brandStory);
+  const brandAdvice = brandCap
     ? { observation: DIMENSION_CAP_FRAMING_COPY }
     : pillarAdvice("Brand Story", storyObservation, input.websiteScore);
 
@@ -253,7 +291,7 @@ function scoresFromDeterministicRun(
       dimensionCapped: dims.websiteClarity.capped,
       unmeasured: false,
       observation: websiteAdvice.observation,
-      nextStep: suppressWebsiteGaps ? undefined : websiteAdvice.nextStep,
+      nextStep: websiteCap ? undefined : websiteAdvice.nextStep,
       strengths: suppressWebsiteGaps ? undefined : input.websiteScore?.strengths,
       gaps: suppressWebsiteGaps ? undefined : input.websiteScore?.gaps,
     },
@@ -264,7 +302,7 @@ function scoresFromDeterministicRun(
       dimensionCapped: dims.brandStory.capped,
       unmeasured: false,
       observation: brandAdvice.observation,
-      nextStep: shouldSuppressDimensionGaps(dims.brandStory) ? undefined : brandAdvice.nextStep,
+      nextStep: brandCap ? undefined : brandAdvice.nextStep,
       storyAssessment,
     },
     contentConsistency: {
@@ -273,15 +311,8 @@ function scoresFromDeterministicRun(
       scoreRaw: dims.contentConsistency.raw,
       dimensionCapped: dims.contentConsistency.capped,
       unmeasured: dims.contentConsistency.unmeasured,
-      observation: socialIncomplete
-        ? SOCIAL_INCOMPLETE_COPY
-        : shouldSuppressDimensionGaps(dims.contentConsistency)
-          ? DIMENSION_CAP_FRAMING_COPY
-          : pillarAdvice("Content Consistency", consistencyObservation, input.websiteScore).observation,
-      nextStep:
-        socialIncomplete || shouldSuppressDimensionGaps(dims.contentConsistency)
-          ? undefined
-          : pillarAdvice("Content Consistency", consistencyObservation, input.websiteScore).nextStep,
+      observation: contentObservation(run, input, consistencyObservation),
+      nextStep: contentNextStep(run, input, consistencyObservation),
     },
     socialPresence: {
       name: "Social Presence",
@@ -291,11 +322,11 @@ function scoresFromDeterministicRun(
       unmeasured: dims.socialPresence.unmeasured,
       observation: socialIncomplete
         ? SOCIAL_INCOMPLETE_COPY
-        : shouldSuppressDimensionGaps(dims.socialPresence)
+        : showsDimensionCapFraming(dims.socialPresence)
           ? DIMENSION_CAP_FRAMING_COPY
           : pillarAdvice("Social Presence", socialObservation, input.websiteScore).observation,
       nextStep:
-        socialIncomplete || shouldSuppressDimensionGaps(dims.socialPresence)
+        socialIncomplete || showsDimensionCapFraming(dims.socialPresence)
           ? undefined
           : pillarAdvice("Social Presence", socialObservation, input.websiteScore).nextStep,
     },
@@ -323,12 +354,14 @@ export function calculateScores(input: HealthCheckInput): HealthCheckScores {
         dimensions: {
           websiteClarity: applyDimensionDisplayCap(legacyScores.websiteClarity),
           brandStory: applyDimensionDisplayCap(legacyScores.brandStory),
-          contentConsistency: applyDimensionDisplayCap(
-            legacyScores.contentConsistency ?? 0
-          ),
-          socialPresence: applyDimensionDisplayCap(
-            legacyScores.socialPresence ?? 0
-          ),
+          contentConsistency:
+            legacyScores.contentConsistency == null
+              ? unmeasuredDimension()
+              : applyDimensionDisplayCap(legacyScores.contentConsistency),
+          socialPresence:
+            legacyScores.socialPresence == null
+              ? unmeasuredDimension()
+              : applyDimensionDisplayCap(legacyScores.socialPresence),
         },
       };
       return scoresFromDeterministicRun(patched, input);

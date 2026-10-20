@@ -617,10 +617,10 @@ async function captureBullfinch(
         }
         if (
           !(await page
-            .getByText("Based on your website and story. Add your Instagram for a full score.")
+            .getByText("We couldn't find any recent posts, so there's nothing to score yet.")
             .isVisible())
         ) {
-          throw new Error("Bullfinch overall note missing");
+          throw new Error("Bullfinch no-posts content copy missing");
         }
         if ((await page.getByText(FINDINGS[3].finding).count()) > 0) {
           throw new Error("Bullfinch no-handles report still shows the social finding");

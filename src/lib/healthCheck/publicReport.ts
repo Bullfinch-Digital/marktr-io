@@ -14,9 +14,19 @@ export type PublicHealthCheckReportView = {
 
 function isDimension(value: unknown): boolean {
   if (!value || typeof value !== "object") return false;
-  const dim = value as { name?: unknown; observation?: unknown };
-  return typeof dim.name === "string" && typeof dim.observation === "string";
+  const dim = value as { name?: unknown; observation?: unknown; score?: unknown };
+  if (typeof dim.name !== "string") return false;
+  if (typeof dim.observation === "string") return true;
+  return dim.score === null || typeof dim.score === "number";
 }
+
+const UNASSESSED_CONTENT = {
+  name: "Content Consistency",
+  score: null,
+  scoreRaw: null,
+  unmeasured: true,
+  observation: "",
+};
 
 export function mapPublicHealthCheckReport(
   report: unknown,
@@ -33,10 +43,15 @@ export function mapPublicHealthCheckReport(
       facebookUrl?: string;
     };
   };
+  const contentConsistency = isDimension(scores.contentConsistency)
+    ? scores.contentConsistency
+    : scores.contentConsistency == null
+      ? UNASSESSED_CONTENT
+      : null;
   if (
     !isDimension(scores.websiteClarity) ||
     !isDimension(scores.brandStory) ||
-    !isDimension(scores.contentConsistency) ||
+    !contentConsistency ||
     !isDimension(scores.socialPresence) ||
     typeof scores.overall !== "number"
   ) {
@@ -49,7 +64,7 @@ export function mapPublicHealthCheckReport(
       : scores.inputs?.websiteUrl ?? "";
 
   return {
-    scores,
+    scores: { ...scores, contentConsistency },
     input: {
       websiteUrl: url,
       instagramHandle: scores.inputs?.instagramHandle ?? "",

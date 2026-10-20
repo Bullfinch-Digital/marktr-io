@@ -262,7 +262,7 @@ export default function GuestDashboardPreview() {
                 {
                   key: "contentConsistency",
                   label: "Content Consistency",
-                  score: guestHealth.scores.contentConsistency ?? "—",
+                  score: guestHealth.scores.contentConsistency ?? "Not assessed",
                 },
                 {
                   key: "socialPresence",

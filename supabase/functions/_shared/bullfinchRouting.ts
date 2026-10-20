@@ -26,16 +26,14 @@ export function routePillarsChecked(input: {
   instagramFetchStatus: string;
   latestPostDaysAgo: number | null;
   postsPerWeek: number | null;
+  /** True when a website was read. Content can still be scored 0 with no posts. */
+  websiteAssessed?: boolean;
 }): { contentChecked: boolean; socialChecked: boolean } {
   const noProfile = !input.instagramFound && !input.facebookFound;
   const incomplete = input.instagramFetchStatus === "incomplete";
-  const postingUnknown =
-    input.instagramFetchStatus === "found" &&
-    input.instagramFound &&
-    input.latestPostDaysAgo == null &&
-    input.postsPerWeek == null;
+  const contentUnmeasured = incomplete || (noProfile && input.websiteAssessed !== true);
   return {
-    contentChecked: !incomplete && !noProfile && !postingUnknown,
+    contentChecked: !contentUnmeasured,
     socialChecked: !incomplete && !noProfile,
   };
 }

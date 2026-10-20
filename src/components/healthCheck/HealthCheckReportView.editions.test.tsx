@@ -4,6 +4,7 @@ import { MemoryRouter } from "react-router-dom";
 import { HealthCheckReportView, getScoreColor } from "../../components/healthCheck/HealthCheckReportView";
 import { EditionProvider } from "../../contexts/EditionContext";
 import type { Edition } from "../edition";
+import { DIMENSION_CAP_FRAMING_COPY } from "../../lib/healthCheck";
 import {
   HEALTH_CHECK_REPORT_FIXTURE_FINDINGS,
   healthCheckReportFixtureInput,
@@ -146,8 +147,8 @@ describe("HealthCheckReportView editions", () => {
     expect(bullfinch.getAllByText("Not checked").length).toBeGreaterThanOrEqual(2);
     expect(bullfinch.getAllByText("Add your Instagram for a full score").length).toBeGreaterThan(0);
     expect(
-      bullfinch.getByText("Based on your website and story. Add your Instagram for a full score."),
-    ).toBeTruthy();
+      bullfinch.queryByText("Based on your website and story. Add your Instagram for a full score."),
+    ).toBeNull();
     expect(bullfinch.queryByText(HEALTH_CHECK_REPORT_FIXTURE_FINDINGS[2])).toBeNull();
     expect(bullfinch.queryByText(HEALTH_CHECK_REPORT_FIXTURE_FINDINGS[3])).toBeNull();
     bullfinch.unmount();
@@ -232,5 +233,102 @@ describe("HealthCheckReportView editions", () => {
     expect(getScoreColor(50)).toContain("--hc-score-mid");
     expect(getScoreColor(49)).toContain("--hc-score-low");
     document.documentElement.dataset.edition = "marktr";
+  });
+
+  it("renders a null content score as Not assessed, never the top band", () => {
+    const praise = DIMENSION_CAP_FRAMING_COPY;
+    const scores = {
+      ...healthCheckReportFixtureScores,
+      websiteClarity: {
+        ...healthCheckReportFixtureScores.websiteClarity,
+        score: null,
+        scoreRaw: null,
+        unmeasured: true,
+        observation: praise,
+      },
+      brandStory: {
+        ...healthCheckReportFixtureScores.brandStory,
+        score: null,
+        scoreRaw: null,
+        unmeasured: true,
+        observation: praise,
+      },
+      socialPresence: {
+        ...healthCheckReportFixtureScores.socialPresence,
+        score: null,
+        scoreRaw: null,
+        unmeasured: true,
+        observation: praise,
+      },
+      contentConsistency: {
+        ...healthCheckReportFixtureScores.contentConsistency,
+        score: null,
+        scoreRaw: null,
+        unmeasured: true,
+        observation: praise,
+      },
+    };
+    const { getAllByText, queryByText, unmount } = render(
+      <EditionProvider edition="bullfinch">
+        <MemoryRouter>
+          <HealthCheckReportView
+            scores={scores}
+            input={{ ...healthCheckReportFixtureInput, instagramHandle: "", facebookUrl: "" }}
+            showPaywallUpsell={false}
+            showDashboardCta={false}
+          />
+        </MemoryRouter>
+      </EditionProvider>,
+    );
+    expect(queryByText(praise)).toBeNull();
+    expect(getAllByText("Not assessed").length).toBeGreaterThan(0);
+    expect(getAllByText("Add a social profile to score your content consistency.").length).toBeGreaterThan(0);
+    expect(
+      getAllByText("Based on your website and story. Add your Instagram for a full score.").length,
+    ).toBeGreaterThan(0);
+    unmount();
+  });
+
+  it("shows 0 and the no-posts next step when content was checked and nothing was posted", () => {
+    const scores = {
+      ...healthCheckReportFixtureScores,
+      contentConsistency: {
+        ...healthCheckReportFixtureScores.contentConsistency,
+        score: 0,
+        scoreRaw: 0,
+        unmeasured: false,
+        observation: DIMENSION_CAP_FRAMING_COPY,
+      },
+      deterministic: {
+        apifyMetrics: {
+          instagramFound: true,
+          facebookFound: false,
+          instagramFetchStatus: "found" as const,
+          latestPostDaysAgo: null,
+          postsPerWeek: null,
+        },
+      },
+    };
+    const { getAllByText, queryByText, unmount } = render(
+      <EditionProvider edition="marktr">
+        <MemoryRouter>
+          <HealthCheckReportView
+            scores={scores as typeof healthCheckReportFixtureScores}
+            input={healthCheckReportFixtureInput}
+            showPaywallUpsell={false}
+            showDashboardCta={false}
+          />
+        </MemoryRouter>
+      </EditionProvider>,
+    );
+    expect(queryByText(DIMENSION_CAP_FRAMING_COPY)).toBeNull();
+    expect(getAllByText("0").length).toBeGreaterThan(0);
+    expect(
+      getAllByText("We couldn't find any recent posts, so there's nothing to score yet.").length,
+    ).toBeGreaterThan(0);
+    expect(
+      getAllByText("Plan three posts for this week and publish them to start building a rhythm.").length,
+    ).toBeGreaterThan(0);
+    unmount();
   });
 });

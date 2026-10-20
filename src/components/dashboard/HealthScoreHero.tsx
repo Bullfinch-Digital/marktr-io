@@ -6,7 +6,7 @@ export type HealthDimensionKey =
   | "contentConsistency"
   | "socialPresence";
 
-export type HealthDimensionScore = number | "—";
+export type HealthDimensionScore = number | "—" | "Not assessed";
 
 export type HealthScoreHeroProps = {
   overall: HealthDimensionScore;
@@ -85,7 +85,15 @@ export function HealthScoreHero({
         <div className="grid min-w-0 flex-1 grid-cols-2 gap-3 lg:grid-cols-4">
           {dimensions.map(({ key, label, score, rerunHref }) => (
             <div key={key} className="app-card-nested min-w-0 p-3 text-center sm:p-4">
-              <p className="app-score text-[2.5rem] text-foreground">{score}</p>
+              <p
+                className={
+                  typeof score === "number"
+                    ? "app-score text-[2.5rem] text-foreground"
+                    : "font-['Plus_Jakarta_Sans'] text-sm font-medium text-[#6B7280]"
+                }
+              >
+                {score}
+              </p>
               {typeof score === "number" ? (
                 <div className="app-progress-track mx-auto mt-3">
                   <div

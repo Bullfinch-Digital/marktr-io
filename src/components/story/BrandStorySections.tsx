@@ -2,6 +2,7 @@ import type { BrandStoryOutput } from "../../lib/brandStory";
 import {
   BRAND_STORY_CORE_SECTIONS,
   BRAND_STORY_FINDINGS_TITLE,
+  canReadStorySection,
   type BrandStorySectionKey,
 } from "../../lib/brandStoryAccess";
 import { BrandStoryFindingsSection } from "./BrandStoryFindingsSection";
@@ -35,7 +36,7 @@ export function BrandStorySections({
   return (
     <div className={className}>
       {BRAND_STORY_CORE_SECTIONS.map((section, index) => {
-        const open = hasAccess || index === 0;
+        const open = canReadStorySection(index, hasAccess);
         if (!open) return <LockedStorySection key={section.key} title={section.label} />;
 
         return (

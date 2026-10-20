@@ -16,10 +16,17 @@ export const BRAND_STORY_CORE_SECTIONS: { key: BrandStorySectionKey; label: stri
 
 export const BRAND_STORY_FINDINGS_TITLE = "Where your story can go further";
 
+/** How many leading core sections guests and signed-in users without a trial can read. */
+export const FREE_STORY_SECTION_COUNT = 2;
+
 /** Generic stand-in. Never the viewer's story copy. */
 export const LOCKED_STORY_PLACEHOLDER = "Locked";
 
 export const STORY_UNLOCK_LABEL = "Start your free trial to unlock your full brand story";
+
+export function canReadStorySection(index: number, hasAccess: boolean): boolean {
+  return hasAccess || index < FREE_STORY_SECTION_COUNT;
+}
 
 export function storyHasFindings(story: BrandStoryOutput): boolean {
   return (story.findings?.length ?? 0) > 0;
@@ -31,22 +38,26 @@ export function storyHasFindings(story: BrandStoryOutput): boolean {
  */
 export function storyForViewer(story: BrandStoryOutput, hasAccess: boolean): BrandStoryOutput {
   if (hasAccess) return story;
-  return {
-    foundingStory: story.foundingStory,
+  const visible: BrandStoryOutput = {
+    foundingStory: "",
     pointOfView: "",
     positioningStatement: "",
     brandPurpose: "",
     findings: [],
   };
+  BRAND_STORY_CORE_SECTIONS.forEach((section, index) => {
+    if (index < FREE_STORY_SECTION_COUNT) visible[section.key] = story[section.key];
+  });
+  return visible;
 }
 
-/** Copy, PDF, and share text: first section in full, later titles marked locked. */
+/** Copy, PDF, and share text: free sections in full, later titles marked locked. */
 export function formatVisibleBrandStory(story: BrandStoryOutput, hasAccess: boolean): string {
   const lines: string[] = [];
 
   BRAND_STORY_CORE_SECTIONS.forEach((section, index) => {
     lines.push(section.label);
-    if (hasAccess || index === 0) lines.push(story[section.key].trim());
+    if (canReadStorySection(index, hasAccess)) lines.push(story[section.key].trim());
     else lines.push(LOCKED_STORY_PLACEHOLDER);
     lines.push("");
   });

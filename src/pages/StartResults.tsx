@@ -9,6 +9,7 @@ import { rememberAuthTrigger, trackOnceLoad } from "../lib/analytics";
 import { applyDocumentSeo } from "../lib/documentSeo";
 import { getGuestHealthCheck } from "../lib/guestHealthCheck";
 import { getGuestICPs, type GuestICP } from "../lib/guestICP";
+import { BRAND_STORY_CORE_SECTIONS, FREE_STORY_SECTION_COUNT, storyForViewer } from "../lib/brandStoryAccess";
 import { getGuestStory } from "../lib/guestStory";
 import { formatPaywallDay, paywallFirstChargeDate } from "../lib/marktrPricing";
 import {
@@ -42,7 +43,7 @@ export default function StartResults() {
   const story = storyRecord?.output ?? null;
   const icps = getGuestICPs();
   const quickWin = pickHealthQuickWin(health);
-  const storyExcerpt = firstSentences(story?.foundingStory ?? "");
+  const visibleStory = story ? storyForViewer(story, false) : null;
   const firstProfile = icps[0] ?? null;
   const otherProfiles = icps.slice(1);
   const firstChargeLabel = formatPaywallDay(paywallFirstChargeDate());
@@ -138,14 +139,23 @@ export default function StartResults() {
           </section>
         ) : null}
 
-        {story ? (
+        {visibleStory ? (
           <section className="mt-10">
             <h2 className="font-['Fraunces'] text-2xl font-bold text-foreground">Brand story snapshot</h2>
-            {storyExcerpt ? (
-              <p className="mt-3 font-['Plus_Jakarta_Sans'] text-base leading-relaxed text-foreground/80">
-                {storyExcerpt}
-              </p>
-            ) : null}
+            {BRAND_STORY_CORE_SECTIONS.slice(0, FREE_STORY_SECTION_COUNT).map((section) => {
+              const excerpt = firstSentences(visibleStory[section.key]);
+              if (!excerpt) return null;
+              return (
+                <div key={section.key} className="mt-3">
+                  <p className="font-['Plus_Jakarta_Sans'] text-[10px] uppercase tracking-widest text-muted-foreground">
+                    {section.label}
+                  </p>
+                  <p className="mt-1 font-['Plus_Jakarta_Sans'] text-base leading-relaxed text-foreground/80">
+                    {excerpt}
+                  </p>
+                </div>
+              );
+            })}
             <p className="mt-3 font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground">
               Your full brand story is saved to your account.
             </p>

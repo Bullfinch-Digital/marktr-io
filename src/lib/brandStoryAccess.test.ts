@@ -20,16 +20,16 @@ describe("brand story access", () => {
     expect(storyForViewer(story, true)).toBe(story);
   });
 
-  it("exports only the founding story and locked titles", () => {
+  it("exports the first two sections and locked titles", () => {
     const text = formatVisibleBrandStory(story, false);
     expect(text).toContain("FOUNDING STORY");
     expect(text).toContain("We started in a kitchen.");
     expect(text).toContain("YOUR POINT OF VIEW");
+    expect(text).toContain("Coffee should be neighbourly.");
     expect(text).toContain("POSITIONING STATEMENT");
     expect(text).toContain("YOUR PURPOSE");
     expect(text).toContain("Where your story can go further");
     expect(text).toContain("Locked");
-    expect(text).not.toContain("Coffee should be neighbourly.");
     expect(text).not.toContain("For people who want a local cup.");
     expect(text).not.toContain("Make the high street feel like home.");
     expect(text).not.toContain("Say who it is for");
@@ -39,10 +39,12 @@ describe("brand story access", () => {
   it("does not copy locked section text into the taster object", () => {
     const visible = storyForViewer(story, false);
     expect(visible.foundingStory).toBe("We started in a kitchen.");
-    expect(visible.pointOfView).toBe("");
+    expect(visible.pointOfView).toBe("Coffee should be neighbourly.");
     expect(visible.positioningStatement).toBe("");
     expect(visible.brandPurpose).toBe("");
     expect(visible.findings).toEqual([]);
-    expect(JSON.stringify(visible)).not.toContain("neighbourly");
+    expect(JSON.stringify(visible)).not.toContain("local cup");
+    expect(JSON.stringify(visible)).not.toContain("high street");
+    expect(JSON.stringify(visible)).not.toContain("regulars");
   });
 });

@@ -1,10 +1,11 @@
 import { Link } from "react-router-dom";
 import type { BrandStoryOutput } from "../../lib/brandStory";
+import { BRAND_STORY_CORE_SECTIONS, FREE_STORY_SECTION_COUNT } from "../../lib/brandStoryAccess";
 import { ViewEditButton } from "../ui/ViewEditButton";
 
 type Props = {
   story: BrandStoryOutput | null;
-  /** Signed-in viewers without a trial only see the founding story. */
+  /** Signed-in viewers without a trial only see the free leading sections. */
   hasAccess?: boolean;
   editHref?: string;
   startHref?: string;
@@ -39,7 +40,10 @@ export function BrandStorySummaryCard({
           { label: "Purpose", body: story.brandPurpose },
           { label: "Point of view", body: story.pointOfView },
         ]
-      : [{ label: "Founding story", body: story.foundingStory }]
+      : BRAND_STORY_CORE_SECTIONS.slice(0, FREE_STORY_SECTION_COUNT).map((section) => ({
+          label: section.label,
+          body: story[section.key],
+        }))
   ).filter((s) => s.body?.trim());
 
   return (

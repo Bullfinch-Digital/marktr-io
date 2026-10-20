@@ -8,8 +8,10 @@ import { isRealUser } from "../utils/isRealUser";
 import useSubscription from "../hooks/useSubscription";
 import useProfile from "../hooks/useProfile";
 import { parseBrandStoryFromApi, type BrandStoryOutput } from "../lib/brandStory";
+import { storyForViewer, storyHasFindings } from "../lib/brandStoryAccess";
 import { getGuestBusinessName, getGuestIdentityEmail } from "../lib/guestContext";
-import { BrandStoryFindingsSection } from "../components/story/BrandStoryFindingsSection";
+import { BrandStorySections } from "../components/story/BrandStorySections";
+import { usePaywall } from "../contexts/PaywallContext";
 import { GuestPreviewShell } from "../layouts/GuestPreviewShell";
 import { GuestResultsNextStepsCta } from "../components/guest/GuestResultsNextStepsCta";
 import { track } from "../lib/analytics";
@@ -31,7 +33,8 @@ export default function StoryResults() {
   const navigate = useNavigate();
   const state = (location.state ?? null) as StoryResultsLocationState | null;
   const { user } = useAuth();
-  const { isPro: subscriptionIsPro, loading: subscriptionLoading } = useSubscription();
+  const { isPro: subscriptionIsPro, hasFullAccess, loading: subscriptionLoading } = useSubscription();
+  const { openPaywall } = usePaywall();
   const { profile } = useProfile(user?.id ?? null);
   const isLoggedInReal = Boolean(
     user && !(user as { is_anonymous?: boolean }).is_anonymous
@@ -176,7 +179,7 @@ export default function StoryResults() {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center bg-background px-6">
         <Loader2 className="h-10 w-10 animate-spin text-primary" aria-hidden />
-        <p className="mt-6 text-center font-['Fraunces'] text-2xl font-semibold text-[#0D1833]">
+        <p className="mt-6 text-center font-['Fraunces'] text-2xl font-semibold text-foreground">
           Writing your brand story...
         </p>
       </main>
@@ -242,12 +245,7 @@ export default function StoryResults() {
     );
   }
 
-  const cards: { label: string; body: string }[] = [
-    { label: "FOUNDING STORY", body: story.foundingStory },
-    { label: "YOUR POINT OF VIEW", body: story.pointOfView },
-    { label: "POSITIONING STATEMENT", body: story.positioningStatement },
-    { label: "YOUR PURPOSE", body: story.brandPurpose },
-  ];
+  const canReadFullStory = !subscriptionLoading && hasFullAccess;
 
   return (
     <GuestPreviewShell>
@@ -256,7 +254,7 @@ export default function StoryResults() {
           Your Brand Story
         </span>
 
-        <h1 className="mt-4 font-['Fraunces'] text-4xl font-bold text-[#0D1833] sm:text-5xl">This is your story.</h1>
+        <h1 className="mt-4 font-['Fraunces'] text-4xl font-bold text-foreground sm:text-5xl">This is your story.</h1>
 
         <p className="mt-4 font-['Plus_Jakarta_Sans'] text-base text-muted-foreground">
           Based on everything you&apos;ve shared, here&apos;s the foundation marktr will use to create everything for you.
@@ -283,18 +281,12 @@ export default function StoryResults() {
           </div>
         )}
 
-        <div className="mt-10 space-y-4">
-          {cards.map(({ label, body }) => (
-            <article key={label} className="rounded-2xl border border-border bg-white p-6">
-              <p className="font-['Plus_Jakarta_Sans'] text-[10px] uppercase tracking-[0.16em] text-muted-foreground">{label}</p>
-              <p className="mt-3 font-['Fraunces'] text-lg leading-relaxed text-[#0D1833]">{body}</p>
-            </article>
-          ))}
-        </div>
-
-        <BrandStoryFindingsSection
-          findings={story.findings ?? []}
-          variant={showPaywallUpsell ? "guest" : "authenticated"}
+        <BrandStorySections
+          story={canReadFullStory ? story : storyForViewer(story, false)}
+          hasAccess={canReadFullStory}
+          showFindingsLock={!canReadFullStory && storyHasFindings(story)}
+          findingsVariant={showPaywallUpsell ? "guest" : "authenticated"}
+          onUnlock={() => openPaywall()}
         />
 
         {showPaywallUpsell && <GuestResultsNextStepsCta currentTool="story" className="mt-10" />}

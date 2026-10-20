@@ -4,6 +4,8 @@ import { ViewEditButton } from "../ui/ViewEditButton";
 
 type Props = {
   story: BrandStoryOutput | null;
+  /** Signed-in viewers without a trial only see the founding story. */
+  hasAccess?: boolean;
   editHref?: string;
   startHref?: string;
 };
@@ -11,6 +13,7 @@ type Props = {
 /** Brand story summary for the authenticated dashboard cockpit. */
 export function BrandStorySummaryCard({
   story,
+  hasAccess = true,
   editHref = "/story-report",
   startHref = "/story",
 }: Props) {
@@ -29,17 +32,21 @@ export function BrandStorySummaryCard({
     );
   }
 
-  const snippets = [
-    { label: "Positioning", body: story.positioningStatement },
-    { label: "Purpose", body: story.brandPurpose },
-    { label: "Point of view", body: story.pointOfView },
-  ].filter((s) => s.body?.trim());
+  const snippets = (
+    hasAccess
+      ? [
+          { label: "Positioning", body: story.positioningStatement },
+          { label: "Purpose", body: story.brandPurpose },
+          { label: "Point of view", body: story.pointOfView },
+        ]
+      : [{ label: "Founding story", body: story.foundingStory }]
+  ).filter((s) => s.body?.trim());
 
   return (
     <section className="app-card p-8">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <h2 className="app-heading font-['Fraunces'] text-2xl text-foreground">Brand story</h2>
-        <ViewEditButton href={editHref} />
+        <ViewEditButton href={editHref}>{hasAccess ? "View/Edit" : "View"}</ViewEditButton>
       </div>
       <div className="mt-6 space-y-3">
         {snippets.slice(0, 3).map(({ label, body }) => (

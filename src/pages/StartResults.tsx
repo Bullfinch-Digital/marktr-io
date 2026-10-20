@@ -15,7 +15,6 @@ import {
   firstSentences,
   hasStoredStartResults,
   pickHealthQuickWin,
-  storyTagline,
 } from "../lib/startFlow";
 import { getScoreColor } from "../components/healthCheck/HealthCheckReportView";
 import { isRealUser } from "../utils/isRealUser";
@@ -43,7 +42,6 @@ export default function StartResults() {
   const story = storyRecord?.output ?? null;
   const icps = getGuestICPs();
   const quickWin = pickHealthQuickWin(health);
-  const tagline = storyTagline(story);
   const storyExcerpt = firstSentences(story?.foundingStory ?? "");
   const firstProfile = icps[0] ?? null;
   const otherProfiles = icps.slice(1);
@@ -143,9 +141,6 @@ export default function StartResults() {
         {story ? (
           <section className="mt-10">
             <h2 className="font-['Fraunces'] text-2xl font-bold text-foreground">Brand story snapshot</h2>
-            {tagline ? (
-              <p className="mt-3 font-['Fraunces'] text-xl leading-snug text-foreground">{tagline}</p>
-            ) : null}
             {storyExcerpt ? (
               <p className="mt-3 font-['Plus_Jakarta_Sans'] text-base leading-relaxed text-foreground/80">
                 {storyExcerpt}

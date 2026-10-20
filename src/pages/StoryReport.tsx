@@ -6,6 +6,7 @@ import { useBrand } from "../contexts/BrandContext";
 import { supabase } from "../config/supabase";
 import { isBrandScopeReady, resolveScopedBrandId } from "../lib/brandScopedReads";
 import { parseBrandStoryFromApi, type BrandStoryOutput } from "../lib/brandStory";
+import { storyForViewer, storyHasFindings, type BrandStorySectionKey } from "../lib/brandStoryAccess";
 import {
   buildStoryStoredPayload,
   fetchBrandStoryHistory,
@@ -17,25 +18,13 @@ import {
   type BrandStoryRow,
 } from "../lib/brandStoryPersistence";
 import { getGuestBusinessName } from "../lib/guestContext";
-import { BrandStoryFindingsSection } from "../components/story/BrandStoryFindingsSection";
+import { BrandStorySections } from "../components/story/BrandStorySections";
+import useSubscription from "../hooks/useSubscription";
+import { usePaywall } from "../contexts/PaywallContext";
 import DashboardShell from "../layouts/DashboardShell";
 import { Button } from "../components/ui/button";
 import { GenerationErrorNotice } from "../components/GenerationErrorNotice";
 import { trackGenerationError } from "../lib/generationError";
-import { Textarea } from "../components/ui/textarea";
-
-type StorySectionKey =
-  | "foundingStory"
-  | "pointOfView"
-  | "positioningStatement"
-  | "brandPurpose";
-
-const STORY_SECTIONS: { key: StorySectionKey; label: string }[] = [
-  { key: "foundingStory", label: "FOUNDING STORY" },
-  { key: "pointOfView", label: "YOUR POINT OF VIEW" },
-  { key: "positioningStatement", label: "POSITIONING STATEMENT" },
-  { key: "brandPurpose", label: "YOUR PURPOSE" },
-];
 
 function formatStoryDate(iso: string) {
   const date = new Date(iso);
@@ -52,6 +41,8 @@ function formatStoryDate(iso: string) {
 export default function StoryReport() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
+  const { hasFullAccess, loading: subscriptionLoading } = useSubscription();
+  const { openPaywall } = usePaywall();
   const { activeBrandId, activeBrand, loading: brandLoading, brands } = useBrand();
 
   const [currentRow, setCurrentRow] = useState<BrandStoryRow | null>(null);
@@ -248,7 +239,7 @@ export default function StoryReport() {
     });
   };
 
-  if (authLoading || brandLoading || loading) {
+  if (authLoading || brandLoading || loading || subscriptionLoading) {
     return (
       <DashboardShell contentClassName="flex min-h-[60vh] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -301,7 +292,8 @@ export default function StoryReport() {
     );
   }
 
-  const displayStory = isEditing && editDraft ? editDraft : story;
+  const canReadFullStory = hasFullAccess;
+  const displayStory = canReadFullStory && isEditing && editDraft ? editDraft : story;
   const latestDate = currentRow?.created_at;
 
   return (
@@ -337,6 +329,7 @@ export default function StoryReport() {
           )}
         </div>
 
+        {canReadFullStory ? (
         <div className="flex flex-wrap gap-2">
           {!isEditing ? (
             <>
@@ -383,54 +376,41 @@ export default function StoryReport() {
             </>
           )}
         </div>
+        ) : null}
       </div>
 
       <p className="mt-4 font-['Plus_Jakarta_Sans'] text-base text-muted-foreground">
-        {isEditing
+        {canReadFullStory && isEditing
           ? "Update any section below. Saving writes your latest story — you can always look back at earlier versions."
           : "Based on everything you've shared, here's the foundation marktr uses for your brand."}
       </p>
 
-      {actionError && (
+      {canReadFullStory && actionError ? (
         <p className="mt-4 font-['Plus_Jakarta_Sans'] text-sm text-destructive">{actionError}</p>
-      )}
-      <GenerationErrorNotice
-        failures={generationFailures}
-        onRetry={() => void handleRegenerate()}
-        retrying={regenerating}
-        className="mt-4 font-['Plus_Jakarta_Sans'] text-sm text-destructive"
+      ) : null}
+      {canReadFullStory ? (
+        <GenerationErrorNotice
+          failures={generationFailures}
+          onRetry={() => void handleRegenerate()}
+          retrying={regenerating}
+          className="mt-4 font-['Plus_Jakarta_Sans'] text-sm text-destructive"
+        />
+      ) : null}
+
+      <BrandStorySections
+        story={canReadFullStory ? displayStory : storyForViewer(story, false)}
+        hasAccess={canReadFullStory}
+        showFindingsLock={!canReadFullStory && storyHasFindings(story)}
+        findingsVariant="authenticated"
+        editing={canReadFullStory && isEditing}
+        onUnlock={() => openPaywall()}
+        onSectionChange={(key: BrandStorySectionKey, value) =>
+          setEditDraft((prev) => (prev ? { ...prev, [key]: value } : prev))
+        }
       />
 
-      <div className="mt-8 space-y-4">
-        {STORY_SECTIONS.map(({ key, label }) => (
-          <article key={key} className="rounded-[24px] border-2 border-brand-stroke bg-card p-6">
-            <p className="font-['Plus_Jakarta_Sans'] text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-              {label}
-            </p>
-            {isEditing && editDraft ? (
-              <Textarea
-                value={editDraft[key]}
-                onChange={(e) =>
-                  setEditDraft((prev) =>
-                    prev ? { ...prev, [key]: e.target.value } : prev
-                  )
-                }
-                className="mt-3 min-h-[120px] resize-y border border-black font-['Fraunces'] text-lg leading-relaxed"
-              />
-            ) : (
-              <p className="mt-3 font-['Fraunces'] text-lg leading-relaxed text-foreground">
-                {displayStory[key]}
-              </p>
-            )}
-          </article>
-        ))}
-      </div>
-
-      <BrandStoryFindingsSection
-        findings={displayStory.findings ?? []}
-        variant="authenticated"
-      />
-
+      {canReadFullStory ? (
+      <>
       <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-t border-border pt-6">
         <button
           type="button"
@@ -492,6 +472,8 @@ export default function StoryReport() {
           )}
         </div>
       )}
+      </>
+      ) : null}
 
       <div className="mt-10">
         <Button

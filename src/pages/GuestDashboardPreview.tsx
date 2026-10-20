@@ -19,6 +19,8 @@ import {
   withoutOnboardingIcpArrival,
 } from "../lib/onboardingIcpArrival";
 import { LockedCustomerProfileCard } from "../components/icp/LockedIcpTeaser";
+import { BrandStorySections } from "../components/story/BrandStorySections";
+import { storyForViewer, storyHasFindings } from "../lib/brandStoryAccess";
 import { canViewICP } from "../config/accessRules";
 import { resolveDashboardNextAction } from "../lib/dashboardNextAction";
 
@@ -290,26 +292,16 @@ export default function GuestDashboardPreview() {
                   to="/story/results"
                   className="app-text-link font-['Plus_Jakarta_Sans']"
                 >
-                  View full story →
+                  View your story →
                 </Link>
               </div>
-              <div className="space-y-3">
-                {(
-                  [
-                    { label: "FOUNDING STORY", body: guestStory.output.foundingStory },
-                    { label: "YOUR POINT OF VIEW", body: guestStory.output.pointOfView },
-                    { label: "POSITIONING", body: guestStory.output.positioningStatement },
-                    { label: "YOUR PURPOSE", body: guestStory.output.brandPurpose },
-                  ] as const
-                ).map(({ label, body }) => (
-                  <div key={label} className="app-card-nested p-4">
-                    <p className="mb-2 font-['Plus_Jakarta_Sans'] text-sm font-medium uppercase tracking-widest text-muted-foreground">
-                      {label}
-                    </p>
-                    <p className="app-heading font-['Fraunces'] text-base leading-relaxed text-foreground">{body}</p>
-                  </div>
-                ))}
-              </div>
+              <BrandStorySections
+                className="space-y-4"
+                story={storyForViewer(guestStory.output, false)}
+                hasAccess={false}
+                showFindingsLock={storyHasFindings(guestStory.output)}
+                onUnlock={() => openPaywall()}
+              />
             </div>
           </div>
         ) : null}

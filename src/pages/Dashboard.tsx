@@ -32,6 +32,7 @@ import {
   storyOutputFromRow,
   type BrandStoryRow as PersistedBrandStoryRow,
 } from "../lib/brandStoryPersistence";
+import { storyForViewer } from "../lib/brandStoryAccess";
 import { CONTENT_TYPE_LABELS } from "../lib/contentTypeLabels";
 import type { ContentItemType } from "../types/contentItemPayload";
 import DashboardShell from "../layouts/DashboardShell";
@@ -606,7 +607,10 @@ export default function Dashboard() {
           </section>
 
           {/* 2. Brand story summary */}
-          <BrandStorySummaryCard story={storyOutput} />
+          <BrandStorySummaryCard
+            story={storyOutput ? storyForViewer(storyOutput, isPro) : null}
+            hasAccess={isPro}
+          />
 
           {/* 3. ICPs — same card as My ICPs */}
           <section ref={icpSectionRef} className="scroll-mt-20">

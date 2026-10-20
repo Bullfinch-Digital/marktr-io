@@ -30,7 +30,7 @@ import {
 } from "../ui/tooltip";
 import { supabase } from "../../config/supabase";
 import { exportICPAsPDF } from "../../utils/exportICP";
-import { canExportICP } from "../../config/accessRules";
+import { canExportICP, canViewICP } from "../../config/accessRules";
 import { avatarUrlFromKey } from "../../utils/avatarLibrary";
 import "../../styles/Modal.css";
 import { useICPs, generateIcpCopyName } from "../../hooks/useICPs";
@@ -325,14 +325,25 @@ export function ICPPreviewCard(props: ICPPreviewCardProps) {
     }
 
     if (action === "export-pdf") {
-      const allowed = canExportICP(icp._index ?? 0, resolvedTier as any);
-      if (!allowed) {
+      const exportIndex = icp._index ?? 0;
+      const allowed = canExportICP(exportIndex, resolvedTier as any);
+      if (!allowed || (!hasFullAccess && !canViewICP("free", exportIndex))) {
         console.log("[ICPPreviewCard] export blocked", { tier: resolvedTier, index: icp._index });
         triggerShake();
         onUpgrade?.();
         return;
       }
-      exportICPAsPDF(icp as any);
+      const sourcePain = ((icp as { pain_points?: string[] }).pain_points ??
+        icp.painPoints ??
+        []) as string[];
+      exportICPAsPDF(
+        {
+          ...(icp as object),
+          _index: exportIndex,
+          pain_points: hasFullAccess ? sourcePain : sourcePain.slice(0, 2),
+        } as never,
+        { hasAccess: hasFullAccess }
+      );
       return;
     }
 

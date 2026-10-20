@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { Button } from "../../ui/button";
 import { ICPCard, ICPData } from "../ICPCard";
+import { LockedCustomerProfileCard } from "../../icp/LockedIcpTeaser";
+import useSubscription from "../../../hooks/useSubscription";
+import { canViewICP } from "../../../config/accessRules";
 
 interface ICPCarouselScreenProps {
   onUnlockAll?: () => void;
@@ -9,6 +12,7 @@ interface ICPCarouselScreenProps {
 
 export function ICPCarouselScreen({ onUnlockAll, onEmailICP }: ICPCarouselScreenProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const { hasFullAccess, effectiveTier } = useSubscription();
 
   // Mock ICP data - this would come from the backend/AI generation
   const icpData: ICPData[] = [
@@ -198,13 +202,29 @@ export function ICPCarouselScreen({ onUnlockAll, onEmailICP }: ICPCarouselScreen
                   }}
                   onClick={() => !isActive && setCurrentIndex(index)}
                 >
-                  <ICPCard 
-                    data={icp} 
-                    isLocked={index !== 0}
-                    onUnlock={onUnlockAll}
-                    cardNumber={index + 1}
-                    onEmailICP={onEmailICP}
-                  />
+                  {canViewICP(hasFullAccess ? effectiveTier : "free", index) ? (
+                    <ICPCard
+                      data={{
+                        ...icp,
+                        pain_points: hasFullAccess ? icp.pain_points : icp.pain_points.slice(0, 2),
+                        tech_stack: hasFullAccess ? icp.tech_stack : [],
+                        challenges: hasFullAccess ? icp.challenges : [],
+                        opportunities: hasFullAccess ? icp.opportunities : [],
+                      }}
+                      isLocked={false}
+                      painPointsLockedCount={
+                        hasFullAccess ? 0 : Math.max(0, icp.pain_points.length - 2)
+                      }
+                      onUnlock={onUnlockAll}
+                      cardNumber={index + 1}
+                      onEmailICP={onEmailICP}
+                    />
+                  ) : (
+                    <LockedCustomerProfileCard
+                      profileNumber={index + 1}
+                      onUnlock={() => onUnlockAll?.()}
+                    />
+                  )}
                 </div>
               );
             })}

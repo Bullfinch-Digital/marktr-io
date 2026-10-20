@@ -6,6 +6,7 @@ import { ICPPreviewCard } from "../components/cards/ICPPreviewCard";
 import { Lock } from "lucide-react";
 import useSubscription from "../hooks/useSubscription";
 import { canViewICP } from "../config/accessRules";
+import { LockedCustomerProfileCard } from "../components/icp/LockedIcpTeaser";
 import { useAuth } from "../contexts/AuthContext";
 import { getGuestICPs } from "../lib/guestICP";
 import { useICPs } from "../hooks/useICPs";
@@ -26,7 +27,7 @@ export default function ICPResults() {
   const touchStartX = useRef<number>(0);
   const touchEndX = useRef<number>(0);
   const navigate = useNavigate();
-  const { effectiveTier } = useSubscription();
+  const { effectiveTier, hasFullAccess } = useSubscription();
   const { user } = useAuth();
   const { icps } = useICPs();
   const { openPaywall } = usePaywall();
@@ -182,12 +183,21 @@ export default function ICPResults() {
                   <div className="lg:col-span-2 space-y-6">
                     <h3 className="font-['Fraunces'] text-xl">My ICPs</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {icpData.slice(0, 3).map((icp, index) => (
+                      {icpData.slice(0, 3).map((icp, index) =>
+                        canViewICP(hasFullAccess ? effectiveTier : "free", index) ? (
                         <ICPPreviewCard
                           key={`preview-icp-${index}`}
                           icp={{
                             id: `preview-${index}`,
-                            ...icp,
+                            name: icp.name,
+                            description: icp.description,
+                            industry: icp.industry,
+                            companySize: icp.companySize,
+                            location: icp.location,
+                            goals: icp.goals,
+                            painPoints: hasFullAccess ? icp.pain_points : icp.pain_points.slice(0, 2),
+                            avatar: icp.avatar,
+                            color: icp.color,
                             brand_id: null,
                             _index: index,
                           }}
@@ -200,7 +210,14 @@ export default function ICPResults() {
                           brands={[]}
                           onMoveToBrand={undefined}
                         />
-                      ))}
+                        ) : (
+                          <LockedCustomerProfileCard
+                            key={`preview-icp-${index}`}
+                            profileNumber={index + 1}
+                            onUnlock={handleUnlockAll}
+                          />
+                        )
+                      )}
                     </div>
                   </div>
                   <div className="space-y-6">
@@ -228,8 +245,19 @@ export default function ICPResults() {
               <div className="pointer-events-auto absolute inset-0 flex items-center justify-center">
                 <div className="bg-background border border-black rounded-design shadow-2xl p-6 max-w-xl w-full mx-auto">
                   <ICPCard
-                    data={icpData[0]}
+                    data={{
+                      ...icpData[0],
+                      pain_points: hasFullAccess
+                        ? icpData[0].pain_points
+                        : icpData[0].pain_points.slice(0, 2),
+                      tech_stack: hasFullAccess ? icpData[0].tech_stack : [],
+                      challenges: hasFullAccess ? icpData[0].challenges : [],
+                      opportunities: hasFullAccess ? icpData[0].opportunities : [],
+                    }}
                     isLocked={false}
+                    painPointsLockedCount={
+                      hasFullAccess ? 0 : Math.max(0, icpData[0].pain_points.length - 2)
+                    }
                     onUnlock={handleUnlockAll}
                     cardNumber={1}
                     onEmailICP={handleSignupToSave}
@@ -361,14 +389,30 @@ export default function ICPResults() {
                           isActive ? "opacity-100 translate-y-0" : "opacity-60 translate-y-4"
                         }`}
                       >
+                        {canViewICP(hasFullAccess ? effectiveTier : "free", index) ? (
                         <ICPCard
-                          data={icp}
-                          isLocked={!canViewICP(effectiveTier as any, index)}
+                          data={{
+                            ...icp,
+                            pain_points: hasFullAccess ? icp.pain_points : icp.pain_points.slice(0, 2),
+                            tech_stack: hasFullAccess ? icp.tech_stack : [],
+                            challenges: hasFullAccess ? icp.challenges : [],
+                            opportunities: hasFullAccess ? icp.opportunities : [],
+                          }}
+                          isLocked={false}
+                          painPointsLockedCount={
+                            hasFullAccess ? 0 : Math.max(0, icp.pain_points.length - 2)
+                          }
                           onUnlock={handleUnlockAll}
                           cardNumber={index + 1}
                           onEmailICP={isRealUserFlag ? handleEmailICP : handleSignupToSave}
                           ctaLabel={isRealUserFlag ? undefined : "Sign up to save"}
                         />
+                        ) : (
+                          <LockedCustomerProfileCard
+                            profileNumber={index + 1}
+                            onUnlock={handleUnlockAll}
+                          />
+                        )}
                       </div>
                     );
                   })}

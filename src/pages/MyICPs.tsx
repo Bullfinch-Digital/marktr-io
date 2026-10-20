@@ -1,4 +1,6 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
+import { useProfilePageScroll } from "../lib/onboardingIcpArrival";
+import { LockedCustomerProfileCard } from "../components/icp/LockedIcpTeaser";
 import { useNavigate } from "react-router-dom";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -37,6 +39,7 @@ function formatArchivedDate(iso: string): string {
 
 export default function MyICPsPage() {
   const navigate = useNavigate();
+  useProfilePageScroll(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSeeding, setIsSeeding] = useState(false);
   const [icpColorModal, setIcpColorModal] = useState({
@@ -463,13 +466,29 @@ export default function MyICPsPage() {
 
           {!isLoading && !showEmptyState && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredICPs.map((icp) => (
+              {filteredICPs.map((icp) => {
+                const profileIndex = icp._index ?? 0;
+                if (!canViewICP(effectiveTier as any, profileIndex)) {
+                  return (
+                    <LockedCustomerProfileCard
+                      key={icp.id}
+                      profileNumber={profileIndex + 1}
+                      onUnlock={handleUpgrade}
+                    />
+                  );
+                }
+                const { pain_points: sourcePain, ...cardRest } = icp;
+                const cardIcp = {
+                  ...cardRest,
+                  painPoints: (sourcePain ?? []).slice(0, effectiveTier === "pro" ? undefined : 2),
+                };
+                return (
                 <ICPPreviewCard
                   key={icp.id}
-                  icp={icp}
+                  icp={cardIcp}
                       userTier={effectiveTier}
                       onUpgrade={handleUpgrade}
-                      isLocked={!canViewICP(effectiveTier as any, icp._index ?? 0)}
+                      isLocked={false}
                   bandColor={brandBandForIndex(icp._index ?? 0)}
                   branded
                   collectionNames={
@@ -484,7 +503,8 @@ export default function MyICPsPage() {
                     if (icp.lineage_id) setAddToCollectionLineageId(icp.lineage_id);
                   }}
                 />
-              ))}
+                );
+              })}
             </div>
           )}
 

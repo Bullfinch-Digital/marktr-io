@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useProfilePageScroll } from "../lib/onboardingIcpArrival";
+import { LockedCustomerProfileCard, LockedPainPointRows } from "../components/icp/LockedIcpTeaser";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -52,13 +54,18 @@ export default function ICPEditor() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { setActiveBrand } = useBrand();
-  const { getICP, updateICP, duplicateICP, deleteICP } = useICPs();
+  const { icps, hasLoadedOnce, getICP, updateICP, duplicateICP, deleteICP } = useICPs();
   const { brands, isLoading: brandsLoading } = useBrands();
-  const { tier: userTier, trialActive } = useSubscription();
+  const { tier: userTier, trialActive, hasFullAccess, loading: subscriptionLoading } = useSubscription();
   const { openPaywall } = usePaywall();
+  useProfilePageScroll(null);
   // Treat trial users as "pro" for export gating.
   const effectiveTier = userTier === "free" && !trialActive ? "free" : "pro";
   const isFreeTier = effectiveTier === "free";
+  const profileIndex = icps.findIndex((row) => row.id === id);
+  const awaitingProfileAccess = !hasFullAccess && (subscriptionLoading || !hasLoadedOnce);
+  const profileLocked =
+    hasLoadedOnce && !subscriptionLoading && !hasFullAccess && profileIndex !== 0;
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [brandSaveStatus, setBrandSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
@@ -281,17 +288,24 @@ export default function ICPEditor() {
 
   const handleExport = () => {
     if (!id) return;
+    if (profileLocked) {
+      openPaywall();
+      return;
+    }
     if (isFreeTier) {
       openPaywall();
       return;
     }
-    const exportIndex = (icpData as any)?._index ?? 0;
-    if (!canExportICP(exportIndex, effectiveTier as any)) {
-      alert("Upgrade to unlock this export");
+    const exportIndex = profileIndex >= 0 ? profileIndex : ((icpData as any)?._index ?? 0);
+    if (!canExportICP(exportIndex, effectiveTier as any) || !hasFullAccess) {
+      openPaywall();
       return;
     }
-    const payload = { ...icpData, id };
-    exportICPAsPDF(payload);
+    const readablePain = hasFullAccess
+      ? icpData.pain_points || []
+      : (icpData.pain_points || []).slice(0, 2);
+    const payload = { ...icpData, id, _index: exportIndex, pain_points: readablePain };
+    exportICPAsPDF(payload, { hasAccess: hasFullAccess });
   };
 
   const icpHeaderColor = (icpData as any)?.color || "#EDEDED";
@@ -429,7 +443,7 @@ export default function ICPEditor() {
   };
 
   // Show loading state (after hooks so hook order is consistent)
-  if (isLoading) {
+  if (isLoading || awaitingProfileAccess) {
     return (
       <DashboardShell contentClassName="flex-1 px-6 py-8 lg:px-12">
         {/* Reserve enough vertical space so the footer never pops into view */}
@@ -442,6 +456,33 @@ export default function ICPEditor() {
       </DashboardShell>
     );
   }
+
+  if (profileLocked) {
+    return (
+      <DashboardShell contentClassName="flex-1 px-6 py-8 lg:px-12">
+        <div className="mx-auto max-w-xl space-y-6">
+          <Link
+            to="/icps"
+            className="inline-flex items-center gap-2 font-['Plus_Jakarta_Sans'] text-sm text-foreground hover:opacity-70"
+          >
+            <ArrowLeft className="h-5 w-5" />
+            Back to customer profiles
+          </Link>
+          <LockedCustomerProfileCard
+            profileNumber={profileIndex >= 0 ? profileIndex + 1 : 2}
+            onUnlock={() => openPaywall()}
+          />
+        </div>
+      </DashboardShell>
+    );
+  }
+
+  const readablePainPoints = hasFullAccess
+    ? icpData.pain_points || []
+    : (icpData.pain_points || []).slice(0, 2);
+  const lockedPainPointCount = hasFullAccess
+    ? 0
+    : Math.max(0, (icpData.pain_points || []).length - readablePainPoints.length);
 
   return (
     <DashboardShell contentClassName="flex-1 px-6 py-8 lg:px-12">
@@ -806,12 +847,32 @@ export default function ICPEditor() {
 
               {/* Pain Points */}
               <div className="bg-background border border-black rounded-design p-6 shadow-md animate-fade-in-up delay-150">
+                {hasFullAccess ? (
                 <EditableListSection
                   title="Pain Points"
                   items={icpData.pain_points || []}
                   isLocked={false}
                   onChange={(items) => setICPData({ ...icpData, pain_points: items })}
                 />
+                ) : (
+                  <div>
+                    <h3 className="font-['Fraunces'] text-lg mb-3">Pain Points</h3>
+                    <ul className="space-y-2">
+                      {readablePainPoints.map((item, index) => (
+                        <li
+                          key={`visible-pain-${index}`}
+                          className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/80"
+                        >
+                          • {item}
+                        </li>
+                      ))}
+                    </ul>
+                    <LockedPainPointRows
+                      count={lockedPainPointCount}
+                      onUnlock={() => openPaywall()}
+                    />
+                  </div>
+                )}
               </div>
 
               {/* Decision Makers */}
@@ -862,6 +923,7 @@ export default function ICPEditor() {
                 currentIcpId={id}
                 userId={user.id}
                 disabled={isFreeTier}
+                visiblePainPointLimit={hasFullAccess ? undefined : 2}
                 onVersionRestored={(newIcp) => {
                   setICPData(newIcp);
                   originalDataRef.current = newIcp;

@@ -3,7 +3,7 @@ export const TIER_LIMITS = {
     maxICPs: 3,
     maxCollections: 1,
     maxBrands: 1,
-    maxViewableICPs: 3,
+    maxViewableICPs: 1,
     exportAllowedBeyondFirst: false,
   },
   pro: {

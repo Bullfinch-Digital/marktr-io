@@ -1,6 +1,7 @@
 import { Lock } from "lucide-react";
 import { Button } from "../ui/button";
 import { ImageWithFallback } from "../figma/ImageWithFallback";
+import { LockedCustomerProfileCard, LockedPainPointRows } from "../icp/LockedIcpTeaser";
 import svgPaths from "../../imports/svg-dy16vubapd";
 
 export interface ICPData {
@@ -27,6 +28,8 @@ interface ICPCardProps {
   cardNumber?: number;
   onEmailICP?: () => void;
   ctaLabel?: string;
+  /** Extra pain points that stay locked. The readable points are already on `data`. */
+  painPointsLockedCount?: number;
 }
 
 export function ICPCard({
@@ -36,7 +39,16 @@ export function ICPCard({
   cardNumber,
   onEmailICP,
   ctaLabel,
+  painPointsLockedCount = 0,
 }: ICPCardProps) {
+  if (isLocked) {
+    return (
+      <LockedCustomerProfileCard
+        profileNumber={cardNumber && cardNumber > 0 ? cardNumber : 2}
+        onUnlock={() => onUnlock?.()}
+      />
+    );
+  }
 
   return (
     <div className="relative w-full max-w-md mx-auto opacity-0 animate-fade-in-up">
@@ -103,6 +115,10 @@ export function ICPCard({
                     <li key={index}>• {point}</li>
                   ))}
                 </ul>
+                <LockedPainPointRows
+                  count={painPointsLockedCount}
+                  onUnlock={() => onUnlock?.()}
+                />
               </div>
 
               {/* Decision Makers */}
@@ -140,83 +156,6 @@ export function ICPCard({
 
               {/* Divider */}
               <div className="border-t border-warm-grey pt-6"></div>
-            </>
-          )}
-
-          {/* Locked Card - Show unlock button above blurred content */}
-          {isLocked && (
-            <>
-              {/* Unlock CTA at top */}
-              {onUnlock && (
-                <div className="pb-6">
-                  <Button
-                    onClick={onUnlock}
-                    className="w-full bg-button-green hover:bg-button-green/90 text-foreground border border-black rounded-design py-6 transition-all hover:scale-[1.02] hover:shadow-md flex items-center justify-center gap-2"
-                  >
-                    <Lock className="w-4 h-4" />
-                    Unlock Full ICP
-                  </Button>
-                </div>
-              )}
-
-              {/* Blurred content preview */}
-              <div className="blur-[4px] opacity-50 select-none pointer-events-none space-y-6">
-                {/* Goals & Motivations */}
-                <div>
-                  <h3 className="font-['Fraunces'] mb-3">Goals & Motivations</h3>
-                  <ul className="space-y-2 font-['Plus_Jakarta_Sans'] text-[15px] text-foreground/80">
-                    {data.goals.map((goal, index) => (
-                      <li key={index}>• {goal}</li>
-                    ))}
-                  </ul>
-                </div>
-
-                {/* Pain Points */}
-                <div>
-                  <h3 className="font-['Fraunces'] mb-3">Pain Points</h3>
-                  <ul className="space-y-2 font-['Plus_Jakarta_Sans'] text-[15px] text-foreground/80">
-                    {data.pain_points.map((point, index) => (
-                      <li key={index}>• {point}</li>
-                    ))}
-                  </ul>
-                </div>
-
-                {/* Decision Makers */}
-                <div>
-                  <h3 className="font-['Fraunces'] mb-3">Decision Makers</h3>
-                  <ul className="space-y-2 font-['Plus_Jakarta_Sans'] text-[15px] text-foreground/80">
-                    <li>• Decision makers and stakeholders</li>
-                  </ul>
-                </div>
-
-                {/* Divider */}
-                <div className="border-t border-warm-grey pt-6"></div>
-
-                {/* Additional locked sections placeholder */}
-                <div>
-                  <h3 className="font-['Fraunces'] mb-3">Behaviour & Online Habits</h3>
-                  <ul className="space-y-2 font-['Plus_Jakarta_Sans'] text-[15px] text-foreground/80">
-                    <li>• Active on social platforms daily</li>
-                    <li>• Reads industry blogs and newsletters</li>
-                  </ul>
-                </div>
-
-                <div>
-                  <h3 className="font-['Fraunces'] mb-3">Brand Affinities</h3>
-                  <ul className="space-y-2 font-['Plus_Jakarta_Sans'] text-[15px] text-foreground/80">
-                    <li>• Popular industry tools and platforms</li>
-                    <li>• Follows thought leaders</li>
-                  </ul>
-                </div>
-
-                <div>
-                  <h3 className="font-['Fraunces'] mb-3">Messaging That Resonates</h3>
-                  <ul className="space-y-2 font-['Plus_Jakarta_Sans'] text-[15px] text-foreground/80">
-                    <li>• Value-driven language</li>
-                    <li>• Results-focused messaging</li>
-                  </ul>
-                </div>
-              </div>
             </>
           )}
 

@@ -3,7 +3,25 @@ import { createRoot } from "react-dom/client";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { ICPExportLayout } from "../components/icp/ICPExportLayout";
+import { canViewICP } from "../config/accessRules";
 import { avatarUrlFromKey } from "./avatarLibrary";
+
+const VISIBLE_PAIN_POINTS_WITHOUT_ACCESS = 2;
+
+export type IcpExportOptions = {
+  /** Pro or an active trial. Defaults to full export. */
+  hasAccess?: boolean;
+};
+
+function icpForExport(icp: ICPRecord, hasAccess: boolean): ICPRecord | null {
+  const index = typeof icp._index === "number" ? icp._index : 0;
+  if (!hasAccess && !canViewICP("free", index)) return null;
+  if (hasAccess) return icp;
+  return {
+    ...icp,
+    pain_points: toList(icp.pain_points).slice(0, VISIBLE_PAIN_POINTS_WITHOUT_ACCESS),
+  };
+}
 
 type ICPRecord = Record<string, any>;
 
@@ -102,7 +120,9 @@ const buildSlices = (container: HTMLElement, canvas: HTMLCanvasElement, pageHeig
   return slices;
 };
 
-export function exportICPAsCSV(icp: ICPRecord) {
+export function exportICPAsCSV(icp: ICPRecord, options?: IcpExportOptions) {
+  const visible = icpForExport(icp, options?.hasAccess !== false);
+  if (!visible) return;
   const row = {
     id: icp.id,
     name: icp.name,
@@ -111,7 +131,7 @@ export function exportICPAsCSV(icp: ICPRecord) {
     company_size: icp.company_size,
     location: icp.location,
     budget: icp.budget,
-    pain_points: safe(icp.pain_points),
+    pain_points: safe(visible.pain_points),
     goals: safe(icp.goals),
     tech_stack: safe(icp.tech_stack),
     decision_makers: safe(icp.decision_makers),
@@ -140,8 +160,10 @@ export function exportICPAsCSV(icp: ICPRecord) {
   URL.revokeObjectURL(url);
 }
 
-export function exportICPAsPDF(icp: ICPRecord) {
-  void exportICPAsPDFInternal(icp);
+export function exportICPAsPDF(icp: ICPRecord, options?: IcpExportOptions) {
+  const visible = icpForExport(icp, options?.hasAccess !== false);
+  if (!visible) return;
+  void exportICPAsPDFInternal(visible);
 }
 
 async function exportICPAsPDFInternal(icp: ICPRecord) {

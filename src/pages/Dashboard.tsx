@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { ICPPreviewCard } from "../components/cards/ICPPreviewCard";
+import { LockedCustomerProfileCard } from "../components/icp/LockedIcpTeaser";
 import { DashboardFoundationSteps } from "../components/dashboard/DashboardFoundationSteps";
 import { DashboardNextActionCard } from "../components/dashboard/DashboardNextActionCard";
 import { DashboardTrialUnlocks } from "../components/dashboard/DashboardTrialUnlocks";
@@ -181,7 +182,7 @@ export default function Dashboard() {
       ...icp,
       _index: icp._index ?? index,
       tags: icp.tags || [],
-      isLocked: subReady ? !canViewICP(effectiveTier as "free" | "pro", icp._index ?? index) : false,
+      isLocked: !canViewICP(effectiveTier as "free" | "pro", icp._index ?? index),
       gender: (icp as { gender?: string | null }).gender ?? (icp as { avatar_gender?: string | null }).avatar_gender ?? null,
       age_range:
         (icp as { age_range?: string | null }).age_range ??
@@ -633,13 +634,29 @@ export default function Dashboard() {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {previewIcps.map((icp, index) => (
+                {previewIcps.map((icp, index) => {
+                  const profileIndex = icp._index ?? index;
+                  if (!canViewICP(effectiveTier as "free" | "pro", profileIndex)) {
+                    return (
+                      <LockedCustomerProfileCard
+                        key={icp.id}
+                        profileNumber={profileIndex + 1}
+                        onUnlock={handleUpgrade}
+                      />
+                    );
+                  }
+                  const { pain_points: sourcePain, ...cardRest } = icp;
+                  const cardIcp = {
+                    ...cardRest,
+                    painPoints: (sourcePain ?? []).slice(0, effectiveTier === "pro" ? undefined : 2),
+                  };
+                  return (
                   <ICPPreviewCard
                     key={icp.id}
-                    icp={icp}
+                    icp={cardIcp}
                     userTier={effectiveTier}
                     onUpgrade={handleUpgrade}
-                    isLocked={!canViewICP(effectiveTier as "free" | "pro", icp._index ?? 0)}
+                    isLocked={false}
                     bandColor={brandBandForIndex(index)}
                     branded
                     nested
@@ -655,7 +672,8 @@ export default function Dashboard() {
                       if (icp.lineage_id) setAddToCollectionLineageId(icp.lineage_id);
                     }}
                   />
-                ))}
+                  );
+                })}
               </div>
             )}
           </section>

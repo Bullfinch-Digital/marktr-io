@@ -13,6 +13,8 @@ import { useICPs } from "../hooks/useICPs";
 import { useBrands } from "../hooks/useBrands";
 import useSubscription from "../hooks/useSubscription";
 import { canViewICP } from "../config/accessRules";
+import { LockedCustomerProfileCard } from "../components/icp/LockedIcpTeaser";
+import { useProfilePageScroll } from "../lib/onboardingIcpArrival";
 import EditTags from "../components/collections/EditTags";
 import { supabase } from "../config/supabase";
 import { usePaywall } from "../contexts/PaywallContext";
@@ -56,6 +58,7 @@ interface ICP {
 export default function CollectionView() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  useProfilePageScroll(null);
   const [isEditingName, setIsEditingName] = useState(false);
   const [tempName, setTempName] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -488,10 +491,28 @@ export default function CollectionView() {
             {!showEmptyState && (
               <>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {filteredICPs.map((icp) => (
+                  {filteredICPs.map((icp) => {
+                    const profileIndex = icp._index ?? 0;
+                    if (!canViewICP(effectiveTier as any, profileIndex)) {
+                      return (
+                        <LockedCustomerProfileCard
+                          key={icp.id}
+                          profileNumber={profileIndex + 1}
+                          onUnlock={handleUpgrade}
+                        />
+                      );
+                    }
+                    const cardIcp = {
+                      ...icp,
+                      painPoints: (icp.painPoints ?? []).slice(
+                        0,
+                        effectiveTier === "pro" ? undefined : 2
+                      ),
+                    };
+                    return (
                     <ICPPreviewCard
                       key={icp.id}
-                      icp={icp}
+                      icp={cardIcp}
                       userTier={effectiveTier}
                       onUpgrade={handleUpgrade}
                       isInCollection={true}
@@ -502,9 +523,10 @@ export default function CollectionView() {
                       onChangeAvatar={handleOpenIcpAvatarModal}
                       brands={brands?.map((b) => ({ id: b.id, name: b.name })) || []}
                       onMoveToBrand={handleMoveIcpToBrand}
-                      isLocked={!canViewICP(effectiveTier as any, icp._index ?? 0)}
+                      isLocked={false}
                     />
-                  ))}
+                    );
+                  })}
                 </div>
 
                 {/* Free User Limit Message */}

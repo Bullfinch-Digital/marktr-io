@@ -16,8 +16,11 @@ import { getGuestHealthCheck } from "../lib/guestHealthCheck";
 import {
   isOnboardingIcpArrival,
   revealIcpSection,
+  useProfilePageScroll,
   withoutOnboardingIcpArrival,
 } from "../lib/onboardingIcpArrival";
+import { LockedCustomerProfileCard } from "../components/icp/LockedIcpTeaser";
+import { canViewICP } from "../config/accessRules";
 import { resolveDashboardNextAction } from "../lib/dashboardNextAction";
 
 export default function GuestDashboardPreview() {
@@ -27,6 +30,7 @@ export default function GuestDashboardPreview() {
   const { user, loading: authLoading } = useAuth();
   const icpProfilesRef = useRef<HTMLElement>(null);
   const [revealIcps, setRevealIcps] = useState(false);
+  useProfilePageScroll(location.state);
 
   const guestStory = getGuestStory();
   const guestHealth = getGuestHealthCheck();
@@ -320,9 +324,39 @@ export default function GuestDashboardPreview() {
             </div>
 
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {guestICPs.map((icp: any) => (
-                <GuestICPCard key={icp.id} icp={icp} brandName={guestBrand.name} />
-              ))}
+              {guestICPs.map((icp: any) => {
+                const profileIndex = icp._index ?? 0;
+                if (!canViewICP("free", profileIndex)) {
+                  return (
+                    <LockedCustomerProfileCard
+                      key={icp.id}
+                      profileNumber={profileIndex + 1}
+                      onUnlock={() => openPaywall()}
+                    />
+                  );
+                }
+                const readablePain = (icp.pain_points ?? icp.painPoints ?? []).slice(0, 2);
+                return (
+                  <GuestICPCard
+                    key={icp.id}
+                    brandName={guestBrand.name}
+                    icp={{
+                      _index: profileIndex,
+                      name: icp.name,
+                      description: icp.description,
+                      industry: icp.industry,
+                      company_size: icp.company_size,
+                      companySize: icp.companySize,
+                      location: icp.location,
+                      goals: icp.goals,
+                      pain_points: readablePain,
+                      avatar_key: icp.avatar_key,
+                      avatar: icp.avatar,
+                      color: icp.color,
+                    }}
+                  />
+                );
+              })}
             </div>
           </section>
         )}

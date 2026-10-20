@@ -1,3 +1,5 @@
+import { useLayoutEffect, useRef } from "react";
+
 /** Location state set only when ICP onboarding has just finished. */
 export const ONBOARDING_ICP_ARRIVAL_KEY = "fromOnboardingIcp";
 
@@ -23,6 +25,22 @@ export function withoutOnboardingIcpArrival(state: unknown): unknown {
 
 export function prefersReducedMotion(): boolean {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+/**
+ * Customer-profile pages open at the top.
+ * Skip the reset only for the visit that just finished ICP onboarding,
+ * so the arrival highlight can scroll to the profiles.
+ */
+export function useProfilePageScroll(locationState: unknown) {
+  const keepArrivalScroll = useRef(isOnboardingIcpArrival(locationState));
+
+  useLayoutEffect(() => {
+    if (keepArrivalScroll.current) return;
+    window.scrollTo(0, 0);
+    const frame = window.requestAnimationFrame(() => window.scrollTo(0, 0));
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
 }
 
 /** Scroll the ICP section into view and flash a lime outline. Returns a cleanup. */

@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { canViewICP } from "../config/accessRules";
+import { LockedCustomerProfileCard, LockedPainPointRows } from "../components/icp/LockedIcpTeaser";
+import { useProfilePageScroll } from "../lib/onboardingIcpArrival";
 import { useAuth } from "../contexts/AuthContext";
 import { isRealUser } from "../utils/isRealUser";
 import { getGuestICPs } from "../lib/guestICP";
@@ -17,6 +20,7 @@ export default function GuestIcpPreview() {
   const { openPaywall } = usePaywall();
   const [editPromptOpen, setEditPromptOpen] = useState(false);
   const { user } = useAuth();
+  useProfilePageScroll(null);
 
   // Redirect real authenticated users to the dashboard.
   useEffect(() => {
@@ -58,6 +62,20 @@ export default function GuestIcpPreview() {
   }, [targetIndex, resolvedIndex, navigate]);
 
   const icp = guestICPs[resolvedIndex];
+  const profileLocked = !canViewICP("free", resolvedIndex);
+
+  if (guestICPs.length > 0 && profileLocked) {
+    return (
+      <GuestPreviewShell>
+        <div className="mx-auto max-w-xl">
+          <LockedCustomerProfileCard
+            profileNumber={resolvedIndex + 1}
+            onUnlock={() => openPaywall()}
+          />
+        </div>
+      </GuestPreviewShell>
+    );
+  }
 
   if (!icp) {
     return (
@@ -138,7 +156,14 @@ export default function GuestIcpPreview() {
             </div>
 
             <DetailList label="Goals" items={icp.goals} />
-            <DetailList label="Pain Points" items={(icp as any).pain_points ?? icp.painPoints} />
+            <PainPointList
+              items={((icp as any).pain_points ?? icp.painPoints ?? []).slice(0, 2)}
+              lockedCount={Math.max(
+                0,
+                (((icp as any).pain_points ?? icp.painPoints ?? []) as string[]).length - 2
+              )}
+              onUnlock={() => openPaywall()}
+            />
             <DetailList label="Decision Makers" items={(icp as any).decision_makers ?? icp.decisionMakers} />
             <DetailList label="Tech Stack" items={(icp as any).tech_stack ?? icp.techStack} />
 
@@ -196,6 +221,34 @@ function DetailCard({ label, value }: { label: string; value?: string | null }) 
     <div className="border border-black rounded-design p-4 bg-white">
       <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/60 mb-1">{label}</p>
       <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/80">{value}</p>
+    </div>
+  );
+}
+
+function PainPointList({
+  items,
+  lockedCount,
+  onUnlock,
+}: {
+  items?: string[];
+  lockedCount: number;
+  onUnlock: () => void;
+}) {
+  const readable = items || [];
+  if (!readable.length && lockedCount === 0) return null;
+  return (
+    <div className="border border-black rounded-design p-4 bg-white dark:bg-card">
+      <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/60 mb-2">Pain Points</p>
+      {readable.length > 0 ? (
+        <ul className="list-disc list-inside space-y-1">
+          {readable.map((item, idx) => (
+            <li key={`pain-${idx}`} className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/80">
+              {item}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      <LockedPainPointRows count={lockedCount} onUnlock={onUnlock} />
     </div>
   );
 }

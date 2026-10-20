@@ -23,6 +23,8 @@ type Props = {
   currentIcpId: string;
   userId: string;
   disabled?: boolean;
+  /** When set, only this many pain points are rendered. */
+  visiblePainPointLimit?: number;
   onVersionRestored: (icp: ICP) => void;
 };
 
@@ -31,6 +33,7 @@ export function IcpVersionHistorySection({
   currentIcpId,
   userId,
   disabled = false,
+  visiblePainPointLimit,
   onVersionRestored,
 }: Props) {
   const [open, setOpen] = useState(false);
@@ -163,12 +166,19 @@ export function IcpVersionHistorySection({
                             <span className="font-medium">Goals:</span> {row.goals?.join(" · ")}
                           </p>
                         )}
-                        {(row.pain_points?.length ?? 0) > 0 && (
+                        {(() => {
+                          const painPoints =
+                            visiblePainPointLimit == null
+                              ? row.pain_points || []
+                              : (row.pain_points || []).slice(0, visiblePainPointLimit);
+                          if (!painPoints.length) return null;
+                          return (
                           <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/60">
                             <span className="font-medium">Pain points:</span>{" "}
-                            {row.pain_points?.join(" · ")}
+                            {painPoints.join(" · ")}
                           </p>
-                        )}
+                          );
+                        })()}
                       </div>
                     )}
                   </li>

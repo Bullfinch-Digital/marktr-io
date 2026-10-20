@@ -1,5 +1,5 @@
 import { supabase } from "../config/supabase";
-import { localISODate } from "./localCalendar";
+import { addLocalDays, localISODate } from "./localCalendar";
 
 export type PlanLengthDays = 7 | 14 | 30;
 export type PlanStatus = "active" | "archived";
@@ -77,6 +77,32 @@ export type TodayDayNumber = {
   ended: boolean;
 };
 
+export type PlanFocus =
+  | { kind: "today"; day: PlanDay }
+  | { kind: "next"; day: PlanDay }
+  | { kind: "complete" };
+
+export type PlanDayCounts = {
+  planId: string;
+  done: number;
+  total: number;
+};
+
+export type GeneratePlanOptions = {
+  extendFromPlanId?: string;
+  startDate?: string;
+};
+
+export const PLANS_CHANGED_EVENT = "plans:changed";
+
+export function notifyPlansChanged() {
+  try {
+    window.dispatchEvent(new Event(PLANS_CHANGED_EVENT));
+  } catch {
+    // ignore
+  }
+}
+
 const PLAN_COLUMNS =
   "id, user_id, strategy_id, title, length_days, start_date, status, extended_from, created_at, updated_at";
 
@@ -106,6 +132,56 @@ export function getTodayDayNumber(
     return { dayNumber: lengthDays + 1, ended: true };
   }
   return { dayNumber: Math.max(1, dayNumber), ended: false };
+}
+
+export function planDayISODate(startDate: string, dayNumber: number): string {
+  return localISODate(addLocalDays(parseLocalISODate(startDate), dayNumber - 1));
+}
+
+export function groupPlanDaysByWeek(days: PlanDay[]): { week: number; days: PlanDay[] }[] {
+  const groups = new Map<number, PlanDay[]>();
+  for (const day of [...days].sort((a, b) => a.day_number - b.day_number)) {
+    const week = Math.ceil(day.day_number / 7);
+    const list = groups.get(week) ?? [];
+    list.push(day);
+    groups.set(week, list);
+  }
+  return [...groups.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([week, weekDays]) => ({ week, days: weekDays }));
+}
+
+/**
+ * Today card: first undone day on or before today.
+ * If today's day is done, the next undone day is "Next up".
+ * Before the start date, day 1 is next up.
+ */
+export function getPlanFocus(
+  startDate: string,
+  lengthDays: number,
+  days: PlanDay[],
+  today: Date = new Date()
+): PlanFocus {
+  const ordered = [...days].sort((a, b) => a.day_number - b.day_number);
+  if (ordered.length === 0 || ordered.every((day) => day.status === "done")) {
+    return { kind: "complete" };
+  }
+
+  const todayIso = localISODate(today);
+  if (todayIso < startDate) {
+    const first = ordered.find((day) => day.status !== "done");
+    return first ? { kind: "next", day: first } : { kind: "complete" };
+  }
+
+  const { dayNumber } = getTodayDayNumber(startDate, lengthDays, today);
+  const overdue = ordered.filter((day) => day.day_number <= dayNumber && day.status !== "done");
+  if (overdue.length > 0) {
+    return { kind: "today", day: overdue[0] };
+  }
+
+  const upcoming = ordered.find((day) => day.day_number > dayNumber && day.status !== "done");
+  if (upcoming) return { kind: "next", day: upcoming };
+  return { kind: "complete" };
 }
 
 export async function listPlans(userId: string): Promise<Plan[]> {
@@ -172,7 +248,7 @@ export type GeneratedPlanPayload = {
 export async function generatePlan(
   strategyId: string,
   lengthDays: PlanLengthDays,
-  extendFromPlanId?: string
+  options?: GeneratePlanOptions
 ): Promise<PlanWithDays> {
   const { data: userData, error: userError } = await supabase.auth.getUser();
   const userId = userData.user?.id;
@@ -181,6 +257,7 @@ export async function generatePlan(
     throw userError ?? new Error("Unauthenticated");
   }
 
+  const extendFromPlanId = options?.extendFromPlanId;
   const { data, error } = await supabase.functions.invoke("generate-plan", {
     body: {
       strategy_id: strategyId,
@@ -205,6 +282,7 @@ export async function generatePlan(
       strategy_id: strategyId,
       title: payload.title,
       length_days: lengthDays,
+      ...(options?.startDate ? { start_date: options.startDate } : {}),
       ...(extendFromPlanId ? { extended_from: extendFromPlanId } : {}),
     },
     payload.days
@@ -216,7 +294,35 @@ export async function generatePlan(
     await archivePlan(plan.id);
   }
 
+  notifyPlansChanged();
   return created;
+}
+
+export async function listPlanDayCounts(userId: string, planIds: string[]): Promise<PlanDayCounts[]> {
+  if (planIds.length === 0) return [];
+
+  const { data, error } = await supabase
+    .from("plan_days")
+    .select("plan_id, status")
+    .eq("user_id", userId)
+    .in("plan_id", planIds);
+
+  if (error) {
+    console.error("[plans] listPlanDayCounts failed", error);
+    throw error;
+  }
+
+  const totals = new Map<string, PlanDayCounts>();
+  for (const id of planIds) {
+    totals.set(id, { planId: id, done: 0, total: 0 });
+  }
+  for (const row of (data ?? []) as Array<{ plan_id: string; status: PlanDayStatus }>) {
+    const current = totals.get(row.plan_id);
+    if (!current) continue;
+    current.total += 1;
+    if (row.status === "done") current.done += 1;
+  }
+  return [...totals.values()];
 }
 
 export async function createPlanWithDays(plan: PlanInsert, days: PlanDayInsert[]): Promise<PlanWithDays> {
@@ -331,6 +437,7 @@ export async function archivePlan(planId: string): Promise<Plan> {
     console.error("[plans] archivePlan failed", error);
     throw error ?? new Error("archivePlan returned no row");
   }
+  notifyPlansChanged();
   return data as Plan;
 }
 

@@ -42,7 +42,9 @@ import StrategyPermanentDeleteModal from "../components/strategy/StrategyPermane
 import { StrategySuggestedContentChecklist } from "../components/strategy/StrategySuggestedContentChecklist";
 import { WeeklyProgressCard } from "../components/dashboard/WeeklyProgressCard";
 import { ArchiveActionTooltip } from "../components/ArchiveActionTooltip";
+import { CreatePlanModal } from "../components/plan/CreatePlanModal";
 import { exportStrategyAsPDF } from "../utils/exportStrategy";
+import { listPlansForStrategy, type Plan } from "../lib/plans";
 import "../styles/Modal.css";
 
 const THINKING_SECTIONS: StrategySectionId[] = [
@@ -108,6 +110,8 @@ function StrategyEditorBody() {
   const [isPermanentDeleting, setIsPermanentDeleting] = useState(false);
   const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
   const [thinkingOpen, setThinkingOpen] = useState(true);
+  const [activePlan, setActivePlan] = useState<Plan | null>(null);
+  const [createPlanOpen, setCreatePlanOpen] = useState(false);
   const pendingNavRef = useRef<string | null>(null);
   const editBaselineRef = useRef<string | null>(null);
   const sectionSnapshotRef = useRef<StrategySectionSnapshot | null>(null);
@@ -164,6 +168,24 @@ function StrategyEditorBody() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    if (!user?.id || !strategy?.id) {
+      setActivePlan(null);
+      return;
+    }
+    let cancelled = false;
+    void listPlansForStrategy(user.id, strategy.id)
+      .then((plans) => {
+        if (!cancelled) setActivePlan(plans.find((plan) => plan.status === "active") ?? null);
+      })
+      .catch((err) => {
+        console.error("[StrategyEditor] listPlansForStrategy failed", err);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id, strategy?.id]);
 
   useEffect(() => {
     if (!strategy) return;
@@ -634,6 +656,17 @@ function StrategyEditorBody() {
               onCancelSection={cancelSectionEdit}
               onTitleChange={setDraftTitle}
               onStrategyChange={setDraftStrategy}
+              channelPlanAction={
+                readOnly ? null : activePlan ? (
+                  <Button type="button" href={`/plan/${activePlan.id}`}>
+                    Open my plan
+                  </Button>
+                ) : (
+                  <Button type="button" onClick={() => setCreatePlanOpen(true)}>
+                    Turn this into a day-by-day plan
+                  </Button>
+                )
+              }
             />
 
             {!readOnly ? (
@@ -728,6 +761,19 @@ function StrategyEditorBody() {
         isDeleting={isPermanentDeleting}
         onClose={() => setPermanentDeleteOpen(false)}
         onConfirm={() => void confirmPermanentDelete()}
+      />
+
+      <CreatePlanModal
+        isOpen={createPlanOpen}
+        userId={user?.id ?? ""}
+        strategies={strategy ? [{ id: strategy.id, title: strategy.title }] : []}
+        defaultStrategyId={strategy?.id}
+        onClose={() => setCreatePlanOpen(false)}
+        onCreated={(plan) => {
+          setCreatePlanOpen(false);
+          setActivePlan(plan);
+          navigate(`/plan/${plan.id}`);
+        }}
       />
       </>
   );

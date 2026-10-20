@@ -11,8 +11,10 @@ import {
   Target,
   FileText,
   Calendar,
+  ListChecks,
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
+import { useLatestActivePlan } from "../../hooks/useLatestActivePlan";
 import { isRealUser } from "../../utils/isRealUser";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 
@@ -80,11 +82,14 @@ export function DashboardSidebar({
     });
   };
   const { user } = useAuth();
+  const latestPlanId = useLatestActivePlan();
   const dashboardPath = isRealUser(user) ? "/dashboard" : "/guest-dashboard";
+  const planPath = latestPlanId ? `/plan/${latestPlanId}` : "/plan";
 
   const navItems = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, locked: false, path: dashboardPath },
     { id: "strategy", label: "Strategy", icon: Target, locked: false, path: "/strategy" },
+    { id: "plan", label: "Plan", icon: ListChecks, locked: false, path: planPath },
     { id: "content", label: "Content", icon: FileText, locked: false, path: "/content" },
     { id: "scheduling", label: "Scheduling", icon: Calendar, locked: false, path: "/scheduling" },
     { id: "icps", label: "My ICPs", icon: Users, locked: false, path: "/icps" },
@@ -95,13 +100,16 @@ export function DashboardSidebar({
   ];
 
   const mobileNavItems = navItems.filter((item) =>
-    ["dashboard", "icps", "strategy", "content", "scheduling"].includes(item.id)
+    ["dashboard", "strategy", "plan", "content", "scheduling"].includes(item.id)
   );
 
   const getIsActive = (item: (typeof navItems)[0]) => {
     if (!item.path) return false;
     if (item.path === dashboardPath) {
       return location.pathname === dashboardPath || location.pathname === "/dashboard";
+    }
+    if (item.id === "plan") {
+      return location.pathname === "/plan" || location.pathname.startsWith("/plan/");
     }
     return location.pathname === item.path || location.pathname.startsWith(`${item.path}/`);
   };

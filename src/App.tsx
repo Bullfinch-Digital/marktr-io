@@ -34,6 +34,9 @@ import Strategy from "./pages/Strategy";
 import StrategyEditor from "./pages/StrategyEditor";
 import Content from "./pages/Content";
 import ContentEditor from "./pages/ContentEditor";
+import Plan from "./pages/Plan";
+import PlanDetail from "./pages/PlanDetail";
+import PlanDay from "./pages/PlanDay";
 import ResetPassword from "./pages/ResetPassword";
 import Logout from "./pages/Logout";
 import AuthCallback from "./pages/AuthCallback";
@@ -346,6 +349,21 @@ function AppRoutes() {
             <Route path="/content/:id" element={
               <ProtectedRoute>
                 <ContentEditor />
+              </ProtectedRoute>
+            } />
+            <Route path="/plan" element={
+              <ProtectedRoute>
+                <Plan />
+              </ProtectedRoute>
+            } />
+            <Route path="/plan/:id" element={
+              <ProtectedRoute>
+                <PlanDetail />
+              </ProtectedRoute>
+            } />
+            <Route path="/plan/:id/day/:n" element={
+              <ProtectedRoute>
+                <PlanDay />
               </ProtectedRoute>
             } />
             <Route path="/scheduling" element={

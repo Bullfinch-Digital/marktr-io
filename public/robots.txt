@@ -6,6 +6,7 @@ Allow: /
 Disallow: /admin
 Disallow: /dashboard
 Disallow: /strategy
+Disallow: /plan
 Disallow: /content
 Disallow: /icps
 Disallow: /icp/

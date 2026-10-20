@@ -1,8 +1,10 @@
+import type { ReactNode } from "react";
 import type { ICPStrategyPayload, StrategyChannel } from "../../types/icpStrategyPayload";
 import { isNonPostingChannel, orderedStrategyChannels } from "../../lib/strategyPostingRhythm";
 
 type Props = {
   strategy: ICPStrategyPayload;
+  planAction?: ReactNode;
 };
 
 function TimePills({ times }: { times: string[] }) {
@@ -127,7 +129,7 @@ function StructuredChannelCards({ channels }: { channels: StrategyChannel[] }) {
   );
 }
 
-export function StrategyChannelPlanCards({ strategy }: Props) {
+export function StrategyChannelPlanCards({ strategy, planAction }: Props) {
   const channelPlan = strategy.channel_plan;
   if (!channelPlan) return null;
 
@@ -145,6 +147,7 @@ export function StrategyChannelPlanCards({ strategy }: Props) {
         <LegacyChannelCards strategy={strategy} />
       )}
       <div id="first-14-days" className="scroll-mt-[7.5rem]">
+        {planAction ? <div className="mb-4">{planAction}</div> : null}
         {first14.length > 0 ? (
         <div>
           <p className="font-['Plus_Jakarta_Sans'] text-xs font-medium text-foreground/60">

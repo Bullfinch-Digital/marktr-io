@@ -29,6 +29,8 @@ describe("isNoIndexPath", () => {
     expect(isNoIndexPath("/admin")).toBe(true);
     expect(isNoIndexPath("/dashboard")).toBe(true);
     expect(isNoIndexPath("/strategy/abc")).toBe(true);
+    expect(isNoIndexPath("/plan")).toBe(true);
+    expect(isNoIndexPath("/plan/abc")).toBe(true);
     expect(isNoIndexPath("/onboarding-build")).toBe(true);
     expect(isNoIndexPath("/health-check/results")).toBe(true);
     expect(isNoIndexPath("/story/results")).toBe(true);
@@ -120,6 +122,7 @@ describe("robots.txt", () => {
       "/admin",
       "/dashboard",
       "/strategy",
+      "/plan",
       "/content",
       "/icps",
       "/my-brands",

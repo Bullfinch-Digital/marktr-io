@@ -87,6 +87,9 @@ Sections: `data-track-section="hero"`. Case studies: `data-track-case-study` + `
 | `content_export` | `content_type` | PDF export, or `list_csv` for the roster CSV |
 | `icp_create` | — | ICP insert succeeds |
 | `brand_create` | — | Brand insert succeeds |
+| `plan_created` | `length_days` | Plan generate + save succeeds |
+| `plan_day_done` | `location` (`plan_page`) | A plan day is marked done |
+| `plan_notes_saved` | `location` (`plan_page`) | Day notes persist |
 
 ## Server-side (Measurement Protocol)
 

@@ -73,7 +73,7 @@ export function PaywallProvider({ children }: { children: React.ReactNode }) {
 
   const inferPaywallTrigger = (): PaywallTrigger => {
     const path = window.location.pathname;
-    if (path.startsWith("/strategy")) return "locked_strategy";
+    if (path.startsWith("/strategy") || path.startsWith("/plan")) return "locked_strategy";
     if (path.startsWith("/content")) return "locked_content";
     if (path.startsWith("/pricing")) return "pricing_page";
     return "upgrade";

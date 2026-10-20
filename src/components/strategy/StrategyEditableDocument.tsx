@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { ChevronDown, Plus } from "lucide-react";
 import { Button } from "../ui/button";
 import type { ICPStrategyPayload } from "../../types/icpStrategyPayload";
@@ -44,6 +44,7 @@ type Props = {
   onCancelSection: () => void;
   onTitleChange: (title: string) => void;
   onStrategyChange: (strategy: ICPStrategyPayload) => void;
+  channelPlanAction?: ReactNode;
 };
 
 function SectionShell({
@@ -187,6 +188,7 @@ export function StrategyEditableDocument({
   onCancelSection,
   onTitleChange,
   onStrategyChange,
+  channelPlanAction,
 }: Props) {
   const stagedSet = new Set(stagedSections);
   const canStartEdit = !activeSection;
@@ -240,7 +242,7 @@ export function StrategyEditableDocument({
             ) : sectionId === "title" ? (
               <h1 className="font-['Fraunces'] text-3xl text-foreground lg:text-4xl">{title}</h1>
             ) : cards ? (
-              <StrategyChannelPlanCards strategy={strategy} />
+              <StrategyChannelPlanCards strategy={strategy} planAction={channelPlanAction} />
             ) : (
               <StrategyContentView strategy={strategy} section={sectionId} bare />
             )}

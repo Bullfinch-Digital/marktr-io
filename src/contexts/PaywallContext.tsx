@@ -24,7 +24,7 @@ import {
   AlertDialogDescription,
 } from "../components/ui/alert-dialog";
 import { Button } from "../components/ui/button";
-import { getFirstTouchParams, rememberAuthTrigger, track } from "../lib/analytics";
+import { rememberAuthTrigger, track } from "../lib/analytics";
 
 type Plan = CheckoutPlan;
 
@@ -127,7 +127,6 @@ export function PaywallProvider({ children }: { children: React.ReactNode }) {
         setIsStartingCheckout(true);
         console.log("[paywall] proceedToStripe", { plan: nextPlan });
 
-        track("begin_checkout", { plan: nextPlan, ...getFirstTouchParams() });
         const result = await createStripeCheckoutSession(nextPlan, { force });
 
         if (result.status === "already_subscribed") {

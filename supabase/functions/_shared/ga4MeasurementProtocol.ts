@@ -1,10 +1,9 @@
 /**
  * GA4 Measurement Protocol helper for Stripe webhooks.
- * Env: GA4_API_SECRET, optional GA4_MEASUREMENT_ID (defaults to marktr G-0EFXQPEYY6).
- * Deduplicate client/server hits with the same transaction_id.
+ * Env: GA4_MEASUREMENT_ID and GA4_API_SECRET. If either is missing, log once and skip.
  */
 
-const DEFAULT_MEASUREMENT_ID = "G-0EFXQPEYY6";
+let missingSecretsLogged = false;
 
 type Ga4Param = string | number | boolean;
 
@@ -16,9 +15,12 @@ export async function sendGa4MeasurementProtocolEvent(input: {
 }): Promise<boolean> {
   try {
     const apiSecret = (Deno.env.get("GA4_API_SECRET") ?? "").trim();
-    const measurementId = (Deno.env.get("GA4_MEASUREMENT_ID") ?? DEFAULT_MEASUREMENT_ID).trim();
+    const measurementId = (Deno.env.get("GA4_MEASUREMENT_ID") ?? "").trim();
     if (!apiSecret || !measurementId) {
-      console.warn("[ga4-mp] skipped — GA4_API_SECRET not set");
+      if (!missingSecretsLogged) {
+        missingSecretsLogged = true;
+        console.warn("[ga4-mp] skipped — GA4_MEASUREMENT_ID or GA4_API_SECRET not set");
+      }
       return false;
     }
     const clientId = (input.clientId || "").trim() || "stripe.webhook";

@@ -7,6 +7,7 @@ import { runPostAuthPipeline } from "../lib/postAuthPipeline";
 import { isRealUser } from "../utils/isRealUser";
 import { syncOutbox } from "../lib/syncOutbox";
 import { setOAuthNext } from "../utils/oauthRedirect";
+import { markOAuthSignInPending, trackCompletedAuth, consumeOAuthSignInPending } from "../lib/analytics";
 import {
   buildLinkBody,
   clearPendingGuestLink,
@@ -387,8 +388,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (error) {
       console.warn("AuthContext: signInWithPassword error:", error.message);
-    } else {
-      console.log("AuthContext: signInWithPassword successful", data);
+    } else if (data.user?.id) {
+      trackCompletedAuth({
+        id: data.user.id,
+        created_at: data.user.created_at,
+        last_sign_in_at: data.user.last_sign_in_at,
+        app_metadata: data.user.app_metadata as { provider?: string; providers?: string[] },
+        identities: data.user.identities,
+      });
     }
 
     // We let the auth state listener update user/session + loading
@@ -401,6 +408,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signInWithGoogle = async (redirectPath = "/dashboard") => {
     const safePath = redirectPath.startsWith("/") ? redirectPath : "/dashboard";
     setOAuthNext(safePath);
+    markOAuthSignInPending();
 
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
@@ -411,6 +419,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           encodeURIComponent(safePath),
       },
     });
+    if (error) consumeOAuthSignInPending();
     return { error };
   };
 

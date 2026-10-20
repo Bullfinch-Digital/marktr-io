@@ -14,6 +14,7 @@ import {
   LegalAgreementCheckbox,
 } from "../legal/LegalAgreement";
 import { createLegalAcceptanceRecord } from "../../lib/legal";
+import { trackCompletedAuth, trackSignUpOnce } from "../../lib/analytics";
 import { LegalAgreementRequiredModal } from "../legal/LegalAgreementRequiredModal";
 import { useLegalAgreementGate } from "../../hooks/useLegalAgreementGate";
 
@@ -288,9 +289,10 @@ export function FinishAccountModal({
       // If signUp returns a session, great. If not, Supabase likely requires email confirmation.
       // We will attempt a sign-in, but if that fails due to confirmation, we store a pending link.
       const session = signUpData?.session ?? null;
+      const createdUser = signUpData?.user ?? null;
 
       if (!session) {
-        const { data: _signInData, error: signInError } =
+        const { data: signInData, error: signInError } =
           await supabase.auth.signInWithPassword({ email, password });
 
         // Supabase often returns 400 with messages like "Email not confirmed"
@@ -315,8 +317,18 @@ export function FinishAccountModal({
         }
 
         // If sign-in succeeded we now have a session, so try linking immediately
+        if (signInData.user?.id) {
+          trackCompletedAuth({
+            id: signInData.user.id,
+            created_at: signInData.user.created_at,
+            last_sign_in_at: signInData.user.last_sign_in_at,
+            app_metadata: signInData.user.app_metadata as { provider?: string; providers?: string[] },
+            identities: signInData.user.identities,
+          });
+        }
         await tryLinkNow();
       } else {
+        if (createdUser?.id) trackSignUpOnce(createdUser.id, "email");
         // signUp gave us a session, link immediately
         await tryLinkNow();
       }

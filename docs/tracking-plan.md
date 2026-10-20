@@ -69,14 +69,15 @@ Plan CTAs: `dashboard_today_task`, `plan_extend`, `plan_print`. Locations: `dash
 
 | Event | Params | Where it fires |
 | --- | --- | --- |
-| `sign_up` | `method` (`google` \| `email`), first-touch params | First auth of the session when the account is new (`created_at` ≈ `last_sign_in_at`) |
-| `login` | `method` | First auth of the session when the account already existed |
+| `sign_up` | `method` (`google` \| `email`), first-touch params | Once per new account: email code verification, immediate email session, or first OAuth return. Per-user flag in localStorage and sessionStorage. Not fired on page load. |
+| `login` | `method` | An actual sign-in of an existing account (password or OAuth return). Per-user sessionStorage flag. Not fired on reload or auth-state restore. |
 | `onboarding_complete` | — | First `/dashboard` view after a `sign_up` in this session (per-user flag) |
 | `dashboard_first_view` | — | First `/dashboard` view for an account created in the last 7 days |
 | `paywall_open` | `trigger` (`trial_banner`, `locked_strategy`, `locked_content`, `pricing_page`, `upgrade`) | Paywall modal opens |
-| `begin_checkout` | `plan`, first-touch params | Stripe Checkout session is created |
-| `trial_start` | `plan` | Client: return to `/dashboard?checkout=success` (once per session). Server: Stripe `checkout.session.completed` while trialing / £0 |
+| `begin_checkout` | `plan`, first-touch params | Once, when a Stripe Checkout URL is returned |
+| `trial_start` | `plan` (`annual` \| `monthly`) | Client: `/dashboard?checkout=success` (or any return with `checkout=success`), once per tab. Checkout params are removed after it sends so a refresh does not fire again. Server: Stripe `checkout.session.completed` while trialing / £0 |
 | `purchase` | `value`, `currency`, `transaction_id`, `plan` | Server only: paid checkout or `invoice.paid`. Not fired for £0 trials. |
+| `subscription_paid` | `value` (GBP), `currency` (`GBP`), `plan`, `transaction_id` | Server only: first paid invoice (`billing_reason=subscription_create` with amount > 0, or the first `subscription_cycle` charge after a trial). `client_id` is `profiles.ga_client_id` or a SHA-256 of the user id. Never an email. |
 
 ## Product actions
 
@@ -91,33 +92,48 @@ Plan CTAs: `dashboard_today_task`, `plan_extend`, `plan_print`. Locations: `dash
 | `brand_create` | — | Brand insert succeeds |
 | `plan_created` | `length_days` | Plan generate + save succeeds |
 | `plan_day_done` | `location` (`plan_page` \| `plan_day_page`) | A plan day is marked done |
-| `plan_notes_saved` | `location` (`plan_page` \| `plan_day_page`) | Day notes persist |
+| `plan_notes_saved` | `location` (`plan_day_page`) | Day notes persist, once per day per page load |
 | `plan_content_generated` | `location` (`plan_day_page`), `content_type` | First generate on a plan day succeeds |
 | `plan_content_another_version` | `location` (`plan_day_page`), `content_type` | “Make another version” succeeds |
 | `plan_extended` | `length_days` | Extend-plan generate + save succeeds |
 | `plan_printed` | — | Branded plan PDF is built |
+| `access_gate_view` | `location` (pathname) | Access gate mounts, once per path per page load |
+| `locked_story_unlock` | `location` (`story_results`) | Unlock click on a locked story section |
+| `locked_icp_unlock` | `location` (`icp_page`) | Unlock click on a locked customer profile |
+| `locked_painpoints_unlock` | `location` (`icp_page`) | Unlock click on locked pain points |
+| `strategy_guidance_cta` | `step` (1–3) | Strategy guidance card CTA |
+| `dashboard_next_action` | `action` (`health`, `story`, `customer`, `aim`, `strategy`, `plan`, `today`, `plan_next`, `plan_complete`, `trial`) | Dashboard “what to do next” CTA. `plan_extend` and `dashboard_today_task` still also emit `cta_click`. |
 
 ## Server-side (Measurement Protocol)
 
-`supabase/functions/stripe-webhook` sends `trial_start` / `purchase` via `supabase/functions/_shared/ga4MeasurementProtocol.ts`.
+`supabase/functions/stripe-webhook` sends `trial_start`, `purchase`, and `subscription_paid` via `supabase/functions/_shared/ga4MeasurementProtocol.ts`.
 
-Checkout metadata (set in `create-checkout-session`): `user_id`, `ga_client_id`, `first_touch_source|medium|campaign`.
+Checkout metadata (set in `create-checkout-session`): `user_id`, `ga_client_id`, `first_touch_source|medium|campaign`. `ga_client_id` is copied onto `profiles.ga_client_id` when that column exists.
 
-Env (Supabase secrets, never the Vite client):
+Env (Supabase secrets, never the Vite client). Both are required; if either is missing the webhook logs once and skips Measurement Protocol:
 
 ```
-GA4_API_SECRET=...
-# optional, defaults to G-0EFXQPEYY6
 GA4_MEASUREMENT_ID=G-0EFXQPEYY6
+GA4_API_SECRET=...
 ```
 
 Set with:
 
 ```
-supabase secrets set GA4_API_SECRET=...
+supabase secrets set GA4_MEASUREMENT_ID=G-0EFXQPEYY6 GA4_API_SECRET=...
 ```
 
-Deduplicate client vs server hits in GA4 using `transaction_id` (Stripe session id or invoice id). Client `trial_start` has no `transaction_id`; treat Measurement Protocol as source of truth once `GA4_API_SECRET` is set.
+`profiles.ga_client_id` (not applied by this change — run when ready):
+
+```sql
+alter table public.profiles
+  add column if not exists ga_client_id text;
+
+comment on column public.profiles.ga_client_id is
+  'GA4 client id from checkout. Never an email.';
+```
+
+Deduplicate client vs server hits in GA4 using `transaction_id` (Stripe session id or invoice id). Client `trial_start` has no `transaction_id`; treat Measurement Protocol as source of truth once both secrets are set.
 
 ## Consent denied
 

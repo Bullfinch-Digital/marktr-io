@@ -1,6 +1,7 @@
 import { Lock } from "lucide-react";
 import { Button } from "../ui/button";
 import { brandBandForIndex } from "../../lib/brandPalette";
+import { track } from "../../lib/analytics";
 
 const GENERIC_BAR_WIDTHS = ["w-4/5", "w-full", "w-2/3"];
 
@@ -26,11 +27,10 @@ function UnlockButton({ label, trackId, onUnlock }: UnlockButtonProps) {
   return (
     <Button
       type="button"
-      onClick={onUnlock}
-      data-track-id={trackId}
-      data-track-location="icp_page"
-      data-track-destination="paywall"
-      data-track-text={label}
+      onClick={() => {
+        track(trackId, { location: "icp_page" });
+        onUnlock();
+      }}
       className="h-auto min-h-11 w-full whitespace-normal px-4 py-3 text-center text-sm leading-snug"
     >
       <Lock className="h-4 w-4 shrink-0" aria-hidden="true" />

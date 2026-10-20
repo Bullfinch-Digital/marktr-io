@@ -1,5 +1,6 @@
 import { Button } from "../ui/button";
 import type { StrategyGuidanceStep } from "./StrategyProgressStrip";
+import { track } from "../../lib/analytics";
 
 const COPY: Record<
   StrategyGuidanceStep,
@@ -47,9 +48,10 @@ export function StrategyGuidanceCard({ currentStep, onAction, ctaLabel }: Props)
         </p>
         <Button
           type="button"
-          onClick={onAction}
-          data-track-id="strategy_guidance_cta"
-          data-track-location="strategy_page"
+          onClick={() => {
+            track("strategy_guidance_cta", { step: currentStep });
+            onAction();
+          }}
           className="min-h-11 w-full sm:w-auto"
         >
           {cta}

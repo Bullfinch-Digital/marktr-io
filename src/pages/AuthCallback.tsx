@@ -16,9 +16,24 @@ import {
   hasSessionOAuthNext,
   resolveOAuthNext,
 } from "../utils/oauthRedirect";
+import { consumeOAuthSignInPending, trackCompletedAuth } from "../lib/analytics";
+import type { User } from "@supabase/supabase-js";
 
 function hashParams(): URLSearchParams {
   return new URLSearchParams(window.location.hash.replace(/^#/, ""));
+}
+
+function recordReturnedAuth(user: User, source: "return" | "pending") {
+  if ((user as { is_anonymous?: boolean }).is_anonymous) return;
+  if (source === "pending" && !consumeOAuthSignInPending()) return;
+  if (source === "return") consumeOAuthSignInPending();
+  trackCompletedAuth({
+    id: user.id,
+    created_at: user.created_at,
+    last_sign_in_at: user.last_sign_in_at,
+    app_metadata: user.app_metadata as { provider?: string; providers?: string[] },
+    identities: user.identities,
+  });
 }
 
 /** Old confirmation emails carried intent/plan. They are not a checkout signal. */
@@ -107,6 +122,7 @@ export default function AuthCallback() {
           navigateAfterAuth("/reset-password");
           return;
         }
+        recordReturnedAuth(user, "pending");
         await completeOAuthHandoff(user.id, user.email ?? null, next);
         return;
       }
@@ -129,6 +145,7 @@ export default function AuthCallback() {
             return;
           }
           if (sessionUser?.id) {
+            if (!recovery) recordReturnedAuth(sessionUser, "return");
             await completeOAuthHandoff(sessionUser.id, sessionUser.email ?? null, next);
           } else {
             navigateAfterAuth(recovery ? "/reset-password" : "/dashboard");
@@ -151,6 +168,7 @@ export default function AuthCallback() {
           }
           const sessionUser = data.session?.user;
           if (sessionUser?.id) {
+            if (!recovery) recordReturnedAuth(sessionUser, "return");
             await completeOAuthHandoff(sessionUser.id, sessionUser.email ?? null, next);
           } else {
             navigateAfterAuth("/dashboard");
@@ -167,6 +185,7 @@ export default function AuthCallback() {
               navigateAfterAuth("/reset-password");
               return;
             }
+            recordReturnedAuth(sessionUser, "pending");
             setStatusMessage("Saving your results…");
             await completeOAuthHandoff(sessionUser.id, sessionUser.email ?? null, next);
           } else if (!hasOAuth) {

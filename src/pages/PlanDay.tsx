@@ -9,7 +9,7 @@ import { PlanDayContentGenerator } from "../components/plan/PlanDayContentGenera
 import { PlanDayToggle } from "../components/plan/PlanDayToggle";
 import { formatPlanDate, PLAN_KIND_META } from "../components/plan/planDisplay";
 import { useAuth } from "../contexts/AuthContext";
-import { track } from "../lib/analytics";
+import { track, trackOnceLoad } from "../lib/analytics";
 import { getPlanStrategyContext, type PlanStrategyContext } from "../lib/planStrategy";
 import {
   buildPlanLearningContext,
@@ -118,7 +118,7 @@ function PlanDayBody() {
           : current
       );
       setSaved("saved");
-      track("plan_notes_saved", { location: "plan_day_page" });
+      trackOnceLoad(`plan_notes_saved:${day.id}`, "plan_notes_saved", { location: "plan_day_page" });
       window.setTimeout(() => setSaved((state) => (state === "saved" ? "idle" : state)), 1600);
     } catch (err) {
       console.error("[PlanDay] updateDayNotes failed", err);

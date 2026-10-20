@@ -1,6 +1,6 @@
 import { supabase } from "../config/supabase";
 import { clearPendingCheckoutPlan } from "../utils/pendingCheckout";
-import { getFirstTouchParams, getGaClientId } from "./analytics";
+import { getFirstTouchParams, getGaClientId, track } from "./analytics";
 import { type CheckoutPlan, parseCheckoutPlan, priceEnvName, priceIdForPlan } from "./checkoutPlans";
 
 export type { CheckoutPlan };
@@ -126,6 +126,7 @@ export async function createStripeCheckoutSession(
   }
 
   clearPendingCheckoutPlan();
+  track("begin_checkout", { plan: nextPlan, ...getFirstTouchParams() });
   return { status: "redirect", url: redirectUrl };
 }
 

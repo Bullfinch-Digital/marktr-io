@@ -11,7 +11,9 @@ export const MARKTR_GA4_ID = editionConfig.marktr.ga4Id;
 
 const FIRST_TOUCH_KEY = "marktr_first_touch_v1";
 const AUTH_TRIGGER_KEY = "marktr_auth_trigger_v1";
-const AUTH_EVENT_KEY = "marktr_auth_event_sent_v1";
+const OAUTH_PENDING_KEY = "marktr_oauth_pending_v1";
+const SIGN_UP_PREFIX = "marktr_sign_up_sent_v1:";
+const LOGIN_PREFIX = "marktr_login_sent_v1:";
 const ONBOARD_PENDING_KEY = "marktr_onboarding_pending_v1";
 const DASH_FIRST_PREFIX = "marktr_dashboard_first_";
 const ONBOARD_PREFIX = "marktr_onboarding_complete_";
@@ -308,40 +310,84 @@ export function setAnalyticsUserProperties(props: Record<string, string | number
   }
 }
 
-export function maybeTrackAuth(user: {
+type AuthMethodUser = {
   id: string;
   created_at?: string;
   last_sign_in_at?: string;
   app_metadata?: { provider?: string; providers?: string[] };
   identities?: Array<{ provider?: string }>;
-}): void {
+};
+
+function authMethod(user: AuthMethodUser): "google" | "email" {
+  const provider =
+    user.app_metadata?.provider ||
+    user.identities?.[0]?.provider ||
+    user.app_metadata?.providers?.[0] ||
+    "email";
+  return provider === "google" ? "google" : "email";
+}
+
+/** True only at the moment an account is created. Later visits diverge `last_sign_in_at`. */
+export function isNewlyCreatedAccount(user: { created_at?: string; last_sign_in_at?: string }): boolean {
+  const created = user.created_at ? Date.parse(user.created_at) : NaN;
+  const last = user.last_sign_in_at ? Date.parse(user.last_sign_in_at) : NaN;
+  if (!Number.isFinite(created) || !Number.isFinite(last)) return false;
+  return Math.abs(last - created) < 120_000;
+}
+
+function claimAuthEvent(prefix: string, userId: string, durable: boolean): boolean {
+  const key = prefix + userId;
+  if (onceThisLoad.has(key)) return false;
+  if (readStorage("sessionStorage", key) === "1") return false;
+  if (durable && readStorage("localStorage", key) === "1") return false;
+  onceThisLoad.add(key);
+  safeStorage("sessionStorage", (s) => s.setItem(key, "1"));
+  if (durable) safeStorage("localStorage", (s) => s.setItem(key, "1"));
+  return true;
+}
+
+/** Once per account. Call from code verification, immediate email signup, or first OAuth sign-in. */
+export function trackSignUpOnce(userId: string, method: "google" | "email"): void {
   try {
-    if (!isRealUserId(user.id)) return;
-    if (readStorage("sessionStorage", AUTH_EVENT_KEY) === "1") {
-      setAnalyticsUserId(user.id);
-      return;
-    }
-    const created = user.created_at ? Date.parse(user.created_at) : NaN;
-    const last = user.last_sign_in_at ? Date.parse(user.last_sign_in_at) : Date.now();
-    const isNew = Number.isFinite(created) && Math.abs(last - created) < 10_000;
-    const provider =
-      user.app_metadata?.provider ||
-      user.identities?.[0]?.provider ||
-      user.app_metadata?.providers?.[0] ||
-      "email";
-    const method = provider === "google" ? "google" : "email";
-    const firstTouch = getFirstTouchParams();
-    if (isNew) {
-      track("sign_up", { method, ...firstTouch });
-      safeStorage("sessionStorage", (s) => s.setItem(ONBOARD_PENDING_KEY, "1"));
-    } else {
-      track("login", { method });
-    }
-    safeStorage("sessionStorage", (s) => s.setItem(AUTH_EVENT_KEY, "1"));
-    setAnalyticsUserId(user.id);
+    if (!isRealUserId(userId)) return;
+    if (!claimAuthEvent(SIGN_UP_PREFIX, userId, true)) return;
+    track("sign_up", { method, ...getFirstTouchParams() });
+    safeStorage("sessionStorage", (s) => s.setItem(ONBOARD_PENDING_KEY, "1"));
+    setAnalyticsUserId(userId);
   } catch {
     /* never throw */
   }
+}
+
+/** Once per user per tab session. Not for restored sessions or auth-listener echoes. */
+export function trackLoginOnce(userId: string, method: "google" | "email"): void {
+  try {
+    if (!isRealUserId(userId)) return;
+    if (readStorage("sessionStorage", SIGN_UP_PREFIX + userId) === "1") return;
+    if (!claimAuthEvent(LOGIN_PREFIX, userId, false)) return;
+    track("login", { method });
+    setAnalyticsUserId(userId);
+  } catch {
+    /* never throw */
+  }
+}
+
+export function trackCompletedAuth(user: AuthMethodUser): void {
+  if (isNewlyCreatedAccount(user)) {
+    trackSignUpOnce(user.id, authMethod(user));
+    return;
+  }
+  trackLoginOnce(user.id, authMethod(user));
+}
+
+export function markOAuthSignInPending(): void {
+  safeStorage("sessionStorage", (s) => s.setItem(OAUTH_PENDING_KEY, "1"));
+}
+
+export function consumeOAuthSignInPending(): boolean {
+  const pending = readStorage("sessionStorage", OAUTH_PENDING_KEY) === "1";
+  if (pending) safeStorage("sessionStorage", (s) => s.removeItem(OAUTH_PENDING_KEY));
+  return pending;
 }
 
 function isRealUserId(id: string): boolean {
@@ -380,8 +426,10 @@ export function maybeOnboardingComplete(userId: string): void {
   }
 }
 
-export function maybeClientTrialStart(plan = "annual"): void {
-  trackOnceSession(TRIAL_CLIENT_KEY, "trial_start", { plan });
+/** True when this tab already recorded the return, or the event just sent. */
+export function maybeClientTrialStart(plan: "annual" | "monthly"): boolean {
+  if (readStorage("sessionStorage", TRIAL_CLIENT_KEY) === "1") return true;
+  return trackOnceSession(TRIAL_CLIENT_KEY, "trial_start", { plan });
 }
 
 export function getGaClientId(): Promise<string | null> {

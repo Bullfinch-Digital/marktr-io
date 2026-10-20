@@ -9,7 +9,7 @@ import { Label } from "../ui/label";
 import { useAuth } from "../../contexts/AuthContext";
 import { GoogleIcon } from "../icons/GoogleIcon";
 import { signUpWithEmail } from "../../lib/supabaseAuth";
-import { getFirstTouchParams, track } from "../../lib/analytics";
+import { trackLoginOnce, trackSignUpOnce } from "../../lib/analytics";
 import {
   buildLinkBody,
   clearPendingGuestLink,
@@ -193,8 +193,8 @@ export function LoginModal({
     setAwaitingCode(true);
   };
 
-  const finishVerifiedSignup = () => {
-    track("sign_up", { method: "email", ...getFirstTouchParams() });
+  const finishVerifiedSignup = (userId?: string) => {
+    if (userId) trackSignUpOnce(userId, "email");
     try {
       window.dispatchEvent(new Event("subscription:changed"));
       window.dispatchEvent(new Event("auth:changed"));
@@ -219,7 +219,7 @@ export function LoginModal({
     setError(null);
     setAccountExists(false);
     try {
-      const { error: signInError } = await supabase.auth.signInWithPassword({
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
         email: resolvedEmail,
         password: resolvedPassword,
       });
@@ -239,6 +239,8 @@ export function LoginModal({
         setError(signInError.message);
         return;
       }
+
+      if (signInData.user?.id) trackLoginOnce(signInData.user.id, "email");
 
       const pending = getPendingGuestLink();
       const hasExplicitIds = Boolean(guestRef || sessionId);
@@ -310,7 +312,8 @@ export function LoginModal({
         return;
       }
 
-      finishVerifiedSignup();
+      const { data: signedUp } = await supabase.auth.getUser();
+      finishVerifiedSignup(signedUp.user?.id);
     } catch {
       setError("Sign up failed. Please try again.");
     } finally {
@@ -330,7 +333,7 @@ export function LoginModal({
     setLoading(true);
     setError(null);
     try {
-      const { error: verifyError } = await supabase.auth.verifyOtp({
+      const { data: verified, error: verifyError } = await supabase.auth.verifyOtp({
         email: confirmEmail,
         token,
         type: "signup",
@@ -340,7 +343,8 @@ export function LoginModal({
         setCode("");
         return;
       }
-      finishVerifiedSignup();
+      const verifiedUser = verified.user ?? verified.session?.user;
+      finishVerifiedSignup(verifiedUser?.id);
     } catch {
       setError("Couldn't verify that code. Try again.");
       setCode("");

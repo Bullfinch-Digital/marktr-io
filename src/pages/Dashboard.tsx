@@ -570,6 +570,7 @@ export default function Dashboard() {
               benefit={nextAction.benefit}
               cta={nextAction.cta}
               onAction={runNextAction}
+              actionId={nextAction.id}
               trackId={nextAction.trackId}
             />
           ) : null}

@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { isRealUser } from "../../utils/isRealUser";
 import useSubscription from "../../hooks/useSubscription";
@@ -9,7 +9,6 @@ import {
   maybeClientTrialStart,
   maybeDashboardFirstView,
   maybeOnboardingComplete,
-  maybeTrackAuth,
   setAnalyticsUserId,
   setAnalyticsUserProperties,
 } from "../../lib/analytics";
@@ -24,6 +23,7 @@ function planLabel(isPro: boolean, trialActive: boolean): "free" | "trial" | "pa
 
 export function MarktrAnalytics() {
   const location = useLocation();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { isPro, trialActive, ready } = useSubscription();
 
@@ -31,13 +31,6 @@ export function MarktrAnalytics() {
 
   useEffect(() => {
     if (!user || !isRealUser(user) || !hasAnalyticsConsent()) return;
-    maybeTrackAuth({
-      id: user.id,
-      created_at: user.created_at,
-      last_sign_in_at: user.last_sign_in_at,
-      app_metadata: user.app_metadata as { provider?: string; providers?: string[] },
-      identities: user.identities as Array<{ provider?: string }>,
-    });
     setAnalyticsUserId(user.id);
   }, [user]);
 
@@ -88,10 +81,17 @@ export function MarktrAnalytics() {
           // ignore
         }
       }
-      maybeClientTrialStart(plan);
       markCheckoutSucceeded(user.id);
+      if (!maybeClientTrialStart(plan)) return;
+      params.delete("checkout");
+      params.delete("plan");
+      const search = params.toString();
+      navigate(
+        { pathname: location.pathname, search: search ? `?${search}` : "", hash: location.hash },
+        { replace: true },
+      );
     }
-  }, [location.pathname, location.search, user]);
+  }, [location.hash, location.pathname, location.search, navigate, user]);
 
   return null;
 }

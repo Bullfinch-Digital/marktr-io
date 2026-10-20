@@ -9,6 +9,8 @@ import {
   scoreBand,
   track,
   trackOnceLoad,
+  trackSignUpOnce,
+  trackLoginOnce,
 } from "./analytics";
 
 function grantAnalytics() {
@@ -154,5 +156,30 @@ describe("marktr analytics", () => {
     markHealthCompleted();
     expect(maybeTrackHealthAbandon()).toBe(false);
     expect(gtag).not.toHaveBeenCalled();
+  });
+
+  it("fires sign_up once per account and login once per session", () => {
+    grantAnalytics();
+    const gtag = vi.fn();
+    (window as Window & { gtag?: typeof gtag }).gtag = gtag;
+    const userId = "11111111-1111-1111-1111-111111111111";
+    trackSignUpOnce(userId, "email");
+    trackSignUpOnce(userId, "email");
+    trackLoginOnce(userId, "email");
+    expect(gtag.mock.calls.filter((call) => call[1] === "sign_up")).toHaveLength(1);
+    expect(gtag.mock.calls.filter((call) => call[1] === "login")).toHaveLength(0);
+    expect(gtag.mock.calls[0][2]).toMatchObject({ method: "email" });
+    expect(JSON.stringify(gtag.mock.calls[0][2])).not.toContain("@");
+  });
+
+  it("fires login once for an existing account in this tab", () => {
+    grantAnalytics();
+    const gtag = vi.fn();
+    (window as Window & { gtag?: typeof gtag }).gtag = gtag;
+    const userId = "22222222-2222-2222-2222-222222222222";
+    trackLoginOnce(userId, "google");
+    trackLoginOnce(userId, "google");
+    expect(gtag.mock.calls.filter((call) => call[1] === "login")).toHaveLength(1);
+    expect(gtag.mock.calls[0][2]).toMatchObject({ method: "google" });
   });
 });

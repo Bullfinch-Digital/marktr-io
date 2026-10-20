@@ -3,7 +3,7 @@
 // Deploy with: supabase functions deploy stripe-webhook
 // Set secrets with:
 //   supabase secrets set STRIPE_WEBHOOK_SECRET=whsec_... SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=...
-//   supabase secrets set GA4_API_SECRET=...   # Measurement Protocol for trial_start / purchase
+//   supabase secrets set GA4_MEASUREMENT_ID=G-... GA4_API_SECRET=...   # Measurement Protocol
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 // IMPORTANT:
@@ -357,6 +357,101 @@ async function fetchStripeSubscription(
   }
 }
 
+let gaClientColumnWarned = false;
+
+async function sha256Hex(value: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+async function clientIdForUser(
+  supabaseAdmin: ReturnType<typeof createClient>,
+  userId: string,
+): Promise<string> {
+  const { data, error } = await supabaseAdmin
+    .from("profiles")
+    .select("ga_client_id")
+    .eq("id", userId)
+    .maybeSingle();
+  if (error) {
+    if (!gaClientColumnWarned) {
+      gaClientColumnWarned = true;
+      console.warn("[stripe-webhook] profiles.ga_client_id unavailable; using a hash of the user id");
+    }
+  } else {
+    const stored = typeof data?.ga_client_id === "string" ? data.ga_client_id.trim() : "";
+    if (stored && !stored.includes("@")) return stored.slice(0, 64);
+  }
+  return sha256Hex(userId);
+}
+
+async function maybeSendSubscriptionPaid(
+  supabaseAdmin: ReturnType<typeof createClient>,
+  invoice: {
+    id?: string;
+    amount_paid?: number;
+    billing_reason?: string;
+    subscription?: string | null;
+    period_start?: number;
+    lines?: {
+      data?: Array<{
+        period?: { start?: number };
+        price?: { id?: string; recurring?: { interval?: string } };
+        plan?: { id?: string; interval?: string };
+        metadata?: { plan?: string };
+      }>;
+    };
+    metadata?: { plan?: string };
+    subscription_details?: { metadata?: { plan?: string } };
+    parent?: { subscription_details?: { metadata?: { plan?: string } } };
+  },
+  userId: string | null,
+) {
+  const amount = invoice.amount_paid ?? 0;
+  if (!userId || amount <= 0) return;
+
+  let firstPaid = invoice.billing_reason === "subscription_create";
+  if (!firstPaid && invoice.billing_reason === "subscription_cycle") {
+    const subscriptionId = invoice.subscription ? String(invoice.subscription) : "";
+    if (subscriptionId) {
+      const { data } = await supabaseAdmin
+        .from("stripe_subscriptions")
+        .select("trial_end")
+        .eq("stripe_subscription_id", subscriptionId)
+        .maybeSingle();
+      const trialEnd = data?.trial_end ? Date.parse(String(data.trial_end)) : NaN;
+      const periodRaw = invoice.lines?.data?.[0]?.period?.start ?? invoice.period_start;
+      const periodStart = toIsoOrNull(periodRaw);
+      const periodMs = periodStart ? Date.parse(periodStart) : NaN;
+      if (Number.isFinite(trialEnd) && Number.isFinite(periodMs)) {
+        firstPaid = Math.abs(periodMs - trialEnd) <= 48 * 60 * 60 * 1000;
+      }
+    }
+  }
+  if (!firstPaid) return;
+
+  const line = invoice.lines?.data?.[0];
+  await sendGa4MeasurementProtocolEvent({
+    name: "subscription_paid",
+    clientId: await clientIdForUser(supabaseAdmin, userId),
+    userId,
+    params: {
+      value: amount / 100,
+      currency: "GBP",
+      plan: planFromStripeSignals({
+        metadataPlan:
+          invoice.subscription_details?.metadata?.plan ??
+          invoice.parent?.subscription_details?.metadata?.plan ??
+          line?.metadata?.plan ??
+          invoice.metadata?.plan,
+        priceId: line?.price?.id ?? line?.plan?.id ?? null,
+        interval: line?.price?.recurring?.interval ?? line?.plan?.interval ?? null,
+      }),
+      transaction_id: String(invoice.id || ""),
+    },
+  });
+}
+
 Deno.serve(async (req) => {
   if (req.method !== "POST") {
     return json({ error: "Method not allowed" }, 405);
@@ -646,6 +741,16 @@ Deno.serve(async (req) => {
           await handleSubscription(subscription, userId, email);
 
           const gaClientId = (session.metadata as { ga_client_id?: string } | null)?.ga_client_id ?? null;
+          if (userId && gaClientId && !gaClientId.includes("@")) {
+            const { error: clientIdError } = await supabaseAdmin
+              .from("profiles")
+              .update({ ga_client_id: gaClientId.slice(0, 64) })
+              .eq("id", userId);
+            if (clientIdError && !gaClientColumnWarned) {
+              gaClientColumnWarned = true;
+              console.warn("[stripe-webhook] ga_client_id not stored");
+            }
+          }
           const amountTotal = typeof session.amount_total === "number" ? session.amount_total : 0;
           const currency = String(session.currency || "gbp").toUpperCase();
           const firstTouch = {
@@ -707,11 +812,13 @@ Deno.serve(async (req) => {
           metadata?: { plan?: string };
           lines?: {
             data?: Array<{
+              period?: { start?: number };
               price?: { id?: string; recurring?: { interval?: string } };
               plan?: { id?: string; interval?: string };
               metadata?: { plan?: string };
             }>;
           };
+          period_start?: number;
           subscription_details?: { metadata?: { plan?: string } };
           parent?: { subscription_details?: { metadata?: { plan?: string } } };
         };
@@ -742,6 +849,11 @@ Deno.serve(async (req) => {
             }),
           },
         });
+        try {
+          await maybeSendSubscriptionPaid(supabaseAdmin, invoice, userId);
+        } catch {
+          console.warn("[stripe-webhook] subscription_paid skipped");
+        }
         break;
       }
       default:

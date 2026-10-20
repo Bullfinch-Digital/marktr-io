@@ -174,6 +174,7 @@ export default function GuestDashboardPreview() {
             title={nextAction.title}
             benefit={nextAction.benefit}
             cta={nextAction.cta}
+            actionId={nextAction.id}
             onAction={runNextAction}
           />
         ) : null}

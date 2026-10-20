@@ -8,7 +8,8 @@ const authMocks = vi.hoisted(() => ({
   resend: vi.fn(),
   verifyOtp: vi.fn(),
   signInWithPassword: vi.fn(),
-  track: vi.fn(),
+  trackSignUpOnce: vi.fn(),
+  trackLoginOnce: vi.fn(),
   onClose: vi.fn(),
 }));
 
@@ -36,7 +37,8 @@ vi.mock("../../lib/supabaseAuth", () => ({
 
 vi.mock("../../lib/analytics", () => ({
   getFirstTouchParams: () => ({}),
-  track: (...args: unknown[]) => authMocks.track(...args),
+  trackSignUpOnce: (...args: unknown[]) => authMocks.trackSignUpOnce(...args),
+  trackLoginOnce: (...args: unknown[]) => authMocks.trackLoginOnce(...args),
 }));
 
 function renderModal(initialMode: "signin" | "signup" = "signup") {
@@ -72,7 +74,8 @@ afterEach(() => {
   authMocks.resend.mockReset();
   authMocks.verifyOtp.mockReset();
   authMocks.signInWithPassword.mockReset();
-  authMocks.track.mockReset();
+  authMocks.trackSignUpOnce.mockReset();
+  authMocks.trackLoginOnce.mockReset();
   authMocks.onClose.mockReset();
 });
 
@@ -85,7 +88,7 @@ describe("LoginModal email code", () => {
     );
     expect(emailRedirectTo).not.toContain("intent=");
     expect(emailRedirectTo).not.toContain("plan=");
-    expect(authMocks.track).not.toHaveBeenCalled();
+    expect(authMocks.trackSignUpOnce).not.toHaveBeenCalled();
     expect(screen.getByRole("button", { name: "Resend code (30s)" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Verify" }).getAttribute("data-track-id")).toBe(
       "auth_verify_code",
@@ -97,7 +100,10 @@ describe("LoginModal email code", () => {
 
   it("verifies six digits, tracks sign_up, and closes without navigating", async () => {
     await reachCodeStep();
-    authMocks.verifyOtp.mockResolvedValue({ data: { session: {} }, error: null });
+    authMocks.verifyOtp.mockResolvedValue({
+      data: { user: { id: "user-1234567890" }, session: { user: { id: "user-1234567890" } } },
+      error: null,
+    });
 
     await act(async () => {
       fireEvent.change(screen.getByLabelText("Code"), { target: { value: "12ab3456" } });
@@ -109,7 +115,7 @@ describe("LoginModal email code", () => {
       token: "123456",
       type: "signup",
     });
-    expect(authMocks.track).toHaveBeenCalledWith("sign_up", { method: "email" });
+    expect(authMocks.trackSignUpOnce).toHaveBeenCalledWith("user-1234567890", "email");
     expect(authMocks.onClose).toHaveBeenCalled();
   });
 

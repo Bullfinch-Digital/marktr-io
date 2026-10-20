@@ -1,4 +1,5 @@
 import { Lock } from "lucide-react";
+import { track } from "../../lib/analytics";
 import { Button } from "../ui/button";
 import { STORY_UNLOCK_LABEL } from "../../lib/brandStoryAccess";
 
@@ -37,11 +38,10 @@ export function StoryUnlockButton({ onUnlock }: { onUnlock: () => void }) {
   return (
     <Button
       type="button"
-      onClick={onUnlock}
-      data-track-id="locked_story_unlock"
-      data-track-location="story_results"
-      data-track-destination="paywall"
-      data-track-text={STORY_UNLOCK_LABEL}
+      onClick={() => {
+        track("locked_story_unlock", { location: "story_results" });
+        onUnlock();
+      }}
       className="h-auto min-h-11 w-full whitespace-normal px-4 py-3 text-center text-sm leading-snug"
     >
       <Lock className="h-4 w-4 shrink-0" aria-hidden="true" />

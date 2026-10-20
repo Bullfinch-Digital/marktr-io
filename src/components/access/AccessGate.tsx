@@ -16,7 +16,9 @@ export function AccessGate() {
   const location = useLocation();
 
   useEffect(() => {
-    trackOnceLoad(`access_gate_view:${location.pathname}`, "access_gate_view");
+    trackOnceLoad(`access_gate_view:${location.pathname}`, "access_gate_view", {
+      location: location.pathname.slice(0, 100),
+    });
   }, [location.pathname]);
 
   useEffect(() => {

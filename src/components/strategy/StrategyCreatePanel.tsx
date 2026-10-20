@@ -70,6 +70,17 @@ export function StrategyCreatePanel({
     if (validIcps.length) setSelectedIcpLineages(validIcps.slice(0, 5));
   }, [aims, icps, initialAimLineageIds, initialIcpLineageIds]);
 
+  useEffect(() => {
+    if (generating) return;
+    const frame = window.requestAnimationFrame(() => {
+      document.getElementById("strategy-create-form")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [generating]);
+
   const aimCount = selectedAimLineages.length;
   const icpCount = selectedIcpLineages.length;
 
@@ -197,7 +208,10 @@ export function StrategyCreatePanel({
   }
 
   return (
-    <div className="rounded-design border border-black bg-accent-grey/15 p-6 lg:p-8 space-y-6">
+    <div
+      id="strategy-create-form"
+      className="scroll-mt-24 space-y-6 rounded-design border border-black bg-accent-grey/15 p-6 lg:p-8"
+    >
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h3 className="font-['Fraunces'] text-2xl text-[#0D1833]">New strategy</h3>

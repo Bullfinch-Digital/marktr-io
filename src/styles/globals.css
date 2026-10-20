@@ -394,6 +394,25 @@ html {
   color: var(--card-foreground);
 }
 
+.app-card.app-step-complete {
+  background: color-mix(in srgb, var(--brand-lime) 32%, var(--card));
+}
+
+.app-card.app-step-incomplete {
+  background: color-mix(in srgb, #e2b15a 30%, var(--card));
+}
+
+.dark .app-card.app-step-incomplete {
+  background: color-mix(in srgb, #e2b15a 24%, var(--card));
+}
+
+.dashboard-lime-card {
+  border: 2px solid var(--brand-stroke);
+  border-radius: 24px;
+  background: var(--brand-lime);
+  color: var(--brand-navy);
+}
+
 .app-card-nested {
   border: 1px solid var(--brand-nested-stroke) !important;
   border-radius: 18px;

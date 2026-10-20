@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { GuestAllCompleteTrialBanner } from "../components/guest/GuestAllCompleteTrialBanner";
 import { GuestICPCard } from "../components/cards/GuestICPCard";
+import { DashboardNextActionCard } from "../components/dashboard/DashboardNextActionCard";
+import { DashboardTrialUnlocks } from "../components/dashboard/DashboardTrialUnlocks";
 import { MarktrStepCard } from "../components/dashboard/MarktrStepCard";
 import { HealthScoreHero } from "../components/dashboard/HealthScoreHero";
 import { usePaywall } from "../contexts/PaywallContext";
@@ -16,6 +18,7 @@ import {
   revealIcpSection,
   withoutOnboardingIcpArrival,
 } from "../lib/onboardingIcpArrival";
+import { resolveDashboardNextAction } from "../lib/dashboardNextAction";
 
 export default function GuestDashboardPreview() {
   const navigate = useNavigate();
@@ -85,6 +88,34 @@ export default function GuestDashboardPreview() {
 
   const allComplete = hasHealth && hasStory && hasICPs;
 
+  const nextAction = resolveDashboardNextAction({
+    hasHealth,
+    hasStory,
+    hasCustomers: hasICPs,
+    hasAccess: false,
+    isGuest: true,
+    progressReady: true,
+    hasAim: false,
+    hasStrategy: false,
+  });
+
+  const runNextAction = () => {
+    if (!nextAction) return;
+    if (nextAction.id === "health") {
+      navigate("/health-check");
+      return;
+    }
+    if (nextAction.id === "story") {
+      navigate("/story");
+      return;
+    }
+    if (nextAction.id === "customer") {
+      navigate("/onboarding-build");
+      return;
+    }
+    if (nextAction.id === "trial") openPaywall();
+  };
+
   const completedCount = [hasHealth, hasStory, hasICPs].filter(Boolean).length;
 
   /** Same completion flags as the step-chain cards — next incomplete step for inline nudges. */
@@ -132,6 +163,19 @@ export default function GuestDashboardPreview() {
         </p>
       </div>
 
+      <div className="container mx-auto max-w-7xl space-y-4 px-6 pt-8 lg:px-12">
+        {nextAction ? (
+          <DashboardNextActionCard
+            title={nextAction.title}
+            benefit={nextAction.benefit}
+            cta={nextAction.cta}
+            onAction={runNextAction}
+          />
+        ) : null}
+
+        <DashboardTrialUnlocks onStartTrial={() => openPaywall()} />
+      </div>
+
       {allComplete && (
         <GuestAllCompleteTrialBanner onStartTrial={() => openPaywall("annual", "trial_banner")} />
       )}
@@ -158,7 +202,7 @@ export default function GuestDashboardPreview() {
                   /100
                 </p>
               ) : (
-                <p className="font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground">Not started yet</p>
+                <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground">Not started</p>
               )
             }
           />
@@ -172,7 +216,7 @@ export default function GuestDashboardPreview() {
               hasStory ? (
                 <p className="app-status-pill font-['Plus_Jakarta_Sans'] text-sm">Brand story ready</p>
               ) : (
-                <p className="font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground">Not started yet</p>
+                <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground">Not started</p>
               )
             }
           />
@@ -188,7 +232,7 @@ export default function GuestDashboardPreview() {
                   {`${guestICPs.length} profiles generated`}
                 </p>
               ) : (
-                <p className="font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground">Not started yet</p>
+                <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground">Not started</p>
               )
             }
           />

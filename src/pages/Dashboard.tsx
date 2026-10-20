@@ -1,13 +1,15 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
-import { ChevronRight } from "lucide-react";
 import { ICPPreviewCard } from "../components/cards/ICPPreviewCard";
-import { MarktrStepCard } from "../components/dashboard/MarktrStepCard";
+import { DashboardFoundationSteps } from "../components/dashboard/DashboardFoundationSteps";
+import { DashboardNextActionCard } from "../components/dashboard/DashboardNextActionCard";
+import { DashboardTrialUnlocks } from "../components/dashboard/DashboardTrialUnlocks";
 import { HealthScoreHero } from "../components/dashboard/HealthScoreHero";
 import { BrandStorySummaryCard } from "../components/dashboard/BrandStorySummaryCard";
 import { useICPs } from "../hooks/useICPs";
 import { useBrands } from "../hooks/useBrands";
 import { useCollections, fetchCollectionNamesByLineageIds } from "../hooks/useCollections";
+import { useBrandAims } from "../hooks/useBrandAims";
 import { useBrandStrategies } from "../hooks/useBrandStrategies";
 import { useContentItems } from "../hooks/useContentItems";
 import useSubscription from "../hooks/useSubscription";
@@ -40,6 +42,13 @@ import {
   revealIcpSection,
   withoutOnboardingIcpArrival,
 } from "../lib/onboardingIcpArrival";
+import {
+  firstUntickedFourteenDayItem,
+  readFourteenDayChecks,
+  resolveDashboardNextAction,
+} from "../lib/dashboardNextAction";
+import { DASHBOARD_STRATEGY_STATE_KEY } from "../lib/dashboardStrategyIntent";
+import { isRealUser } from "../utils/isRealUser";
 
 type HealthCheckRow = {
   id: string;
@@ -50,13 +59,6 @@ type HealthCheckRow = {
 type BrandStoryRow = {
   id: string;
   story_data: unknown;
-};
-
-type NextAction = {
-  label: string;
-  tag: string;
-  desc: string;
-  href: string;
 };
 
 function readDimensionScore(
@@ -80,81 +82,6 @@ function formatDate(iso: string): string {
   return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 }
 
-function deriveNextAction(input: {
-  hasBrandStory: boolean;
-  hasIcps: boolean;
-  hasHealthCheck: boolean;
-  scores: Record<string, unknown> | null | undefined;
-}): NextAction | null {
-  if (!input.hasBrandStory) {
-    return {
-      label: "Build your brand story",
-      tag: "STORY",
-      desc: "Capture positioning and purpose so Strategy and Content speak with one voice.",
-      href: "/story",
-    };
-  }
-
-  if (!input.hasIcps) {
-    return {
-      label: "Define your ideal customer",
-      tag: "ICP",
-      desc: "Every strategy starts with knowing exactly who you serve.",
-      href: "/onboarding-build",
-    };
-  }
-
-  if (!input.hasHealthCheck) {
-    return {
-      label: "Run your digital health check",
-      tag: "HEALTH",
-      desc: "Score Website, Brand Story, Content, and Social so you know where to focus.",
-      href: "/health-check",
-    };
-  }
-
-  const pillars: Array<{ key: string; label: string; href: string; score: number | "—" }> = [
-    {
-      key: "websiteClarity",
-      label: "Website Clarity",
-      href: "/health-check",
-      score: readDimensionScore(input.scores, "websiteClarity"),
-    },
-    {
-      key: "brandStory",
-      label: "Brand Story",
-      href: "/story-report",
-      score: readDimensionScore(input.scores, "brandStory"),
-    },
-    {
-      key: "contentConsistency",
-      label: "Content Consistency",
-      href: "/health-check",
-      score: readDimensionScore(input.scores, "contentConsistency"),
-    },
-    {
-      key: "socialPresence",
-      label: "Social Presence",
-      href: "/health-check",
-      score: readDimensionScore(input.scores, "socialPresence"),
-    },
-  ];
-
-  const numeric = pillars.filter((p): p is typeof p & { score: number } => typeof p.score === "number");
-  if (numeric.length === 0) return null;
-
-  const lowest = numeric.reduce((min, p) => (p.score < min.score ? p : min));
-  // Only surface when there's a real gap — perfect scores aren't actionable.
-  if (lowest.score >= 90) return null;
-
-  return {
-    label: `Improve ${lowest.label}`,
-    tag: "HEALTH",
-    desc: `This is your lowest pillar at ${lowest.score}/100. Focus here next.`,
-    href: lowest.href,
-  };
-}
-
 export default function Dashboard() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -166,7 +93,7 @@ export default function Dashboard() {
 
   const { user, loading: authLoading } = useAuth();
   const { activeBrandId, loading: brandLoading, brands } = useBrand();
-  const { profile } = useProfile(user?.id ?? null);
+  const { profile, loading: profileLoading } = useProfile(user?.id ?? null);
   const [healthCheck, setHealthCheck] = useState<HealthCheckRow | null>(null);
   const [brandStory, setBrandStory] = useState<BrandStoryRow | null>(null);
 
@@ -181,6 +108,7 @@ export default function Dashboard() {
   } = useICPs();
   const { refetch: refetchBrands } = useBrands();
   const { addICPToCollection, createCollection } = useCollections();
+  const { aims, isLoading: aimsLoading } = useBrandAims(scopedBrandId || undefined);
   const { strategies, isLoading: strategiesLoading } = useBrandStrategies(scopedBrandId);
   const { items: contentItems, isLoading: contentLoading } = useContentItems(scopedBrandId);
 
@@ -466,15 +394,96 @@ export default function Dashboard() {
 
   const recentDrafts = draftItems.slice(0, 3);
 
+  const isGuest = !isRealUser(user);
+  const hasAccess = (subReady && isPro) || profile?.role === "admin";
+  const showTrialUnlocks = subReady && !profileLoading && !hasAccess;
+  const latestAim = aims[0];
+  const fourteenDayChecks = latestStrategy ? readFourteenDayChecks(latestStrategy.id) : null;
+  const firstUntickedPlanItem = latestStrategy
+    ? firstUntickedFourteenDayItem(
+        latestStrategy.strategy?.channel_plan?.first_14_days,
+        fourteenDayChecks
+      )
+    : null;
+
   const nextAction = useMemo(
     () =>
-      deriveNextAction({
-        hasBrandStory: hasStory,
-        hasIcps: hasICPs,
-        hasHealthCheck: hasHealth,
-        scores: healthScores,
+      resolveDashboardNextAction({
+        hasHealth,
+        hasStory,
+        hasCustomers: hasICPs,
+        hasAccess,
+        isGuest,
+        progressReady: !aimsLoading && !strategiesLoading,
+        hasAim: aims.length > 0,
+        aimLineageId: latestAim?.lineage_id,
+        hasStrategy: strategies.length > 0,
+        strategyId: latestStrategy?.id,
+        firstUntickedPlanItem,
       }),
-    [hasStory, hasICPs, hasHealth, healthScores]
+    [
+      hasHealth,
+      hasStory,
+      hasICPs,
+      hasAccess,
+      isGuest,
+      aimsLoading,
+      strategiesLoading,
+      aims.length,
+      latestAim?.lineage_id,
+      strategies.length,
+      latestStrategy?.id,
+      firstUntickedPlanItem,
+    ]
+  );
+
+  const runNextAction = () => {
+    if (!nextAction) return;
+    if (nextAction.id === "health") {
+      navigate("/health-check");
+      return;
+    }
+    if (nextAction.id === "story") {
+      navigate("/story");
+      return;
+    }
+    if (nextAction.id === "customer") {
+      navigate("/onboarding-build");
+      return;
+    }
+    if (nextAction.id === "aim") {
+      navigate("/strategy", { state: { [DASHBOARD_STRATEGY_STATE_KEY]: { kind: "aim" } } });
+      return;
+    }
+    if (nextAction.id === "strategy" && nextAction.aimLineageId) {
+      navigate("/strategy", {
+        state: {
+          [DASHBOARD_STRATEGY_STATE_KEY]: {
+            kind: "strategy",
+            aimLineageId: nextAction.aimLineageId,
+          },
+        },
+      });
+      return;
+    }
+    if (nextAction.id === "plan" && nextAction.strategyId) {
+      navigate(`/strategy/${nextAction.strategyId}#first-14-days`);
+      return;
+    }
+    if (nextAction.id === "trial") openPaywall();
+  };
+
+  const renderFoundationSteps = () => (
+    <DashboardFoundationSteps
+      hasHealth={hasHealth}
+      hasStory={hasStory}
+      hasCustomers={hasICPs}
+      overallScore={overallScore}
+      customerCount={icps.length}
+      onHealth={() => navigate(hasHealth ? "/health-report" : "/health-check")}
+      onStory={() => navigate(hasStory ? "/story-report" : "/story")}
+      onCustomers={() => navigate(hasICPs ? "/icps" : "/onboarding-build")}
+    />
   );
 
   const getGreeting = () => {
@@ -516,6 +525,19 @@ export default function Dashboard() {
     <>
       <DashboardShell onCreateNew={handleCreateNew}>
         <div className="max-w-5xl space-y-8">
+          {nextAction ? (
+            <DashboardNextActionCard
+              title={nextAction.title}
+              benefit={nextAction.benefit}
+              cta={nextAction.cta}
+              onAction={runNextAction}
+            />
+          ) : null}
+
+          {showTrialUnlocks ? (
+            <DashboardTrialUnlocks onStartTrial={() => openPaywall()} />
+          ) : null}
+
           <header>
             <h1 className="app-heading-page font-['Fraunces'] text-[2.5rem] leading-tight tracking-[-0.01em] text-foreground">
               {getGreeting()}
@@ -537,61 +559,7 @@ export default function Dashboard() {
 
           {/* 1. Health score hero — step chain + 4-pillar breakdown */}
           <section className="space-y-8">
-            <div className="grid items-stretch gap-6 lg:grid-cols-3">
-              <MarktrStepCard
-                step={1}
-                title="Digital health check"
-                complete={hasHealth}
-                onClick={() => navigate(hasHealth ? "/health-report" : "/health-check")}
-                status={
-                  hasHealth ? (
-                    <p className="app-status-pill font-['Plus_Jakarta_Sans'] text-sm">
-                      Overall score{" "}
-                      <span className="font-['Fraunces'] text-xl font-medium">{overallScore}</span>
-                      /100
-                    </p>
-                  ) : (
-                    <p className="font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground">
-                      Not started yet
-                    </p>
-                  )
-                }
-              />
-              <MarktrStepCard
-                step={2}
-                title="Brand story"
-                complete={hasStory}
-                onClick={() => navigate(hasStory ? "/story-report" : "/story")}
-                status={
-                  hasStory ? (
-                    <p className="app-status-pill font-['Plus_Jakarta_Sans'] text-sm">
-                      Brand story ready
-                    </p>
-                  ) : (
-                    <p className="font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground">
-                      Not started yet
-                    </p>
-                  )
-                }
-              />
-              <MarktrStepCard
-                step={3}
-                title="Know your customer"
-                complete={hasICPs}
-                onClick={() => navigate(hasICPs ? "/icps" : "/onboarding-build")}
-                status={
-                  hasICPs ? (
-                    <p className="app-status-pill font-['Plus_Jakarta_Sans'] text-sm">
-                      {`${icps.length} profiles`}
-                    </p>
-                  ) : (
-                    <p className="font-['Plus_Jakarta_Sans'] text-sm text-muted-foreground">
-                      Not started yet
-                    </p>
-                  )
-                }
-              />
-            </div>
+            {renderFoundationSteps()}
 
             <HealthScoreHero
               empty={!hasHealth}
@@ -799,37 +767,10 @@ export default function Dashboard() {
             )}
           </section>
 
-          {/* 6. Next action — single derived card, omitted when nothing actionable */}
-          {nextAction ? (
-            <section>
-              <p className="mb-4 font-['Plus_Jakarta_Sans'] text-sm font-medium uppercase tracking-[0.12em] text-muted-foreground">
-                What to do next
-              </p>
-              <button
-                type="button"
-                onClick={() => navigate(nextAction.href)}
-                className="app-card app-card-hover group flex w-full items-center gap-4 p-8 text-left"
-              >
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-navy font-['Plus_Jakarta_Sans'] text-sm font-medium text-brand-lime">
-                  1
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="mb-0.5 flex items-center gap-2">
-                    <span className="font-['Plus_Jakarta_Sans'] text-base font-medium text-foreground">
-                      {nextAction.label}
-                    </span>
-                    <span className="app-status-pill text-sm font-medium uppercase tracking-wide">
-                      {nextAction.tag}
-                    </span>
-                  </div>
-                  <p className="font-['Plus_Jakarta_Sans'] text-sm leading-relaxed text-muted-foreground">
-                    {nextAction.desc}
-                  </p>
-                </div>
-                <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-foreground" />
-              </button>
-            </section>
-          ) : null}
+          <section className="space-y-4">
+            <h2 className="app-heading font-['Fraunces'] text-2xl text-foreground">Your progress</h2>
+            {renderFoundationSteps()}
+          </section>
         </div>
       </DashboardShell>
 

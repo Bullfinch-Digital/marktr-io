@@ -86,6 +86,14 @@ export function StrategyAimsSection({
     }
   }, [autoOpenCreate, isLoading, aims.length, editingAimId]);
 
+  useEffect(() => {
+    if (!showCreateForm || editingAimId) return;
+    const frame = window.requestAnimationFrame(() => {
+      document.getElementById("aim-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [showCreateForm, editingAimId]);
+
   const editingAim = useMemo(
     () => aims.find((aim) => aim.id === editingAimId) ?? null,
     [aims, editingAimId]
@@ -181,7 +189,7 @@ export function StrategyAimsSection({
       </div>
 
       {(showCreateForm || editingAim) ? (
-        <div className="rounded-design border border-black/15 bg-accent-grey/15 p-4 space-y-4">
+        <div id="aim-form" className="scroll-mt-24 rounded-design border border-black/15 bg-accent-grey/15 p-4 space-y-4">
           <p className="font-['Plus_Jakarta_Sans'] text-sm font-medium text-foreground">
             {editingAim ? "Edit aim (saves as new version)" : "New aim"}
           </p>

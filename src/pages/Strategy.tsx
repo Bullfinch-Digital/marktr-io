@@ -25,6 +25,10 @@ import {
   readStrategyLauncherIntent,
   type StrategyLauncherIntent,
 } from "../lib/strategyLauncherState";
+import {
+  readDashboardStrategyIntent,
+  type DashboardStrategyIntent,
+} from "../lib/dashboardStrategyIntent";
 import { StrategyAimsSection } from "../components/strategy/StrategyAimsSection";
 import { StrategyCreatePanel } from "../components/strategy/StrategyCreatePanel";
 import {
@@ -88,7 +92,10 @@ function StrategyPageBody() {
   } = useBrandStrategies(scopedBrandId || "");
 
   const launcherIntentRef = useRef<StrategyLauncherIntent | null>(null);
+  const dashboardIntentRef = useRef<DashboardStrategyIntent | null>(null);
   const [launcherIntent, setLauncherIntent] = useState<StrategyLauncherIntent | null>(null);
+  const [forceAimForm, setForceAimForm] = useState(false);
+  const [dashboardIntentHandled, setDashboardIntentHandled] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [createPanelKey, setCreatePanelKey] = useState(0);
   const [initialAimLineageIds, setInitialAimLineageIds] = useState<string[]>([]);
@@ -121,6 +128,14 @@ function StrategyPageBody() {
     }
     navigate(location.pathname, { replace: true, state: {} });
   }, [location.pathname, location.state, navigate, setActiveBrand]);
+
+  useEffect(() => {
+    const intent = readDashboardStrategyIntent(location.state);
+    if (!intent) return;
+    dashboardIntentRef.current = intent;
+    setDashboardIntentHandled(false);
+    navigate(location.pathname, { replace: true, state: {} });
+  }, [location.pathname, location.state, navigate]);
 
   const openCreatePanel = (selections?: {
     aimLineageIds?: string[];
@@ -164,6 +179,20 @@ function StrategyPageBody() {
     hasAims,
     launcherCreateOpened,
   ]);
+
+  useEffect(() => {
+    const intent = dashboardIntentRef.current;
+    if (!intent || dashboardIntentHandled || !brandReady || aimsLoading) return;
+    if (intent.kind === "aim") {
+      setForceAimForm(true);
+      setDashboardIntentHandled(true);
+      return;
+    }
+    if (!hasAims) return;
+    const match = aims.find((aim) => aim.lineage_id === intent.aimLineageId) ?? aims[0];
+    openCreatePanel({ aimLineageIds: match ? [match.lineage_id] : [] });
+    setDashboardIntentHandled(true);
+  }, [aims, brandReady, aimsLoading, hasAims, dashboardIntentHandled]);
 
   useEffect(() => {
     if (!restoreNudge) return;
@@ -269,7 +298,7 @@ function StrategyPageBody() {
             <StrategyAimsSection
               brandId={scopedBrandId}
               launcherPersonaName={launcherIntent?.icpName ?? null}
-              autoOpenCreate={!!launcherIntent && !hasAims}
+              autoOpenCreate={(!!launcherIntent && !hasAims) || forceAimForm}
               emphasizeEmpty={!hasAims}
               onAimCreated={handleAimCreated}
             />

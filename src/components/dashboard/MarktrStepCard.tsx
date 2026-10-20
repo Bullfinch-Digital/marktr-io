@@ -23,7 +23,9 @@ export function MarktrStepCard({
     <button
       type="button"
       onClick={onClick}
-      className="app-card app-card-hover app-focus-ring flex h-full min-h-[11.5rem] w-full flex-col p-8 text-left transition-colors hover:-translate-y-px"
+      className={`app-card app-card-hover app-focus-ring flex h-full min-h-[11.5rem] w-full flex-col p-5 text-left transition-colors hover:-translate-y-px sm:p-8 ${
+        complete ? "app-step-complete" : "app-step-incomplete"
+      }`}
     >
       <div className="flex items-start gap-4">
         {complete ? (
@@ -50,9 +52,13 @@ export function MarktrStepCard({
           </h3>
           {status ? <div className="mt-2 min-h-[2rem]">{status}</div> : null}
           {summary}
-          <p className="app-text-link mt-4 font-['Plus_Jakarta_Sans']">
-            {complete ? "View results →" : "Start →"}
-          </p>
+          {complete ? (
+            <p className="app-text-link mt-4 font-['Plus_Jakarta_Sans']">View results →</p>
+          ) : (
+            <span className="mt-4 inline-flex min-h-11 items-center justify-center self-start rounded-full border-2 border-brand-navy bg-brand-lime px-4 font-['Plus_Jakarta_Sans'] text-sm font-semibold text-brand-navy">
+              Start
+            </span>
+          )}
         </div>
       </div>
     </button>

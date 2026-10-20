@@ -144,7 +144,8 @@ export function StrategyChannelPlanCards({ strategy }: Props) {
       ) : (
         <LegacyChannelCards strategy={strategy} />
       )}
-      {first14.length > 0 ? (
+      <div id="first-14-days" className="scroll-mt-[7.5rem]">
+        {first14.length > 0 ? (
         <div>
           <p className="font-['Plus_Jakarta_Sans'] text-xs font-medium text-foreground/60">
             First 14 days
@@ -163,7 +164,8 @@ export function StrategyChannelPlanCards({ strategy }: Props) {
             ))}
           </ol>
         </div>
-      ) : null}
+        ) : null}
+      </div>
     </div>
   );
 }

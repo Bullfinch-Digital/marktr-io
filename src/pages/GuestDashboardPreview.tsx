@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { GuestAllCompleteTrialBanner } from "../components/guest/GuestAllCompleteTrialBanner";
 import { GuestICPCard } from "../components/cards/GuestICPCard";
 import { DashboardNextActionCard } from "../components/dashboard/DashboardNextActionCard";
 import { DashboardTrialUnlocks } from "../components/dashboard/DashboardTrialUnlocks";
@@ -131,7 +130,7 @@ export default function GuestDashboardPreview() {
   const nextStepLinkClassName = "app-text-link font-['Plus_Jakarta_Sans']";
 
   const headerTitle = (() => {
-    if (completedCount === 3) return "Your full marketing picture is ready.";
+    if (completedCount === 3) return "Your results";
     if (hasHealth && !hasStory && !hasICPs) return "Your digital health scores are in.";
     if (hasStory && !hasHealth && !hasICPs) return "Your brand story is ready.";
     if (hasICPs && !hasStory && !hasHealth) return "Your ideal customers, defined.";
@@ -144,7 +143,7 @@ export default function GuestDashboardPreview() {
       return "Work through the three steps below — no account needed.";
     }
     if (completedCount === 3) {
-      return "Health, story, and customer profiles — all in one place.";
+      return "Health, story and customer profiles, all in one place.";
     }
     const remaining = [
       !hasHealth && "digital health check",
@@ -168,7 +167,7 @@ export default function GuestDashboardPreview() {
       </div>
 
       <div className="container mx-auto max-w-7xl space-y-4 px-6 pt-8 lg:px-12">
-        {nextAction ? (
+        {nextAction && nextAction.id !== "trial" ? (
           <DashboardNextActionCard
             title={nextAction.title}
             benefit={nextAction.benefit}
@@ -177,12 +176,15 @@ export default function GuestDashboardPreview() {
           />
         ) : null}
 
-        <DashboardTrialUnlocks onStartTrial={() => openPaywall()} />
+        <DashboardTrialUnlocks
+          heading={
+            allComplete
+              ? "Your foundation is built. Start your free trial to turn it into a plan."
+              : undefined
+          }
+          onStartTrial={() => openPaywall()}
+        />
       </div>
-
-      {allComplete && (
-        <GuestAllCompleteTrialBanner onStartTrial={() => openPaywall("annual", "trial_banner")} />
-      )}
 
       <div className="container mx-auto max-w-7xl space-y-8 px-6 pb-12 pt-8 lg:px-12">
         <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -361,12 +363,6 @@ export default function GuestDashboardPreview() {
           </section>
         )}
 
-        {allComplete && (
-          <GuestAllCompleteTrialBanner
-            variant="contained"
-            onStartTrial={() => openPaywall("annual", "trial_banner")}
-          />
-        )}
       </div>
     </main>
   );

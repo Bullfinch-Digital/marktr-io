@@ -48,6 +48,7 @@ import {
   readFourteenDayChecks,
   resolveDashboardNextAction,
 } from "../lib/dashboardNextAction";
+import { greetingFirstName } from "../lib/greetingName";
 import { DASHBOARD_STRATEGY_STATE_KEY } from "../lib/dashboardStrategyIntent";
 import { isRealUser } from "../utils/isRealUser";
 
@@ -498,10 +499,15 @@ export default function Dashboard() {
     return "Good evening";
   };
 
-  const firstName =
-    profile?.name?.split(" ")[0] ||
-    user?.email?.split("@")[0] ||
-    "";
+  const metadata = (user?.user_metadata ?? {}) as Record<string, unknown>;
+  const metadataName = (key: string): string | null => {
+    const value = metadata[key];
+    return typeof value === "string" ? value : null;
+  };
+  const firstName = greetingFirstName(
+    [profile?.name, metadataName("given_name"), metadataName("name"), metadataName("full_name")],
+    user?.email
+  );
   const greetingName = firstName ? `, ${firstName}` : "";
 
   const previewIcps = icps.slice(0, 3);

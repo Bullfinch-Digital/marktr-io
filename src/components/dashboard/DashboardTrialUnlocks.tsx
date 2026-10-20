@@ -15,18 +15,21 @@ const UNLOCKS = [
   },
 ] as const;
 
+const DEFAULT_HEADING = "What your free trial unlocks";
+
 type Props = {
   onStartTrial: () => void;
+  heading?: string;
 };
 
-export function DashboardTrialUnlocks({ onStartTrial }: Props) {
+export function DashboardTrialUnlocks({ onStartTrial, heading = DEFAULT_HEADING }: Props) {
   return (
     <section className="app-card p-5 sm:p-6" aria-labelledby="trial-unlocks-heading">
       <h2
         id="trial-unlocks-heading"
         className="font-['Fraunces'] text-xl leading-snug text-foreground sm:text-2xl"
       >
-        What your free trial unlocks
+        {heading}
       </h2>
       <ul className="mt-4 space-y-3">
         {UNLOCKS.map((item) => {

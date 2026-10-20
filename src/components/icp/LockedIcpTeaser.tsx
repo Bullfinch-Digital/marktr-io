@@ -1,17 +1,17 @@
 import { Lock } from "lucide-react";
 import { Button } from "../ui/button";
+import { brandBandForIndex } from "../../lib/brandPalette";
 
 const GENERIC_BAR_WIDTHS = ["w-4/5", "w-full", "w-2/3"];
 
-function GenericBars({ count }: { count: number }) {
+function bandTint(index: number): string {
+  return `color-mix(in srgb, ${brandBandForIndex(index)} 42%, var(--background))`;
+}
+
+function BlurShape({ className }: { className: string }) {
   return (
-    <div className="space-y-2" aria-hidden="true">
-      {Array.from({ length: count }).map((_, index) => (
-        <div
-          key={index}
-          className={`h-3 rounded-full bg-foreground/15 blur-[3px] ${GENERIC_BAR_WIDTHS[index % GENERIC_BAR_WIDTHS.length]}`}
-        />
-      ))}
+    <div className={`overflow-hidden rounded-full ${className}`} aria-hidden="true">
+      <div className="h-full w-full scale-110 bg-foreground/25 blur-[3px]" />
     </div>
   );
 }
@@ -48,22 +48,48 @@ export function LockedCustomerProfileCard({
   onUnlock: () => void;
 }) {
   const label = `Customer profile ${profileNumber}`;
+  const bandIndex = Math.max(0, profileNumber - 1);
 
   return (
-    <article className="app-card-nested flex h-full min-w-0 flex-col gap-4 p-4 sm:p-6">
-      <div className="flex items-start justify-between gap-3">
-        <h3 className="app-heading min-w-0 font-['Fraunces'] text-lg text-foreground">{label}</h3>
-        <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-brand-stroke bg-background text-foreground">
+    <article className="app-card-nested flex h-full min-w-0 flex-col overflow-hidden" aria-label={label}>
+      <div
+        className="relative h-24 shrink-0 border-b border-brand-nested-stroke"
+        style={{ backgroundColor: bandTint(bandIndex) }}
+      >
+        <span className="absolute right-3 top-3 z-20 inline-flex h-8 w-8 items-center justify-center rounded-full border-2 border-brand-stroke bg-background text-foreground">
           <Lock className="h-4 w-4" aria-hidden="true" />
         </span>
+        <div className="absolute bottom-0 left-1/2 z-10 -translate-x-1/2 translate-y-1/2" aria-hidden="true">
+          <div className="h-20 w-20 overflow-hidden rounded-full border-[3px] border-brand-stroke bg-background shadow-md">
+            <div className="h-full w-full scale-125 bg-foreground/30 blur-md" />
+          </div>
+        </div>
       </div>
-      <GenericBars count={3} />
-      <div className="mt-auto">
-        <UnlockButton
-          label="Start your free trial to unlock"
-          trackId="locked_icp_unlock"
-          onUnlock={onUnlock}
-        />
+
+      <div className="flex flex-1 flex-col bg-background p-6 pt-12 text-left">
+        <h3 className="app-heading mb-3 font-['Fraunces'] text-lg text-foreground">{label}</h3>
+        <BlurShape className="mb-3 h-4 w-3/5" />
+        <div className="mb-3 space-y-2" aria-hidden="true">
+          <BlurShape className="h-3 w-full" />
+          <BlurShape className="h-3 w-11/12" />
+        </div>
+        <ul className="mb-4 space-y-2" aria-hidden="true">
+          <li className="flex items-center gap-2">
+            <BlurShape className="h-2 w-2 shrink-0" />
+            <BlurShape className="h-3 w-4/5" />
+          </li>
+          <li className="flex items-center gap-2">
+            <BlurShape className="h-2 w-2 shrink-0" />
+            <BlurShape className="h-3 w-2/3" />
+          </li>
+        </ul>
+        <div className="mt-auto">
+          <UnlockButton
+            label="Start your free trial to unlock"
+            trackId="locked_icp_unlock"
+            onUnlock={onUnlock}
+          />
+        </div>
       </div>
     </article>
   );

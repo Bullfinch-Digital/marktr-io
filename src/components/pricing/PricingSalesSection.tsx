@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Check, Lock } from "lucide-react";
+import { Check, Lock, Star } from "lucide-react";
 import { Link } from "react-router-dom";
 import {
   MARKTR_PRO_BILLING_LINE,
@@ -73,9 +73,46 @@ export function PricingSalesSection() {
 
       <div
         id={PRICING_PRO_CARD_ID}
-        className="pricing-sales-reveal mx-auto mt-16 max-w-[560px] scroll-mt-32 text-center delay-200 lg:mt-20"
+        className="pricing-sales-reveal mx-auto mt-16 max-w-2xl scroll-mt-32 text-center delay-200 lg:mt-20"
       >
-        <p className="font-['Fraunces'] text-5xl font-medium leading-none tracking-[-0.03em] text-foreground sm:text-6xl">
+        <div className="mx-auto max-w-xl text-left">
+          <p className="text-center text-[11px] font-medium uppercase tracking-[0.16em] text-foreground/55">
+            {copy.includedLabel}
+          </p>
+          <ul className="mt-4 space-y-3">
+            {copy.included.map((item) => (
+              <li
+                key={item}
+                className="flex items-start gap-3 text-base leading-relaxed text-foreground/75 sm:text-lg"
+              >
+                <span className="mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-brand-stroke bg-brand-lime text-brand-navy">
+                  <Check className="h-3.5 w-3.5" aria-hidden />
+                </span>
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <figure
+          className="mx-auto mt-10 max-w-xl rounded-[24px] border-2 border-brand-stroke bg-card p-6 text-left sm:p-7"
+          aria-label="Rated 5 stars by founders just like you"
+        >
+          <div className="flex justify-center gap-1" aria-hidden>
+            {Array.from({ length: 5 }, (_, index) => (
+              <Star key={index} className="h-5 w-5 fill-[#EBFD84] stroke-brand-navy" strokeWidth={1.6} />
+            ))}
+          </div>
+          <p className="mt-3 text-center font-['Fraunces'] text-lg font-medium leading-snug text-foreground sm:text-xl">
+            {copy.proofLabel}
+          </p>
+          <blockquote className="mt-5 text-base leading-relaxed text-foreground/80 sm:text-lg">
+            “{copy.proofQuote}”
+          </blockquote>
+          <figcaption className="mt-4 text-sm font-medium text-foreground">
+            {copy.proofName} <span className="text-foreground/55">|</span> {copy.proofBusiness}
+          </figcaption>
+        </figure>
+        <p className="mt-10 font-['Fraunces'] text-5xl font-medium leading-none tracking-[-0.03em] text-foreground sm:text-6xl">
           {MARKTR_PRO_PRICE_HEADLINE}
         </p>
         <p className="mt-3 text-base text-foreground/70 sm:text-lg">{MARKTR_PRO_BILLING_LINE}</p>
@@ -97,21 +134,6 @@ export function PricingSalesSection() {
         >
           {isStartingCheckout ? "Redirecting…" : hasAccess ? "Manage billing" : copy.cta}
         </button>
-        <div className="mx-auto mt-8 max-w-md text-left">
-          <p className="text-center text-[11px] font-medium uppercase tracking-[0.16em] text-foreground/55">
-            {copy.includedLabel}
-          </p>
-          <ul className="mt-4 space-y-3">
-            {copy.included.map((item) => (
-              <li key={item} className="flex items-start gap-3 text-sm leading-relaxed text-foreground/80">
-                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-brand-stroke bg-brand-lime text-brand-navy">
-                  <Check className="h-3 w-3" aria-hidden />
-                </span>
-                <span>{item}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
         <p className="mx-auto mt-6 max-w-[34rem] text-xs leading-relaxed text-foreground/55">
           {copy.legalLine}{" "}
           <Link to="/terms-of-service" className="underline underline-offset-2 hover:text-foreground">

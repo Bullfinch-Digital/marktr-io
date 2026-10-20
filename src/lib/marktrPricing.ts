@@ -175,4 +175,9 @@ export const PRICING_SALES = {
   ],
   cta: `Start your ${MARKTR_TRIAL_DAYS}-day free trial`,
   legalLine: MARKTR_PRICING_LEGAL_LINE,
+  proofLabel: "Rated 5 Stars by Founders Just Like You",
+  proofQuote:
+    "I built an entire month's content strategy in just a few minutes. Marktr has saved me hours of time that I can now spend on growing my business",
+  proofName: "Nathan Olivers",
+  proofBusiness: "Wildgrass Films",
 } as const;

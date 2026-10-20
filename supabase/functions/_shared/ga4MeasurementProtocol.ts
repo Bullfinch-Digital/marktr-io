@@ -10,6 +10,7 @@ type Ga4Param = string | number | boolean;
 export async function sendGa4MeasurementProtocolEvent(input: {
   name: string;
   clientId?: string | null;
+  sessionId?: string | null;
   userId?: string | null;
   params?: Record<string, Ga4Param>;
 }): Promise<boolean> {
@@ -24,12 +25,18 @@ export async function sendGa4MeasurementProtocolEvent(input: {
       return false;
     }
     const clientId = (input.clientId || "").trim() || "stripe.webhook";
+    const params: Record<string, Ga4Param> = { ...(input.params ?? {}) };
+    const sessionId = (input.sessionId || "").trim();
+    if (/^\d{1,20}$/.test(sessionId)) {
+      params.session_id = sessionId;
+      if (params.engagement_time_msec == null) params.engagement_time_msec = 1;
+    }
     const body: Record<string, unknown> = {
       client_id: clientId,
       events: [
         {
           name: input.name.slice(0, 40),
-          params: input.params ?? {},
+          params,
         },
       ],
     };

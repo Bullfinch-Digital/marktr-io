@@ -1,6 +1,6 @@
 import { supabase } from "../config/supabase";
 import { clearPendingCheckoutPlan } from "../utils/pendingCheckout";
-import { getFirstTouchParams, getGaClientId, track } from "./analytics";
+import { getFirstTouchParams, getGaClientId, getGaSessionId, track } from "./analytics";
 import { type CheckoutPlan, parseCheckoutPlan, priceEnvName, priceIdForPlan } from "./checkoutPlans";
 
 export type { CheckoutPlan };
@@ -44,7 +44,7 @@ export async function createStripeCheckoutSession(
   const supabaseAnonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY || "").trim();
   const checkoutUrl = `${supabaseUrl}/functions/v1/create-checkout-session`;
 
-  const gaClientId = await getGaClientId();
+  const [gaClientId, gaSessionId] = await Promise.all([getGaClientId(), getGaSessionId()]);
   const firstTouch = getFirstTouchParams();
   try {
     sessionStorage.setItem(LAST_CHECKOUT_PLAN_KEY, nextPlan);
@@ -60,6 +60,7 @@ export async function createStripeCheckoutSession(
     force: Boolean(options?.force),
     customerEmail: authedUser.email ?? undefined,
     gaClientId: gaClientId ?? undefined,
+    gaSessionId: gaSessionId ?? undefined,
     firstTouchSource: firstTouch.first_touch_source,
     firstTouchMedium: firstTouch.first_touch_medium,
     firstTouchCampaign: firstTouch.first_touch_campaign,

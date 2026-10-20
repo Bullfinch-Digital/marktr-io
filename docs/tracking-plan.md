@@ -11,6 +11,8 @@ All marktr product events go through `src/lib/analytics.ts` → `track(name, par
 
 Bullfinch health-check events stay on `src/lib/bullfinchAnalytics.ts` (`bf_*`). Do not mix the two.
 
+Browser `track()` owns every event below except the server conversions `trial_start`, `purchase`, and `subscription_paid`. `trial_checkout_return` is a browser event and is not a conversion.
+
 ## Add a click without new code
 
 Put this on the clickable element:
@@ -74,10 +76,11 @@ Plan CTAs: `dashboard_today_task`, `plan_extend`, `plan_print`. Locations: `dash
 | `onboarding_complete` | — | First `/dashboard` view after a `sign_up` in this session (per-user flag) |
 | `dashboard_first_view` | — | First `/dashboard` view for an account created in the last 7 days |
 | `paywall_open` | `trigger` (`trial_banner`, `locked_strategy`, `locked_content`, `pricing_page`, `upgrade`) | Paywall modal opens |
-| `begin_checkout` | `plan`, first-touch params | Once, when a Stripe Checkout URL is returned |
-| `trial_start` | `plan` (`annual` \| `monthly`) | Client: `/dashboard?checkout=success` (or any return with `checkout=success`), once per tab. Checkout params are removed after it sends so a refresh does not fire again. Server: Stripe `checkout.session.completed` while trialing / £0 |
-| `purchase` | `value`, `currency`, `transaction_id`, `plan` | Server only: paid checkout or `invoice.paid`. Not fired for £0 trials. |
-| `subscription_paid` | `value` (GBP), `currency` (`GBP`), `plan`, `transaction_id` | Server only: first paid invoice (`billing_reason=subscription_create` with amount > 0, or the first `subscription_cycle` charge after a trial). `client_id` is `profiles.ga_client_id` or a SHA-256 of the user id. Never an email. |
+| `begin_checkout` | `plan`, first-touch params | Browser. Once, when a Stripe Checkout URL is returned |
+| `trial_checkout_return` | `plan` (`annual` \| `monthly`) | Browser. Return URL with `checkout=success`, once per tab. Not a conversion. Checkout params are removed after it sends so a refresh does not fire again |
+| `trial_start` | `plan`, first-touch params when present | Server. `checkout.session.completed` while trialing or amount is 0. This is the trial conversion |
+| `purchase` | `value`, `currency`, `transaction_id` (Stripe invoice id), `plan` | Server. `invoice.paid` with amount > 0 only. Not sent from `checkout.session.completed`. Not fired for £0 trials |
+| `subscription_paid` | `value` (GBP), `currency` (`GBP`), `plan`, `transaction_id` (same Stripe invoice id as `purchase`) | Server. First paid invoice only (`billing_reason=subscription_create` with amount > 0, or the first `subscription_cycle` charge after a trial). Same `transaction_id` as `purchase` so GA4 can dedupe |
 
 ## Product actions
 
@@ -106,9 +109,11 @@ Plan CTAs: `dashboard_today_task`, `plan_extend`, `plan_print`. Locations: `dash
 
 ## Server-side (Measurement Protocol)
 
-`supabase/functions/stripe-webhook` sends `trial_start`, `purchase`, and `subscription_paid` via `supabase/functions/_shared/ga4MeasurementProtocol.ts`.
+`supabase/functions/stripe-webhook` owns the conversions `trial_start`, `purchase`, and `subscription_paid`. Every other event in this plan is a browser event through `track()`. `trial_checkout_return` is a browser signal only and is not a conversion.
 
-Checkout metadata (set in `create-checkout-session`): `user_id`, `ga_client_id`, `first_touch_source|medium|campaign`. `ga_client_id` is copied onto `profiles.ga_client_id` when that column exists.
+Checkout (`create-checkout-session`) stores `ga_client_id` and `ga_session_id` on both `metadata` and `subscription_data.metadata` when the browser could read them after analytics consent. The webhook copies those onto each Measurement Protocol hit for that subscription (`client_id`, and `session_id` plus `engagement_time_msec` so GA4 joins the session). If they are absent, `client_id` falls back to `profiles.ga_client_id` or a SHA-256 of the user id. Emails are never stored or sent.
+
+`purchase` is sent only from `invoice.paid`. `checkout.session.completed` does not send `purchase`, so the later invoice does not count the same payment twice. `purchase` and `subscription_paid` share the Stripe invoice id as `transaction_id`.
 
 Env (Supabase secrets, never the Vite client). Both are required; if either is missing the webhook logs once and skips Measurement Protocol:
 
@@ -130,11 +135,9 @@ alter table public.profiles
   add column if not exists ga_client_id text;
 
 comment on column public.profiles.ga_client_id is
-  'GA4 client id from checkout. Never an email.';
+  'GA4 client id from checkout, only when analytics consent was granted. Never an email.';
 ```
-
-Deduplicate client vs server hits in GA4 using `transaction_id` (Stripe session id or invoice id). Client `trial_start` has no `transaction_id`; treat Measurement Protocol as source of truth once both secrets are set.
 
 ## Consent denied
 
-`track()` returns false and does not call `gtag('event', …)`. Route `page_view` is also skipped. Consent Mode remains denied.
+`track()` returns false and does not call `gtag('event', …)`. Route `page_view` is also skipped. `client_id` and `session_id` are not read or sent to Checkout. Consent Mode remains denied.

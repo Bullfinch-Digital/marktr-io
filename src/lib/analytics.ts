@@ -21,7 +21,7 @@ const FUNNEL_HEALTH_STARTED = "marktr_funnel_health_started";
 const FUNNEL_HEALTH_COMPLETED = "marktr_funnel_health_completed";
 const FUNNEL_HEALTH_LAST_STEP = "marktr_funnel_health_last_step";
 const FUNNEL_HEALTH_ABANDON_SENT = "marktr_funnel_health_abandon_sent";
-const TRIAL_CLIENT_KEY = "marktr_trial_start_sent_v1";
+const TRIAL_RETURN_KEY = "marktr_trial_checkout_return_sent_v1";
 
 const BLOCKED_PARAM_KEYS = new Set([
   "email",
@@ -426,13 +426,13 @@ export function maybeOnboardingComplete(userId: string): void {
   }
 }
 
-/** True when this tab already recorded the return, or the event just sent. */
-export function maybeClientTrialStart(plan: "annual" | "monthly"): boolean {
-  if (readStorage("sessionStorage", TRIAL_CLIENT_KEY) === "1") return true;
-  return trackOnceSession(TRIAL_CLIENT_KEY, "trial_start", { plan });
+/** Browser return signal only. The conversion is the server `trial_start`. */
+export function maybeTrialCheckoutReturn(plan: "annual" | "monthly"): boolean {
+  if (readStorage("sessionStorage", TRIAL_RETURN_KEY) === "1") return true;
+  return trackOnceSession(TRIAL_RETURN_KEY, "trial_checkout_return", { plan });
 }
 
-export function getGaClientId(): Promise<string | null> {
+function readGaField(field: "client_id" | "session_id"): Promise<string | null> {
   return new Promise((resolve) => {
     let settled = false;
     const done = (value: string | null) => {
@@ -450,14 +450,32 @@ export function getGaClientId(): Promise<string | null> {
         done(null);
         return;
       }
-      send("get", MARKTR_GA4_ID, "client_id", (id: unknown) => {
-        done(typeof id === "string" && id ? id : null);
+      send("get", MARKTR_GA4_ID, field, (id: unknown) => {
+        if (typeof id === "number" && Number.isFinite(id)) {
+          done(String(Math.trunc(id)));
+          return;
+        }
+        if (typeof id === "string" && id.trim() && !id.includes("@")) {
+          done(id.trim().slice(0, 64));
+          return;
+        }
+        done(null);
       });
       window.setTimeout(() => done(null), 1200);
     } catch {
       done(null);
     }
   });
+}
+
+/** GA4 client id. Null without analytics consent or if gtag cannot answer in time. */
+export function getGaClientId(): Promise<string | null> {
+  return readGaField("client_id");
+}
+
+/** GA4 session id. Null without analytics consent or if gtag cannot answer in time. */
+export function getGaSessionId(): Promise<string | null> {
+  return readGaField("session_id");
 }
 
 function destinationFromEl(el: Element): string {

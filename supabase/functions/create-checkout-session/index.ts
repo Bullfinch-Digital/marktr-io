@@ -23,6 +23,7 @@ type CreateCheckoutInput = {
   email?: string;
   force?: boolean;
   gaClientId?: string;
+  gaSessionId?: string;
   firstTouchSource?: string;
   firstTouchMedium?: string;
   firstTouchCampaign?: string;
@@ -33,6 +34,25 @@ const EMAIL_ACTIVE_STATUSES = ["trialing", "active"];
 
 function escapeStripeSearchValue(v: string) {
   return v.replace(/["\\]/g, "\\$&").trim();
+}
+
+/** Drop emails and URLs. Only values read after analytics consent should arrive. */
+function cleanGaClientId(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed || trimmed.includes("@") || /^https?:\/\//i.test(trimmed)) return null;
+  return trimmed.slice(0, 64);
+}
+
+function cleanGaSessionId(value: unknown): string | null {
+  const raw =
+    typeof value === "number" && Number.isFinite(value)
+      ? String(Math.trunc(value))
+      : typeof value === "string"
+        ? value.trim()
+        : "";
+  if (!/^\d{1,20}$/.test(raw)) return null;
+  return raw;
 }
 
 /** Must include every header the browser may send on POST (see PaywallContext fetch). */
@@ -350,10 +370,11 @@ Deno.serve(async (req) => {
       }
     }
 
-    const gaMeta =
-      typeof body.gaClientId === "string" && body.gaClientId.trim()
-        ? { ga_client_id: body.gaClientId.trim().slice(0, 64) }
-        : {};
+    const gaClientId = cleanGaClientId(body.gaClientId);
+    const gaSessionId = cleanGaSessionId(body.gaSessionId);
+    const gaMeta: Record<string, string> = {};
+    if (gaClientId) gaMeta.ga_client_id = gaClientId;
+    if (gaSessionId) gaMeta.ga_session_id = gaSessionId;
     const userMetadata = {
       ...(user?.id ? { user_id: user.id } : {}),
       ...gaMeta,
@@ -379,9 +400,6 @@ Deno.serve(async (req) => {
       metadata: {
         price_id: priceId,
         ...userMetadata,
-        ...(typeof body.gaClientId === "string" && body.gaClientId.trim()
-          ? { ga_client_id: body.gaClientId.trim().slice(0, 64) }
-          : {}),
         ...(typeof body.firstTouchSource === "string" && body.firstTouchSource.trim()
           ? { first_touch_source: body.firstTouchSource.trim().slice(0, 100) }
           : {}),

@@ -18,6 +18,7 @@ import useSubscription from "../hooks/useSubscription";
 import useProfile from "../hooks/useProfile";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../config/supabase";
+import { getGaClientId, getGaSessionId } from "../lib/analytics";
 
 export default function Account() {
   console.log("🔥 Account component rendered");
@@ -155,6 +156,7 @@ export default function Account() {
     try {
       const origin = window.location.origin;
       console.log("➡️ Checkout flow: about to call billing endpoint / function");
+      const [gaClientId, gaSessionId] = await Promise.all([getGaClientId(), getGaSessionId()]);
       const { data, error } = await supabase.functions.invoke(
         "create-checkout-session",
         {
@@ -162,6 +164,8 @@ export default function Account() {
             priceId: stripePriceId,
             successUrl: `${origin}/account?checkout=success`,
             cancelUrl: `${origin}/account?checkout=cancel`,
+            gaClientId: gaClientId ?? undefined,
+            gaSessionId: gaSessionId ?? undefined,
           },
         }
       );

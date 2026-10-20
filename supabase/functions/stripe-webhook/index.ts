@@ -385,6 +385,48 @@ async function clientIdForUser(
   return sha256Hex(userId);
 }
 
+type GaMeta = { ga_client_id?: string; ga_session_id?: string } | null | undefined;
+
+function cleanMetaClientId(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed || trimmed.includes("@") || /^https?:\/\//i.test(trimmed)) return null;
+  return trimmed.slice(0, 64);
+}
+
+function cleanMetaSessionId(value: unknown): string | null {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    const raw = String(Math.trunc(value));
+    return /^\d{1,20}$/.test(raw) ? raw : null;
+  }
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return /^\d{1,20}$/.test(trimmed) ? trimmed : null;
+}
+
+async function measurementIdentity(
+  supabaseAdmin: ReturnType<typeof createClient>,
+  userId: string | null,
+  metas: GaMeta[],
+): Promise<{ clientId: string; sessionId: string | null }> {
+  let clientId: string | null = null;
+  let sessionId: string | null = null;
+  for (const meta of metas) {
+    if (!clientId) clientId = cleanMetaClientId(meta?.ga_client_id);
+    if (!sessionId) sessionId = cleanMetaSessionId(meta?.ga_session_id);
+  }
+  if (!clientId && userId) clientId = await clientIdForUser(supabaseAdmin, userId);
+  return { clientId: clientId || "stripe.webhook", sessionId };
+}
+
+async function subscriptionGaMeta(subscriptionId: string | null): Promise<GaMeta> {
+  if (!subscriptionId) return null;
+  const stripeSecretKey = (Deno.env.get("STRIPE_SECRET_KEY") ?? "").trim();
+  if (!stripeSecretKey) return null;
+  const subscription = await fetchStripeSubscription(subscriptionId, stripeSecretKey);
+  return (subscription?.metadata ?? null) as GaMeta;
+}
+
 async function maybeSendSubscriptionPaid(
   supabaseAdmin: ReturnType<typeof createClient>,
   invoice: {
@@ -406,6 +448,8 @@ async function maybeSendSubscriptionPaid(
     parent?: { subscription_details?: { metadata?: { plan?: string } } };
   },
   userId: string | null,
+  identity: { clientId: string; sessionId: string | null },
+  transactionId: string,
 ) {
   const amount = invoice.amount_paid ?? 0;
   if (!userId || amount <= 0) return;
@@ -433,7 +477,8 @@ async function maybeSendSubscriptionPaid(
   const line = invoice.lines?.data?.[0];
   await sendGa4MeasurementProtocolEvent({
     name: "subscription_paid",
-    clientId: await clientIdForUser(supabaseAdmin, userId),
+    clientId: identity.clientId,
+    sessionId: identity.sessionId,
     userId,
     params: {
       value: amount / 100,
@@ -447,7 +492,7 @@ async function maybeSendSubscriptionPaid(
         priceId: line?.price?.id ?? line?.plan?.id ?? null,
         interval: line?.price?.recurring?.interval ?? line?.plan?.interval ?? null,
       }),
-      transaction_id: String(invoice.id || ""),
+      transaction_id: transactionId,
     },
   });
 }
@@ -740,11 +785,13 @@ Deno.serve(async (req) => {
 
           await handleSubscription(subscription, userId, email);
 
-          const gaClientId = (session.metadata as { ga_client_id?: string } | null)?.ga_client_id ?? null;
-          if (userId && gaClientId && !gaClientId.includes("@")) {
+          const sessionMeta = (session.metadata ?? null) as GaMeta;
+          const subscriptionMeta = (subscription?.metadata ?? null) as GaMeta;
+          const gaClientId = cleanMetaClientId(sessionMeta?.ga_client_id);
+          if (userId && gaClientId) {
             const { error: clientIdError } = await supabaseAdmin
               .from("profiles")
-              .update({ ga_client_id: gaClientId.slice(0, 64) })
+              .update({ ga_client_id: gaClientId })
               .eq("id", userId);
             if (clientIdError && !gaClientColumnWarned) {
               gaClientColumnWarned = true;
@@ -752,7 +799,6 @@ Deno.serve(async (req) => {
             }
           }
           const amountTotal = typeof session.amount_total === "number" ? session.amount_total : 0;
-          const currency = String(session.currency || "gbp").toUpperCase();
           const firstTouch = {
             first_touch_source: (session.metadata as { first_touch_source?: string } | null)?.first_touch_source,
             first_touch_medium: (session.metadata as { first_touch_medium?: string } | null)?.first_touch_medium,
@@ -774,22 +820,16 @@ Deno.serve(async (req) => {
 
           const subStatus = String(subscription.status || "");
           if (subStatus === "trialing" || amountTotal === 0) {
+            const identity = await measurementIdentity(supabaseAdmin, userId, [
+              sessionMeta,
+              subscriptionMeta,
+            ]);
             await sendGa4MeasurementProtocolEvent({
               name: "trial_start",
-              clientId: gaClientId,
+              clientId: identity.clientId,
+              sessionId: identity.sessionId,
               userId,
               params: gaParams,
-            });
-          } else if (amountTotal > 0) {
-            await sendGa4MeasurementProtocolEvent({
-              name: "purchase",
-              clientId: gaClientId,
-              userId,
-              params: {
-                ...gaParams,
-                value: amountTotal / 100,
-                currency,
-              },
             });
           }
 
@@ -809,7 +849,7 @@ Deno.serve(async (req) => {
           billing_reason?: string;
           subscription?: string | null;
           customer?: string | null;
-          metadata?: { plan?: string };
+          metadata?: { plan?: string; ga_client_id?: string; ga_session_id?: string };
           lines?: {
             data?: Array<{
               period?: { start?: number };
@@ -819,8 +859,8 @@ Deno.serve(async (req) => {
             }>;
           };
           period_start?: number;
-          subscription_details?: { metadata?: { plan?: string } };
-          parent?: { subscription_details?: { metadata?: { plan?: string } } };
+          subscription_details?: { metadata?: { plan?: string; ga_client_id?: string; ga_session_id?: string } };
+          parent?: { subscription_details?: { metadata?: { plan?: string; ga_client_id?: string; ga_session_id?: string } } };
         };
         if (!invoice.amount_paid || invoice.amount_paid <= 0) break;
         if (invoice.billing_reason === "subscription_create" && invoice.amount_paid === 0) break;
@@ -831,26 +871,40 @@ Deno.serve(async (req) => {
         const line = invoice.lines?.data?.[0];
         const linePriceId = line?.price?.id ?? line?.plan?.id ?? null;
         const lineInterval = line?.price?.recurring?.interval ?? line?.plan?.interval ?? null;
+        const transactionId = String(invoice.id || "");
+        const subscriptionId = invoice.subscription ? String(invoice.subscription) : null;
+        const inlineMeta = [
+          invoice.subscription_details?.metadata,
+          invoice.parent?.subscription_details?.metadata,
+        ];
+        const hasStoredClient = inlineMeta.some((meta) => cleanMetaClientId(meta?.ga_client_id));
+        const identity = await measurementIdentity(supabaseAdmin, userId, [
+          ...inlineMeta,
+          ...(hasStoredClient ? [] : [await subscriptionGaMeta(subscriptionId)]),
+        ]);
+        const plan = planFromStripeSignals({
+          metadataPlan:
+            invoice.subscription_details?.metadata?.plan ??
+            invoice.parent?.subscription_details?.metadata?.plan ??
+            line?.metadata?.plan ??
+            invoice.metadata?.plan,
+          priceId: linePriceId,
+          interval: lineInterval,
+        });
         await sendGa4MeasurementProtocolEvent({
           name: "purchase",
+          clientId: identity.clientId,
+          sessionId: identity.sessionId,
           userId: userId ?? undefined,
           params: {
-            transaction_id: String(invoice.id || ""),
+            transaction_id: transactionId,
             value: invoice.amount_paid / 100,
             currency: String(invoice.currency || "gbp").toUpperCase(),
-            plan: planFromStripeSignals({
-              metadataPlan:
-                invoice.subscription_details?.metadata?.plan ??
-                invoice.parent?.subscription_details?.metadata?.plan ??
-                line?.metadata?.plan ??
-                invoice.metadata?.plan,
-              priceId: linePriceId,
-              interval: lineInterval,
-            }),
+            plan,
           },
         });
         try {
-          await maybeSendSubscriptionPaid(supabaseAdmin, invoice, userId);
+          await maybeSendSubscriptionPaid(supabaseAdmin, invoice, userId, identity, transactionId);
         } catch {
           console.warn("[stripe-webhook] subscription_paid skipped");
         }

@@ -6,7 +6,7 @@ import useSubscription from "../../hooks/useSubscription";
 import { supabase } from "../../config/supabase";
 import {
   installMarktrAnalyticsListeners,
-  maybeClientTrialStart,
+  maybeTrialCheckoutReturn,
   maybeDashboardFirstView,
   maybeOnboardingComplete,
   setAnalyticsUserId,
@@ -82,7 +82,7 @@ export function MarktrAnalytics() {
         }
       }
       markCheckoutSucceeded(user.id);
-      if (!maybeClientTrialStart(plan)) return;
+      if (!maybeTrialCheckoutReturn(plan)) return;
       params.delete("checkout");
       params.delete("plan");
       const search = params.toString();

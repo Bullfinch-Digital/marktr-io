@@ -1,5 +1,5 @@
 import jsPDF from "jspdf";
-import { pdfContentLimitY, stampMarktrFooter } from "./pdfTextExport";
+import { applyBrandedHeader, pdfContentLimitY, stampMarktrFooter } from "./pdfTextExport";
 
 type BrandRecord = Record<string, any>;
 
@@ -57,22 +57,14 @@ async function exportBrandPdf(brand: BrandRecord) {
 
   const date = new Date().toISOString().split("T")[0];
   const filename = `brand_${(brand.name || "brand").toString().replace(/\s+/g, "_")}_${brand.id}_${date}.pdf`;
+  const brandName = String(brand.name || "").trim();
 
-  doc.setFont(titleFont, "bold");
-  doc.setFontSize(22);
-  doc.setTextColor("#000000");
-  doc.text(brand.name || "Brand Profile", margin, 50);
-
-  doc.setFont(bodyFont, "normal");
-  doc.setFontSize(12);
-  doc.setTextColor("#555555");
-  doc.text(`Brand Profile Report — ${date}`, margin, 70);
-
-  doc.setDrawColor("#000000");
-  doc.setLineWidth(1);
-  doc.line(margin, 85, doc.internal.pageSize.getWidth() - margin, 85);
-
-  let y = 120;
+  let y = await applyBrandedHeader(doc, {
+    documentType: "Brand story",
+    title: brandName || "Brand story",
+    createdFor: brandName,
+    date,
+  });
 
   const ensure = (needed: number) => {
     if (y + needed > pdfContentLimitY(doc.internal.pageSize.getHeight())) {

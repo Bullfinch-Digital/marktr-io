@@ -472,6 +472,7 @@ function ContentPageBody() {
                 <ContentRosterCard
                   key={item.id}
                   item={item}
+                  createdFor={activeBrand?.name}
                   onArchive={() => setArchiveTarget(item)}
                   onDuplicate={() => void handleDuplicate(item)}
                   duplicating={duplicatingId === item.id}

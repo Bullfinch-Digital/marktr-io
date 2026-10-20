@@ -5,7 +5,7 @@ import jsPDF from "jspdf";
 import { ICPExportLayout } from "../components/icp/ICPExportLayout";
 import { canViewICP } from "../config/accessRules";
 import { avatarUrlFromKey } from "./avatarLibrary";
-import { PDF_FOOTER_RESERVE, stampMarktrFooter } from "./pdfTextExport";
+import { applyBrandedHeader, PDF_FOOTER_RESERVE, stampMarktrFooter } from "./pdfTextExport";
 
 const VISIBLE_PAIN_POINTS_WITHOUT_ACCESS = 2;
 
@@ -70,12 +70,22 @@ const waitForImages = async (container: HTMLElement) => {
   );
 };
 
-const buildSlices = (container: HTMLElement, canvas: HTMLCanvasElement, pageHeightPx: number) => {
+const buildSlices = (
+  container: HTMLElement,
+  canvas: HTMLCanvasElement,
+  firstPagePx: number,
+  restPagePx: number
+) => {
+  const pageLimit = (sliceCount: number) => (sliceCount === 0 ? firstPagePx : restPagePx);
   const blocks = Array.from(container.querySelectorAll("[data-export-block]")) as HTMLElement[];
   if (!blocks.length) {
     const slices = [];
-    for (let start = 0; start < canvas.height; start += pageHeightPx) {
-      slices.push({ start, end: Math.min(start + pageHeightPx, canvas.height) });
+    let start = 0;
+    while (start < canvas.height) {
+      const end = Math.min(start + pageLimit(slices.length), canvas.height);
+      if (end <= start) break;
+      slices.push({ start, end });
+      start = end;
     }
     return slices;
   }
@@ -93,22 +103,24 @@ const buildSlices = (container: HTMLElement, canvas: HTMLCanvasElement, pageHeig
 
   sorted.forEach((block) => {
     const blockBottom = block.top + block.height;
-    if (block.height > pageHeightPx) {
+    const limit = () => pageLimit(slices.length);
+    if (block.height > limit()) {
       if (block.top > cursor) {
         slices.push({ start: cursor, end: block.top });
         cursor = block.top;
       }
       let splitStart = cursor;
-      while (splitStart + pageHeightPx < blockBottom) {
-        slices.push({ start: splitStart, end: splitStart + pageHeightPx });
-        splitStart += pageHeightPx;
+      while (splitStart + limit() < blockBottom) {
+        const pagePx = limit();
+        slices.push({ start: splitStart, end: splitStart + pagePx });
+        splitStart += pagePx;
       }
       cursor = splitStart;
       return;
     }
 
-    if (blockBottom - cursor > pageHeightPx) {
-      const breakAt = block.top > cursor ? block.top : cursor + pageHeightPx;
+    if (blockBottom - cursor > limit()) {
+      const breakAt = block.top > cursor ? block.top : cursor + limit();
       slices.push({ start: cursor, end: breakAt });
       cursor = breakAt;
     }
@@ -270,11 +282,22 @@ async function exportICPAsPDFInternal(icp: ICPRecord) {
     const doc = new jsPDF({ unit: "pt", format: "a4" });
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
-    const contentHeightPt = pageHeight - PDF_FOOTER_RESERVE;
-    const pageHeightPx = Math.max(1, Math.floor((canvas.width * contentHeightPt) / pageWidth));
+    const profileName = String(exportData.name || "").trim();
+    const headerHeightPt = await applyBrandedHeader(doc, {
+      documentType: "Customer profile",
+      title: profileName || "Customer profile",
+      createdFor: exportData.brandName,
+      date,
+    });
+    const firstContentPt = Math.max(80, pageHeight - PDF_FOOTER_RESERVE - headerHeightPt);
+    const restContentPt = pageHeight - PDF_FOOTER_RESERVE;
+    const firstPagePx = Math.max(1, Math.floor((canvas.width * firstContentPt) / pageWidth));
+    const restPagePx = Math.max(1, Math.floor((canvas.width * restContentPt) / pageWidth));
     const scaleToPdf = pageWidth / canvas.width;
 
-    const slices = buildSlices(container, canvas, pageHeightPx);
+    const slices = buildSlices(container, canvas, firstPagePx, restPagePx).filter(
+      (slice) => slice.end > slice.start
+    );
     const tempCanvas = document.createElement("canvas");
     const tempCtx = tempCanvas.getContext("2d");
 
@@ -309,12 +332,15 @@ async function exportICPAsPDFInternal(icp: ICPRecord) {
 
       const imgData = tempCanvas.toDataURL("image/jpeg", 0.92);
       const imgHeight = (sliceHeight * pageWidth) / canvas.width;
+      const isFirst = index === 0;
+      const yOffset = isFirst ? headerHeightPt : 0;
+      const pageContentPt = isFirst ? firstContentPt : restContentPt;
 
-      if (index > 0) {
+      if (!isFirst) {
         doc.addPage();
       }
-      const fittedHeight = Math.min(imgHeight, contentHeightPt);
-      doc.addImage(imgData, "JPEG", 0, 0, pageWidth, fittedHeight);
+      const fittedHeight = Math.min(imgHeight, pageContentPt);
+      doc.addImage(imgData, "JPEG", 0, yOffset, pageWidth, fittedHeight);
 
       if (
         linkUrl &&
@@ -323,7 +349,7 @@ async function exportICPAsPDFInternal(icp: ICPRecord) {
         linkPx.y <= slice.end
       ) {
         const linkX = linkPx.x * scaleToPdf;
-        const linkY = (linkPx.y - slice.start) * scaleToPdf;
+        const linkY = (linkPx.y - slice.start) * scaleToPdf + yOffset;
         const linkW = linkPx.w * scaleToPdf;
         const linkH = Math.max(6, linkPx.h * scaleToPdf);
         doc.link(linkX, linkY, linkW, linkH, { url: linkUrl });

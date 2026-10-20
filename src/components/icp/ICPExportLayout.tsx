@@ -54,7 +54,6 @@ const SectionCard = ({ title, items }: { title: string; items?: string[] | null 
 };
 
 export function ICPExportLayout({ data }: ICPExportLayoutProps) {
-  const exportedAt = data.exportedAt || new Date().toISOString().split("T")[0];
   const avatarSrc = data.avatarSrc || "";
   const bandColor = data.color || "#EDEDED";
   const brandLine = data.brandName && data.brandName.trim().length ? data.brandName : "No brand allocated";
@@ -68,32 +67,21 @@ export function ICPExportLayout({ data }: ICPExportLayoutProps) {
   return (
     <div className="export-root w-full bg-white text-foreground">
       <div className="p-10 space-y-6">
-        <div data-export-block className="space-y-2">
-          <div className="flex items-start justify-between gap-6">
-            <div>
-              <h1 className="font-['Fraunces'] text-3xl">ICP Profile</h1>
-              <p className="export-muted font-['Plus_Jakarta_Sans'] text-sm text-foreground/60">
-                Generated on {exportedAt}
-              </p>
-              {icpUrl ? (
-                <p className="font-['Plus_Jakarta_Sans'] text-sm mt-2">
-                  <a
-                    href={icpUrl}
-                    className="export-link underline"
-                    style={{ color: "#2563eb" }}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    View this ICP in the app
-                  </a>
-                </p>
-              ) : null}
-            </div>
-            <div className="text-right">
-              <p className="export-muted font-['Plus_Jakarta_Sans'] text-xs text-foreground/60">ICP Generator</p>
-            </div>
+        {icpUrl ? (
+          <div data-export-block>
+            <p className="font-['Plus_Jakarta_Sans'] text-sm">
+              <a
+                href={icpUrl}
+                className="export-link underline"
+                style={{ color: "#2563eb" }}
+                target="_blank"
+                rel="noreferrer"
+              >
+                View this ICP in the app
+              </a>
+            </p>
           </div>
-        </div>
+        ) : null}
 
         <div data-export-block className="export-card export-border border border-black rounded-design shadow-md overflow-hidden bg-white">
           <div

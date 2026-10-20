@@ -4,6 +4,7 @@ import { ArrowLeft, Trash2 } from "lucide-react";
 import DashboardShell from "../layouts/DashboardShell";
 import { Button } from "../components/ui/button";
 import { useAuth } from "../contexts/AuthContext";
+import { useBrand } from "../contexts/BrandContext";
 import { persistActiveBrandId } from "../lib/brandScopedReads";
 import { supabase } from "../config/supabase";
 import type { ContentItemRow, ContentItemStatus } from "../types/contentItemPayload";
@@ -69,6 +70,7 @@ function ContentEditorBody() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { brands } = useBrand();
 
   const [item, setItem] = useState<ContentDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -436,7 +438,12 @@ function ContentEditorBody() {
               variant="outline"
               size="sm"
               className="border-black rounded-design"
-              onClick={() => exportContentAsPDF(item)}
+              onClick={() =>
+                exportContentAsPDF(
+                  item,
+                  brands.find((brand) => brand.id === item.brand_id)?.name
+                )
+              }
             >
               Export
             </Button>

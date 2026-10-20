@@ -4,6 +4,7 @@ import { ArrowLeft, ChevronDown, Trash2 } from "lucide-react";
 import DashboardShell from "../layouts/DashboardShell";
 import { Button } from "../components/ui/button";
 import { useAuth } from "../contexts/AuthContext";
+import { useBrand } from "../contexts/BrandContext";
 import { persistActiveBrandId } from "../lib/brandScopedReads";
 import { supabase } from "../config/supabase";
 import type { ICPStrategyPayload } from "../types/icpStrategyPayload";
@@ -91,6 +92,7 @@ function StrategyEditorBody() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { brands } = useBrand();
 
   const [strategy, setStrategy] = useState<StrategyDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -547,7 +549,12 @@ function StrategyEditorBody() {
                     type="button"
                     variant="outline"
                     className="border-black rounded-design"
-                    onClick={() => exportStrategyAsPDF(rosterStrategy)}
+                    onClick={() =>
+                      exportStrategyAsPDF(
+                        rosterStrategy,
+                        brands.find((brand) => brand.id === rosterStrategy.brand_id)?.name
+                      )
+                    }
                   >
                     Export
                   </Button>

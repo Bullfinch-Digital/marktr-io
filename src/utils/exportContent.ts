@@ -116,14 +116,21 @@ function briefSectionsForType(type: ContentItemType, content: ContentPayload): B
   }
 }
 
-export async function exportContentAsPDF(item: ContentItemWithComposition) {
+export async function exportContentAsPDF(
+  item: ContentItemWithComposition,
+  createdFor?: string | null
+) {
   const date = new Date().toISOString().split("T")[0];
   const filename = `content_${sanitizeExportFilename(item.title)}_${date}.pdf`;
-  const pdf = createTextPdf();
+  const pdf = await createTextPdf({
+    documentType: "Content",
+    title: item.title || "Content brief",
+    createdFor,
+    date,
+  });
   const typeLabel = CONTENT_TYPE_LABELS[item.type] ?? item.type;
   const statusLabel = item.status === "approved" ? "Approved" : "Draft";
 
-  pdf.title(item.title || "Content brief");
   pdf.subtitle(
     `${typeLabel} · ${statusLabel} · v${item.version} · Exported ${date}`
   );

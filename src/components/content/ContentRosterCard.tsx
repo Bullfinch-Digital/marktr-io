@@ -13,6 +13,7 @@ function clickIsOnControl(target: EventTarget | null) {
 
 type Props = {
   item: ContentItemWithComposition;
+  createdFor?: string | null;
   onArchive?: () => void;
   onDuplicate?: () => void;
   duplicating?: boolean;
@@ -21,6 +22,7 @@ type Props = {
 
 export function ContentRosterCard({
   item,
+  createdFor,
   onArchive,
   onDuplicate,
   duplicating = false,
@@ -77,7 +79,7 @@ export function ContentRosterCard({
               variant="outline"
               size="sm"
               className="border-black rounded-design"
-              onClick={() => exportContentAsPDF(item)}
+              onClick={() => exportContentAsPDF(item, createdFor)}
             >
               Export
             </Button>
@@ -114,7 +116,7 @@ export function ContentRosterCard({
               variant="outline"
               size="sm"
               className="border-black rounded-design"
-              onClick={() => exportContentAsPDF(item)}
+              onClick={() => exportContentAsPDF(item, createdFor)}
             >
               Export
             </Button>

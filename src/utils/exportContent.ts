@@ -25,6 +25,21 @@ function formatDate(iso: string): string {
 
 type BriefSection = { heading: string; body?: string; bullets?: string[] };
 
+export function contentItemPlainText(
+  type: ContentItemType,
+  title: string,
+  content: ContentPayload
+): string {
+  const lines = [title.trim() || "Untitled", ""];
+  for (const section of briefSectionsForType(type, content)) {
+    lines.push(section.heading);
+    if (section.body) lines.push(section.body);
+    if (section.bullets?.length) lines.push(...section.bullets);
+    lines.push("");
+  }
+  return lines.join("\n").trim();
+}
+
 function briefSectionsForType(type: ContentItemType, content: ContentPayload): BriefSection[] {
   switch (type) {
     case "ig_single": {

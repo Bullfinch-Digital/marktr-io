@@ -32,6 +32,8 @@ import ContentArchiveModal from "../components/content/ContentArchiveModal";
 import ContentPermanentDeleteModal from "../components/content/ContentPermanentDeleteModal";
 import { ArchiveActionTooltip } from "../components/ArchiveActionTooltip";
 import { exportContentAsPDF } from "../utils/exportContent";
+import { listContentPlanOrigins, type ContentPlanOrigin } from "../lib/plans";
+import { PlanOriginTag } from "../components/content/PlanOriginTag";
 import "../styles/Modal.css";
 
 type ContentDetail = ContentItemRow & { composition: ContentComposition };
@@ -73,6 +75,7 @@ function ContentEditorBody() {
   const { brands } = useBrand();
 
   const [item, setItem] = useState<ContentDetail | null>(null);
+  const [planOrigin, setPlanOrigin] = useState<ContentPlanOrigin | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [draft, setDraft] = useState<ContentDraft | null>(null);
@@ -111,6 +114,7 @@ function ContentEditorBody() {
       if (!detail) {
         setError("Content item not found.");
         setItem(null);
+        setPlanOrigin(null);
         return;
       }
       if (detail.superseded_at) {
@@ -128,6 +132,13 @@ function ContentEditorBody() {
       }
       setItem(detail);
       if (detail.brand_id) persistActiveBrandId(detail.brand_id);
+      try {
+        const origins = await listContentPlanOrigins([detail.id]);
+        setPlanOrigin(origins[0] ?? null);
+      } catch (originError) {
+        console.error("[ContentEditor] listContentPlanOrigins failed", originError);
+        setPlanOrigin(null);
+      }
     } catch (err) {
       console.error("[ContentEditor] load failed", err);
       setError("Failed to load content.");
@@ -404,6 +415,7 @@ function ContentEditorBody() {
             <span className="inline-flex items-center rounded-full border border-black/15 bg-accent-grey/30 px-2.5 py-1 font-['Plus_Jakarta_Sans'] text-[11px]">
               {CONTENT_TYPE_LABELS[item.type]}
             </span>
+            {planOrigin ? <PlanOriginTag origin={planOrigin} /> : null}
             {!readOnly ? (
               <button
                 type="button"

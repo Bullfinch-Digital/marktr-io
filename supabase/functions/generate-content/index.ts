@@ -29,6 +29,12 @@ type GenerateInput = {
   icpLineageId?: string;
   type?: string;
   suggestedContentId?: string | null;
+  brief?: string | null;
+  channel?: string | null;
+  format?: string | null;
+  learnedSoFar?: string | null;
+  previousDraft?: unknown;
+  variationInstruction?: string | null;
 };
 
 const LOG_BODY_LIMIT = 300;
@@ -295,6 +301,30 @@ function typeShapeGuidance(type: ContentType): string {
   }
 }
 
+function optionalText(value: unknown, max: number): string | null {
+  if (typeof value !== "string") return null;
+  const text = value.trim();
+  if (!text) return null;
+  return text.slice(0, max);
+}
+
+function optionalDraftText(value: unknown, max: number): string | null {
+  if (value == null) return null;
+  let text = "";
+  if (typeof value === "string") {
+    text = value;
+  } else {
+    try {
+      text = JSON.stringify(value);
+    } catch {
+      return null;
+    }
+  }
+  text = text.trim();
+  if (!text) return null;
+  return text.slice(0, max);
+}
+
 function buildPrompt(options: {
   brand: Record<string, any> | null;
   strategy: Record<string, any>;
@@ -302,8 +332,27 @@ function buildPrompt(options: {
   campaignIdea: Record<string, any> | null;
   icp: Record<string, any>;
   type: ContentType;
+  brief?: string | null;
+  channel?: string | null;
+  format?: string | null;
+  learnedSoFar?: string | null;
+  previousDraft?: string | null;
+  variationInstruction?: string | null;
 }) {
-  const { brand, strategy, strategyTitle, campaignIdea, icp, type } = options;
+  const {
+    brand,
+    strategy,
+    strategyTitle,
+    campaignIdea,
+    icp,
+    type,
+    brief,
+    channel,
+    format,
+    learnedSoFar,
+    previousDraft,
+    variationInstruction,
+  } = options;
   const positioning = strategy?.positioning ?? {};
   const messaging = strategy?.messaging ?? {};
   const channelPlan = strategy?.channel_plan ?? {};
@@ -376,6 +425,41 @@ ONE persona this piece speaks to (voice comes from here — do not write for a c
 
 Content type to generate: ${type}
 ${typeShapeGuidance(type)}
+${
+  channel || format
+    ? `
+Requested channel / format (match this native shape where the type allows):
+- Channel: ${channel || "Not provided"}
+- Format: ${format || "Not provided"}
+`
+    : ""
+}
+${
+  brief
+    ? `
+Day brief (user-editable; write THIS piece to this brief):
+${brief}
+`
+    : ""
+}
+${
+  learnedSoFar
+    ? `
+What the user has learned so far (optional extra context — use only if it helps the next piece; do not invent facts from it):
+${learnedSoFar}
+`
+    : ""
+}
+${
+  previousDraft
+    ? `
+Previous draft of this piece (write a new variation; do not copy it):
+${previousDraft}
+
+Variation instruction: ${variationInstruction || "Try a different angle."}
+`
+    : ""
+}
 
 Title field (required):
 - Short roster label for THIS PIECE — not a restatement of the campaign idea or hook.
@@ -547,6 +631,12 @@ Deno.serve(async (req) => {
       typeof body.suggestedContentId === "string" && body.suggestedContentId.trim()
         ? body.suggestedContentId.trim()
         : null;
+    const brief = optionalText(body.brief, 2000);
+    const channel = optionalText(body.channel, 80);
+    const format = optionalText(body.format, 80);
+    const learnedSoFar = optionalText(body.learnedSoFar, 1200);
+    const previousDraft = optionalDraftText(body.previousDraft, 4000);
+    const variationInstruction = optionalText(body.variationInstruction, 280);
 
     const { data: strategyRow, error: strategyError } = await supabase
       .from("strategies")
@@ -642,6 +732,12 @@ Deno.serve(async (req) => {
       campaignIdea,
       icp,
       type: contentType,
+      brief,
+      channel,
+      format,
+      learnedSoFar,
+      previousDraft,
+      variationInstruction,
     });
 
     const resp = await fetch("https://api.openai.com/v1/responses", {

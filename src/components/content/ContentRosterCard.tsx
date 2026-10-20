@@ -5,7 +5,9 @@ import { Button } from "../ui/button";
 import { ViewEditButton } from "../ui/ViewEditButton";
 import { ArchiveActionTooltip } from "../ArchiveActionTooltip";
 import { ContentCompositionBanner } from "./ContentCompositionBanner";
+import { PlanOriginTag } from "./PlanOriginTag";
 import { exportContentAsPDF } from "../../utils/exportContent";
+import type { ContentPlanOrigin } from "../../lib/plans";
 
 function clickIsOnControl(target: EventTarget | null) {
   return target instanceof Element && Boolean(target.closest("button, a, input, textarea, select"));
@@ -14,6 +16,7 @@ function clickIsOnControl(target: EventTarget | null) {
 type Props = {
   item: ContentItemWithComposition;
   createdFor?: string | null;
+  planOrigin?: ContentPlanOrigin | null;
   onArchive?: () => void;
   onDuplicate?: () => void;
   duplicating?: boolean;
@@ -23,6 +26,7 @@ type Props = {
 export function ContentRosterCard({
   item,
   createdFor,
+  planOrigin,
   onArchive,
   onDuplicate,
   duplicating = false,
@@ -66,6 +70,7 @@ export function ContentRosterCard({
             >
               {statusLabel}
             </span>
+            {planOrigin ? <PlanOriginTag origin={planOrigin} /> : null}
           </div>
           <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/55 mt-1">
             v{item.version}

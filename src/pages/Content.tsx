@@ -37,6 +37,7 @@ import {
   type ContentCreateStrategyOption,
 } from "../components/content/ContentCreatePanel";
 import { exportContentListAsCSV } from "../utils/exportContent";
+import { listContentPlanOrigins, type ContentPlanOrigin } from "../lib/plans";
 
 function formatArchivedDate(iso: string): string {
   const date = new Date(iso);
@@ -130,6 +131,7 @@ function ContentPageBody() {
   const [permanentDeleteTarget, setPermanentDeleteTarget] =
     useState<ContentItemWithComposition | null>(null);
   const [isPermanentDeleting, setIsPermanentDeleting] = useState(false);
+  const [planOrigins, setPlanOrigins] = useState<Record<string, ContentPlanOrigin>>({});
 
   const brandReady = isBrandScopeReady(brandLoading, brands || [], scopedBrandId);
   const otherContent = useMemo(
@@ -148,6 +150,28 @@ function ContentPageBody() {
       cancelled = true;
     };
   }, [user?.id, scopedBrandId]);
+
+  useEffect(() => {
+    const ids = items.map((item) => item.id);
+    if (ids.length === 0) {
+      setPlanOrigins({});
+      return;
+    }
+    let cancelled = false;
+    void listContentPlanOrigins(ids)
+      .then((origins) => {
+        if (cancelled) return;
+        const map: Record<string, ContentPlanOrigin> = {};
+        for (const origin of origins) map[origin.contentId] = origin;
+        setPlanOrigins(map);
+      })
+      .catch((err) => {
+        console.error("[Content] listContentPlanOrigins failed", err);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [items]);
 
   useEffect(() => {
     const intent = readContentLauncherIntent(location.state);
@@ -473,6 +497,7 @@ function ContentPageBody() {
                   key={item.id}
                   item={item}
                   createdFor={activeBrand?.name}
+                  planOrigin={planOrigins[item.id]}
                   onArchive={() => setArchiveTarget(item)}
                   onDuplicate={() => void handleDuplicate(item)}
                   duplicating={duplicatingId === item.id}

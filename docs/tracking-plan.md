@@ -88,8 +88,10 @@ Sections: `data-track-section="hero"`. Case studies: `data-track-case-study` + `
 | `icp_create` | — | ICP insert succeeds |
 | `brand_create` | — | Brand insert succeeds |
 | `plan_created` | `length_days` | Plan generate + save succeeds |
-| `plan_day_done` | `location` (`plan_page`) | A plan day is marked done |
-| `plan_notes_saved` | `location` (`plan_page`) | Day notes persist |
+| `plan_day_done` | `location` (`plan_page` \| `plan_day_page`) | A plan day is marked done |
+| `plan_notes_saved` | `location` (`plan_page` \| `plan_day_page`) | Day notes persist |
+| `plan_content_generated` | `location` (`plan_day_page`), `content_type` | First generate on a plan day succeeds |
+| `plan_content_another_version` | `location` (`plan_day_page`), `content_type` | “Make another version” succeeds |
 
 ## Server-side (Measurement Protocol)
 

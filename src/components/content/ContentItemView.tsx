@@ -32,7 +32,7 @@ function wrapSection(content: React.ReactNode, bare: boolean) {
   if (!content) return null;
   if (bare) return <>{content}</>;
   return (
-    <section className="rounded-design border border-black/10 bg-white p-4">{content}</section>
+    <section className="rounded-design border border-brand-stroke bg-card p-4">{content}</section>
   );
 }
 
@@ -144,7 +144,7 @@ export function ContentItemView({
           <>
             <SectionLabel bare={bare}>{CONTENT_SECTION_LABELS.title}</SectionLabel>
             <h1
-              className={`font-['Fraunces'] text-3xl lg:text-4xl text-[#0D1833] ${
+              className={`font-['Fraunces'] text-3xl lg:text-4xl text-foreground ${
                 bare ? "" : "mt-2"
               }`}
             >

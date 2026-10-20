@@ -25,6 +25,20 @@ export type ContentItemWithComposition = ContentItemRow & {
   composition: ContentComposition;
 };
 
+export type GenerateContentInput = {
+  strategyLineageId: string;
+  campaignIdeaId?: string | null;
+  icpLineageId: string;
+  type: ContentItemType;
+  suggestedContentId?: string | null;
+  brief?: string | null;
+  channel?: string | null;
+  format?: string | null;
+  learnedSoFar?: string | null;
+  previousDraft?: unknown;
+  variationInstruction?: string | null;
+};
+
 export function useContentItems(brandId: string) {
   const { user } = useAuth();
   const [items, setItems] = useState<ContentItemWithComposition[]>([]);
@@ -89,13 +103,7 @@ export function useContentItems(brandId: string) {
   }, [fetchItems]);
 
   const createContent = useCallback(
-    async (input: {
-      strategyLineageId: string;
-      campaignIdeaId?: string | null;
-      icpLineageId: string;
-      type: ContentItemType;
-      suggestedContentId?: string | null;
-    }) => {
+    async (input: GenerateContentInput) => {
       if (!user?.id || !brandId) return null;
       const { data, error: invokeError } = await supabase.functions.invoke("generate-content", {
         body: {
@@ -105,6 +113,14 @@ export function useContentItems(brandId: string) {
           icpLineageId: input.icpLineageId,
           type: input.type,
           suggestedContentId: input.suggestedContentId ?? null,
+          ...(input.brief ? { brief: input.brief } : {}),
+          ...(input.channel ? { channel: input.channel } : {}),
+          ...(input.format ? { format: input.format } : {}),
+          ...(input.learnedSoFar ? { learnedSoFar: input.learnedSoFar } : {}),
+          ...(input.previousDraft != null ? { previousDraft: input.previousDraft } : {}),
+          ...(input.variationInstruction
+            ? { variationInstruction: input.variationInstruction }
+            : {}),
         },
       });
 

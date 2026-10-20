@@ -1,5 +1,7 @@
 import { supabase } from "../config/supabase";
 import { addLocalDays, localISODate } from "./localCalendar";
+import type { ContentItemRow, ContentItemType } from "../types/contentItemPayload";
+import { normalizeContentPayload } from "./contentItemPayload";
 
 export type PlanLengthDays = 7 | 14 | 30;
 export type PlanStatus = "active" | "archived";
@@ -47,6 +49,14 @@ export type PlanDayContent = {
   content_id: string;
   created_at: string;
 };
+
+export type ContentPlanOrigin = {
+  contentId: string;
+  planId: string;
+  dayNumber: number;
+};
+
+export const PLAN_LEARNING_CONTEXT_MAX = 1200;
 
 export type PlanWithDays = Plan & { days: PlanDay[] };
 
@@ -136,6 +146,47 @@ export function getTodayDayNumber(
 
 export function planDayISODate(startDate: string, dayNumber: number): string {
   return localISODate(addLocalDays(parseLocalISODate(startDate), dayNumber - 1));
+}
+
+export function mapPlanFormatToContentType(
+  channel?: string | null,
+  format?: string | null
+): ContentItemType {
+  const hay = `${channel ?? ""} ${format ?? ""}`.toLowerCase();
+  if (hay.includes("email") || hay.includes("newsletter")) return "email";
+  if (hay.includes("landing")) return "landing_page";
+  if (hay.includes("carousel")) return "ig_carousel";
+  if (hay.includes("story")) return "ig_story";
+  if (hay.includes("reel") || hay.includes("tiktok") || hay.includes("short")) return "reel_brief";
+  return "ig_single";
+}
+
+/**
+ * Notes and results from this day and earlier days, newest first.
+ * Caps at ~1,200 characters. No titles, names, or other personal fields.
+ */
+export function buildPlanLearningContext(
+  days: Array<Pick<PlanDay, "day_number" | "notes" | "results">>,
+  upToDayNumber: number
+): string {
+  const relevant = [...days]
+    .filter((day) => day.day_number <= upToDayNumber)
+    .sort((a, b) => b.day_number - a.day_number);
+
+  const parts: string[] = [];
+  for (const day of relevant) {
+    const notes = day.notes.trim();
+    const results = day.results.trim();
+    if (!notes && !results) continue;
+    const bits = [`Day ${day.day_number}`];
+    if (notes) bits.push(`What I did: ${notes}`);
+    if (results) bits.push(`What happened: ${results}`);
+    parts.push(bits.join(" — "));
+  }
+
+  const text = parts.join("\n");
+  if (text.length <= PLAN_LEARNING_CONTEXT_MAX) return text;
+  return `${text.slice(0, PLAN_LEARNING_CONTEXT_MAX - 1).trimEnd()}…`;
 }
 
 export function groupPlanDaysByWeek(days: PlanDay[]): { week: number; days: PlanDay[] }[] {
@@ -475,11 +526,67 @@ export async function listDayContent(planDayId: string): Promise<PlanDayContent[
     .from("plan_day_content")
     .select(PLAN_DAY_CONTENT_COLUMNS)
     .eq("plan_day_id", planDayId)
-    .order("created_at", { ascending: true });
+    .order("created_at", { ascending: false });
 
   if (error) {
     console.error("[plans] listDayContent failed", error);
     throw error;
   }
   return (data ?? []) as PlanDayContent[];
+}
+
+export async function listDayContentItems(planDayId: string): Promise<ContentItemRow[]> {
+  const links = await listDayContent(planDayId);
+  if (links.length === 0) return [];
+
+  const { data, error } = await supabase
+    .from("content_items")
+    .select("*")
+    .in(
+      "id",
+      links.map((link) => link.content_id)
+    )
+    .is("deleted_at", null);
+
+  if (error) {
+    console.error("[plans] listDayContentItems failed", error);
+    throw error;
+  }
+
+  const byId = new Map(
+    ((data ?? []) as ContentItemRow[]).map((row) => [
+      row.id,
+      { ...row, content: normalizeContentPayload(row.type, row.content) },
+    ])
+  );
+  return links
+    .map((link) => byId.get(link.content_id) ?? null)
+    .filter((row): row is ContentItemRow => Boolean(row));
+}
+
+export async function listContentPlanOrigins(contentIds: string[]): Promise<ContentPlanOrigin[]> {
+  if (contentIds.length === 0) return [];
+
+  const { data, error } = await supabase
+    .from("plan_day_content")
+    .select("content_id, plan_days!inner(plan_id, day_number)")
+    .in("content_id", contentIds);
+
+  if (error) {
+    console.error("[plans] listContentPlanOrigins failed", error);
+    throw error;
+  }
+
+  const origins: ContentPlanOrigin[] = [];
+  const seen = new Set<string>();
+  for (const row of data ?? []) {
+    const contentId = (row as { content_id?: string }).content_id;
+    const day = (row as { plan_days?: { plan_id?: string; day_number?: number } | null }).plan_days;
+    if (!contentId || !day?.plan_id || typeof day.day_number !== "number" || seen.has(contentId)) {
+      continue;
+    }
+    seen.add(contentId);
+    origins.push({ contentId, planId: day.plan_id, dayNumber: day.day_number });
+  }
+  return origins;
 }

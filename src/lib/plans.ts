@@ -164,6 +164,61 @@ export async function getPlanWithDays(planId: string, userId?: string): Promise<
   return { ...(plan as Plan), days: (days ?? []) as PlanDay[] };
 }
 
+export type GeneratedPlanPayload = {
+  title: string;
+  days: PlanDayInsert[];
+};
+
+export async function generatePlan(
+  strategyId: string,
+  lengthDays: PlanLengthDays,
+  extendFromPlanId?: string
+): Promise<PlanWithDays> {
+  const { data: userData, error: userError } = await supabase.auth.getUser();
+  const userId = userData.user?.id;
+  if (userError || !userId) {
+    console.error("[plans] generatePlan auth failed", userError);
+    throw userError ?? new Error("Unauthenticated");
+  }
+
+  const { data, error } = await supabase.functions.invoke("generate-plan", {
+    body: {
+      strategy_id: strategyId,
+      length_days: lengthDays,
+      ...(extendFromPlanId ? { extend_from_plan_id: extendFromPlanId } : {}),
+    },
+  });
+
+  if (error) {
+    console.error("[plans] generatePlan invoke failed", error);
+    throw error;
+  }
+
+  const payload = data as GeneratedPlanPayload | null;
+  if (!payload?.title || !Array.isArray(payload.days)) {
+    throw new Error("Plan generation returned no plan");
+  }
+
+  const created = await createPlanWithDays(
+    {
+      user_id: userId,
+      strategy_id: strategyId,
+      title: payload.title,
+      length_days: lengthDays,
+      ...(extendFromPlanId ? { extended_from: extendFromPlanId } : {}),
+    },
+    payload.days
+  );
+
+  const existing = await listPlansForStrategy(userId, strategyId);
+  const previousActive = existing.filter((plan) => plan.status === "active" && plan.id !== created.id);
+  for (const plan of previousActive) {
+    await archivePlan(plan.id);
+  }
+
+  return created;
+}
+
 export async function createPlanWithDays(plan: PlanInsert, days: PlanDayInsert[]): Promise<PlanWithDays> {
   const { data: created, error: planError } = await supabase
     .from("plans")

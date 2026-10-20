@@ -53,6 +53,16 @@ export function getOAuthNext(): string | null {
   return readOAuthNext();
 }
 
+/** True when this tab started Google sign-in. A new tab opened from email cannot see it. */
+export function hasSessionOAuthNext(): boolean {
+  try {
+    const value = sessionStorage.getItem(STORAGE_KEY);
+    return Boolean(value && value.startsWith("/"));
+  } catch {
+    return false;
+  }
+}
+
 export function clearOAuthNext() {
   removeOAuthNext();
 }

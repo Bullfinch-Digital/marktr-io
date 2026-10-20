@@ -9,10 +9,7 @@ import { Label } from "../ui/label";
 import { useAuth } from "../../contexts/AuthContext";
 import { GoogleIcon } from "../icons/GoogleIcon";
 import { signUpWithEmail } from "../../lib/supabaseAuth";
-import { fetchUserHasProAccess } from "../../lib/proAccess";
-import { redirectToStripeCheckout } from "../../lib/stripeCheckout";
 import { getFirstTouchParams, track } from "../../lib/analytics";
-import { wasAuthConfirmedInOtherTab } from "../../utils/crossTabAuth";
 import {
   buildLinkBody,
   clearPendingGuestLink,
@@ -28,21 +25,34 @@ import { useLegalAgreementGate } from "../../hooks/useLegalAgreementGate";
 import { stashPendingLegalAcceptance } from "../../lib/legal";
 import {
   checkoutResumePath,
-  claimResumablePendingCheckout,
-  clearPendingCheckoutPlan,
   getCheckoutPlanFromPath,
   getPendingCheckoutPlan,
-  releaseCheckoutClaim,
-  trialConfirmRedirectUrl,
 } from "../../utils/pendingCheckout";
 
-const RESEND_COOLDOWN_SECONDS = 60;
-const RESEND_SENT_NOTICE_MS = 3000;
+const RESEND_COOLDOWN_SECONDS = 30;
 
-type ResendUiState =
-  | { status: "ready" }
-  | { status: "cooldown"; seconds: number }
-  | { status: "sent" };
+type ResendUiState = { status: "ready" } | { status: "cooldown"; seconds: number };
+
+function isUnconfirmedEmail(error: { message?: string; code?: string | null }): boolean {
+  if (error.code === "email_not_confirmed") return true;
+  return /email not confirmed/i.test(error.message ?? "");
+}
+
+function friendlyCodeError(error: { message?: string; code?: string | null }): string {
+  const message = error.message ?? "";
+  const expired = error.code === "otp_expired" || /expired/i.test(message);
+  const invalid = /invalid|otp|token/i.test(message);
+  if (expired && invalid) {
+    return "That code doesn't match or has expired. Try again, or request a new one.";
+  }
+  if (expired) return "That code has expired. Request a new one.";
+  if (invalid) return "That code doesn't match. Try again.";
+  return "Couldn't verify that code. Try again.";
+}
+
+function signupCallbackUrl(): string {
+  return `${window.location.origin}/auth/callback?next=${encodeURIComponent("/dashboard")}`;
+}
 
 export type AuthFormMode = "signin" | "signup";
 
@@ -83,7 +93,7 @@ export function LoginModal({
   initialMode = "signup",
   redirectPath,
 }: LoginModalProps) {
-  const { signInWithGoogle, user } = useAuth();
+  const { signInWithGoogle } = useAuth();
   const handleClose = () => {
     onClose();
   };
@@ -99,13 +109,9 @@ export function LoginModal({
   const [mode, setMode] = useState<AuthFormMode>(initialMode);
   const [appliedOpenKey, setAppliedOpenKey] = useState<AuthFormMode | null>(null);
   const [accountExists, setAccountExists] = useState(false);
-  const [awaitingConfirm, setAwaitingConfirm] = useState(false);
-  const [confirmedElsewhere, setConfirmedElsewhere] = useState(false);
-  const [continuingHere, setContinuingHere] = useState(false);
-  const [continueError, setContinueError] = useState<string | null>(null);
-  const confirmedTrackedRef = useRef(false);
+  const [awaitingCode, setAwaitingCode] = useState(false);
   const [confirmEmail, setConfirmEmail] = useState("");
-  const [confirmRedirectTo, setConfirmRedirectTo] = useState("");
+  const [code, setCode] = useState("");
   const [resendUi, setResendUi] = useState<ResendUiState>({ status: "ready" });
   const [resendError, setResendError] = useState(false);
   const [resendBusy, setResendBusy] = useState(false);
@@ -114,6 +120,7 @@ export function LoginModal({
   const [error, setError] = useState<string | null>(null);
   const [legalAgreed, setLegalAgreed] = useState(true);
   const { open: legalModalOpen, gate, closeModal, confirmAgreement } = useLegalAgreementGate();
+  const busyRef = useRef(false);
 
   useEffect(() => {
     setLocalEmail(email ?? "");
@@ -129,25 +136,14 @@ export function LoginModal({
       setPassword("");
       setAccountExists(false);
       setError(null);
-      setAwaitingConfirm(false);
-      setConfirmedElsewhere(false);
-      setContinuingHere(false);
-      setContinueError(null);
-      confirmedTrackedRef.current = false;
+      setAwaitingCode(false);
+      setCode("");
+      setConfirmEmail("");
       setResendUi({ status: "ready" });
       setResendError(false);
+      busyRef.current = false;
     }
   }
-
-  useEffect(() => {
-    if (!isOpen || !awaitingConfirm || confirmedElsewhere) return;
-    if (!isRealUser(user) || !wasAuthConfirmedInOtherTab()) return;
-    setConfirmedElsewhere(true);
-    if (!confirmedTrackedRef.current) {
-      confirmedTrackedRef.current = true;
-      track("auth_confirmed_other_tab");
-    }
-  }, [isOpen, awaitingConfirm, confirmedElsewhere, user]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -159,22 +155,15 @@ export function LoginModal({
   }, [isOpen]);
 
   useEffect(() => {
-    if (resendUi.status === "cooldown") {
-      const timer = window.setTimeout(() => {
-        setResendUi((current) => {
-          if (current.status !== "cooldown") return current;
-          if (current.seconds <= 1) return { status: "sent" };
-          return { status: "cooldown", seconds: current.seconds - 1 };
-        });
-      }, 1000);
-      return () => window.clearTimeout(timer);
-    }
-    if (resendUi.status === "sent") {
-      const timer = window.setTimeout(() => {
-        setResendUi({ status: "ready" });
-      }, RESEND_SENT_NOTICE_MS);
-      return () => window.clearTimeout(timer);
-    }
+    if (resendUi.status !== "cooldown") return;
+    const timer = window.setTimeout(() => {
+      setResendUi((current) => {
+        if (current.status !== "cooldown") return current;
+        if (current.seconds <= 1) return { status: "ready" };
+        return { status: "cooldown", seconds: current.seconds - 1 };
+      });
+    }, 1000);
+    return () => window.clearTimeout(timer);
   }, [resendUi]);
 
   if (!isOpen) return null;
@@ -193,7 +182,28 @@ export function LoginModal({
     });
   };
 
+  const showCodeStep = (emailAddress: string, sent: boolean) => {
+    setConfirmEmail(emailAddress);
+    setLocalEmail(emailAddress);
+    setCode("");
+    setError(null);
+    setAccountExists(false);
+    setResendError(!sent);
+    setResendUi(sent ? { status: "cooldown", seconds: RESEND_COOLDOWN_SECONDS } : { status: "ready" });
+    setAwaitingCode(true);
+  };
+
+  const finishVerifiedSignup = () => {
+    track("sign_up", { method: "email", ...getFirstTouchParams() });
+    try {
+      window.dispatchEvent(new Event("subscription:changed"));
+      window.dispatchEvent(new Event("auth:changed"));
+    } catch {}
+    onClose();
+  };
+
   const performSignIn = async (resolvedEmail: string, resolvedPassword: string) => {
+    if (busyRef.current) return;
     if (!resolvedEmail) {
       setError("Enter your email to continue.");
       return;
@@ -204,6 +214,7 @@ export function LoginModal({
     }
     if (resolvedEmail !== localEmail) setLocalEmail(resolvedEmail);
     if (resolvedPassword !== password) setPassword(resolvedPassword);
+    busyRef.current = true;
     setLoading(true);
     setError(null);
     setAccountExists(false);
@@ -213,8 +224,19 @@ export function LoginModal({
         password: resolvedPassword,
       });
       if (signInError) {
+        if (isUnconfirmedEmail(signInError)) {
+          try {
+            const { error: resendErrorResult } = await supabase.auth.resend({
+              type: "signup",
+              email: resolvedEmail,
+            });
+            showCodeStep(resolvedEmail, !resendErrorResult);
+          } catch {
+            showCodeStep(resolvedEmail, false);
+          }
+          return;
+        }
         setError(signInError.message);
-        setLoading(false);
         return;
       }
 
@@ -245,14 +267,16 @@ export function LoginModal({
 
       onClose();
       await redirectAfterLogin();
-    } catch (err) {
+    } catch {
       setError("Login failed. Please try again.");
     } finally {
+      busyRef.current = false;
       setLoading(false);
     }
   };
 
   const performSignUp = async (resolvedEmail: string, resolvedPassword: string) => {
+    if (busyRef.current) return;
     if (!resolvedEmail) {
       setError("Enter your email to continue.");
       return;
@@ -261,20 +285,16 @@ export function LoginModal({
       setError("Password must be at least 8 characters.");
       return;
     }
+    busyRef.current = true;
     setLoading(true);
     setError(null);
     setAccountExists(false);
     try {
       stashPendingLegalAcceptance();
-      const postAuthPath = resolvePostAuthPath(redirectPath);
-      const trialPlan = getCheckoutPlanFromPath(postAuthPath) ?? getPendingCheckoutPlan();
-      const emailRedirectTo = trialPlan
-        ? trialConfirmRedirectUrl(window.location.origin, trialPlan)
-        : `${window.location.origin}/auth/callback?next=${encodeURIComponent(postAuthPath)}`;
       const outcome = await signUpWithEmail({
         email: resolvedEmail,
         password: resolvedPassword,
-        emailRedirectTo,
+        emailRedirectTo: signupCallbackUrl(),
       });
 
       if (outcome.status === "error") {
@@ -286,58 +306,47 @@ export function LoginModal({
         return;
       }
       if (outcome.status === "confirm_email") {
-        track("sign_up", { method: "email", ...getFirstTouchParams() });
-        setConfirmEmail(resolvedEmail);
-        setConfirmRedirectTo(emailRedirectTo);
-        setResendUi({ status: "ready" });
-        setResendError(false);
-        setAwaitingConfirm(true);
+        showCodeStep(resolvedEmail, true);
         return;
       }
 
-      onClose();
-      await redirectAfterLogin();
+      finishVerifiedSignup();
     } catch {
       setError("Sign up failed. Please try again.");
     } finally {
+      busyRef.current = false;
       setLoading(false);
     }
   };
 
-  const handleContinueHere = async () => {
-    if (continuingHere) return;
-    setContinuingHere(true);
-    setContinueError(null);
+  const verifyCode = async (rawCode: string) => {
+    const token = rawCode.replace(/\D/g, "").slice(0, 6);
+    if (token.length !== 6) {
+      setError("Enter the 6-digit code from the email.");
+      return;
+    }
+    if (busyRef.current) return;
+    busyRef.current = true;
+    setLoading(true);
+    setError(null);
     try {
-      const next = resolvePostAuthPath(redirectPath);
-      const plan = await claimResumablePendingCheckout(next, { takeover: true });
-      if (!plan) {
-        setContinueError("Checkout already continued in the other tab.");
-        setContinuingHere(false);
+      const { error: verifyError } = await supabase.auth.verifyOtp({
+        email: confirmEmail,
+        token,
+        type: "signup",
+      });
+      if (verifyError) {
+        setError(friendlyCodeError(verifyError));
+        setCode("");
         return;
       }
-      const { data } = await supabase.auth.getSession();
-      const sessionUser = data.session?.user ?? null;
-      if (sessionUser?.id && (await fetchUserHasProAccess(sessionUser.id))) {
-        clearPendingCheckoutPlan();
-        releaseCheckoutClaim();
-        window.location.assign(`${window.location.origin}/dashboard`);
-        return;
-      }
-      const checkout = await redirectToStripeCheckout(plan, { honorClaim: true });
-      if (checkout.status === "redirect") return;
-      if (checkout.status === "claimed_elsewhere") {
-        setContinueError("Checkout already continued in the other tab.");
-      } else if (checkout.status === "already_subscribed") {
-        window.location.assign(`${window.location.origin}/dashboard`);
-        return;
-      } else {
-        setContinueError("Couldn't start checkout. Please try again.");
-      }
-      setContinuingHere(false);
+      finishVerifiedSignup();
     } catch {
-      setContinueError("Couldn't start checkout. Please try again.");
-      setContinuingHere(false);
+      setError("Couldn't verify that code. Try again.");
+      setCode("");
+    } finally {
+      busyRef.current = false;
+      setLoading(false);
     }
   };
 
@@ -346,20 +355,20 @@ export function LoginModal({
     setPassword("");
     setError(null);
     setAccountExists(false);
-    setAwaitingConfirm(false);
+    setAwaitingCode(false);
+    setCode("");
     setResendUi({ status: "ready" });
     setResendError(false);
   };
 
-  const handleResendConfirmation = async () => {
-    if (resendBusy || resendUi.status !== "ready") return;
+  const handleResendCode = async () => {
+    if (resendBusy || resendUi.status !== "ready" || loading) return;
     setResendBusy(true);
     setResendError(false);
     try {
       const { error: resendErrorResult } = await supabase.auth.resend({
         type: "signup",
         email: confirmEmail,
-        options: { emailRedirectTo: confirmRedirectTo },
       });
       if (resendErrorResult) {
         setResendError(true);
@@ -375,6 +384,7 @@ export function LoginModal({
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (loading || busyRef.current) return;
     const form = e.currentTarget;
     const formData = new FormData(form);
     const emailFromForm = String(formData.get("email") ?? "").trim();
@@ -388,16 +398,16 @@ export function LoginModal({
     await performSignIn(submitEmail, submitPassword);
   };
 
-  const handleSubmitClick = async () => {
-    const emailEl = document.getElementById("login-email") as HTMLInputElement | null;
-    const passwordEl = document.getElementById("login-password") as HTMLInputElement | null;
-    const submitEmail = (emailEl?.value ?? localEmail).trim();
-    const submitPassword = passwordEl?.value ?? password;
-    if (mode === "signup") {
-      gate(legalAgreed, () => void performSignUp(submitEmail, submitPassword));
-      return;
-    }
-    await performSignIn(submitEmail, submitPassword);
+  const handleCodeSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    void verifyCode(code);
+  };
+
+  const handleCodeChange = (value: string) => {
+    const next = value.replace(/\D/g, "").slice(0, 6);
+    setCode(next);
+    if (error) setError(null);
+    if (next.length === 6) void verifyCode(next);
   };
 
   return (
@@ -412,13 +422,13 @@ export function LoginModal({
         <div className="mb-5 flex items-start justify-between gap-4">
           <div>
             <h2 className="mb-2 break-words font-['Fraunces'] text-xl font-bold leading-snug text-[#101A26] sm:text-2xl">
-              {confirmedElsewhere
-                ? "You're confirmed. Continue in the tab we just opened."
-                : mode === "signup"
-                  ? "Create your account"
-                  : "Welcome back"}
+              {awaitingCode ? "Check your email" : mode === "signup" ? "Create your account" : "Welcome back"}
             </h2>
-            {confirmedElsewhere ? null : (
+            {awaitingCode ? (
+              <p className="break-words font-['Plus_Jakarta_Sans'] text-sm leading-relaxed text-[#101A26]/70">
+                We sent a 6-digit code to <span className="break-all font-semibold text-[#101A26]">{confirmEmail}</span>.
+              </p>
+            ) : (
               <p className="font-['Plus_Jakarta_Sans'] text-sm leading-relaxed text-[#101A26]/70">
                 New here? Signing in with Google creates your account automatically.
               </p>
@@ -435,20 +445,74 @@ export function LoginModal({
           </button>
         </div>
 
-        {confirmedElsewhere ? (
-          <div className="space-y-3">
-            <button
-              type="button"
-              onClick={() => void handleContinueHere()}
-              disabled={continuingHere}
-              className="inline-flex min-h-11 items-center py-2 text-left font-['Plus_Jakarta_Sans'] text-sm text-[#101A26]/70 underline underline-offset-4 transition-colors hover:text-[#101A26] disabled:cursor-wait disabled:opacity-60"
+        {awaitingCode ? (
+          <form onSubmit={handleCodeSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="login-code" className="font-['Plus_Jakarta_Sans'] font-medium text-[#101A26]">
+                Code
+              </Label>
+              <Input
+                id="login-code"
+                name="code"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                maxLength={6}
+                autoFocus
+                value={code}
+                onChange={(e) => handleCodeChange(e.target.value)}
+                disabled={loading}
+                aria-invalid={error ? true : undefined}
+                className="auth-modal-input px-4 text-center text-base tracking-[0.3em]"
+              />
+            </div>
+            {error ? (
+              <p className="auth-modal-error font-['Plus_Jakarta_Sans'] text-sm">{error}</p>
+            ) : (
+              <p className="font-['Plus_Jakarta_Sans'] text-sm leading-relaxed text-[#101A26]/70">
+                Can't see it? Check your junk or spam folder.
+              </p>
+            )}
+            <Button
+              type="submit"
+              data-track-id="auth_verify_code"
+              data-track-location="auth_modal"
+              disabled={loading}
+              className="auth-modal-primary h-auto w-full rounded-full px-6 py-3 font-['Plus_Jakarta_Sans'] font-semibold hover:bg-[#EBFD84]/90 hover:shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
             >
-              {continuingHere ? "Continuing…" : "Continue here instead"}
-            </button>
-            {continueError ? (
-              <p className="auth-modal-error font-['Plus_Jakarta_Sans'] text-sm">{continueError}</p>
-            ) : null}
-          </div>
+              {loading ? "Verifying..." : "Verify"}
+            </Button>
+            <div className="flex flex-col items-start gap-3">
+              <button
+                type="button"
+                data-track-id="auth_resend_code"
+                data-track-location="auth_modal"
+                onClick={() => void handleResendCode()}
+                disabled={resendBusy || loading || resendUi.status === "cooldown"}
+                className="min-h-11 text-left font-['Plus_Jakarta_Sans'] text-sm text-[#101A26]/70 underline-offset-4 transition-colors hover:text-[#101A26] hover:underline disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:text-[#101A26]/70 disabled:hover:no-underline"
+              >
+                {resendUi.status === "cooldown" ? `Resend code (${resendUi.seconds}s)` : "Resend code"}
+              </button>
+              {resendError ? (
+                <p className="auth-modal-error font-['Plus_Jakarta_Sans'] text-sm">
+                  Couldn't resend. Please try again shortly.
+                </p>
+              ) : null}
+              <button
+                type="button"
+                onClick={() => {
+                  setAwaitingCode(false);
+                  setCode("");
+                  setError(null);
+                  setResendError(false);
+                  setResendUi({ status: "ready" });
+                  setMode("signup");
+                }}
+                className="min-h-11 text-left font-['Plus_Jakarta_Sans'] text-sm text-[#101A26]/70 underline-offset-4 transition-colors hover:text-[#101A26] hover:underline"
+              >
+                Use a different email
+              </button>
+            </div>
+          </form>
         ) : (
         <>
         <div className="mb-6">
@@ -481,45 +545,6 @@ export function LoginModal({
           </div>
         </div>
 
-        {awaitingConfirm ? (
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <p className="font-['Plus_Jakarta_Sans'] text-sm leading-relaxed text-[#101A26]">
-                Check your email to confirm.
-              </p>
-              <p className="font-['Plus_Jakarta_Sans'] text-sm leading-relaxed text-[#101A26]/70">
-                Can't see it? Check your junk or spam folder.
-              </p>
-            </div>
-            {resendUi.status === "sent" ? (
-              <p className="font-['Plus_Jakarta_Sans'] text-sm text-[#101A26]">Email sent again</p>
-            ) : (
-              <button
-                type="button"
-                onClick={() => void handleResendConfirmation()}
-                disabled={resendBusy || resendUi.status === "cooldown"}
-                className="font-['Plus_Jakarta_Sans'] text-sm text-[#101A26]/70 underline-offset-4 transition-colors hover:text-[#101A26] hover:underline disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:text-[#101A26]/70 disabled:hover:no-underline"
-              >
-                {resendUi.status === "cooldown"
-                  ? `Resend confirmation email (${resendUi.seconds}s)`
-                  : "Resend confirmation email"}
-              </button>
-            )}
-            {resendError ? (
-              <p className="auth-modal-error font-['Plus_Jakarta_Sans'] text-sm">
-                Couldn't resend. Please try again shortly.
-              </p>
-            ) : null}
-            <button
-              type="button"
-              data-track-id="auth_switch_to_signin"
-              onClick={() => switchMode("signin")}
-              className="font-['Plus_Jakarta_Sans'] text-sm text-[#101A26]/70 underline-offset-4 transition-colors hover:text-[#101A26] hover:underline"
-            >
-              Already have an account? Sign in
-            </button>
-          </div>
-        ) : (
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="space-y-2">
             <Label htmlFor="login-email" className="font-['Plus_Jakarta_Sans'] font-medium text-[#101A26]">
@@ -576,13 +601,12 @@ export function LoginModal({
           ) : null}
 
           <Button
-            type="button"
+            type="submit"
             disabled={loading}
             onMouseDown={(e) => {
               // Avoid blur/autofill sync swallowing the first submit click.
               e.preventDefault();
             }}
-            onClick={() => void handleSubmitClick()}
             className="auth-modal-primary h-auto w-full rounded-full px-6 py-3 font-['Plus_Jakarta_Sans'] font-semibold hover:bg-[#EBFD84]/90 hover:shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
           >
             {loading
@@ -605,7 +629,6 @@ export function LoginModal({
               : "Already have an account? Sign in"}
           </button>
         </form>
-        )}
         </>
         )}
       </div>

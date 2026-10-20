@@ -73,30 +73,19 @@ function setIntentId(intentId: string) {
   } catch {
     // ignore
   }
-  try {
-    // localStorage so email confirmation opened in a new tab still matches.
-    localStorage.setItem(INTENT_KEY, intentId);
-  } catch {
-    // ignore
-  }
 }
 
-function getLocalIntentId(): string | null {
+function getIntentId(): string | null {
   try {
-    return localStorage.getItem(INTENT_KEY);
+    return sessionStorage.getItem(INTENT_KEY);
   } catch {
     return null;
   }
 }
 
-function getIntentId(): string | null {
-  try {
-    const fromSession = sessionStorage.getItem(INTENT_KEY);
-    if (fromSession) return fromSession;
-  } catch {
-    // ignore
-  }
-  return getLocalIntentId();
+/** True when this tab started a trial checkout and still holds that intent. */
+export function hasSameTabCheckoutIntent(): boolean {
+  return Boolean(getIntentId());
 }
 
 function clearIntentId() {
@@ -150,31 +139,6 @@ export function checkoutResumePath(
   return `${url.pathname}?${url.searchParams.toString()}`;
 }
 
-/** Email confirmation redirect. Top-level params so a new tab does not need storage. */
-export function trialConfirmRedirectUrl(
-  origin: string,
-  plan?: PendingCheckoutPlan | "monthly" | "yearly"
-): string {
-  const nextPlan = parseCheckoutPlan(plan, true) ?? "annual";
-  const url = new URL("/auth/callback", origin);
-  url.searchParams.set("intent", "trial");
-  url.searchParams.set("plan", nextPlan);
-  return url.toString();
-}
-
-/** `?intent=trial&plan=annual|monthly` on the auth callback (or any URL/search string). */
-export function getTrialPlanFromSearch(pathOrSearch: string): PendingCheckoutPlan | null {
-  try {
-    const url = pathOrSearch.startsWith("?")
-      ? new URL(pathOrSearch, "https://marktr.local")
-      : new URL(pathOrSearch, "https://marktr.local");
-    if (url.searchParams.get("intent") !== "trial") return null;
-    return parseCheckoutPlan(url.searchParams.get("plan"));
-  } catch {
-    return null;
-  }
-}
-
 export function getCheckoutPlanFromPath(pathOrSearch: string): PendingCheckoutPlan | null {
   try {
     const url = pathOrSearch.startsWith("?")
@@ -212,26 +176,21 @@ export function getPendingCheckoutPlan(): PendingCheckoutPlan | null {
 /**
  * Returns a plan when this checkout was explicitly started:
  * the auth `next` URL carries resumeCheckout=… (survives a new browser),
- * or the stored intent id matches in this tab or another tab of this browser.
+ * or this tab's stored intent id matches.
  * Clears leftovers that have no matching intent.
  */
 export function getResumablePendingCheckoutPlan(
-  nextOrSearch?: string | null,
-  options?: { storage?: "any" | "local" }
+  nextOrSearch?: string | null
 ): PendingCheckoutPlan | null {
-  const fromTrial = nextOrSearch ? getTrialPlanFromSearch(nextOrSearch) : null;
-  if (fromTrial) return fromTrial;
-
   const fromUrl = nextOrSearch ? getCheckoutPlanFromPath(nextOrSearch) : null;
   if (fromUrl) {
     return fromUrl;
   }
 
-  const localOnly = options?.storage === "local";
-  const stored = parseStored(localOnly ? readLocalRaw() : readRaw());
+  const stored = parseStored(readRaw());
   if (!stored) return null;
 
-  const intentId = localOnly ? getLocalIntentId() : getIntentId();
+  const intentId = getIntentId();
   if (intentId && stored.intentId && intentId === stored.intentId) {
     return stored.plan;
   }
@@ -255,155 +214,3 @@ export function clearPendingCheckoutPlan() {
   console.log("[pendingCheckout] cleared");
 }
 
-const CLAIM_KEY = "marktr_pending_checkout_claim";
-const TAB_ID_KEY = "marktr_checkout_tab_id";
-/** Another tab may take over a claim older than this. */
-export const CHECKOUT_CLAIM_TTL_MS = 30_000;
-const CLAIM_SETTLE_MS = 50;
-
-type CheckoutClaim = {
-  tabId: string;
-  intentId: string;
-  claimedAt: number;
-};
-
-export function getCheckoutTabId(): string {
-  try {
-    const existing = sessionStorage.getItem(TAB_ID_KEY);
-    if (existing) return existing;
-    const id = newIntentId();
-    sessionStorage.setItem(TAB_ID_KEY, id);
-    return id;
-  } catch {
-    return "tab_fallback";
-  }
-}
-
-function readClaim(): CheckoutClaim | null {
-  try {
-    const raw = localStorage.getItem(CLAIM_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as Partial<CheckoutClaim>;
-    if (
-      typeof parsed.tabId !== "string" ||
-      typeof parsed.intentId !== "string" ||
-      typeof parsed.claimedAt !== "number"
-    ) {
-      return null;
-    }
-    return {
-      tabId: parsed.tabId,
-      intentId: parsed.intentId,
-      claimedAt: parsed.claimedAt,
-    };
-  } catch {
-    return null;
-  }
-}
-
-function writeClaim(claim: CheckoutClaim) {
-  try {
-    localStorage.setItem(CLAIM_KEY, JSON.stringify(claim));
-  } catch {
-    // ignore
-  }
-}
-
-function claimIsFresh(claim: CheckoutClaim, now: number): boolean {
-  return now - claim.claimedAt < CHECKOUT_CLAIM_TTL_MS;
-}
-
-function resolveClaimTarget(
-  nextOrSearch?: string | null,
-  options?: { storage?: "any" | "local" }
-): {
-  plan: PendingCheckoutPlan;
-  intentId: string;
-} | null {
-  const plan = getResumablePendingCheckoutPlan(nextOrSearch, options);
-  if (!plan) return null;
-  const stored = parseStored(options?.storage === "local" ? readLocalRaw() : readRaw());
-  if (stored?.intentId) return { plan, intentId: stored.intentId };
-  const fromTrial = nextOrSearch ? getTrialPlanFromSearch(nextOrSearch) : null;
-  if (fromTrial) return { plan, intentId: `trial:${fromTrial}` };
-  const fromUrl = nextOrSearch ? getCheckoutPlanFromPath(nextOrSearch) : null;
-  if (fromUrl) return { plan, intentId: `url:${fromUrl}` };
-  return { plan, intentId: `plan:${plan}` };
-}
-
-/** True when a different tab holds an unexpired claim on the current intent. */
-export function otherTabHoldsFreshCheckoutClaim(intentId?: string | null): boolean {
-  const claim = readClaim();
-  if (!claim || !claimIsFresh(claim, Date.now())) return false;
-  if (claim.tabId === getCheckoutTabId()) return false;
-  if (intentId && claim.intentId !== intentId) return false;
-  return true;
-}
-
-/**
- * True when this tab may still send the browser to Stripe.
- * A missing or expired claim does not block (direct, same-tab checkout).
- */
-export function thisTabOwnsFreshClaim(): boolean {
-  const claim = readClaim();
-  if (!claim || !claimIsFresh(claim, Date.now())) return true;
-  return claim.tabId === getCheckoutTabId();
-}
-
-export function releaseCheckoutClaim() {
-  const claim = readClaim();
-  if (!claim || claim.tabId !== getCheckoutTabId()) return;
-  try {
-    localStorage.removeItem(CLAIM_KEY);
-  } catch {
-    // ignore
-  }
-}
-
-/**
- * Claim the stored trial intent for this tab.
- * A fresh claim owned by another tab returns null unless `takeover` is set.
- * Claims older than 30 seconds can be taken over.
- * The short settle lets the last writer win if two tabs claim together.
- */
-export async function claimResumablePendingCheckout(
-  nextOrSearch?: string | null,
-  options?: { takeover?: boolean; storage?: "any" | "local" }
-): Promise<PendingCheckoutPlan | null> {
-  const target = resolveClaimTarget(nextOrSearch, options);
-  if (!target) return null;
-
-  const tabId = getCheckoutTabId();
-  const now = Date.now();
-  const existing = readClaim();
-  // Any fresh claim from another tab blocks, even if the stored intent was
-  // already cleared and this tab only still sees the plan on the return URL.
-  if (
-    !options?.takeover &&
-    existing &&
-    existing.tabId !== tabId &&
-    claimIsFresh(existing, now)
-  ) {
-    return null;
-  }
-
-  const claim: CheckoutClaim = {
-    tabId,
-    intentId: target.intentId,
-    claimedAt: now,
-  };
-  writeClaim(claim);
-
-  await new Promise((resolve) => setTimeout(resolve, CLAIM_SETTLE_MS));
-
-  const verified = readClaim();
-  if (
-    !verified ||
-    verified.tabId !== tabId ||
-    verified.claimedAt !== now ||
-    verified.intentId !== target.intentId
-  ) {
-    return null;
-  }
-  return target.plan;
-}

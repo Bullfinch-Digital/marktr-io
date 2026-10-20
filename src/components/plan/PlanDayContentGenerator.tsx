@@ -170,14 +170,18 @@ export function PlanDayContentGenerator({
         <div>
           <h2 className="font-['Fraunces'] text-xl text-foreground">Your content for today</h2>
           <p className="mt-1 font-['Plus_Jakarta_Sans'] text-sm text-foreground/65">
-            Edit the brief, then generate. We save the draft to your Content library.
+            We save the draft to your Content library.
           </p>
         </div>
 
         <label className="block space-y-1.5">
-          <span className="font-['Plus_Jakarta_Sans'] text-xs font-medium text-foreground/60">
-            Brief
+          <span className="font-['Plus_Jakarta_Sans'] text-[11px] font-semibold uppercase tracking-[0.14em] text-foreground/60">
+            Steer today’s content
           </span>
+          <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/55">
+            Tell marktr the angle, who it’s for, or what to say. This is how you shape today’s
+            draft.
+          </p>
           <Textarea
             value={brief}
             onChange={(event) => onBriefChange(event.target.value)}
@@ -273,15 +277,21 @@ export function PlanDayContentGenerator({
           ) : null}
         </div>
 
-        <Button
-          type="button"
-          disabled={!canGenerate || strategy.icps.length === 0}
-          data-track-id="plan_generate_content"
-          data-track-location="plan_day_page"
-          onClick={() => void generate(false)}
-        >
-          Generate
-        </Button>
+        <div className="space-y-2">
+          <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/75">
+            Edit the brief above to steer today’s content. Notes at the bottom are for after
+            you’ve done the task.
+          </p>
+          <Button
+            type="button"
+            disabled={!canGenerate || strategy.icps.length === 0}
+            data-track-id="plan_generate_content"
+            data-track-location="plan_day_page"
+            onClick={() => void generate(false)}
+          >
+            Generate
+          </Button>
+        </div>
         {error ? (
           <p className="font-['Plus_Jakarta_Sans'] text-sm text-red-700 dark:text-red-300">{error}</p>
         ) : null}

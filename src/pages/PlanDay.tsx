@@ -314,7 +314,8 @@ function PlanDayBody() {
               <div>
                 <h2 className="font-['Fraunces'] text-xl text-foreground">Notes and results</h2>
                 <p className="mt-1 font-['Plus_Jakarta_Sans'] text-xs text-foreground/55">
-                  Your notes help marktr shape your next round.
+                  Fill these in after you've done the task. marktr uses them to shape your next days
+                  and your next plan.
                 </p>
               </div>
               <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/50" aria-live="polite">

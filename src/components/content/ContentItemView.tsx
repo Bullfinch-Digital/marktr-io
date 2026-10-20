@@ -11,6 +11,13 @@ import {
   CONTENT_SECTION_LABELS,
   type ContentSectionId,
 } from "../../lib/contentItemEditPayload";
+import {
+  ContentField,
+  ContentFieldLabel,
+  ContentFieldValue,
+  ContentItemHeader,
+  ContentStructuredItem,
+} from "./ContentStructure";
 
 type Props = {
   type: ContentItemType;
@@ -23,9 +30,7 @@ type Props = {
 
 function SectionLabel({ bare, children }: { bare: boolean; children: React.ReactNode }) {
   if (bare) return null;
-  return (
-    <p className="font-['Plus_Jakarta_Sans'] text-xs uppercase tracking-wide text-foreground/55">{children}</p>
-  );
+  return <ContentFieldLabel>{children}</ContentFieldLabel>;
 }
 
 function wrapSection(content: React.ReactNode, bare: boolean) {
@@ -41,34 +46,22 @@ function ScalarBlock({
   value,
   bare,
   emphasize,
+  secondary,
 }: {
   label: string;
   value: string;
   bare: boolean;
   emphasize?: boolean;
+  secondary?: boolean;
 }) {
-  if (!value.trim()) {
-    return wrapSection(
-      <>
-        <SectionLabel bare={bare}>{label}</SectionLabel>
-        <p className={`font-['Plus_Jakarta_Sans'] text-sm text-foreground/45 ${bare ? "" : "mt-2"}`}>—</p>
-      </>,
-      bare
-    );
-  }
-
   return wrapSection(
     <>
       <SectionLabel bare={bare}>{label}</SectionLabel>
-      <p
-        className={`whitespace-pre-wrap ${
-          emphasize
-            ? "font-['Fraunces'] text-lg text-foreground"
-            : "font-['Plus_Jakarta_Sans'] text-sm text-foreground/80"
-        } ${bare ? "" : "mt-2"}`}
-      >
-        {value}
-      </p>
+      <div className={bare ? "" : "mt-1.5"}>
+        <ContentFieldValue primary={emphasize} secondary={secondary} empty={!value.trim()}>
+          {value.trim() ? value : "—"}
+        </ContentFieldValue>
+      </div>
     </>,
     bare
   );
@@ -76,6 +69,7 @@ function ScalarBlock({
 
 function ObjectListBlock<T extends Record<string, string>>({
   label,
+  itemLabel,
   items,
   fields,
   bare,
@@ -83,8 +77,9 @@ function ObjectListBlock<T extends Record<string, string>>({
   emptyMessage,
 }: {
   label: string;
+  itemLabel: string;
   items: T[];
-  fields: Array<{ key: keyof T & string; label: string }>;
+  fields: Array<{ key: keyof T & string; label: string; primary?: boolean; secondary?: boolean }>;
   bare: boolean;
   compact?: boolean;
   emptyMessage: string;
@@ -96,34 +91,30 @@ function ObjectListBlock<T extends Record<string, string>>({
     <>
       <SectionLabel bare={bare}>{label}</SectionLabel>
       {items.length > 0 ? (
-        <div className={`space-y-3 ${bare ? "mt-2" : "mt-3"}`}>
+        <div className={`space-y-5 ${bare ? "mt-2" : "mt-4"}`}>
           {shown.map((item, index) => (
-            <div
-              key={`${label}-${index}`}
-              className="rounded-design border border-black/10 bg-accent-grey/10 p-3"
-            >
-              <p className="font-['Plus_Jakarta_Sans'] text-xs font-medium text-foreground/55 mb-2">
-                {label.replace(/s$/, "")} {index + 1}
-              </p>
-              {fields.map((field) => {
-                const value = item[field.key] ?? "";
-                if (!value.trim()) return null;
-                return (
-                  <div key={field.key} className="mt-1.5 first:mt-0">
-                    <p className="font-['Plus_Jakarta_Sans'] text-xs font-medium text-foreground/60">
-                      {field.label}
-                    </p>
-                    <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/80 whitespace-pre-wrap">
-                      {value}
-                    </p>
-                  </div>
-                );
-              })}
-            </div>
+            <ContentStructuredItem key={`${label}-${index}`}>
+              <ContentItemHeader label={itemLabel} index={index} />
+              <div className="mt-3">
+                {fields.map((field) => {
+                  const value = item[field.key] ?? "";
+                  if (!value.trim()) return null;
+                  return (
+                    <ContentField
+                      key={field.key}
+                      label={field.label}
+                      value={value}
+                      primary={field.primary}
+                      secondary={field.secondary}
+                    />
+                  );
+                })}
+              </div>
+            </ContentStructuredItem>
           ))}
         </div>
       ) : (
-        <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/60 mt-2">{emptyMessage}</p>
+        <p className="mt-2 font-['Plus_Jakarta_Sans'] text-sm text-foreground/60">{emptyMessage}</p>
       )}
     </>,
     bare
@@ -155,12 +146,18 @@ export function ContentItemView({
         )
       : null;
 
-  const renderScalar = (sectionId: ContentSectionId, value: string, emphasize?: boolean) =>
+  const renderScalar = (
+    sectionId: ContentSectionId,
+    value: string,
+    emphasize?: boolean,
+    secondary?: boolean
+  ) =>
     ScalarBlock({
       label: CONTENT_SECTION_LABELS[sectionId],
       value,
       bare,
       emphasize,
+      secondary,
     });
 
   let sections: Array<{ id: ContentSectionId; node: React.ReactNode }> = [];
@@ -172,7 +169,7 @@ export function ContentItemView({
         { id: "on_image_text", node: renderScalar("on_image_text", c.on_image_text, true) },
         { id: "caption", node: renderScalar("caption", c.caption) },
         { id: "cta", node: renderScalar("cta", c.cta) },
-        { id: "visual_direction", node: renderScalar("visual_direction", c.visual_direction) },
+        { id: "visual_direction", node: renderScalar("visual_direction", c.visual_direction, false, true) },
       ];
       break;
     }
@@ -181,7 +178,7 @@ export function ContentItemView({
       sections = [
         { id: "on_image_text", node: renderScalar("on_image_text", c.on_image_text, true) },
         { id: "cta", node: renderScalar("cta", c.cta) },
-        { id: "visual_direction", node: renderScalar("visual_direction", c.visual_direction) },
+        { id: "visual_direction", node: renderScalar("visual_direction", c.visual_direction, false, true) },
       ];
       break;
     }
@@ -192,10 +189,11 @@ export function ContentItemView({
           id: "slides",
           node: ObjectListBlock<IgCarouselSlide>({
             label: CONTENT_SECTION_LABELS.slides,
+            itemLabel: "Slide",
             items: c.slides ?? [],
             fields: [
-              { key: "slide_text", label: "Slide text" },
-              { key: "visual_direction", label: "Visual direction" },
+              { key: "slide_text", label: "Slide text", primary: true },
+              { key: "visual_direction", label: "Visual direction", secondary: true },
             ],
             bare,
             compact,
@@ -215,10 +213,11 @@ export function ContentItemView({
           id: "beats",
           node: ObjectListBlock<ReelBeat>({
             label: CONTENT_SECTION_LABELS.beats,
+            itemLabel: "Scene",
             items: c.beats ?? [],
             fields: [
-              { key: "on_screen_text", label: "On-screen text" },
-              { key: "clip_direction", label: "Clip direction" },
+              { key: "on_screen_text", label: "On-screen text", primary: true },
+              { key: "clip_direction", label: "Clip direction", secondary: true },
             ],
             bare,
             compact,
@@ -239,9 +238,10 @@ export function ContentItemView({
           id: "body_sections",
           node: ObjectListBlock<EmailBodySection>({
             label: CONTENT_SECTION_LABELS.body_sections,
+            itemLabel: "Email",
             items: c.body_sections ?? [],
             fields: [
-              { key: "heading", label: "Heading" },
+              { key: "heading", label: "Heading", primary: true },
               { key: "body", label: "Body" },
             ],
             bare,
@@ -262,9 +262,10 @@ export function ContentItemView({
           id: "sections",
           node: ObjectListBlock<LandingPageSection>({
             label: CONTENT_SECTION_LABELS.sections,
+            itemLabel: "Section",
             items: c.sections ?? [],
             fields: [
-              { key: "heading", label: "Heading" },
+              { key: "heading", label: "Heading", primary: true },
               { key: "body", label: "Body" },
             ],
             bare,

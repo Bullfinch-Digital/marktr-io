@@ -13,6 +13,7 @@ import {
   type ContentDraft,
   type ContentSectionId,
 } from "../../lib/contentItemEditPayload";
+import { ContentFieldLabel } from "./ContentStructure";
 import { EditableObjectListSection } from "./EditableObjectListSection";
 
 type Props = {
@@ -47,25 +48,25 @@ function ScalarField({
   onChange: (value: string) => void;
 }) {
   return (
-    <div className="space-y-2">
-      <label className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70">{label}</label>
+    <label className="block space-y-1.5">
+      <ContentFieldLabel>{label}</ContentFieldLabel>
       {multiline ? (
         <Textarea
           value={value}
           disabled={isLocked}
           onChange={(e) => onChange(e.target.value)}
           rows={4}
-          className="border-black rounded-design resize-none"
+          className="rounded-design border-brand-stroke font-['Plus_Jakarta_Sans'] text-[15px] leading-[1.65] resize-none"
         />
       ) : (
         <Input
           value={value}
           disabled={isLocked}
           onChange={(e) => onChange(e.target.value)}
-          className="border-black rounded-design"
+          className="rounded-design border-brand-stroke font-['Plus_Jakarta_Sans'] text-[15px]"
         />
       )}
-    </div>
+    </label>
   );
 }
 
@@ -120,8 +121,8 @@ export function ContentEditForm({
           title={CONTENT_SECTION_LABELS.slides}
           items={slides}
           fields={[
-            { key: "slide_text", label: "Slide text", multiline: true },
-            { key: "visual_direction", label: "Visual direction", multiline: true },
+            { key: "slide_text", label: "Slide text", multiline: true, primary: true },
+            { key: "visual_direction", label: "Visual direction", multiline: true, secondary: true },
           ]}
           createEmpty={emptySlide}
           getKey={(_, i) => `slide-${i}`}
@@ -142,15 +143,15 @@ export function ContentEditForm({
           title={CONTENT_SECTION_LABELS.beats}
           items={beats}
           fields={[
-            { key: "on_screen_text", label: "On-screen text", multiline: true },
-            { key: "clip_direction", label: "Clip direction", multiline: true },
+            { key: "on_screen_text", label: "On-screen text", multiline: true, primary: true },
+            { key: "clip_direction", label: "Clip direction", multiline: true, secondary: true },
           ]}
           createEmpty={emptyBeat}
           getKey={(_, i) => `beat-${i}`}
           isLocked={isLocked}
           onChange={(items) => patch("beats", items)}
-          itemLabel="Beat"
-          addLabel="Add beat"
+          itemLabel="Scene"
+          addLabel="Add scene"
         />
       </SectionCard>
     );
@@ -164,14 +165,14 @@ export function ContentEditForm({
           title={CONTENT_SECTION_LABELS.body_sections}
           items={bodySections}
           fields={[
-            { key: "heading", label: "Heading" },
+            { key: "heading", label: "Heading", primary: true },
             { key: "body", label: "Body", multiline: true },
           ]}
           createEmpty={emptyEmailSection}
           getKey={(_, i) => `body-${i}`}
           isLocked={isLocked}
           onChange={(items) => patch("body_sections", items)}
-          itemLabel="Section"
+          itemLabel="Email"
           addLabel="Add body section"
         />
       </SectionCard>
@@ -186,7 +187,7 @@ export function ContentEditForm({
           title={CONTENT_SECTION_LABELS.sections}
           items={pageSections}
           fields={[
-            { key: "heading", label: "Heading" },
+            { key: "heading", label: "Heading", primary: true },
             { key: "body", label: "Body", multiline: true },
           ]}
           createEmpty={emptyLandingSection}

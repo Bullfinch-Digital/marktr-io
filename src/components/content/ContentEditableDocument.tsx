@@ -46,18 +46,18 @@ function SectionShell({
 }) {
   return (
     <div
-      className={`rounded-design border bg-white ${
+      className={`rounded-design border bg-card ${
         isEditing
-          ? "border-black/30 shadow-md"
+          ? "border-brand-stroke shadow-md"
           : isStaged
             ? "border-brand-stroke bg-brand-coral/20"
-            : "border-black/10"
+            : "border-brand-stroke/35"
       }`}
     >
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-black/5 px-4 py-2">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-brand-stroke/15 px-4 py-2">
         <div className="flex items-center gap-2">
           {sectionId !== "title" ? (
-            <p className="font-['Plus_Jakarta_Sans'] text-xs uppercase tracking-wide text-foreground/55">
+            <p className="font-['Plus_Jakarta_Sans'] text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-navy/60 dark:text-foreground/55">
               {CONTENT_SECTION_LABELS[sectionId]}
             </p>
           ) : null}
@@ -147,7 +147,7 @@ export function ContentEditableDocument({
               onChange={onDraftChange}
             />
           ) : sectionId === "title" ? (
-            <h1 className="font-['Fraunces'] text-3xl lg:text-4xl text-[#0D1833]">
+            <h1 className="font-['Fraunces'] text-3xl text-brand-navy dark:text-foreground lg:text-4xl">
               {draft.title || "Untitled"}
             </h1>
           ) : (

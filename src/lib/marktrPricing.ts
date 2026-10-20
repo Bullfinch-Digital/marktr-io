@@ -138,7 +138,7 @@ export const MARKTR_PRO_BENEFITS: readonly MarktrProBenefit[] = [
 /** Convenience strings for checklists that only need the full benefit copy. */
 export const MARKTR_PRO_BENEFIT_LABELS = MARKTR_PRO_BENEFITS.map((b) => b.label);
 
-/** /pricing sales section above the Pro card. Edit here — copy is used as-is. */
+/** Anchor for /pricing#pricing-pro. The page CTA lives here; the hash does not open the paywall. */
 export const PRICING_PRO_CARD_ID = "pricing-pro";
 
 export const PRICING_SALES = {

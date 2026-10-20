@@ -1,14 +1,21 @@
-import { PRICING_PRO_CARD_ID, PRICING_SALES } from "@/lib/marktrPricing";
-
-function scrollToProCard() {
-  const target = document.getElementById(PRICING_PRO_CARD_ID);
-  if (!target) return;
-  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  target.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
-}
+import { useEffect } from "react";
+import { MARKTR_PRO_CARD_SUBTITLE, PRICING_PRO_CARD_ID, PRICING_SALES } from "@/lib/marktrPricing";
+import { usePaywall } from "@/contexts/PaywallContext";
+import { useAuth } from "@/contexts/AuthContext";
+import useSubscription from "@/hooks/useSubscription";
+import { isRealUser } from "@/utils/isRealUser";
 
 export function PricingSalesSection() {
   const copy = PRICING_SALES;
+  const { user } = useAuth();
+  const { isPro, ready: subscriptionReady } = useSubscription();
+  const { openPaywall, startCheckout, isStartingCheckout } = usePaywall();
+  const hasAccess = isRealUser(user) && subscriptionReady && isPro;
+
+  useEffect(() => {
+    if (window.location.hash.replace(/^#/, "") !== PRICING_PRO_CARD_ID) return;
+    document.getElementById(PRICING_PRO_CARD_ID)?.scrollIntoView({ behavior: "auto", block: "start" });
+  }, []);
 
   return (
     <section
@@ -70,20 +77,29 @@ export function PricingSalesSection() {
           {copy.bridgeAfter}
         </p>
         <p className="mx-auto mt-5 max-w-xl text-sm text-foreground/55">{copy.honest}</p>
-        <a
-          href={`#${PRICING_PRO_CARD_ID}`}
-          data-track-id="pricing_hero_cta"
-          data-track-location="pricing_hero"
-          data-track-destination={`#${PRICING_PRO_CARD_ID}`}
-          onClick={(event) => {
-            event.preventDefault();
-            scrollToProCard();
-          }}
-          className="mt-10 inline-flex min-h-11 w-full items-center justify-center rounded-full border-2 border-brand-stroke bg-brand-lime px-8 py-3.5 text-base font-medium text-brand-navy transition-opacity hover:bg-brand-lime/90 sm:w-auto sm:min-w-[280px]"
-        >
-          {copy.cta}
-        </a>
-        <p className="mt-3 text-sm text-foreground/55">{copy.ctaFinePrint}</p>
+        <div id={PRICING_PRO_CARD_ID} className="scroll-mt-32">
+          <p className="mx-auto mt-8 max-w-xl font-['Fraunces'] text-lg font-medium leading-snug text-foreground sm:text-2xl">
+            {MARKTR_PRO_CARD_SUBTITLE}
+          </p>
+          <button
+            type="button"
+            data-track-id="pricing_hero_cta"
+            data-track-location="pricing_hero"
+            data-track-destination="paywall"
+            disabled={isStartingCheckout}
+            onClick={() => {
+              if (hasAccess) {
+                void startCheckout("annual");
+                return;
+              }
+              openPaywall("annual", "pricing_page");
+            }}
+            className="mt-6 inline-flex min-h-11 w-full items-center justify-center rounded-full border-2 border-brand-stroke bg-brand-lime px-8 py-3.5 text-base font-medium text-brand-navy transition-opacity hover:bg-brand-lime/90 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:min-w-[280px]"
+          >
+            {isStartingCheckout ? "Redirecting…" : hasAccess ? "Manage billing" : copy.cta}
+          </button>
+          <p className="mt-3 text-sm text-foreground/55">{copy.ctaFinePrint}</p>
+        </div>
         <p className="mx-auto mt-16 max-w-2xl text-xs leading-relaxed text-foreground/50 lg:mt-20">
           {copy.footnoteBefore}
           {copy.sources.map((source, index) => (

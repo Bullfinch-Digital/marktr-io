@@ -1,26 +1,15 @@
-import { Check, Lock, RotateCcw, Heart } from "lucide-react";
-import { Button } from "../components/ui/button";
+import { Lock, RotateCcw, Heart } from "lucide-react";
 import { Link } from "react-router-dom";
 import { PricingSalesSection } from "../components/pricing/PricingSalesSection";
-import { usePaywall } from "../contexts/PaywallContext";
 import {
   MARKTR_MONEY_BACK_DAYS,
   MARKTR_MONEY_BACK_GUARANTEE,
   MARKTR_PRO_ANNUAL_TOTAL_GBP,
-  MARKTR_PRO_BENEFITS,
-  MARKTR_PRO_BILLING_LINE,
-  MARKTR_PRO_CARD_SUBTITLE,
   MARKTR_PRO_MONTHLY_EQUIVALENT_GBP,
-  MARKTR_PRO_PLAN_NAME,
-  MARKTR_PRO_PRICE_HEADLINE,
   MARKTR_TRIAL_DAYS,
-  MARKTR_TRIAL_FINE_PRINT,
-  MARKTR_TRIAL_LEGAL_STRIP,
-  PRICING_PRO_CARD_ID,
 } from "../lib/marktrPricing";
 
 export default function Pricing() {
-  const { openPaywall, isStartingCheckout } = usePaywall();
 
   const faqs = [
     {
@@ -51,53 +40,6 @@ export default function Pricing() {
   return (
     <div className="min-h-screen bg-background">
       <PricingSalesSection />
-
-      <section id={PRICING_PRO_CARD_ID} data-track-section="pricing" className="scroll-mt-32 pb-16 px-4 sm:px-6 lg:px-8">
-        <div className="container mx-auto max-w-xl">
-          <div className="relative bg-background rounded-design p-8 flex flex-col border-2 border-black shadow-lg">
-            <div className="mb-6">
-              <h3 className="font-['Fraunces'] text-2xl mb-2">{MARKTR_PRO_PLAN_NAME}</h3>
-              <div className="flex items-baseline gap-1 mb-1">
-                <span className="font-['Fraunces'] text-4xl">{MARKTR_PRO_PRICE_HEADLINE}</span>
-              </div>
-              <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/60 mb-1">{MARKTR_PRO_BILLING_LINE}</p>
-              <p className="font-['Plus_Jakarta_Sans'] text-xs text-foreground/60 mb-2">VAT may apply</p>
-              <p className="font-['Plus_Jakarta_Sans'] text-sm text-foreground/70">{MARKTR_PRO_CARD_SUBTITLE}</p>
-            </div>
-
-            <ul className="space-y-3 mb-8 flex-grow">
-              {MARKTR_PRO_BENEFITS.map((feature) => (
-                <li key={feature.id} className="flex items-start gap-2">
-                  <Check className="w-5 h-5 shrink-0 mt-0.5 text-foreground" strokeWidth={2.5} />
-                  <span className="font-['Plus_Jakarta_Sans'] text-sm">{feature.label}</span>
-                </li>
-              ))}
-            </ul>
-
-            <Button
-              type="button"
-              data-track-id="pricing_start_trial"
-              data-track-location="pricing"
-              data-track-destination="paywall"
-              disabled={isStartingCheckout}
-              onClick={() => openPaywall("annual", "pricing_page")}
-              className="w-full font-['Fraunces'] bg-button-green text-text-dark hover:bg-button-green/90 transition-all hover:scale-105 active:scale-95"
-            >
-              {isStartingCheckout ? "Redirecting…" : "Start free trial"}
-            </Button>
-            <p className="mt-3 text-center font-['Plus_Jakarta_Sans'] text-xs text-foreground/60">
-              {MARKTR_TRIAL_FINE_PRINT}
-            </p>
-            <p className="mt-2 text-center font-['Plus_Jakarta_Sans'] text-xs text-foreground/60">
-              {MARKTR_MONEY_BACK_GUARANTEE}
-            </p>
-          </div>
-
-          <p className="mt-6 text-center font-['Plus_Jakarta_Sans'] text-xs text-foreground/60">
-            {MARKTR_TRIAL_LEGAL_STRIP}
-          </p>
-        </div>
-      </section>
 
       <section className="pb-12 px-4 sm:px-6 lg:px-8">
         <div className="container mx-auto max-w-5xl">

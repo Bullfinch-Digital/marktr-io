@@ -34,6 +34,8 @@ Sections: `data-track-section="hero"`. Case studies: `data-track-case-study` + `
 
 `dashboard_first_view` uses `created_at` (skip if the account is older than 7 days) plus a per-user localStorage flag. There is no profile column for this.
 
+Plan CTAs: `dashboard_today_task`, `plan_extend`, `plan_print`. Locations: `dashboard`, `plan_page`.
+
 ## Acquisition / homepage
 
 | Event | Params | Where it fires |
@@ -92,6 +94,8 @@ Sections: `data-track-section="hero"`. Case studies: `data-track-case-study` + `
 | `plan_notes_saved` | `location` (`plan_page` \| `plan_day_page`) | Day notes persist |
 | `plan_content_generated` | `location` (`plan_day_page`), `content_type` | First generate on a plan day succeeds |
 | `plan_content_another_version` | `location` (`plan_day_page`), `content_type` | “Make another version” succeeds |
+| `plan_extended` | `length_days` | Extend-plan generate + save succeeds |
+| `plan_printed` | — | Branded plan PDF is built |
 
 ## Server-side (Measurement Protocol)
 

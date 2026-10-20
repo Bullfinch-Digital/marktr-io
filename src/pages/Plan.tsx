@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { ChevronDown, ChevronUp, ListChecks, Plus } from "lucide-react";
 import DashboardShell from "../layouts/DashboardShell";
 import { Button } from "../components/ui/button";
@@ -21,6 +21,7 @@ export default function PlanPage() {
 
 function PlanPageBody() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
   const { activeBrandId } = useBrand();
   const { strategies, isLoading: strategiesLoading } = useBrandStrategies(activeBrandId || "");
@@ -31,6 +32,7 @@ function PlanPageBody() {
   const [error, setError] = useState<string | null>(null);
   const [archivedOpen, setArchivedOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
+  const [createStrategyId, setCreateStrategyId] = useState<string | undefined>();
 
   const strategyIds = useMemo(() => new Set(strategies.map((row) => row.id)), [strategies]);
   const scopedPlans = useMemo(
@@ -40,6 +42,17 @@ function PlanPageBody() {
   const activePlans = scopedPlans.filter((plan) => plan.status === "active");
   const archivedPlans = scopedPlans.filter((plan) => plan.status === "archived");
   const strategyOptions = strategies.map((row) => ({ id: row.id, title: row.title }));
+
+  useEffect(() => {
+    if (searchParams.get("create") !== "1") return;
+    const strategy = searchParams.get("strategy");
+    setCreateStrategyId(strategy || undefined);
+    setCreateOpen(true);
+    const next = new URLSearchParams(searchParams);
+    next.delete("create");
+    next.delete("strategy");
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -166,7 +179,7 @@ function PlanPageBody() {
         isOpen={createOpen}
         userId={user?.id ?? ""}
         strategies={strategyOptions}
-        defaultStrategyId={strategyOptions[0]?.id}
+        defaultStrategyId={createStrategyId || strategyOptions[0]?.id}
         onClose={() => setCreateOpen(false)}
         onCreated={(plan) => {
           setCreateOpen(false);

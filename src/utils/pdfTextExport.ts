@@ -26,7 +26,7 @@ const HEADER_PAD_X = 36;
 /** Leave this much clear at the bottom of every page so the footer never overlaps content. */
 export const PDF_FOOTER_RESERVE = 68;
 
-export type PdfDocumentType = "Customer profile" | "Brand story" | "Strategy" | "Content";
+export type PdfDocumentType = "Customer profile" | "Brand story" | "Strategy" | "Content" | "Plan";
 
 export type PdfBrandedHeader = {
   documentType: PdfDocumentType;
@@ -525,10 +525,27 @@ export async function createTextPdf(header: PdfBrandedHeader) {
     y += 6;
   };
 
+  const tickBox = (label = "") => {
+    ensure(20);
+    doc.setDrawColor("#101A26");
+    doc.setLineWidth(1.1);
+    doc.rect(MARGIN, y - 10, 12, 12);
+    if (label) {
+      doc.setFont("Helvetica", "normal");
+      doc.setFontSize(11);
+      doc.setTextColor("#333333");
+      const lines = doc.splitTextToSize(label, maxWidth - 22) as string[];
+      doc.text(lines, MARGIN + 20, y);
+      y += Math.max(18, lines.length * 14);
+    } else {
+      y += 18;
+    }
+  };
+
   const save = async (filename: string) => {
     await stampMarktrFooter(doc);
     doc.save(filename);
   };
 
-  return { title, subtitle, rule, heading, subheading, body, bullets, gap, save };
+  return { title, subtitle, rule, heading, subheading, body, bullets, tickBox, gap, save };
 }

@@ -82,7 +82,7 @@ export function DashboardSidebar({
     });
   };
   const { user } = useAuth();
-  const latestPlanId = useLatestActivePlan();
+  const { planId: latestPlanId } = useLatestActivePlan();
   const dashboardPath = isRealUser(user) ? "/dashboard" : "/guest-dashboard";
   const planPath = latestPlanId ? `/plan/${latestPlanId}` : "/plan";
 

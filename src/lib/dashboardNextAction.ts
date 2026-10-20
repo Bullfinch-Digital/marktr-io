@@ -1,3 +1,5 @@
+import { getPlanFocus, type PlanDay } from "./plans";
+
 export type DashboardNextActionId =
   | "health"
   | "story"
@@ -5,6 +7,9 @@ export type DashboardNextActionId =
   | "aim"
   | "strategy"
   | "plan"
+  | "today"
+  | "plan_next"
+  | "plan_complete"
   | "trial";
 
 export type DashboardNextAction = {
@@ -14,9 +19,19 @@ export type DashboardNextAction = {
   cta: string;
   aimLineageId?: string;
   strategyId?: string;
+  planId?: string;
+  dayNumber?: number;
+  trackId?: string;
 };
 
-const PLAN_BENEFIT = "A 14-day plan with the content to do each task.";
+export type DashboardActivePlanInput = {
+  id: string;
+  startDate: string;
+  lengthDays: number;
+  days: PlanDay[];
+};
+
+const PLAN_BUILD_BENEFIT = "One clear task a day, from the strategy you already wrote.";
 
 const FOURTEEN_DAY_CHECKS_PREFIX = "marktr_first_14_checks:";
 
@@ -75,6 +90,43 @@ export function firstUntickedFourteenDayItem(
   return null;
 }
 
+export function resolveActivePlanNextAction(
+  plan: DashboardActivePlanInput,
+  today: Date = new Date()
+): DashboardNextAction {
+  const focus = getPlanFocus(plan.startDate, plan.lengthDays, plan.days, today);
+  if (focus.kind === "complete") {
+    return {
+      id: "plan_complete",
+      title: "Plan complete",
+      benefit: "We’ll use your notes and results to shape the next round.",
+      cta: "Extend my plan",
+      planId: plan.id,
+      trackId: "plan_extend",
+    };
+  }
+  if (focus.kind === "today") {
+    return {
+      id: "today",
+      title: `Today: Day ${focus.day.day_number}, ${focus.day.title}`,
+      benefit: focus.day.task,
+      cta: "Open today's task",
+      planId: plan.id,
+      dayNumber: focus.day.day_number,
+      trackId: "dashboard_today_task",
+    };
+  }
+  return {
+    id: "plan_next",
+    title: `Today's task is done. Next up: Day ${focus.day.day_number}`,
+    benefit: focus.day.title,
+    cta: "Open today's task",
+    planId: plan.id,
+    dayNumber: focus.day.day_number,
+    trackId: "dashboard_today_task",
+  };
+}
+
 export function resolveDashboardNextAction(input: {
   hasHealth: boolean;
   hasStory: boolean;
@@ -88,7 +140,18 @@ export function resolveDashboardNextAction(input: {
   hasStrategy: boolean;
   strategyId?: string | null;
   firstUntickedPlanItem?: string | null;
+  /** Null while the active plan is still loading for someone with access. */
+  planReady?: boolean;
+  activePlan?: DashboardActivePlanInput | null;
+  today?: Date;
 }): DashboardNextAction | null {
+  if (input.hasAccess) {
+    if (input.planReady === false) return null;
+    if (input.activePlan) {
+      return resolveActivePlanNextAction(input.activePlan, input.today);
+    }
+  }
+
   if (!input.hasHealth) {
     return {
       id: "health",
@@ -134,9 +197,9 @@ export function resolveDashboardNextAction(input: {
     }
     return {
       id: "plan",
-      title: "Start your 14-day plan",
-      benefit: input.firstUntickedPlanItem?.trim() || PLAN_BENEFIT,
-      cta: "Start your 14-day plan",
+      title: "Build your day-by-day plan",
+      benefit: input.firstUntickedPlanItem?.trim() || PLAN_BUILD_BENEFIT,
+      cta: "Build your day-by-day plan",
       strategyId: input.strategyId ?? undefined,
     };
   }

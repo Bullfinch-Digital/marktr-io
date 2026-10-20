@@ -36,6 +36,7 @@ type Props = {
     tone?: string | null;
   }) => Promise<unknown>;
   onClose: () => void;
+  onCreated?: (strategy: { id: string; title?: string }) => void;
 };
 
 export function StrategyCreatePanel({
@@ -46,6 +47,7 @@ export function StrategyCreatePanel({
   initialIcpLineageIds = [],
   onGenerate,
   onClose,
+  onCreated,
 }: Props) {
   const [selectedAimLineages, setSelectedAimLineages] = useState<string[]>([]);
   const [selectedIcpLineages, setSelectedIcpLineages] = useState<string[]>([]);
@@ -147,7 +149,7 @@ export function StrategyCreatePanel({
     });
 
     try {
-      await Promise.all([
+      const [created] = await Promise.all([
         onGenerate({
           aimLineageIds: uniq(selectedAimLineages),
           icpLineageIds: uniq(selectedIcpLineages),
@@ -158,6 +160,15 @@ export function StrategyCreatePanel({
         checklistPromise,
       ]);
       setGenerationFailures(0);
+      if (created && typeof created === "object" && "id" in created) {
+        const record = created as { id?: unknown; title?: unknown };
+        if (typeof record.id === "string") {
+          onCreated?.({
+            id: record.id,
+            title: typeof record.title === "string" ? record.title : undefined,
+          });
+        }
+      }
       onClose();
     } catch {
       setGenerationFailures((count) => count + 1);

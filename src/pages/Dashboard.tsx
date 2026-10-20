@@ -51,6 +51,7 @@ import {
 } from "../lib/dashboardNextAction";
 import { greetingFirstName } from "../lib/greetingName";
 import { DASHBOARD_STRATEGY_STATE_KEY } from "../lib/dashboardStrategyIntent";
+import { useLatestActivePlan } from "../hooks/useLatestActivePlan";
 import { isRealUser } from "../utils/isRealUser";
 
 type HealthCheckRow = {
@@ -115,6 +116,7 @@ export default function Dashboard() {
   const { aims, isLoading: aimsLoading } = useBrandAims(scopedBrandId || undefined);
   const { strategies, isLoading: strategiesLoading } = useBrandStrategies(scopedBrandId);
   const { items: contentItems, isLoading: contentLoading } = useContentItems(scopedBrandId);
+  const { plan: activePlan, loading: planLoading } = useLatestActivePlan();
 
   const { ready: subReady, isPro } = useSubscription();
 
@@ -427,6 +429,15 @@ export default function Dashboard() {
         hasStrategy: strategies.length > 0,
         strategyId: latestStrategy?.id,
         firstUntickedPlanItem,
+        planReady: !planLoading,
+        activePlan: activePlan
+          ? {
+              id: activePlan.id,
+              startDate: activePlan.start_date,
+              lengthDays: activePlan.length_days,
+              days: activePlan.days,
+            }
+          : null,
       }),
     [
       hasHealth,
@@ -441,6 +452,8 @@ export default function Dashboard() {
       strategies.length,
       latestStrategy?.id,
       firstUntickedPlanItem,
+      planLoading,
+      activePlan,
     ]
   );
 
@@ -473,8 +486,22 @@ export default function Dashboard() {
       });
       return;
     }
-    if (nextAction.id === "plan" && nextAction.strategyId) {
-      navigate(`/strategy/${nextAction.strategyId}#first-14-days`);
+    if (nextAction.id === "plan") {
+      const params = new URLSearchParams({ create: "1" });
+      if (nextAction.strategyId) params.set("strategy", nextAction.strategyId);
+      navigate(`/plan?${params.toString()}`);
+      return;
+    }
+    if (
+      (nextAction.id === "today" || nextAction.id === "plan_next") &&
+      nextAction.planId &&
+      nextAction.dayNumber
+    ) {
+      navigate(`/plan/${nextAction.planId}/day/${nextAction.dayNumber}`);
+      return;
+    }
+    if (nextAction.id === "plan_complete" && nextAction.planId) {
+      navigate(`/plan/${nextAction.planId}?extend=1`);
       return;
     }
     if (nextAction.id === "trial") openPaywall();
@@ -543,6 +570,7 @@ export default function Dashboard() {
               benefit={nextAction.benefit}
               cta={nextAction.cta}
               onAction={runNextAction}
+              trackId={nextAction.trackId}
             />
           ) : null}
 

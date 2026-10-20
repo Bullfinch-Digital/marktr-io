@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, MoreVertical } from "lucide-react";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { ArrowLeft, MoreVertical, Printer } from "lucide-react";
 import { toast } from "sonner";
 import DashboardShell from "../layouts/DashboardShell";
 import { Button } from "../components/ui/button";
@@ -10,10 +10,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "../components/ui/dropdown-menu";
+import { ExtendPlanModal } from "../components/plan/ExtendPlanModal";
 import { PlanArchiveModal } from "../components/plan/PlanArchiveModal";
 import { PlanDayToggle } from "../components/plan/PlanDayToggle";
 import { formatPlanDate, formatPlanStartDate, PLAN_KIND_META } from "../components/plan/planDisplay";
 import { useAuth } from "../contexts/AuthContext";
+import { useBrand } from "../contexts/BrandContext";
 import { track } from "../lib/analytics";
 import { localISODate } from "../lib/localCalendar";
 import {
@@ -28,6 +30,7 @@ import {
   type PlanWithDays,
 } from "../lib/plans";
 import { supabase } from "../config/supabase";
+import { exportPlanAsPDF } from "../utils/exportPlan";
 
 export default function PlanDetailPage() {
   return (
@@ -40,13 +43,18 @@ export default function PlanDetailPage() {
 function PlanDetailBody() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
+  const { activeBrand } = useBrand();
   const [plan, setPlan] = useState<PlanWithDays | null>(null);
   const [strategyTitle, setStrategyTitle] = useState<string | null>(null);
+  const [continuedFromTitle, setContinuedFromTitle] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [archiving, setArchiving] = useState(false);
+  const [extendOpen, setExtendOpen] = useState(false);
+  const [printing, setPrinting] = useState(false);
 
   const load = useCallback(async () => {
     if (!user?.id || !id) return;
@@ -67,6 +75,17 @@ function PlanDetailBody() {
         .eq("user_id", user.id)
         .maybeSingle();
       setStrategyTitle((data as { title?: string } | null)?.title ?? null);
+      if (detail.extended_from) {
+        const { data: previous } = await supabase
+          .from("plans")
+          .select("title")
+          .eq("id", detail.extended_from)
+          .eq("user_id", user.id)
+          .maybeSingle();
+        setContinuedFromTitle((previous as { title?: string } | null)?.title ?? null);
+      } else {
+        setContinuedFromTitle(null);
+      }
     } catch (err) {
       console.error("[PlanDetail] load failed", err);
       setError("We couldn’t load this plan. Try again in a moment.");
@@ -79,6 +98,14 @@ function PlanDetailBody() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    if (searchParams.get("extend") !== "1") return;
+    setExtendOpen(true);
+    const next = new URLSearchParams(searchParams);
+    next.delete("extend");
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   const todayIso = localISODate();
   const focus = useMemo(
@@ -121,6 +148,23 @@ function PlanDetailBody() {
           : current
       );
       toast.error("Couldn’t save that tick. Try again.");
+    }
+  };
+
+  const printPlan = async () => {
+    if (!plan) return;
+    setPrinting(true);
+    try {
+      await exportPlanAsPDF(plan, {
+        strategyTitle,
+        createdFor: activeBrand?.name,
+      });
+      track("plan_printed");
+    } catch (err) {
+      console.error("[PlanDetail] print failed", err);
+      toast.error("Couldn’t print this plan. Try again.");
+    } finally {
+      setPrinting(false);
     }
   };
 
@@ -172,8 +216,40 @@ function PlanDetailBody() {
                 {" · "}
                 {plan.length_days} days · starts {formatPlanStartDate(plan.start_date)}
               </p>
+              {continuedFromTitle ? (
+                <p className="mt-1 font-['Plus_Jakarta_Sans'] text-sm text-foreground/60">
+                  Continues from {continuedFromTitle}
+                </p>
+              ) : null}
             </div>
-            {plan.status === "active" ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="gap-2"
+                data-track-id="plan_print"
+                data-track-location="plan_page"
+                disabled={printing}
+                onClick={() => void printPlan()}
+              >
+                <Printer className="h-4 w-4" />
+                Print plan
+              </Button>
+              {percent >= 70 || focus?.kind === "complete" ? (
+                <Button
+                  type="button"
+                  data-track-id="plan_extend"
+                  data-track-location="plan_page"
+                  onClick={() => setExtendOpen(true)}
+                >
+                  Extend my plan
+                </Button>
+              ) : null}
+              {plan.status === "archived" ? (
+                <span className="rounded-full border-2 border-brand-stroke px-2.5 py-1 font-['Plus_Jakarta_Sans'] text-[11px] text-foreground/60">
+                  Archived
+                </span>
+              ) : null}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
@@ -185,16 +261,17 @@ function PlanDetailBody() {
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onSelect={() => setArchiveOpen(true)}>
-                    Archive plan
+                  <DropdownMenuItem onSelect={() => setExtendOpen(true)}>
+                    Extend my plan
                   </DropdownMenuItem>
+                  {plan.status === "active" ? (
+                    <DropdownMenuItem onSelect={() => setArchiveOpen(true)}>
+                      Archive plan
+                    </DropdownMenuItem>
+                  ) : null}
                 </DropdownMenuContent>
               </DropdownMenu>
-            ) : (
-              <span className="rounded-full border-2 border-brand-stroke px-2.5 py-1 font-['Plus_Jakarta_Sans'] text-[11px] text-foreground/60">
-                Archived
-              </span>
-            )}
+            </div>
           </header>
 
           <div>
@@ -206,7 +283,11 @@ function PlanDetailBody() {
             </div>
           </div>
 
-          <FocusCard focus={focus} onOpen={(n) => navigate(`/plan/${plan.id}/day/${n}`)} />
+          <FocusCard
+            focus={focus}
+            onOpen={(n) => navigate(`/plan/${plan.id}/day/${n}`)}
+            onExtend={() => setExtendOpen(true)}
+          />
 
           <div className="space-y-6">
             {weeks.map((group) => (
@@ -294,6 +375,17 @@ function PlanDetailBody() {
         onClose={() => setArchiveOpen(false)}
         onConfirm={() => void confirmArchive()}
       />
+
+      <ExtendPlanModal
+        isOpen={extendOpen}
+        strategyId={plan?.strategy_id ?? ""}
+        planId={plan?.id ?? ""}
+        onClose={() => setExtendOpen(false)}
+        onExtended={(next) => {
+          setExtendOpen(false);
+          navigate(`/plan/${next.id}`);
+        }}
+      />
     </div>
   );
 }
@@ -301,21 +393,39 @@ function PlanDetailBody() {
 function FocusCard({
   focus,
   onOpen,
+  onExtend,
 }: {
   focus: ReturnType<typeof getPlanFocus> | null;
   onOpen: (dayNumber: number) => void;
+  onExtend: () => void;
 }) {
   if (!focus) return null;
   if (focus.kind === "complete") {
+    const reducedMotion =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     return (
-      <article className="rounded-[24px] border-2 border-brand-stroke bg-card p-5">
-        <p className="font-['Plus_Jakarta_Sans'] text-xs font-semibold uppercase tracking-wide text-foreground/55">
+      <article
+        className={`rounded-[24px] border-2 border-brand-stroke bg-brand-lime/60 p-5 text-brand-navy dark:bg-brand-lime/20 dark:text-foreground ${
+          reducedMotion ? "" : "animate-fade-in-up"
+        }`}
+      >
+        <p className="font-['Plus_Jakarta_Sans'] text-xs font-semibold uppercase tracking-wide">
           Plan complete
         </p>
-        <p className="mt-2 font-['Fraunces'] text-2xl text-foreground">That’s the lot.</p>
-        <p className="mt-1 font-['Plus_Jakarta_Sans'] text-sm text-foreground/70">
-          Every day is done. Come back whenever you want another stretch.
+        <p className="mt-2 font-['Fraunces'] text-2xl">Well done. You finished the plan.</p>
+        <p className="mt-1 font-['Plus_Jakarta_Sans'] text-sm opacity-80">
+          We’ll use your notes and results to shape the next round.
         </p>
+        <Button
+          type="button"
+          className="mt-4"
+          data-track-id="plan_extend"
+          data-track-location="plan_page"
+          onClick={onExtend}
+        >
+          Extend my plan
+        </Button>
       </article>
     );
   }

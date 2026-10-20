@@ -29,6 +29,7 @@ import {
   readDashboardStrategyIntent,
   type DashboardStrategyIntent,
 } from "../lib/dashboardStrategyIntent";
+import { CreatePlanModal } from "../components/plan/CreatePlanModal";
 import { StrategyAimsSection } from "../components/strategy/StrategyAimsSection";
 import { StrategyCreatePanel } from "../components/strategy/StrategyCreatePanel";
 import { StrategyGuidanceCard } from "../components/strategy/StrategyGuidanceCard";
@@ -44,6 +45,14 @@ import { StrategyContentView } from "../components/strategy/StrategyContentView"
 import { StrategyCompositionBanner } from "../components/strategy/StrategyCompositionBanner";
 import StrategyArchiveModal from "../components/strategy/StrategyArchiveModal";
 import StrategyPermanentDeleteModal from "../components/strategy/StrategyPermanentDeleteModal";
+import {
+  getPlanFocus,
+  getPlanWithDays,
+  listPlans,
+  PLANS_CHANGED_EVENT,
+  type Plan,
+  type PlanWithDays,
+} from "../lib/plans";
 
 function formatArchivedDate(iso: string): string {
   const date = new Date(iso);
@@ -117,6 +126,11 @@ function StrategyPageBody() {
   const [strategyCountsByBrand, setStrategyCountsByBrand] = useState<Record<string, number>>({});
   const [openAimFormNonce, setOpenAimFormNonce] = useState(0);
   const [highlightedAimId, setHighlightedAimId] = useState<string | null>(null);
+  const [activePlans, setActivePlans] = useState<Plan[]>([]);
+  const [createPlanOpen, setCreatePlanOpen] = useState(false);
+  const [createPlanStrategyId, setCreatePlanStrategyId] = useState<string | undefined>();
+  const [readyStrategy, setReadyStrategy] = useState<{ id: string; title?: string } | null>(null);
+  const [latestPlanDetail, setLatestPlanDetail] = useState<PlanWithDays | null>(null);
 
   const brandReady = isBrandScopeReady(brandLoading, brands || [], scopedBrandId);
   const isLoading = !brandReady || aimsLoading || strategiesLoading;
@@ -126,6 +140,19 @@ function StrategyPageBody() {
   const currentStep: StrategyGuidanceStep = !hasAims ? 1 : !hasStrategies ? 2 : 3;
   const mostRecentAim = aims[0] ?? null;
   const mostRecentStrategy = strategies[0] ?? null;
+  const strategyIds = useMemo(() => new Set(strategies.map((row) => row.id)), [strategies]);
+  const scopedActivePlans = useMemo(
+    () => activePlans.filter((plan) => strategyIds.has(plan.strategy_id)),
+    [activePlans, strategyIds]
+  );
+  const latestActivePlan = useMemo(() => {
+    if (mostRecentStrategy) {
+      const forLatest = scopedActivePlans.find((plan) => plan.strategy_id === mostRecentStrategy.id);
+      if (forLatest) return forLatest;
+    }
+    return scopedActivePlans[0] ?? null;
+  }, [mostRecentStrategy, scopedActivePlans]);
+  const guidanceCta = latestActivePlan ? "Open today's task" : "Build my plan";
   const aimLineageIdsWithStrategy = useMemo(() => {
     const ids = new Set<string>();
     for (const strategy of strategies) {
@@ -200,9 +227,29 @@ function StrategyPageBody() {
       openCreatePanel({ aimLineageIds: [mostRecentAim.lineage_id] });
       return;
     }
-    if (currentStep === 3 && mostRecentStrategy) {
-      navigate(`/strategy/${mostRecentStrategy.id}`);
+    if (currentStep === 3) {
+      if (latestActivePlan) {
+        const focus = latestPlanDetail
+          ? getPlanFocus(latestPlanDetail.start_date, latestPlanDetail.length_days, latestPlanDetail.days)
+          : null;
+        if (focus && focus.kind !== "complete") {
+          navigate(`/plan/${latestActivePlan.id}/day/${focus.day.day_number}`);
+          return;
+        }
+        navigate(`/plan/${latestActivePlan.id}`);
+        return;
+      }
+      const strategyId = mostRecentStrategy?.id;
+      if (strategyId) {
+        setCreatePlanStrategyId(strategyId);
+        setCreatePlanOpen(true);
+      }
     }
+  };
+
+  const openPlanCreate = (strategyId?: string) => {
+    setCreatePlanStrategyId(strategyId || mostRecentStrategy?.id);
+    setCreatePlanOpen(true);
   };
 
   useEffect(() => {
@@ -238,6 +285,47 @@ function StrategyPageBody() {
     const timer = window.setTimeout(() => setRestoreNudge(null), 8000);
     return () => window.clearTimeout(timer);
   }, [restoreNudge]);
+
+  useEffect(() => {
+    if (!user?.id) {
+      setActivePlans([]);
+      return;
+    }
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const rows = await listPlans(user.id);
+        if (!cancelled) setActivePlans(rows.filter((plan) => plan.status === "active"));
+      } catch (err) {
+        console.error("[Strategy] listPlans failed", err);
+      }
+    };
+    void load();
+    const onChange = () => void load();
+    window.addEventListener(PLANS_CHANGED_EVENT, onChange);
+    return () => {
+      cancelled = true;
+      window.removeEventListener(PLANS_CHANGED_EVENT, onChange);
+    };
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!user?.id || !latestActivePlan) {
+      setLatestPlanDetail(null);
+      return;
+    }
+    let cancelled = false;
+    void getPlanWithDays(latestActivePlan.id, user.id)
+      .then((detail) => {
+        if (!cancelled) setLatestPlanDetail(detail);
+      })
+      .catch((err) => {
+        console.error("[Strategy] getPlanWithDays failed", err);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id, latestActivePlan]);
 
   const confirmArchive = async () => {
     if (!archiveTarget) return;
@@ -337,7 +425,46 @@ function StrategyPageBody() {
             {!isLoading ? (
               <div className="space-y-4">
                 <StrategyProgressStrip currentStep={currentStep} />
-                <StrategyGuidanceCard currentStep={currentStep} onAction={handleGuidanceAction} />
+                <StrategyGuidanceCard
+                  currentStep={currentStep}
+                  onAction={handleGuidanceAction}
+                  ctaLabel={currentStep === 3 ? guidanceCta : undefined}
+                />
+                {readyStrategy ? (
+                  <section
+                    className="app-card overflow-hidden p-0"
+                    aria-label="Strategy ready"
+                  >
+                    <span className="block h-1.5 w-full bg-brand-lime" aria-hidden />
+                    <div className="space-y-3 p-5 sm:p-6">
+                      <h2 className="app-heading font-['Fraunces'] text-xl text-foreground sm:text-2xl">
+                        Your strategy is ready. Build your day-by-day plan
+                      </h2>
+                      <p className="max-w-2xl font-['Plus_Jakarta_Sans'] text-sm leading-relaxed text-foreground/75">
+                        One clear task a day, from the strategy you just wrote.
+                      </p>
+                      <div className="flex flex-col gap-2 min-[390px]:flex-row min-[390px]:items-center">
+                        <Button
+                          type="button"
+                          onClick={() => {
+                            openPlanCreate(readyStrategy.id);
+                            setReadyStrategy(null);
+                          }}
+                          className="min-h-11 w-full sm:w-auto"
+                        >
+                          Build my plan
+                        </Button>
+                        <button
+                          type="button"
+                          onClick={() => setReadyStrategy(null)}
+                          className="min-h-11 px-3 font-['Plus_Jakarta_Sans'] text-sm text-foreground/55 hover:text-foreground"
+                        >
+                          Not now
+                        </button>
+                      </div>
+                    </div>
+                  </section>
+                ) : null}
               </div>
             ) : null}
 
@@ -374,6 +501,7 @@ function StrategyPageBody() {
                   initialAimLineageIds={initialAimLineageIds}
                   initialIcpLineageIds={initialIcpLineageIds}
                   onGenerate={createStrategy}
+                  onCreated={(strategy) => setReadyStrategy(strategy)}
                   onClose={closeCreatePanel}
                 />
               ) : null}
@@ -543,6 +671,19 @@ function StrategyPageBody() {
         isDeleting={isPermanentDeleting}
         onClose={() => setPermanentDeleteTarget(null)}
         onConfirm={() => void confirmPermanentDelete()}
+      />
+
+      <CreatePlanModal
+        isOpen={createPlanOpen}
+        userId={user?.id ?? ""}
+        strategies={strategies.map((row) => ({ id: row.id, title: row.title }))}
+        defaultStrategyId={createPlanStrategyId || mostRecentStrategy?.id}
+        onClose={() => setCreatePlanOpen(false)}
+        onCreated={(plan) => {
+          setCreatePlanOpen(false);
+          setReadyStrategy(null);
+          navigate(`/plan/${plan.id}`);
+        }}
       />
     </>
   );

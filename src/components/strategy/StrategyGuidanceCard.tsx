@@ -16,19 +16,21 @@ const COPY: Record<
     cta: "Build a strategy from this aim",
   },
   3: {
-    title: "Your plan is ready",
-    text: "Open your strategy to see what to post and when, then follow the first 14 days.",
-    cta: "Open my strategy",
+    title: "Follow your plan",
+    text: "Your strategy is ready. Build a day-by-day plan, then open today’s task when you have one.",
+    cta: "Build my plan",
   },
 };
 
 type Props = {
   currentStep: StrategyGuidanceStep;
   onAction: () => void;
+  ctaLabel?: string;
 };
 
-export function StrategyGuidanceCard({ currentStep, onAction }: Props) {
+export function StrategyGuidanceCard({ currentStep, onAction, ctaLabel }: Props) {
   const copy = COPY[currentStep];
+  const cta = ctaLabel ?? copy.cta;
 
   return (
     <section
@@ -50,7 +52,7 @@ export function StrategyGuidanceCard({ currentStep, onAction }: Props) {
           data-track-location="strategy_page"
           className="min-h-11 w-full sm:w-auto"
         >
-          {copy.cta}
+          {cta}
         </Button>
       </div>
     </section>

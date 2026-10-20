@@ -105,7 +105,7 @@ function StrategyEditorBody() {
   const [permanentDeleteOpen, setPermanentDeleteOpen] = useState(false);
   const [isPermanentDeleting, setIsPermanentDeleting] = useState(false);
   const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
-  const [thinkingOpen, setThinkingOpen] = useState(false);
+  const [thinkingOpen, setThinkingOpen] = useState(true);
   const pendingNavRef = useRef<string | null>(null);
   const editBaselineRef = useRef<string | null>(null);
   const sectionSnapshotRef = useRef<StrategySectionSnapshot | null>(null);
@@ -683,6 +683,7 @@ function StrategyEditorBody() {
                     stagedSections={stagedSections}
                     activeSection={activeSection}
                     readOnly={readOnly}
+                    collapsible
                     sections={THINKING_SECTIONS}
                     onStartEdit={startSectionEdit}
                     onDoneSection={doneSectionEdit}

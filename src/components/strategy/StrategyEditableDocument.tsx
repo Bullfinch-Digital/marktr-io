@@ -1,4 +1,5 @@
-import { Plus } from "lucide-react";
+import { useState } from "react";
+import { ChevronDown, Plus } from "lucide-react";
 import { Button } from "../ui/button";
 import type { ICPStrategyPayload } from "../../types/icpStrategyPayload";
 import type { StrategySectionId } from "../../lib/strategyEditPayload";
@@ -36,6 +37,8 @@ type Props = {
   sections?: StrategySectionId[];
   /** Card layout for the channel plan. Other sections stay as they are. */
   channelLayout?: "default" | "cards";
+  /** Each section gets its own chevron. All start open. Not remembered between visits. */
+  collapsible?: boolean;
   onStartEdit: (section: StrategySectionId) => void;
   onDoneSection: () => void;
   onCancelSection: () => void;
@@ -51,6 +54,9 @@ function SectionShell({
   isEditing,
   readOnly,
   canEdit,
+  collapsible,
+  collapsed,
+  onToggleCollapsed,
   onStartEdit,
   onDoneSection,
   onCancelSection,
@@ -63,6 +69,9 @@ function SectionShell({
   isEditing: boolean;
   readOnly?: boolean;
   canEdit: boolean;
+  collapsible?: boolean;
+  collapsed?: boolean;
+  onToggleCollapsed?: () => void;
   onStartEdit: () => void;
   onDoneSection: () => void;
   onCancelSection: () => void;
@@ -71,6 +80,7 @@ function SectionShell({
   const label =
     sectionId === "channel_plan" && prominent ? "Where to post" : SECTION_LABELS[sectionId];
   const framed = !prominent || isEditing;
+  const bodyId = `strategy-section-${sectionId}-body`;
 
   return (
     <div
@@ -83,10 +93,27 @@ function SectionShell({
     >
       <div
         className={`flex flex-wrap items-center justify-between gap-2 ${
-          framed ? "border-b border-brand-stroke/40 px-4 py-2" : "mb-3"
+          framed
+            ? `px-4 py-2 ${collapsed ? "" : "border-b border-brand-stroke/40"}`
+            : "mb-3"
         }`}
       >
         <div className="flex items-center gap-2">
+          {collapsible ? (
+            <button
+              type="button"
+              className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded text-foreground/55 transition-colors hover:bg-accent-grey/30 hover:text-foreground"
+              aria-expanded={!collapsed}
+              aria-controls={bodyId}
+              aria-label={`${collapsed ? "Show" : "Hide"} ${label}`}
+              onClick={onToggleCollapsed}
+            >
+              <ChevronDown
+                className={`h-4 w-4 transition-transform ${collapsed ? "" : "rotate-180"}`}
+                aria-hidden
+              />
+            </button>
+          ) : null}
           {sectionId !== "title" ? (
             prominent ? (
               <h2 className="font-['Fraunces'] text-2xl text-foreground">{label}</h2>
@@ -137,7 +164,11 @@ function SectionShell({
           </div>
         ) : null}
       </div>
-      <div className={framed ? "p-4" : ""}>{children}</div>
+      {collapsed ? null : (
+        <div id={bodyId} className={framed ? "p-4" : ""}>
+          {children}
+        </div>
+      )}
     </div>
   );
 }
@@ -150,6 +181,7 @@ export function StrategyEditableDocument({
   readOnly = false,
   sections,
   channelLayout = "default",
+  collapsible = false,
   onStartEdit,
   onDoneSection,
   onCancelSection,
@@ -159,11 +191,21 @@ export function StrategyEditableDocument({
   const stagedSet = new Set(stagedSections);
   const canStartEdit = !activeSection;
   const sectionIds = sections ?? (["title", ...CONTENT_SECTIONS] as StrategySectionId[]);
+  const [sectionOpen, setSectionOpen] = useState<Partial<Record<StrategySectionId, boolean>>>({});
+
+  const toggleSection = (sectionId: StrategySectionId) => {
+    if (activeSection === sectionId) return;
+    setSectionOpen((prev) => ({
+      ...prev,
+      [sectionId]: prev[sectionId] === false,
+    }));
+  };
 
   return (
     <div className="space-y-4">
       {sectionIds.map((sectionId) => {
         const cards = sectionId === "channel_plan" && channelLayout === "cards";
+        const collapsed = collapsible && sectionOpen[sectionId] === false && activeSection !== sectionId;
         return (
           <SectionShell
             key={sectionId}
@@ -174,7 +216,15 @@ export function StrategyEditableDocument({
             isEditing={activeSection === sectionId}
             readOnly={readOnly}
             canEdit={canStartEdit}
-            onStartEdit={() => onStartEdit(sectionId)}
+            collapsible={collapsible}
+            collapsed={collapsed}
+            onToggleCollapsed={() => toggleSection(sectionId)}
+            onStartEdit={() => {
+              if (collapsible) {
+                setSectionOpen((prev) => ({ ...prev, [sectionId]: true }));
+              }
+              onStartEdit(sectionId);
+            }}
             onDoneSection={onDoneSection}
             onCancelSection={onCancelSection}
           >

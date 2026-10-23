@@ -1971,6 +1971,10 @@ export const RESOURCE_POSTS: ResourcePost[] = [
             href: "/resources/what-an-icp-really-is",
           },
           {
+            text: "The 4 Storytelling Tricks That Keep People Watching",
+            href: "/resources/storytelling-tricks-that-keep-people-watching",
+          },
+          {
             text: "Build your brand story free",
             href: "/story",
           },
@@ -3070,6 +3074,338 @@ export const RESOURCE_POSTS: ResourcePost[] = [
           {
             text: "I Tested Alex Hormozi's Marketing Strategy on My Own Business",
             href: "/resources/hormozi-marketing-strategy-tested",
+          },
+          {
+            text: "The 5-Stage Marketing Strategy Framework for Founders",
+            href: "/resources/5-stage-marketing-strategy-framework",
+          },
+          {
+            text: "The 4 Storytelling Tricks That Keep People Watching",
+            href: "/resources/storytelling-tricks-that-keep-people-watching",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    slug: "storytelling-tricks-that-keep-people-watching",
+    title: "The 4 Storytelling Tricks That Keep People Watching",
+    description:
+      "Four screenwriter techniques, story beats, stakes, questions and surprises, plus a fill-in-the-blank Story Structure you can paste into a caption, homepage or pitch. With a free worksheet.",
+    topic: "Storytelling techniques for founder and brand stories",
+    searchIntent:
+      "storytelling techniques for business / how to tell a brand story people keep reading",
+    introLine:
+      "Four screenwriter techniques, story beats, stakes, questions and surprises, plus a fill-in-the-blank Story Structure you can paste into a caption, homepage or pitch. With a free worksheet.",
+    bgColor: "#E07A5F",
+    readingTime: "12 min read",
+    date: "2026-10-23",
+    author: {
+      name: "Jon Stanford",
+      title: "Founder",
+      org: "Bullfinch Digital",
+      url: "https://bullfinchdigital.com",
+    },
+    seoTitle: "The 4 Storytelling Tricks That Keep People Watching (Free Worksheet)",
+    metaDescription:
+      "Four screenwriter techniques, story beats, stakes, questions and surprises, plus a fill-in-the-blank Story Structure you can paste into a caption, homepage or pitch. With a free worksheet.",
+    faq: [
+      {
+        question: "What are story beats?",
+        answer:
+          "The moments that move a story forward. A simple rule from the South Park writers: join beats with \"but\" or \"therefore\", never \"and then\". Each \"but\" adds a problem and each \"therefore\" adds a decision, which keeps people wanting to know what happens next.",
+      },
+      {
+        question: "What are story stakes in business storytelling?",
+        answer:
+          "An obstacle you had to overcome, combined with something you stood to lose if it failed. Most founder stories leave this out, which is why they feel flat. Add what was on the line and the context that raised the pressure, such as only six months of rent left.",
+      },
+      {
+        question: "Why should a story open with a question?",
+        answer:
+          "Because a question gives the audience something to solve. Rather than opening with when and where, open with one big What or Why question that sets them off on a detective trail and keeps them reading for the answer.",
+      },
+      {
+        question: "What is a story surprise, and how do I use one in my founding story?",
+        answer:
+          "Misdirection that makes sense in hindsight. Let people assume the story is about the obvious thing, such as the product, then reveal it was about a bigger truth, and back it up with a specific, earned payoff like an award, a turnover figure or a customer result.",
+      },
+      {
+        question: "How do I know if my story is working?",
+        answer:
+          "Read it out loud to someone and stop right after the \"but\". If they ask \"so what happened?\", it's working. If they don't, raise the stakes.",
+      },
+    ],
+    body: [
+      {
+        type: "p",
+        text:
+          "Think about the last time you said \"just one more episode\" and then looked up to find it was 1am. You didn't really decide to keep watching. A screenwriter had already made that decision for you, knowing exactly which buttons to press so you couldn't stop.",
+      },
+      {
+        type: "p",
+        text:
+          "Those same buttons work on your own business story, your personal brand and the content you create, just as well as they work for Netflix.",
+      },
+      {
+        type: "p",
+        text:
+          "Below are the four techniques screenwriters use to make people need to know what happens next, plus a bonus Story Structure that ties them together. By the end you'll have a fill-in-the-blank template you can paste straight into a caption, a website homepage or a business pitch.",
+      },
+      {
+        type: "p",
+        text:
+          "The fourth technique is the one almost no business uses. It's the reason you still remember the ending of The Sixth Sense, and the difference between a story people politely nod along to and one they actually repeat to their friends.",
+      },
+      {
+        type: "p",
+        text:
+          "I'm Jon Stanford. I've got a master's in filmmaking, I've written a novel, and I've spent a decade making content for brands like Warner Bros and Red Bull. Story is what I do.",
+      },
+      { type: "h2", text: "Watch the full video" },
+      {
+        type: "youtube",
+        videoId: "61E2da3zVlY",
+        title: "The 4 Storytelling Tricks That Keep People Watching",
+      },
+      {
+        type: "p",
+        text:
+          "Prefer to read? Everything is below. There's also a free worksheet that walks you through all four techniques.",
+      },
+      {
+        type: "callout",
+        title: "Free worksheet: The 4 Storytelling Tricks",
+        text: "Fill it in digitally or print it and complete it by hand.",
+        href: "/downloads?resource=4-storytelling-tricks-worksheet",
+        linkText: "Download the free worksheet →",
+      },
+      { type: "h2", text: "1. Story Beats" },
+      {
+        type: "p",
+        text:
+          "The creators of South Park have one rule for every script: if the beats of your story are joined with \"and then\", it's boring, so every beat has to be joined by \"but\" or \"therefore\" instead. Embed those beats throughout your story to keep people engaged.",
+      },
+      {
+        type: "p",
+        text:
+          "Here's an example using my own coffee company, Apostle Coffee. The \"and then\" version:",
+      },
+      {
+        type: "callout",
+        title: "The \"and then\" version",
+        text:
+          "After years in high-pressure jobs we left London, and then we bought an old coffee roaster that we transported to Shropshire in an old horse trailer, and then we started a roastery selling coffee.",
+      },
+      {
+        type: "p",
+        text:
+          "All of that is true, but the way it's told is boring, and by the end you've probably stopped listening. Now the same elements with \"but\" and \"therefore\":",
+      },
+      {
+        type: "callout",
+        title: "But and therefore",
+        text:
+          "After years in high-pressure jobs we left London to build a business with our own hands, but we had no budget, no team and no experience in the coffee industry, so we bought a vintage roaster, packed our belongings into an old horse trailer and set up in the Shropshire Hills to teach ourselves from scratch.",
+      },
+      {
+        type: "p",
+        text:
+          "Same facts, completely different feeling. Every \"but\" creates a problem that needs overcoming, and every \"therefore\" forces a decision and an action. That's what grabs attention, and it's what keeps people reading. Remember: BUT = problem, THEREFORE = decision.",
+      },
+      {
+        type: "p",
+        text:
+          "Keep hold of that Apostle story, because by the end it becomes something you can copy line for line. And a \"but\" only has impact if something is genuinely on the line, which brings us to stakes.",
+      },
+      { type: "h2", text: "2. Story Stakes" },
+      {
+        type: "p",
+        text:
+          "Without stakes a story is just a sequence of events. Stakes are an obstacle that needs to be overcome, combined with something your hero stands to lose: impossible odds, a ticking clock, David versus Goliath, Marlin searching for Nemo across a vast ocean.",
+      },
+      {
+        type: "p",
+        text:
+          "Back to the Future nails all of these. Trapped in the past, Marty McFly must get his parents to fall in love at high school or he'll be wiped from existence, and his time is running out, because he can only get back when lightning strikes the town's clock tower on the night of the school dance. Obstacle, loss and clock, all in one story.",
+      },
+      {
+        type: "p",
+        text:
+          "Most business and founder stories have zero stakes. Admitting how close you came to disaster or failure can feel uncomfortable, but it's the difference between a forgettable story and one that stays with people.",
+      },
+      {
+        type: "p",
+        text:
+          "For Apostle, the stakes are the story: a young couple walk away from their city careers, pack everything they own into an old horse trailer, with no experience and no plan B if the coffee doesn't sell. It makes you lean in. How will they do it? How will it end?",
+      },
+      {
+        type: "p",
+        text:
+          "So ask yourself what you stood to lose, then add context that raises the stakes: \"with only six months of rent left\", or \"when all of my friends and family were telling me it couldn't be done\". Share the facts and raise the stakes. Context does half the work, though. Without the right opening line you won't hook anyone in the first place.",
+      },
+      { type: "h2", text: "3. Story Questions" },
+      {
+        type: "p",
+        text:
+          "Strip storytelling back to its simplest form and it's two questions: the What and the Why. Most people open with the When and the Where, and that's a mistake.",
+      },
+      {
+        type: "p",
+        text:
+          "Think about Titanic. At the start we watch a crew exploring the sunken wreck, so we're shown the outcome of the whole film. Even the word \"Titanic\" makes us think of a sinking ship. Yet when it's on TV I get caught up in it for three hours, because the question isn't \"does the ship sink?\" It's \"who makes it out of this unfolding disaster alive?\"",
+      },
+      {
+        type: "p",
+        text:
+          "Your story needs one big question in the very first line, one your audience can't help trying to answer. It sets them off on a detective trail, gathering clues to piece together what's going on.",
+      },
+      {
+        type: "p",
+        text:
+          "For Apostle, that isn't \"We're an organic roastery based in the Shropshire Hills.\" It's: \"What happens when two people who know nothing about coffee try to build an award-winning roastery from the back of a horse trailer?\"",
+      },
+      {
+        type: "p",
+        text:
+          "Keep your own Story Question to hand, because it powers a sneaky trick at the end. With questions in place your audience is engaged, and the fourth technique is how you answer them in a way they don't see coming.",
+      },
+      { type: "h2", text: "4. Story Surprises" },
+      {
+        type: "p",
+        text:
+          "This technique is misdirection. You let the audience think the story is about one thing, heading in a predictable direction, then pull the rug and reveal it was about something different and much bigger the whole time. One condition: it has to make sense when you look back at everything else.",
+      },
+      {
+        type: "p",
+        text:
+          "That's why The Sixth Sense is so memorable. It doesn't just land a huge surprise (\"I see dead people\"), it rewards you for rewatching, because every clue was hiding in plain sight. Expected, then actual, then proof.",
+      },
+      {
+        type: "p",
+        text:
+          "Apply it to your founding story or the bio on your About page. People usually assume a business story is about the product, so with Apostle they might assume it's about roasting coffee. It isn't. It's about proving that a small business built on values, like championing compostable packaging before anyone else or planting trees to offset our carbon before it was the norm, can thrive against the odds and push an industry forward.",
+      },
+      {
+        type: "p",
+        text:
+          "So the surprise is that it was never really about coffee, and the payoff is The Independent naming us Best UK Coffee Subscription. A big moment for us as a roastery, and a reward for the audience for sticking around.",
+      },
+      {
+        type: "p",
+        text:
+          "Make your payoff specific and earned: an award, a turnover figure, or a customer whose day genuinely changed because of the value you provided. Avoid anything vague. There's nothing worse than a lame payoff, and even M. Night Shyamalan can't hit a winner every time. The end of The Village is exactly the sort of lame duck ending I mean.",
+      },
+      { type: "h2", text: "Bonus: The Story Structure" },
+      {
+        type: "p",
+        text:
+          "Put all four techniques together and you have a story structure you can use today. Copy this template and fill in the blanks (the worksheet has space for each part):",
+      },
+      {
+        type: "callout",
+        title: "Story Structure",
+        text:
+          "[Who you were before] wanted [your desire], BUT [the obstacle], and if it failed, [what you stood to lose], [the context that raises the stakes]. SO (THEREFORE) [the decision that changed everything]. You'd think this is a story about [the obvious thing]... but it's really about [the bigger truth], and here's the proof: [the specific payoff].",
+      },
+      { type: "h3", text: "The sneaky trick" },
+      {
+        type: "p",
+        text:
+          "Take the Story Question you wrote for technique 3 and put it right at the very top, before anything else. Instead of telling your story straight away, you ask a question your audience can't help trying to answer. Everything that follows becomes the answer they're hunting for, and they can't leave until they've found it. The new top line looks like this: [Your Story Question?] What happens when [an unlikely hero] tries to [an ambitious goal]?",
+      },
+      { type: "h3", text: "The full Apostle example" },
+      {
+        type: "callout",
+        title: "Apostle Coffee",
+        text:
+          "What happens when two people who know nothing about coffee try to build an award-winning roastery from the back of a horse trailer? After a decade in high-pressure London careers, we wanted to build something with our own hands, a coffee brand that was ethical, sustainable and genuinely delicious, all at once. BUT we had no budget, no team and no experience in coffee, just a vintage 1980s roaster, a horse trailer packed with everything we owned, and no plan B if the coffee didn't sell. SO we stopped copying what the rest of the industry was doing and built everything around what we actually stood for: compostable packaging nobody else was using, and a tree-planting scheme before offsetting was fashionable. You'd think this is a story about roasting coffee... but it's really about proving that a values-first business can win against the odds, and here's the proof: within a year, The Independent named Apostle the Best UK Coffee Subscription.",
+      },
+      { type: "h3", text: "The read-aloud test" },
+      {
+        type: "p",
+        text:
+          "Once you've written yours, read it out loud to someone and stop right after the \"but\". If they ask \"so what happened?\", it's working. If they don't, your stakes aren't high enough yet, so go back to technique 2 and spend more time on the obstacles.",
+      },
+      {
+        type: "p",
+        text:
+          "Did you spot what just happened? That structure has my five story lines hidden inside it the whole time: Situation, Desire, Conflict, Change, Result. These are the key ingredients of any engaging story. To map your five lines out properly first, read [the Hollywood storytelling framework for your brand story](/resources/hollywood-brand-storytelling-framework).",
+      },
+      {
+        type: "callout",
+        title: "Free worksheet: The 4 Storytelling Tricks",
+        text: "Fill it in digitally or print it and complete it by hand.",
+        href: "/downloads?resource=4-storytelling-tricks-worksheet",
+        linkText: "Download the free worksheet →",
+      },
+      {
+        type: "callout",
+        title: "Turn your story into a full brand story.",
+        text:
+          "marktr.io's brand story builder asks a few questions and builds the foundation for you.",
+        href: "/story",
+        linkText: "Try the brand story builder →",
+      },
+      { type: "h2", text: "Frequently asked questions" },
+      { type: "h3", text: "What are story beats?" },
+      {
+        type: "p",
+        text:
+          "The moments that move a story forward. A simple rule from the South Park writers: join beats with \"but\" or \"therefore\", never \"and then\". Each \"but\" adds a problem and each \"therefore\" adds a decision, which keeps people wanting to know what happens next.",
+      },
+      { type: "h3", text: "What are story stakes in business storytelling?" },
+      {
+        type: "p",
+        text:
+          "An obstacle you had to overcome, combined with something you stood to lose if it failed. Most founder stories leave this out, which is why they feel flat. Add what was on the line and the context that raised the pressure, such as only six months of rent left.",
+      },
+      { type: "h3", text: "Why should a story open with a question?" },
+      {
+        type: "p",
+        text:
+          "Because a question gives the audience something to solve. Rather than opening with when and where, open with one big What or Why question that sets them off on a detective trail and keeps them reading for the answer.",
+      },
+      {
+        type: "h3",
+        text: "What is a story surprise, and how do I use one in my founding story?",
+      },
+      {
+        type: "p",
+        text:
+          "Misdirection that makes sense in hindsight. Let people assume the story is about the obvious thing, such as the product, then reveal it was about a bigger truth, and back it up with a specific, earned payoff like an award, a turnover figure or a customer result.",
+      },
+      { type: "h3", text: "How do I know if my story is working?" },
+      {
+        type: "p",
+        text:
+          "Read it out loud to someone and stop right after the \"but\". If they ask \"so what happened?\", it's working. If they don't, raise the stakes.",
+      },
+      { type: "h2", text: "The takeaway" },
+      {
+        type: "p",
+        text:
+          "Story beats keep it moving, stakes make it matter, a question hooks people in, and a surprise makes it stick. Put them together in one structure, open with your question, and you have a story people can't stop reading. Drop your own Story Structure in the comments on the video; I read every one.",
+      },
+      {
+        type: "callout",
+        title: "Start shaping your brand's story on marktr.io",
+        text:
+          "marktr.io's brand story builder asks a few questions and builds the foundation for you.",
+        href: "/story",
+        linkText: "Start shaping your brand's story on marktr.io →",
+      },
+      { type: "h2", text: "Related resources" },
+      {
+        type: "links",
+        items: [
+          {
+            text: "The Hollywood Storytelling Framework for Your Brand Story",
+            href: "/resources/hollywood-brand-storytelling-framework",
+          },
+          {
+            text: "The Psychology of Premium Branding",
+            href: "/resources/psychology-of-premium-branding",
           },
           {
             text: "The 5-Stage Marketing Strategy Framework for Founders",

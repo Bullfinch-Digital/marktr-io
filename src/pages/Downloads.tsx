@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { ExternalLink, FileDown, Loader2 } from "lucide-react";
 import { supabase } from "../config/supabase";
 import {
@@ -11,6 +12,8 @@ type ResourceRow = DownloadResource & {
 };
 
 export default function Downloads() {
+  const [searchParams] = useSearchParams();
+  const requestedSlug = searchParams.get("resource");
   const [resources, setResources] = useState<ResourceRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -35,7 +38,12 @@ export default function Downloads() {
         setError("Couldn’t load downloads right now. Please try again shortly.");
         setResources([]);
       } else {
-        setResources((data as ResourceRow[]) ?? []);
+        const rows = (data as ResourceRow[]) ?? [];
+        setResources(rows);
+        if (requestedSlug) {
+          const match = rows.find((row) => row.slug === requestedSlug);
+          if (match) setSelected(match);
+        }
       }
       setLoading(false);
     };
@@ -44,7 +52,7 @@ export default function Downloads() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [requestedSlug]);
 
   return (
     <main className="bg-background py-16 sm:py-20 lg:py-24">

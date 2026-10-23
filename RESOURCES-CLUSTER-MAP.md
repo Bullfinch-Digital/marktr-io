@@ -7,6 +7,7 @@ Use this to check for keyword overlap before drafting a new post.
 
 | Title | Slug | Topic | Search intent | Published |
 | --- | --- | --- | --- | --- |
+| The 4 Storytelling Tricks That Keep People Watching | `storytelling-tricks-that-keep-people-watching` | Storytelling techniques for founder and brand stories | storytelling techniques for business / how to tell a brand story people keep reading | 2026-10-23 |
 | The Psychology of Premium Branding (And What It Nearly Cost Me) | `psychology-of-premium-branding` | Premium brand positioning & pricing psychology | psychology of premium branding / how to make a brand feel premium | 2026-09-29 |
 | The 5-Stage Marketing Strategy Framework for Founders | `5-stage-marketing-strategy-framework` | Marketing strategy framework | marketing strategy framework for founders | 2026-09-21 |
 | I Tested Alex Hormozi's Marketing Strategy on My Own Business — Here's What Actually Worked | `hormozi-marketing-strategy-tested` | Offer & lead-gen strategy (applied) | hormozi marketing strategy tested on a real business | 2026-09-21 |
